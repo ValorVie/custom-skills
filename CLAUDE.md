@@ -1,22 +1,3 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-
-These instructions are for AI assistants working in this project.
-
-Always open `@/openspec/AGENTS.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `@/openspec/AGENTS.md` to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
-
-<!-- OPENSPEC:END -->
-
 # Claude Code 專案指南
 # 由 Universal Dev Standards CLI 生成
 # https://github.com/AsiaOstrich/universal-dev-standards
@@ -106,5 +87,40 @@ AI 助手應以繁體中文回覆使用者的問題與請求。
 - 建置有錯誤
 - 測試失敗
 - 包含除錯程式碼（console.log 等）
+
+---
+
+<!-- UDS:STANDARDS:START -->
+## 規範文件參考
+
+**重要**：執行相關任務時，務必讀取並遵循 `.standards/` 目錄下的對應規範：
+
+**核心規範：**
+- `.standards/anti-hallucination.md`
+- `.standards/commit-message.ai.yaml`
+- `.standards/traditional-chinese.ai.yaml`
+- `.standards/checkin-standards.md`
+- `.standards/spec-driven-development.md`
+- `.standards/code-review-checklist.md`
+- `.standards/git-workflow.ai.yaml`
+- `.standards/github-flow.ai.yaml`
+- `.standards/squash-merge.ai.yaml`
+- `.standards/versioning.md`
+- `.standards/changelog-standards.md`
+- `.standards/testing.ai.yaml`
+- `.standards/unit-testing.ai.yaml`
+- `.standards/integration-testing.ai.yaml`
+- `.standards/documentation-structure.md`
+- `.standards/documentation-writing-standards.md`
+- `.standards/project-structure.md`
+- `.standards/error-code-standards.md`
+- `.standards/logging-standards.md`
+- `.standards/test-completeness-dimensions.md`
+- `.standards/test-driven-development.md`
+- `.standards/requirement-checklist.md`
+- `.standards/requirement-template.md`
+- `.standards/requirement-document-template.md`
+
+<!-- UDS:STANDARDS:END -->
 
 ---

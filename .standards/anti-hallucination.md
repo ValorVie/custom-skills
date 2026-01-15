@@ -582,7 +582,7 @@ simple caching needs, in-memory cache would suffice.
      YES              NO
       │               │
       ▼               ▼
-┌──────────┐   ┌─────────────┐
+┌──────────┐   ┌────────────��┐
 │  Read/   │   │  Ask User   │
 │  Analyze │   │  for Info   │
 └────┬─────┘   └──────┬──────┘
@@ -608,7 +608,7 @@ simple caching needs, in-memory cache would suffice.
               │
               ▼
 ┌─────────────────────────────────┐
-���  Deliver Response               │
+│  Deliver Response               │
 └─────────────────────────────────┘
 ```
 
