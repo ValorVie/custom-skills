@@ -5,11 +5,12 @@ description: 統一的 Git 提交流程。支援本地/遠端同步與單次/整
 
 ## 參數說明
 
-| 參數       | 值                  | 預設       | 說明                             |
-| -------- | ------------------ | -------- | ------------------------------ |
-| `target` | `local` / `remote` | `local`  | 同步目標：本地 master 或 origin/master |
-| `mode`   | `normal` / `final` | `normal` | 提交模式：單次提交或整合 WIP 提交            |
-| `--push` | flag               | -        | 僅 final 模式可用，提交後推送至遠端          |
+| 參數 | 值 | 預設 | 說明 |
+|------|-----|------|------|
+| `target` | `local` / `remote` | `local` | 同步目標：本地 master 或 origin/master |
+| `mode` | `normal` / `final` | `normal` | 提交模式：單次提交或整合 WIP 提交 |
+| `--push` | flag | - | 僅 final 模式可用，提交後推送至遠端 |
+| `merge` | subcommand | - | 建立暫時性整合分支並合併多個功能分支 |
 
 ### 常用組合
 
@@ -20,6 +21,7 @@ description: 統一的 Git 提交流程。支援本地/遠端同步與單次/整
 | `git-commit remote final` | git-commit-to-remote-final (不含 push) |
 | `git-commit remote final --push` | git-commit-to-remote-final (含 push) |
 | `git-commit local final` | git-commit-to-local-final |
+| `git-commit merge feature/A feature/B` | (New) 建立測試分支並合併 feature/A 與 feature/B |
 
 ---
 
@@ -199,6 +201,46 @@ git show --stat HEAD
      ```
 
 3. **確認推送結果**
+
+---
+
+### 6. 多分支合併 (Merge) — 僅限 `merge` 子指令
+
+若使用者指定 `merge` 指令（例如 `git-commit merge feature/A feature/B ...`）：
+
+1. **環境重置**
+   - 切換回 master 分支並更新：
+     ```bash
+     git checkout master
+     git pull origin master
+     ```
+
+2. **建立整合分支**
+   - 產生時間戳記：`TIMESTAMP=$(date +%Y%m%d%H%M%S)`
+   - 建立新分支：`BRANCH_NAME="test-dev-$TIMESTAMP"`
+   - 執行建立並切換：
+     ```bash
+     git checkout -b $BRANCH_NAME
+     ```
+
+3. **依序合併**
+   - 針對使用者提供的每一個分支，依序執行：
+     ```bash
+     git merge --no-ff <feature_branch>
+     ```
+   - **若發生衝突**：
+     - 暫停流程。
+     - 列出衝突檔案。
+     - 提示使用者手動解決衝突並執行 `git add .` 與 `git commit`（不使用 `--amend`）。
+     - 確認解決後，繼續合併下一個分支。
+
+4. **推送結果**
+   - 合併完成後，將整合分支推送至遠端：
+     ```bash
+     git push origin $BRANCH_NAME
+     ```
+   - 輸出的分支名稱供使用者參考：
+     > ✅ 整合分支已建立並推送：`test-dev-20260115170000`
 
 ---
 

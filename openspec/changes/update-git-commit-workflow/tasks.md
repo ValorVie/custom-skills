@@ -1,0 +1,3 @@
+- [x] Create `openspec/specs/git-workflow/spec.md` with initial requirements <!-- id: 1 -->
+- [x] Implement `git-commit merge` logic in `command/claude/git-commit.md` <!-- id: 2 -->
+- [x] Validate `command/claude/git-commit.md` against new specs <!-- id: 3 -->
