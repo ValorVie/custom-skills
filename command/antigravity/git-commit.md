@@ -206,7 +206,7 @@ git show --stat HEAD
 
 - **使用繁體中文撰寫**
 - **語言風格**：以臺灣習慣用語為主（如：使用「分支」而非「分叉」，「提交」而非「遞交」）
-- **遵循規範**：參考 `.claude/skills/commit-standards/SKILL.md` 的標準進行撰寫
+- **遵循規範**：參考 `commit-standards` 這個 SKILL 的標準進行撰寫
 
 ---
 
