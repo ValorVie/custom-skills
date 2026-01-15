@@ -12,7 +12,7 @@ from utils.paths import (
     get_project_root,
 )
 import shutil
-import os
+
 
 app = typer.Typer()
 console = Console()
