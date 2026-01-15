@@ -574,7 +574,7 @@ simple caching needs, in-memory cache would suffice.
               │
               ▼
          ┌────┴────┐
-         ���  Available?  │
+         │  Available?  │
          └────┬────┘
               │
       ┌───────┴───────┐
@@ -608,7 +608,7 @@ simple caching needs, in-memory cache would suffice.
               │
               ▼
 ┌─────────────────────────────────┐
-│  Deliver Response               │
+���  Deliver Response               │
 └─────────────────────────────────┘
 ```
 
