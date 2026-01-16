@@ -11,6 +11,7 @@ description: 統一的 Git 提交流程。支援本地/遠端同步與單次/整
 | `mode` | `normal` / `final` | `normal` | 提交模式：單次提交或整合 WIP 提交 |
 | `--push` | flag | - | 僅 final 模式可用，提交後推送至遠端 |
 | `merge` | subcommand | - | 建立暫時性整合分支並合併多個功能分支 |
+| `--no-rebase` | flag | - | 強制使用 Merge 策略同步，不論分支類型 |
 
 ### 常用組合
 
@@ -45,6 +46,20 @@ git stash push -m "git-commit: auto stash before rebase"
 
 #### 1.2 同步分支
 
+首先，判斷當前分支類型以決定同步策略：
+
+```bash
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+```
+
+| 分支類型 | 判斷依據 | 同步策略 |
+|----------|----------|----------|
+| **整合測試分支** | 名稱開頭為 `test-dev-` | **Merge** (保留合併節點) |
+| **功能分支** | 其他所有分支 | **Rebase** (保持線性歷史) |
+| **手動指定** | 使用 `--no-rebase` 參數 | **Merge** (強制使用) |
+
+---
+
 **若 target = `remote`：**
 
 ```bash
@@ -61,8 +76,14 @@ if [ "$LOCAL_MASTER" != "$REMOTE_MASTER" ]; then
     git checkout -
 fi
 
-# Rebase 至 origin/master
-git rebase origin/master
+# 根據分支類型或 --no-rebase 參數選擇同步策略
+if [[ "$NO_REBASE" == true ]] || [[ "$CURRENT_BRANCH" == test-dev-* ]]; then
+    # 整合分支或強制指定：使用 Merge 策略，保留合併節點
+    git merge origin/master --no-ff -m "chore: 同步 master 至整合分支"
+else
+    # 功能分支：使用 Rebase 策略，保持線性歷史
+    git rebase origin/master
+fi
 ```
 
 **若 target = `local`：**
@@ -72,7 +93,13 @@ git rebase origin/master
 BEHIND_COUNT=$(git rev-list --count HEAD..master)
 
 if [ "$BEHIND_COUNT" -gt 0 ]; then
-    git rebase master
+    if [[ "$NO_REBASE" == true ]] || [[ "$CURRENT_BRANCH" == test-dev-* ]]; then
+        # 整合分支或強制指定：使用 Merge 策略
+        git merge master --no-ff -m "chore: 同步 master 至整合分支"
+    else
+        # 功能分支：使用 Rebase 策略
+        git rebase master
+    fi
 fi
 ```
 
