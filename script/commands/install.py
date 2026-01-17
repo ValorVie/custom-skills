@@ -115,9 +115,9 @@ def copy_skills():
 
     if src_uds_claude.exists():
         console.print(f"正在複製從 {src_uds_claude} 到 {dst_custom_skills}...")
-        if dst_custom_skills.exists():
-            shutil.rmtree(dst_custom_skills, onerror=handle_remove_readonly)
-        shutil.copytree(src_uds_claude, dst_custom_skills)
+        # 使用合併策略，保留使用者自定義的 skills
+        dst_custom_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_claude, dst_custom_skills, dirs_exist_ok=True)
 
     # 清理 Custom Skills 中不需要的 UDS 檔案
     unwanted = [
@@ -139,9 +139,9 @@ def copy_skills():
     dst_claude_skills = get_claude_config_dir() / "skills"
     if src_uds_claude.exists():
         console.print(f"正在複製從 {src_uds_claude} 到 {dst_claude_skills}...")
-        if dst_claude_skills.exists():
-            shutil.rmtree(dst_claude_skills, onerror=handle_remove_readonly)
-        shutil.copytree(src_uds_claude, dst_claude_skills)
+        # 使用合併策略，保留使用者自定義的 skills
+        dst_claude_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_claude, dst_claude_skills, dirs_exist_ok=True)
 
     # 清理 Claude 中不需要的 UDS 檔案
     for item in unwanted:
@@ -158,9 +158,9 @@ def copy_skills():
 
     if src_custom_skills.exists():
         console.print(f"正在複製從 {src_custom_skills} 到 {dst_antigravity_skills}...")
-        if dst_antigravity_skills.exists():
-            shutil.rmtree(dst_antigravity_skills, onerror=handle_remove_readonly)
-        shutil.copytree(src_custom_skills, dst_antigravity_skills)
+        # 使用合併策略，保留使用者自定義的 skills
+        dst_antigravity_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_custom_skills, dst_antigravity_skills, dirs_exist_ok=True)
 
     # 複製 Commands
     src_cmd_claude = get_custom_skills_dir() / "command" / "claude"
@@ -194,10 +194,9 @@ def copy_skills():
         dst_project_skills = project_root / "skills"
         if src_uds_claude.exists():
             console.print(f"正在複製從 {src_uds_claude} 到 {dst_project_skills}...")
-            # 這裡覆蓋使用者 local 的 skills 修改，以確保更新資料
-            if dst_project_skills.exists():
-                shutil.rmtree(dst_project_skills, onerror=handle_remove_readonly)
-            shutil.copytree(src_uds_claude, dst_project_skills)
+            # 使用合併策略，保留使用者自定義的 skills
+            dst_project_skills.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(src_uds_claude, dst_project_skills, dirs_exist_ok=True)
 
         # 清理 Project/skills 中不需要的檔案
         unwanted = [
