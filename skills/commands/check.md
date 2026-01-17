@@ -1,7 +1,7 @@
 ---
 description: Verify standards adoption status
-allowed-tools: Read, Bash(uds check:*), Bash(npx:*)
-argument-hint: [--offline | --restore]
+allowed-tools: Read, Bash(uds check:*), Bash(npx:*), Bash(ls:*)
+argument-hint: "[--offline | --restore]"
 ---
 
 # Check Standards | 檢查標準
@@ -27,6 +27,7 @@ uds check --restore
 
 | Option | Description | 說明 |
 |--------|-------------|------|
+| `--summary` | Show compact status summary | 顯示精簡狀態摘要 |
 | `--offline` | Skip npm registry check | 跳過 npm registry 檢查 |
 | `--diff` | Show diff for modified files | 顯示修改檔案的差異 |
 | `--restore` | Restore all modified and missing files | 還原所有修改和遺失的檔案 |
@@ -34,6 +35,23 @@ uds check --restore
 | `--migrate` | Migrate legacy manifest to hash-based tracking | 遷移舊版 manifest |
 
 ## Output Sections | 輸出區段
+
+### Summary Mode (--summary) | 摘要模式
+
+When using `--summary`, shows compact status for use by other commands:
+
+使用 `--summary` 時，顯示供其他命令使用的精簡狀態：
+
+```
+UDS Status Summary
+──────────────────────────────────────────────────
+  Version: 3.5.1-beta.16 ✓
+  Level: 2 - Recommended (推薦)
+  Files: 12 ✓
+  Skills: Claude Code ✓ | OpenCode ○
+  Commands: OpenCode ✓
+──────────────────────────────────────────────────
+```
 
 ### Adoption Status | 採用狀態
 - Adoption level (1-3)
@@ -49,6 +67,39 @@ uds check --restore
 - Installation location (Marketplace, User, Project)
 - Version information
 - Migration suggestions if applicable
+
+### Skills Verification | Skills 驗證
+
+After displaying `uds check` results, verify Skills installation by checking actual paths.
+
+顯示 `uds check` 結果後，透過檢查實際路徑來驗證 Skills 安裝。
+
+**For each AI tool showing "✓ installed", run diagnostic commands:**
+
+針對每個顯示「✓ 已安裝」的 AI 工具，執行診斷命令：
+
+| AI Tool | Skills Path | Diagnostic Command |
+|---------|-------------|-------------------|
+| Claude Code | `.claude/skills/` | `ls -la .claude/skills/ 2>/dev/null \|\| echo "Not found"` |
+| OpenCode | `.opencode/skill/` | `ls -la .opencode/skill/ 2>/dev/null \|\| echo "Not found"` |
+| GitHub Copilot | `.github/skills/` | `ls -la .github/skills/ 2>/dev/null \|\| echo "Not found"` |
+| Cursor | `.cursor/skills/` | `ls -la .cursor/skills/ 2>/dev/null \|\| echo "Not found"` |
+
+**Expected output for valid installation:**
+- Should see skill directories (e.g., `commit-standards/`, `testing-guide/`)
+- Each skill directory should contain `SKILL.md`
+
+**有效安裝的預期輸出：**
+- 應看到 skill 目錄（如 `commit-standards/`、`testing-guide/`）
+- 每個 skill 目錄應包含 `SKILL.md`
+
+**If directory is empty or not found:**
+- Skills are NOT actually installed
+- Run `/update` and select "Install All" to install
+
+**如果目錄為空或不存在：**
+- Skills 實際上未安裝
+- 執行 `/update` 並選擇「全部安裝」
 
 ### Coverage Summary | 覆蓋率摘要
 - Required standards count for current level

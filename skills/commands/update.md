@@ -1,7 +1,7 @@
 ---
 description: Update development standards to latest version
-allowed-tools: Read, Bash(uds update:*), Bash(uds check:*), Bash(npx:*), Bash(cat .standards/*), Bash(ls .claude/*), Bash(ls .opencode/*), Bash(ls .github/*)
-argument-hint: [--yes] [--offline] [--beta]
+allowed-tools: Read, Bash(uds update:*), Bash(uds check:*), Bash(uds configure:*), Bash(npx:*), Bash(cat .standards/*), Bash(ls .claude/*), Bash(ls .opencode/*), Bash(ls .github/*)
+argument-hint: "[--yes] [--offline] [--beta]"
 ---
 
 # Update Standards | 更新標準
@@ -18,17 +18,64 @@ When invoked without `--yes`, use AskUserQuestion to confirm update preferences.
 
 ### Step 1: Check Current Status | 步驟 1：檢查目前狀態
 
-First, run `uds check` to show current installation status and available updates.
+First, run `uds check --summary` to show compact installation status.
+
+首先，執行 `uds check --summary` 顯示精簡安裝狀態。
+
+```bash
+uds check --summary
+```
+
+This shows: version (with update indicator), level, files status, Skills status, and Commands status.
 
 ### Step 2: Ask Update Preferences | 步驟 2：詢問更新偏好
 
-If updates are available, use AskUserQuestion with these options:
+If updates are available, use AskUserQuestion with options based on version type.
+
+根據可用更新的版本類型顯示對應選項。
+
+#### Pre-release Version Types | Pre-release 版本類型
+
+Pre-release versions are sorted by stability (ascending):
+
+Pre-release 版本按穩定度排序（由低到高）：
+
+| Type | Stability | Description | 說明 |
+|------|-----------|-------------|------|
+| alpha | 🔴 Early | Features may be incomplete, for internal testing | 功能可能不完整，供內部測試 |
+| beta | 🟡 Testing | Features complete, may have bugs, for early adopters | 功能大致完成，可能有 bug，供早期採用者 |
+| rc | 🟢 Near-stable | Release candidate, close to stable, for beta testers | 候選發布版，接近正式版，供 beta 測試者 |
+
+Version comparison: `alpha < beta < rc < stable`
+
+For detailed versioning standards, see [core/versioning.md](../../../core/versioning.md).
+
+#### Update Options | 更新選項
+
+**If stable version available (e.g., 3.5.1):**
 
 | Option | Description |
 |--------|-------------|
-| **Update Now** | Update standards to latest stable version (Recommended) |
+| **Update Now** | Update standards to latest stable version X.Y.Z (Recommended) |
 | **Check Beta** | Check for beta version updates |
 | **Skip** | Don't update at this time |
+
+**If only pre-release version available, show specific type:**
+
+Detect the version type from `uds check` output and display the specific type name:
+
+| Detected Type | Option Label | Description |
+|---------------|--------------|-------------|
+| `X.Y.Z-alpha.N` | **Update to Alpha** | Update to alpha version X.Y.Z-alpha.N (🔴 Early testing) |
+| `X.Y.Z-beta.N` | **Update to Beta** | Update to beta version X.Y.Z-beta.N (🟡 Feature complete) |
+| `X.Y.Z-rc.N` | **Update to RC** | Update to RC version X.Y.Z-rc.N (🟢 Near-stable) |
+
+Always include **Skip** option: Don't update at this time.
+
+**Example AskUserQuestion for beta version:**
+- Question: "有新的 beta 版本可用：3.5.1-beta.3 → 3.5.1-beta.15。您想如何處理？"
+- Option 1: "更新至 Beta (建議)" - "更新標準至 3.5.1-beta.15 版本（🟡 功能大致完成）"
+- Option 2: "暫時跳過" - "目前不進行更新，維持現有版本"
 
 ### Step 3: Execute | 步驟 3：執行
 
@@ -42,34 +89,37 @@ uds update --yes
 uds update --beta --yes
 ```
 
-### Step 4: Check New Features | 步驟 4：檢查新功能
+### Step 4: Install Skills/Commands | 步驟 4：安裝 Skills/Commands
 
-After update completes, check if Skills/Commands need to be installed:
+After update completes, check if Skills/Commands need installation.
 
-更新完成後，檢查是否需要安裝 Skills/Commands：
+更新完成後，檢查是否需要安裝 Skills/Commands。
+
+**Check installation status:**
 
 1. Read `.standards/manifest.json` to get `aiTools` list and `skills.installed` status
-2. Check if Skills are installed: `skills.installed === true`
+2. Check if Skills are installed for each configured AI tool
 3. Check if Commands are installed for tools that support them (opencode, copilot, gemini-cli, roo-code)
 
-If `skills.installed` is `false` OR command directories are missing for supported tools, use AskUserQuestion:
+**If missing Skills/Commands detected**, use AskUserQuestion:
 
-| Option | Description | 說明 |
-|--------|-------------|------|
-| **Install All (Recommended)** | Install Skills + Commands | 安裝 Skills 和斜線命令 |
-| **Skills Only** | Install Skills to .claude/skills/ | 只安裝 Skills |
-| **Commands Only** | Install Commands for supported tools | 只安裝斜線命令 |
-| **Skip** | Don't install features | 跳過 |
+| Option | Description |
+|--------|-------------|
+| **Install All (Recommended)** | Install Skills + Commands for all configured tools |
+| **Skills Only** | Install only Skills |
+| **Commands Only** | Install only Commands |
+| **Skip** | Don't install at this time |
 
-**If Install All or Skills Only selected:**
-```bash
-uds update --skills
-```
+**Based on user selection, execute:**
 
-**If Install All or Commands Only selected:**
-```bash
-uds update --commands
-```
+| Selection | Command |
+|-----------|---------|
+| Install All | `uds configure --type skills --ai-tool <tool>` for each tool, then `uds configure --type commands --ai-tool <tool>` |
+| Skills Only | `uds configure --type skills --ai-tool <tool>` for each tool |
+| Commands Only | `uds configure --type commands --ai-tool <tool>` for each tool |
+| Skip | No action needed |
+
+**Note**: The `--ai-tool` option allows non-interactive installation for specific tools.
 
 Explain the results and any next steps to the user.
 
