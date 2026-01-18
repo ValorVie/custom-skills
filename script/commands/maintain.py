@@ -10,6 +10,7 @@ from utils.paths import (
     get_superpowers_dir,
     get_uds_dir,
     get_opencode_config_dir,
+    get_obsidian_skills_dir,
 )
 from commands.install import copy_skills
 
@@ -92,6 +93,7 @@ def maintain():
         get_superpowers_dir(),
         get_uds_dir(),
         get_opencode_config_dir() / "superpowers",
+        get_obsidian_skills_dir(),
     ]
 
     # 備份目錄位於專案根目錄

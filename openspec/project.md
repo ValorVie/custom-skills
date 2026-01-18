@@ -28,6 +28,7 @@
 ### 整合的標準來源
 - [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)：通用開發標準（提交訊息、測試、Git 工作流等）
 - [superpowers](https://github.com/obra/superpowers)：進階開發工作流與 Skills
+- [obsidian-skills](https://github.com/kepano/obsidian-skills)：Obsidian 相容的 Agent Skills（Markdown、Bases、Canvas 格式）
 
 ## Project Conventions
 
@@ -190,6 +191,7 @@
 - [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)：定期同步更新
 - [superpowers](https://github.com/obra/superpowers)：進階工作流
 - [openspec](https://github.com/fission-codes/openspec)：規格驅動開發標準
+- [obsidian-skills](https://github.com/kepano/obsidian-skills)：Obsidian 相容的 Skills（`.md`, `.base`, `.canvas`）
 
 ### MCP Servers（選用）
 - [Context7](https://github.com/upstash/context7-mcp)：即時文件查詢

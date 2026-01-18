@@ -9,6 +9,7 @@ from utils.paths import (
     get_opencode_config_dir,
     get_superpowers_dir,
     get_uds_dir,
+    get_obsidian_skills_dir,
     get_project_root,
 )
 import shutil
@@ -73,6 +74,7 @@ def install():
         get_custom_skills_dir(): "https://github.com/ValorVie/custom-skills.git",
         get_superpowers_dir(): "https://github.com/obra/superpowers.git",
         get_uds_dir(): "https://github.com/AsiaOstrich/universal-dev-standards.git",
+        get_obsidian_skills_dir(): "https://github.com/kepano/obsidian-skills.git",
     }
 
     for path, url in repos.items():
@@ -152,6 +154,12 @@ def copy_skills():
             else:
                 path.unlink()
 
+    # 複製 Obsidian Skills 到 Claude Code
+    src_obsidian_skills = get_obsidian_skills_dir() / "skills"
+    if src_obsidian_skills.exists():
+        console.print(f"正在複製 Obsidian Skills 到 {dst_claude_skills}...")
+        shutil.copytree(src_obsidian_skills, dst_claude_skills, dirs_exist_ok=True)
+
     # 複製 Custom Skills (統一) 到 Antigravity
     src_custom_skills = get_custom_skills_dir() / "skills"
     dst_antigravity_skills = get_antigravity_config_dir() / "skills"
@@ -161,6 +169,11 @@ def copy_skills():
         # 使用合併策略，保留使用者自定義的 skills
         dst_antigravity_skills.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src_custom_skills, dst_antigravity_skills, dirs_exist_ok=True)
+
+    # 複製 Obsidian Skills 到 Antigravity
+    if src_obsidian_skills.exists():
+        console.print(f"正在複製 Obsidian Skills 到 {dst_antigravity_skills}...")
+        shutil.copytree(src_obsidian_skills, dst_antigravity_skills, dirs_exist_ok=True)
 
     # 複製 Commands
     src_cmd_claude = get_custom_skills_dir() / "command" / "claude"
