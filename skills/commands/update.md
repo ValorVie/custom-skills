@@ -77,7 +77,7 @@ Always include **Skip** option: Don't update at this time.
 - Option 1: "更新至 Beta (建議)" - "更新標準至 3.5.1-beta.15 版本（🟡 功能大致完成）"
 - Option 2: "暫時跳過" - "目前不進行更新，維持現有版本"
 
-### Step 3: Execute | 步驟 3：執行
+### Step 3: Execute Update | 步驟 3：執行更新
 
 **If Update Now selected:**
 ```bash
@@ -89,39 +89,129 @@ uds update --yes
 uds update --beta --yes
 ```
 
-### Step 4: Install Skills/Commands | 步驟 4：安裝 Skills/Commands
+### Step 4: Check Skills/Commands Status | 步驟 4：檢查 Skills/Commands 狀態
 
-After update completes, check if Skills/Commands need installation.
+After update completes, check for missing or outdated Skills/Commands using multi-stage AskUserQuestion.
 
-更新完成後，檢查是否需要安裝 Skills/Commands。
+更新完成後，使用多階段 AskUserQuestion 檢查缺少或過時的 Skills/Commands。
 
-**Check installation status:**
+**Important:** Since AskUserQuestion has limited options (max 4), we use a multi-stage approach to handle different AI tools and installation preferences.
 
-1. Read `.standards/manifest.json` to get `aiTools` list and `skills.installed` status
-2. Check if Skills are installed for each configured AI tool
-3. Check if Commands are installed for tools that support them (opencode, copilot, gemini-cli, roo-code)
+**重要：** 由於 AskUserQuestion 選項有限（最多 4 個），使用多階段方式處理不同 AI 工具和安裝偏好。
 
-**If missing Skills/Commands detected**, use AskUserQuestion:
+#### Step 4a: Detect Missing Skills | 步驟 4a：偵測缺少的 Skills
 
-| Option | Description |
-|--------|-------------|
-| **Install All (Recommended)** | Install Skills + Commands for all configured tools |
-| **Skills Only** | Install only Skills |
-| **Commands Only** | Install only Commands |
-| **Skip** | Don't install at this time |
+First, read the manifest to identify configured AI tools and their Skills status:
 
-**Based on user selection, execute:**
+首先讀取 manifest 來識別已配置的 AI 工具及其 Skills 狀態：
 
-| Selection | Command |
-|-----------|---------|
-| Install All | `uds configure --type skills --ai-tool <tool>` for each tool, then `uds configure --type commands --ai-tool <tool>` |
-| Skills Only | `uds configure --type skills --ai-tool <tool>` for each tool |
-| Commands Only | `uds configure --type commands --ai-tool <tool>` for each tool |
-| Skip | No action needed |
+```bash
+# Read manifest to get configured AI tools
+cat .standards/manifest.json
+# Check existing Skills installations
+ls .claude/skills/ 2>/dev/null || echo "Not installed"
+ls .opencode/skill/ 2>/dev/null || echo "Not installed"
+```
 
-**Note**: The `--ai-tool` option allows non-interactive installation for specific tools.
+For each configured AI tool that supports Skills, check if Skills are installed.
 
-Explain the results and any next steps to the user.
+#### Step 4b: Ask Skills Installation Preferences | 步驟 4b：詢問 Skills 安裝偏好
+
+If any configured AI tools are missing Skills, use AskUserQuestion with **multiSelect: true**.
+
+如果有已配置的 AI 工具缺少 Skills，使用 AskUserQuestion 並設定 **multiSelect: true**。
+
+**Example AskUserQuestion:**
+- Question: "下列 AI 工具尚未安裝 Skills，您想安裝哪些？"
+- Header: "Skills"
+- multiSelect: true
+- Options (based on detected missing tools, max 4):
+  - Option 1: "Claude Code" - "安裝 Skills 到 Claude Code"
+  - Option 2: "OpenCode" - "安裝 Skills 到 OpenCode"
+  - Option 3: "全部跳過" - "目前不安裝任何 Skills"
+
+**Note:** If user selects "全部跳過", skip to Step 4d.
+
+#### Step 4c: Ask Skills Installation Location | 步驟 4c：詢問 Skills 安裝位置
+
+If user selected tools in Step 4b, ask for installation location:
+
+如果用戶在步驟 4b 選擇了工具，詢問安裝位置：
+
+**Example AskUserQuestion:**
+- Question: "Skills 要安裝到哪個層級？"
+- Header: "位置"
+- multiSelect: false
+- Options:
+  - Option 1: "專案層級 (建議)" - "安裝到 .claude/skills/、.opencode/skill/ 等（僅此專案可用）"
+  - Option 2: "用戶層級" - "安裝到 ~/.claude/skills/、~/.opencode/skill/ 等（所有專案共用）"
+
+**Execute installation for each selected tool:**
+
+```bash
+# For each selected tool, run configure command with --skills-location
+uds configure --type skills --ai-tool claude-code --skills-location project
+uds configure --type skills --ai-tool opencode --skills-location user
+```
+
+#### Step 4d: Detect Missing Commands | 步驟 4d：偵測缺少的 Commands
+
+Check for configured AI tools that support Commands but don't have them installed:
+
+檢查已配置但尚未安裝 Commands 的 AI 工具：
+
+```bash
+# Check existing Commands installations
+ls .opencode/commands/ 2>/dev/null || echo "Not installed"
+ls .github/commands/ 2>/dev/null || echo "Not installed"
+```
+
+**Note:** Not all AI tools support Commands. Tools that support Commands:
+- OpenCode (.opencode/commands/)
+- GitHub Copilot (.github/commands/)
+- Roo Code (.roo/commands/)
+- Gemini CLI (.gemini/commands/)
+
+#### Step 4e: Ask Commands Installation | 步驟 4e：詢問 Commands 安裝
+
+If any configured AI tools are missing Commands, use AskUserQuestion:
+
+**Example AskUserQuestion:**
+- Question: "下列 AI 工具尚未安裝 Commands，您想安裝哪些？"
+- Header: "Commands"
+- multiSelect: true
+- Options (based on detected missing tools):
+  - Option 1: "OpenCode" - "安裝 Commands 到 .opencode/commands/"
+  - Option 2: "GitHub Copilot" - "安裝 Commands 到 .github/commands/"
+  - Option 3: "全部跳過" - "目前不安裝任何 Commands"
+
+**Execute installation for each selected tool:**
+
+```bash
+# For each selected tool, run configure command
+uds configure --type commands --ai-tool opencode
+uds configure --type commands --ai-tool copilot
+```
+
+#### Declined Features Handling | 拒絕功能處理
+
+**Important:** The CLI tracks user's declined choices in `manifest.declinedFeatures`.
+
+**重要：** CLI 會在 `manifest.declinedFeatures` 中追蹤用戶拒絕的選項。
+
+- Tools that user previously declined will NOT be shown in subsequent prompts
+- Users can reinstall declined features via `/config skills` or `/config commands`
+- Declining is remembered per-tool (e.g., declining Skills for OpenCode doesn't affect Claude Code)
+
+用戶之前拒絕的工具不會在後續提示中顯示。可透過 `/config skills` 或 `/config commands` 重新安裝。
+
+### Step 5: Explain Results | 步驟 5：說明結果
+
+After all operations complete, explain:
+1. What was updated (standards version, file count)
+2. Skills/Commands installation results
+3. Any errors encountered
+4. Next steps (restart AI tool if Skills were installed)
 
 ## Quick Mode | 快速模式
 
@@ -131,7 +221,11 @@ When invoked with `--yes` or specific options, skip interactive questions:
 /update --yes           # Update without confirmation
 /update --beta --yes    # Update to beta version
 /update --offline       # Skip npm registry check
+/update --skills        # Update Skills only
+/update --commands      # Update Commands only
 ```
+
+**Note:** In `--yes` mode, CLI shows hints about available Skills/Commands but does NOT auto-install them (conservative behavior).
 
 ## Options Reference | 選項參考
 
@@ -140,12 +234,17 @@ When invoked with `--yes` or specific options, skip interactive questions:
 | `--yes`, `-y` | Skip confirmation prompt | 跳過確認提示 |
 | `--offline` | Skip npm registry check | 跳過 npm registry 檢查 |
 | `--beta` | Check for beta version updates | 檢查 beta 版本更新 |
+| `--skills` | Update Skills only | 僅更新 Skills |
+| `--commands` | Update Commands only | 僅更新 Commands |
+| `--integrations-only` | Regenerate integration files only | 僅重新產生整合檔案 |
+| `--sync-refs` | Sync integration file references | 同步整合檔案參考 |
+| `--standards-only` | Update standards without integrations | 僅更新標準，不更新整合 |
 
 ## What Gets Updated | 更新內容
 
 - Standard files in `.standards/` directory
 - Extension files (language, framework, locale)
-- Integration files (`.cursorrules`, etc.)
+- Integration files (`.cursorrules`, `CLAUDE.md`, etc.)
 - Version info in `manifest.json`
 
 ## Skills Update | Skills 更新
@@ -166,7 +265,11 @@ Skills are managed separately:
 **"Already up to date"**
 - No action needed; standards are current
 
+**"Skills previously declined"**
+- Run `/config skills` to reinstall declined Skills
+
 ## Reference | 參考
 
 - CLI documentation: `uds update --help`
 - Check command: [/check](./check.md)
+- Config command: [/config](./config.md)
