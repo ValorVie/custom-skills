@@ -64,51 +64,62 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
 
 
 @app.command()
-def maintain():
+def maintain(
+    skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
+    skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
+):
     """每日維護：更新工具並同步設定。"""
     console.print("[bold blue]開始維護...[/bold blue]")
 
     # 1. 更新全域 NPM 工具
-    console.print("[green]正在更新全域 NPM 套件...[/green]")
-    npm_packages = [
-        "@anthropic-ai/claude-code",
-        "@fission-ai/openspec@latest",
-        "@google/gemini-cli",
-        "universal-dev-standards",
-        "opencode-ai@latest",
-    ]
-    # npm install -g 若已安裝則視為更新
-    total = len(npm_packages)
-    for i, package in enumerate(npm_packages, 1):
-        console.print(f"[bold cyan][{i}/{total}] 正在更新 {package}...[/bold cyan]")
-        run_command(["npm", "install", "-g", package])
+    if skip_npm:
+        console.print("[yellow]跳過 NPM 套件更新[/yellow]")
+    else:
+        console.print("[green]正在更新全域 NPM 套件...[/green]")
+        npm_packages = [
+            "@anthropic-ai/claude-code",
+            "@fission-ai/openspec@latest",
+            "@google/gemini-cli",
+            "universal-dev-standards",
+            "opencode-ai@latest",
+        ]
+        # npm install -g 若已安裝則視為更新
+        total = len(npm_packages)
+        for i, package in enumerate(npm_packages, 1):
+            console.print(f"[bold cyan][{i}/{total}] 正在更新 {package}...[/bold cyan]")
+            run_command(["npm", "install", "-g", package])
 
-    # 執行 uds update
-    run_command(["uds", "update"], check=False)  # check=False 防止失敗中斷
+        # 執行 uds update
+        run_command(["uds", "update"], check=False)  # check=False 防止失敗中斷
 
     # 2. 更新儲存庫
-    console.print("[green]正在更新儲存庫...[/green]")
-    repos = [
-        get_custom_skills_dir(),
-        get_superpowers_dir(),
-        get_uds_dir(),
-        get_opencode_config_dir() / "superpowers",
-        get_obsidian_skills_dir(),
-    ]
+    if skip_repos:
+        console.print("[yellow]跳過 Git 儲存庫更新[/yellow]")
+    else:
+        console.print("[green]正在更新儲存庫...[/green]")
+        repos = [
+            get_custom_skills_dir(),
+            get_superpowers_dir(),
+            get_uds_dir(),
+            get_opencode_config_dir() / "superpowers",
+            get_obsidian_skills_dir(),
+        ]
 
-    # 備份目錄位於專案根目錄
-    backup_root = Path(__file__).resolve().parent.parent.parent / "backups"
+        # 備份目錄位於專案根目錄
+        backup_root = Path(__file__).resolve().parent.parent.parent / "backups"
 
-    for repo in repos:
-        if repo.exists() and (repo / ".git").exists():
-            console.print(f"正在更新 {repo}...")
-            # 先備份未提交的更改
-            backup_dirty_files(repo, backup_root)
-            # 強制更新：取得遠端最新並重置本地更改
-            run_command(["git", "fetch", "--all"], cwd=str(repo), check=False)
-            run_command(
-                ["git", "reset", "--hard", "origin/HEAD"], cwd=str(repo), check=False
-            )
+        for repo in repos:
+            if repo.exists() and (repo / ".git").exists():
+                console.print(f"正在更新 {repo}...")
+                # 先備份未提交的更改
+                backup_dirty_files(repo, backup_root)
+                # 強制更新：取得遠端最新並重置本地更改
+                run_command(["git", "fetch", "--all"], cwd=str(repo), check=False)
+                run_command(
+                    ["git", "reset", "--hard", "origin/HEAD"],
+                    cwd=str(repo),
+                    check=False,
+                )
 
     # 3. 重新同步 Skills
     console.print("[green]正在重新同步 Skills...[/green]")

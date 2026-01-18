@@ -44,8 +44,24 @@ uv run script/main.py maintain
 
 這會自動：
 1. 更新全域 NPM 工具。
-2. 拉取所有設定儲存庫的最新變更 (`git pull`)。
+2. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
 3. 重新同步 Skills 與設定。
+
+#### 可選參數
+
+| 參數 | 說明 |
+|------|------|
+| `--skip-npm` | 跳過 NPM 套件更新 |
+| `--skip-repos` | 跳過 Git 儲存庫更新 |
+
+**範例：**
+```bash
+# 只更新 Git 儲存庫（跳過 NPM）
+uv run script/main.py maintain --skip-npm
+
+# 只更新 NPM 套件（跳過 Git）
+uv run script/main.py maintain --skip-repos
+```
 
 ### 狀態檢查 (Status)
 
