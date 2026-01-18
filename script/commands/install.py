@@ -10,14 +10,8 @@ from utils.paths import (
     get_superpowers_dir,
     get_uds_dir,
     get_obsidian_skills_dir,
-    get_project_root,
 )
-import shutil
-
-import os
-import stat
-import errno
-
+from utils.shared import NPM_PACKAGES, REPOS, copy_skills
 
 app = typer.Typer()
 console = Console()
@@ -48,15 +42,8 @@ def install(
         console.print("[yellow]跳過 NPM 套件安裝[/yellow]")
     else:
         console.print("[green]正在安裝全域 NPM 套件...[/green]")
-        npm_packages = [
-            "@anthropic-ai/claude-code",
-            "@fission-ai/openspec@latest",
-            "@google/gemini-cli",
-            "universal-dev-standards",
-            "opencode-ai@latest",
-        ]
-        total = len(npm_packages)
-        for i, package in enumerate(npm_packages, 1):
+        total = len(NPM_PACKAGES)
+        for i, package in enumerate(NPM_PACKAGES, 1):
             console.print(f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]")
             run_command(["npm", "install", "-g", package])
 
@@ -81,15 +68,8 @@ def install(
         console.print("[yellow]跳過 Git 儲存庫 Clone[/yellow]")
     else:
         console.print("[green]正在 Clone 儲存庫...[/green]")
-
-        repos = {
-            get_custom_skills_dir(): "https://github.com/ValorVie/custom-skills.git",
-            get_superpowers_dir(): "https://github.com/obra/superpowers.git",
-            get_uds_dir(): "https://github.com/AsiaOstrich/universal-dev-standards.git",
-            get_obsidian_skills_dir(): "https://github.com/kepano/obsidian-skills.git",
-        }
-
-        for path, url in repos.items():
+        for name, (url, get_path) in REPOS.items():
+            path = get_path()
             if not (path / ".git").exists():
                 console.print(f"正在 Clone {url} 到 {path}...")
                 run_command(["git", "clone", url, str(path)])
@@ -104,154 +84,3 @@ def install(
         copy_skills()
 
     console.print("[bold green]安裝完成！[/bold green]")
-
-
-def handle_remove_readonly(func, path, exc):
-    """
-    處理 Windows 下刪除唯讀檔案時的 PermissionError。
-    當 shutil.rmtree 遇到唯讀檔案時會調用此函數。
-    """
-    excvalue = exc[1]
-    if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
-        # 修改權限為可寫
-        os.chmod(path, stat.S_IWRITE)
-        # 重試操作
-        func(path)
-    else:
-        # 其他錯誤則拋出
-        raise
-
-
-def copy_skills():
-    """複製 Skills 從來源到目標目錄。"""
-    # 邏輯改編自指南的腳本
-
-    # Universal Dev Standards 到 Custom Skills (統一)
-    src_uds_claude = get_uds_dir() / "skills" / "claude-code"
-    dst_custom_skills = get_custom_skills_dir() / "skills"
-
-    if src_uds_claude.exists():
-        console.print(f"正在複製從 {src_uds_claude} 到 {dst_custom_skills}...")
-        # 使用合併策略，保留使用者自定義的 skills
-        dst_custom_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_claude, dst_custom_skills, dirs_exist_ok=True)
-
-    # 清理 Custom Skills 中不需要的 UDS 檔案
-    unwanted = [
-        "tdd-assistant",
-        "CONTRIBUTING.template.md",
-        "install.ps1",
-        "install.sh",
-        "README.md",
-    ]
-    for item in unwanted:
-        path = dst_custom_skills / item
-        if path.exists():
-            if path.is_dir():
-                shutil.rmtree(path)
-            else:
-                path.unlink()
-
-    # 複製到 Claude Code
-    dst_claude_skills = get_claude_config_dir() / "skills"
-    if src_uds_claude.exists():
-        console.print(f"正在複製從 {src_uds_claude} 到 {dst_claude_skills}...")
-        # 使用合併策略，保留使用者自定義的 skills
-        dst_claude_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_claude, dst_claude_skills, dirs_exist_ok=True)
-
-    # 清理 Claude 中不需要的 UDS 檔案
-    for item in unwanted:
-        path = dst_claude_skills / item
-        if path.exists():
-            if path.is_dir():
-                shutil.rmtree(path)
-            else:
-                path.unlink()
-
-    # 複製 Obsidian Skills 到 Claude Code
-    src_obsidian_skills = get_obsidian_skills_dir() / "skills"
-    if src_obsidian_skills.exists():
-        console.print(f"正在複製 Obsidian Skills 到 {dst_claude_skills}...")
-        shutil.copytree(src_obsidian_skills, dst_claude_skills, dirs_exist_ok=True)
-
-    # 複製 Custom Skills (統一) 到 Antigravity
-    src_custom_skills = get_custom_skills_dir() / "skills"
-    dst_antigravity_skills = get_antigravity_config_dir() / "skills"
-
-    if src_custom_skills.exists():
-        console.print(f"正在複製從 {src_custom_skills} 到 {dst_antigravity_skills}...")
-        # 使用合併策略，保留使用者自定義的 skills
-        dst_antigravity_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_custom_skills, dst_antigravity_skills, dirs_exist_ok=True)
-
-    # 複製 Obsidian Skills 到 Antigravity
-    if src_obsidian_skills.exists():
-        console.print(f"正在複製 Obsidian Skills 到 {dst_antigravity_skills}...")
-        shutil.copytree(src_obsidian_skills, dst_antigravity_skills, dirs_exist_ok=True)
-
-    # 複製 Commands
-    src_cmd_claude = get_custom_skills_dir() / "command" / "claude"
-    dst_cmd_claude = get_claude_config_dir() / "commands"
-    if src_cmd_claude.exists():
-        console.print(f"正在複製 Commands 到 {dst_cmd_claude}...")
-        # 複製內容而非取代目錄，以免遺失使用者自行新增的指令
-        if dst_cmd_claude.exists():
-            shutil.copytree(src_cmd_claude, dst_cmd_claude, dirs_exist_ok=True)
-
-    src_cmd_antigravity = get_custom_skills_dir() / "command" / "antigravity"
-    dst_cmd_antigravity = get_antigravity_config_dir() / "global_workflows"
-    if src_cmd_antigravity.exists():
-        console.print(f"正在複製 Workflows 到 {dst_cmd_antigravity}...")
-        shutil.copytree(src_cmd_antigravity, dst_cmd_antigravity, dirs_exist_ok=True)
-
-    # 複製 Agents
-    src_agent_opencode = get_custom_skills_dir() / "agent" / "opencode"
-    dst_agent_opencode = get_opencode_config_dir() / "agent"
-    if src_agent_opencode.exists():
-        console.print(f"正在複製 Agents 到 {dst_agent_opencode}...")
-        shutil.copytree(src_agent_opencode, dst_agent_opencode, dirs_exist_ok=True)
-
-    # 複製到目前專案 (如果是在開發環境執行)
-    project_root = get_project_root()
-    # 簡單判斷：如果看到 .git 和 pyproject.toml
-    if (project_root / ".git").exists() and (project_root / "pyproject.toml").exists():
-        console.print(f"[bold yellow]偵測到專案目錄：{project_root}[/bold yellow]")
-
-        # 1. UDS -> Project/skills
-        dst_project_skills = project_root / "skills"
-        if src_uds_claude.exists():
-            console.print(f"正在複製從 {src_uds_claude} 到 {dst_project_skills}...")
-            # 使用合併策略，保留使用者自定義的 skills
-            dst_project_skills.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(src_uds_claude, dst_project_skills, dirs_exist_ok=True)
-
-        # 清理 Project/skills 中不需要的檔案
-        unwanted = [
-            "tdd-assistant",
-            "CONTRIBUTING.template.md",
-            "install.ps1",
-            "install.sh",
-            "README.md",
-        ]
-        for item in unwanted:
-            path = dst_project_skills / item
-            if path.exists():
-                if path.is_dir():
-                    shutil.rmtree(path, onerror=handle_remove_readonly)
-                else:
-                    path.unlink()
-        # 2. Config -> Project/command
-        src_msg_command = get_custom_skills_dir() / "command"
-        dst_project_command = project_root / "command"
-        if src_msg_command.exists():
-            console.print(f"正在複製從 {src_msg_command} 到 {dst_project_command}...")
-            # 使用 dirs_exist_ok=True 來合併/更新
-            shutil.copytree(src_msg_command, dst_project_command, dirs_exist_ok=True)
-
-        # 3. Config -> Project/agent
-        src_msg_agent = get_custom_skills_dir() / "agent"
-        dst_project_agent = project_root / "agent"
-        if src_msg_agent.exists():
-            console.print(f"正在複製從 {src_msg_agent} 到 {dst_project_agent}...")
-            shutil.copytree(src_msg_agent, dst_project_agent, dirs_exist_ok=True)

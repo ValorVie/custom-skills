@@ -12,7 +12,7 @@ from utils.paths import (
     get_opencode_config_dir,
     get_obsidian_skills_dir,
 )
-from commands.install import copy_skills
+from utils.shared import NPM_PACKAGES, copy_skills
 
 app = typer.Typer()
 console = Console()
@@ -77,21 +77,13 @@ def maintain(
         console.print("[yellow]跳過 NPM 套件更新[/yellow]")
     else:
         console.print("[green]正在更新全域 NPM 套件...[/green]")
-        npm_packages = [
-            "@anthropic-ai/claude-code",
-            "@fission-ai/openspec@latest",
-            "@google/gemini-cli",
-            "universal-dev-standards",
-            "opencode-ai@latest",
-        ]
-        # npm install -g 若已安裝則視為更新
-        total = len(npm_packages)
-        for i, package in enumerate(npm_packages, 1):
+        total = len(NPM_PACKAGES)
+        for i, package in enumerate(NPM_PACKAGES, 1):
             console.print(f"[bold cyan][{i}/{total}] 正在更新 {package}...[/bold cyan]")
             run_command(["npm", "install", "-g", package])
 
         # 執行 uds update
-        run_command(["uds", "update"], check=False)  # check=False 防止失敗中斷
+        run_command(["uds", "update"], check=False)
 
     # 2. 更新儲存庫
     if skip_repos:
