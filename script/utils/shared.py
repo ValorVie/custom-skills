@@ -115,14 +115,14 @@ def copy_skills():
     copy_tree_if_exists(src_uds, dst_custom, f"正在複製從 {src_uds} 到 {dst_custom}...")
     clean_unwanted_files(dst_custom)
     copy_tree_if_exists(
-        src_obsidian, dst_custom, f"正在複製 Obsidian Skills 到 {dst_custom}..."
+        src_obsidian, dst_custom, f"正在複製 {src_obsidian} 到 {dst_custom}..."
     )
 
     # 2. UDS + Obsidian → Claude Code
     copy_tree_if_exists(src_uds, dst_claude, f"正在複製從 {src_uds} 到 {dst_claude}...")
     clean_unwanted_files(dst_claude)
     copy_tree_if_exists(
-        src_obsidian, dst_claude, f"正在複製 Obsidian Skills 到 {dst_claude}..."
+        src_obsidian, dst_claude, f"正在複製 {src_obsidian} 到 {dst_claude}..."
     )
 
     # 3. Custom Skills + Obsidian → Antigravity
@@ -132,7 +132,7 @@ def copy_skills():
     copy_tree_if_exists(
         src_obsidian,
         dst_antigravity,
-        f"正在複製 Obsidian Skills 到 {dst_antigravity}...",
+        f"正在複製 {src_obsidian} 到 {dst_antigravity}...",
     )
 
     # 4. Commands
@@ -173,7 +173,7 @@ def copy_skills():
     copy_tree_if_exists(
         src_obsidian,
         dst_project_skills,
-        f"正在複製 Obsidian Skills 到 {dst_project_skills}...",
+        f"正在複製 {src_obsidian} 到 {dst_project_skills}...",
     )
 
     # Commands → Project
