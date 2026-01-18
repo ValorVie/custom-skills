@@ -41,6 +41,11 @@ def get_obsidian_skills_dir() -> Path:
     return get_config_dir() / "obsidian-skills"
 
 
+def get_anthropic_skills_dir() -> Path:
+    """回傳 anthropic-skills 儲存庫的本地路徑。"""
+    return get_config_dir() / "anthropic-skills"
+
+
 def get_project_root() -> Path:
     """Find the project root by looking for pyproject.toml."""
     # Assuming the script is run from near the root or we find the root marker

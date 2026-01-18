@@ -11,6 +11,7 @@ from utils.paths import (
     get_uds_dir,
     get_opencode_config_dir,
     get_obsidian_skills_dir,
+    get_anthropic_skills_dir,
 )
 from utils.shared import NPM_PACKAGES, copy_skills
 
@@ -96,6 +97,7 @@ def maintain(
             get_uds_dir(),
             get_opencode_config_dir() / "superpowers",
             get_obsidian_skills_dir(),
+            get_anthropic_skills_dir(),
         ]
 
         # 備份目錄位於專案根目錄
