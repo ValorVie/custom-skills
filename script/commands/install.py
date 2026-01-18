@@ -24,7 +24,13 @@ console = Console()
 
 
 @app.command()
-def install():
+def install(
+    skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件安裝"),
+    skip_repos: bool = typer.Option(
+        False, "--skip-repos", help="跳過 Git 儲存庫 Clone"
+    ),
+    skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
+):
     """首次安裝 AI 開發環境。"""
     console.print("[bold blue]開始安裝...[/bold blue]")
 
@@ -38,18 +44,21 @@ def install():
         raise typer.Exit(code=1)
 
     # 2. 安裝全域 NPM 套件
-    console.print("[green]正在安裝全域 NPM 套件...[/green]")
-    npm_packages = [
-        "@anthropic-ai/claude-code",
-        "@fission-ai/openspec@latest",
-        "@google/gemini-cli",
-        "universal-dev-standards",
-        "opencode-ai@latest",
-    ]
-    total = len(npm_packages)
-    for i, package in enumerate(npm_packages, 1):
-        console.print(f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]")
-        run_command(["npm", "install", "-g", package])
+    if skip_npm:
+        console.print("[yellow]跳過 NPM 套件安裝[/yellow]")
+    else:
+        console.print("[green]正在安裝全域 NPM 套件...[/green]")
+        npm_packages = [
+            "@anthropic-ai/claude-code",
+            "@fission-ai/openspec@latest",
+            "@google/gemini-cli",
+            "universal-dev-standards",
+            "opencode-ai@latest",
+        ]
+        total = len(npm_packages)
+        for i, package in enumerate(npm_packages, 1):
+            console.print(f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]")
+            run_command(["npm", "install", "-g", package])
 
     # 3. 建立目錄
     console.print("[green]正在建立目錄...[/green]")
@@ -68,25 +77,31 @@ def install():
         d.mkdir(parents=True, exist_ok=True)
 
     # 4. Clone 儲存庫
-    console.print("[green]正在 Clone 儲存庫...[/green]")
+    if skip_repos:
+        console.print("[yellow]跳過 Git 儲存庫 Clone[/yellow]")
+    else:
+        console.print("[green]正在 Clone 儲存庫...[/green]")
 
-    repos = {
-        get_custom_skills_dir(): "https://github.com/ValorVie/custom-skills.git",
-        get_superpowers_dir(): "https://github.com/obra/superpowers.git",
-        get_uds_dir(): "https://github.com/AsiaOstrich/universal-dev-standards.git",
-        get_obsidian_skills_dir(): "https://github.com/kepano/obsidian-skills.git",
-    }
+        repos = {
+            get_custom_skills_dir(): "https://github.com/ValorVie/custom-skills.git",
+            get_superpowers_dir(): "https://github.com/obra/superpowers.git",
+            get_uds_dir(): "https://github.com/AsiaOstrich/universal-dev-standards.git",
+            get_obsidian_skills_dir(): "https://github.com/kepano/obsidian-skills.git",
+        }
 
-    for path, url in repos.items():
-        if not (path / ".git").exists():
-            console.print(f"正在 Clone {url} 到 {path}...")
-            run_command(["git", "clone", url, str(path)])
-        else:
-            console.print(f"{path} 已存在，跳過 Clone。")
+        for path, url in repos.items():
+            if not (path / ".git").exists():
+                console.print(f"正在 Clone {url} 到 {path}...")
+                run_command(["git", "clone", url, str(path)])
+            else:
+                console.print(f"{path} 已存在，跳過 Clone。")
 
     # 5. 複製 Skills 與設定
-    console.print("[green]正在複製 Skills 與設定...[/green]")
-    copy_skills()
+    if skip_skills:
+        console.print("[yellow]跳過複製 Skills[/yellow]")
+    else:
+        console.print("[green]正在複製 Skills 與設定...[/green]")
+        copy_skills()
 
     console.print("[bold green]安裝完成！[/bold green]")
 

@@ -31,8 +31,22 @@ uv run script/main.py install
 這會自動：
 1. 檢查 Node.js 與 Git。
 2. 安裝全域 NPM 工具 (`claude-code`, `openspec`, `gemini-cli` 等)。
-3. Clone必要的設定儲存庫 (`custom-skills`, `superpowers` 等)。
+3. Clone必要的設定儲存庫 (`custom-skills`, `superpowers`, `obsidian-skills` 等)。
 4. 複製 Skills 與設定到各個 AI 工具的目錄。
+
+#### 可選參數
+
+| 參數 | 說明 |
+|------|------|
+| `--skip-npm` | 跳過 NPM 套件安裝 |
+| `--skip-repos` | 跳過 Git 儲存庫 Clone |
+| `--skip-skills` | 跳過複製 Skills |
+
+**範例：**
+```bash
+# 只 Clone 儲存庫（跳過 NPM 和 Skills 複製）
+uv run script/main.py install --skip-npm --skip-skills
+```
 
 ### 每日維護 (Maintain)
 
@@ -53,14 +67,15 @@ uv run script/main.py maintain
 |------|------|
 | `--skip-npm` | 跳過 NPM 套件更新 |
 | `--skip-repos` | 跳過 Git 儲存庫更新 |
+| `--skip-skills` | 跳過複製 Skills |
 
 **範例：**
 ```bash
-# 只更新 Git 儲存庫（跳過 NPM）
-uv run script/main.py maintain --skip-npm
+# 只更新 Git 儲存庫（跳過 NPM 和 Skills）
+uv run script/main.py maintain --skip-npm --skip-skills
 
-# 只更新 NPM 套件（跳過 Git）
-uv run script/main.py maintain --skip-repos
+# 只更新 NPM 套件（跳過 Git 和 Skills）
+uv run script/main.py maintain --skip-repos --skip-skills
 ```
 
 ### 狀態檢查 (Status)

@@ -67,6 +67,7 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
 def maintain(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
     skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
+    skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
 ):
     """每日維護：更新工具並同步設定。"""
     console.print("[bold blue]開始維護...[/bold blue]")
@@ -122,7 +123,10 @@ def maintain(
                 )
 
     # 3. 重新同步 Skills
-    console.print("[green]正在重新同步 Skills...[/green]")
-    copy_skills()
+    if skip_skills:
+        console.print("[yellow]跳過複製 Skills[/yellow]")
+    else:
+        console.print("[green]正在重新同步 Skills...[/green]")
+        copy_skills()
 
     console.print("[bold green]維護完成！[/bold green]")
