@@ -9,7 +9,6 @@ from utils.paths import (
     get_opencode_config_dir,
     get_superpowers_dir,
     get_uds_dir,
-    get_obsidian_skills_dir,
 )
 from utils.shared import NPM_PACKAGES, REPOS, copy_skills
 

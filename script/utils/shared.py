@@ -10,7 +10,6 @@ from pathlib import Path
 from rich.console import Console
 
 from utils.paths import (
-    get_config_dir,
     get_custom_skills_dir,
     get_claude_config_dir,
     get_antigravity_config_dir,
@@ -48,7 +47,6 @@ REPOS = {
     ),
 }
 
-# 不需要的 UDS 檔案（複製後清理）
 UNWANTED_UDS_FILES = [
     "tdd-assistant",
     "CONTRIBUTING.template.md",
@@ -59,23 +57,17 @@ UNWANTED_UDS_FILES = [
 
 
 # ============================================================
-# 共用函式
+# 輔助函式
 # ============================================================
 
 
 def handle_remove_readonly(func, path, exc):
-    """
-    處理 Windows 下刪除唯讀檔案時的 PermissionError。
-    當 shutil.rmtree 遇到唯讀檔案時會調用此函數。
-    """
+    """處理 Windows 下刪除唯讀檔案時的 PermissionError。"""
     excvalue = exc[1]
     if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
-        # 修改權限為可寫
         os.chmod(path, stat.S_IWRITE)
-        # 重試操作
         func(path)
     else:
-        # 其他錯誤則拋出
         raise
 
 
@@ -83,129 +75,121 @@ def clean_unwanted_files(target_dir: Path, use_readonly_handler: bool = False):
     """清理目標目錄中不需要的 UDS 檔案。"""
     for item in UNWANTED_UDS_FILES:
         path = target_dir / item
-        if path.exists():
-            if path.is_dir():
-                if use_readonly_handler:
-                    shutil.rmtree(path, onerror=handle_remove_readonly)
-                else:
-                    shutil.rmtree(path)
-            else:
-                path.unlink()
+        if not path.exists():
+            continue
+        if path.is_dir():
+            handler = handle_remove_readonly if use_readonly_handler else None
+            shutil.rmtree(path, onerror=handler)
+        else:
+            path.unlink()
+
+
+def copy_tree_if_exists(src: Path, dst: Path, msg: str):
+    """若來源存在，複製目錄樹到目標位置。"""
+    if src.exists():
+        console.print(msg)
+        dst.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+        return True
+    return False
+
+
+# ============================================================
+# 主要函式
+# ============================================================
 
 
 def copy_skills():
     """複製 Skills 從來源到目標目錄。"""
     # 來源路徑
-    src_uds_claude = get_uds_dir() / "skills" / "claude-code"
-    src_obsidian_skills = get_obsidian_skills_dir() / "skills"
+    src_uds = get_uds_dir() / "skills" / "claude-code"
+    src_obsidian = get_obsidian_skills_dir() / "skills"
+    src_custom = get_custom_skills_dir() / "skills"
 
     # 目標路徑
-    dst_custom_skills = get_custom_skills_dir() / "skills"
-    dst_claude_skills = get_claude_config_dir() / "skills"
-    dst_antigravity_skills = get_antigravity_config_dir() / "skills"
+    dst_custom = get_custom_skills_dir() / "skills"
+    dst_claude = get_claude_config_dir() / "skills"
+    dst_antigravity = get_antigravity_config_dir() / "skills"
 
-    # --------------------------------------------------------
-    # 1. UDS → Custom Skills (統一來源)
-    # --------------------------------------------------------
-    if src_uds_claude.exists():
-        console.print(f"正在複製從 {src_uds_claude} 到 {dst_custom_skills}...")
-        dst_custom_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_claude, dst_custom_skills, dirs_exist_ok=True)
+    # 1. UDS + Obsidian → Custom Skills (統一來源)
+    copy_tree_if_exists(src_uds, dst_custom, f"正在複製從 {src_uds} 到 {dst_custom}...")
+    clean_unwanted_files(dst_custom)
+    copy_tree_if_exists(
+        src_obsidian, dst_custom, f"正在複製 Obsidian Skills 到 {dst_custom}..."
+    )
 
-    clean_unwanted_files(dst_custom_skills)
+    # 2. UDS + Obsidian → Claude Code
+    copy_tree_if_exists(src_uds, dst_claude, f"正在複製從 {src_uds} 到 {dst_claude}...")
+    clean_unwanted_files(dst_claude)
+    copy_tree_if_exists(
+        src_obsidian, dst_claude, f"正在複製 Obsidian Skills 到 {dst_claude}..."
+    )
 
-    # --------------------------------------------------------
-    # 2. Obsidian Skills → Custom Skills (合併)
-    # --------------------------------------------------------
-    if src_obsidian_skills.exists():
-        console.print(f"正在複製 Obsidian Skills 到 {dst_custom_skills}...")
-        shutil.copytree(src_obsidian_skills, dst_custom_skills, dirs_exist_ok=True)
+    # 3. Custom Skills + Obsidian → Antigravity
+    copy_tree_if_exists(
+        src_custom, dst_antigravity, f"正在複製從 {src_custom} 到 {dst_antigravity}..."
+    )
+    copy_tree_if_exists(
+        src_obsidian,
+        dst_antigravity,
+        f"正在複製 Obsidian Skills 到 {dst_antigravity}...",
+    )
 
-    # --------------------------------------------------------
-    # 3. UDS → Claude Code
-    # --------------------------------------------------------
-    if src_uds_claude.exists():
-        console.print(f"正在複製從 {src_uds_claude} 到 {dst_claude_skills}...")
-        dst_claude_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_claude, dst_claude_skills, dirs_exist_ok=True)
-
-    clean_unwanted_files(dst_claude_skills)
-
-    # Obsidian Skills → Claude Code
-    if src_obsidian_skills.exists():
-        console.print(f"正在複製 Obsidian Skills 到 {dst_claude_skills}...")
-        shutil.copytree(src_obsidian_skills, dst_claude_skills, dirs_exist_ok=True)
-
-    # --------------------------------------------------------
-    # 4. Custom Skills → Antigravity
-    # --------------------------------------------------------
-    src_custom_skills = get_custom_skills_dir() / "skills"
-    if src_custom_skills.exists():
-        console.print(f"正在複製從 {src_custom_skills} 到 {dst_antigravity_skills}...")
-        dst_antigravity_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_custom_skills, dst_antigravity_skills, dirs_exist_ok=True)
-
-    # Obsidian Skills → Antigravity
-    if src_obsidian_skills.exists():
-        console.print(f"正在複製 Obsidian Skills 到 {dst_antigravity_skills}...")
-        shutil.copytree(src_obsidian_skills, dst_antigravity_skills, dirs_exist_ok=True)
-
-    # --------------------------------------------------------
-    # 5. Commands
-    # --------------------------------------------------------
+    # 4. Commands
     src_cmd_claude = get_custom_skills_dir() / "command" / "claude"
     dst_cmd_claude = get_claude_config_dir() / "commands"
-    if src_cmd_claude.exists():
+    if src_cmd_claude.exists() and dst_cmd_claude.exists():
         console.print(f"正在複製 Commands 到 {dst_cmd_claude}...")
-        if dst_cmd_claude.exists():
-            shutil.copytree(src_cmd_claude, dst_cmd_claude, dirs_exist_ok=True)
+        shutil.copytree(src_cmd_claude, dst_cmd_claude, dirs_exist_ok=True)
 
     src_cmd_antigravity = get_custom_skills_dir() / "command" / "antigravity"
     dst_cmd_antigravity = get_antigravity_config_dir() / "global_workflows"
-    if src_cmd_antigravity.exists():
-        console.print(f"正在複製 Workflows 到 {dst_cmd_antigravity}...")
-        shutil.copytree(src_cmd_antigravity, dst_cmd_antigravity, dirs_exist_ok=True)
+    copy_tree_if_exists(
+        src_cmd_antigravity,
+        dst_cmd_antigravity,
+        f"正在複製 Workflows 到 {dst_cmd_antigravity}...",
+    )
 
-    # --------------------------------------------------------
-    # 6. Agents
-    # --------------------------------------------------------
-    src_agent_opencode = get_custom_skills_dir() / "agent" / "opencode"
-    dst_agent_opencode = get_opencode_config_dir() / "agent"
-    if src_agent_opencode.exists():
-        console.print(f"正在複製 Agents 到 {dst_agent_opencode}...")
-        shutil.copytree(src_agent_opencode, dst_agent_opencode, dirs_exist_ok=True)
+    # 5. Agents
+    src_agent = get_custom_skills_dir() / "agent" / "opencode"
+    dst_agent = get_opencode_config_dir() / "agent"
+    copy_tree_if_exists(src_agent, dst_agent, f"正在複製 Agents 到 {dst_agent}...")
 
-    # --------------------------------------------------------
-    # 7. 專案目錄 (開發環境)
-    # --------------------------------------------------------
+    # 6. 專案目錄 (開發環境)
     project_root = get_project_root()
-    if (project_root / ".git").exists() and (project_root / "pyproject.toml").exists():
-        console.print(f"[bold yellow]偵測到專案目錄：{project_root}[/bold yellow]")
+    if not (
+        (project_root / ".git").exists() and (project_root / "pyproject.toml").exists()
+    ):
+        return
 
-        # UDS → Project/skills
-        dst_project_skills = project_root / "skills"
-        if src_uds_claude.exists():
-            console.print(f"正在複製從 {src_uds_claude} 到 {dst_project_skills}...")
-            dst_project_skills.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(src_uds_claude, dst_project_skills, dirs_exist_ok=True)
+    console.print(f"[bold yellow]偵測到專案目錄：{project_root}[/bold yellow]")
 
-        clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
+    # Skills → Project
+    dst_project_skills = project_root / "skills"
+    copy_tree_if_exists(
+        src_uds, dst_project_skills, f"正在複製從 {src_uds} 到 {dst_project_skills}..."
+    )
+    clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
+    copy_tree_if_exists(
+        src_obsidian,
+        dst_project_skills,
+        f"正在複製 Obsidian Skills 到 {dst_project_skills}...",
+    )
 
-        # Obsidian Skills → Project/skills
-        if src_obsidian_skills.exists():
-            console.print(f"正在複製 Obsidian Skills 到 {dst_project_skills}...")
-            shutil.copytree(src_obsidian_skills, dst_project_skills, dirs_exist_ok=True)
+    # Commands → Project
+    src_command = get_custom_skills_dir() / "command"
+    dst_project_command = project_root / "command"
+    copy_tree_if_exists(
+        src_command,
+        dst_project_command,
+        f"正在複製從 {src_command} 到 {dst_project_command}...",
+    )
 
-        # Commands → Project/command
-        src_msg_command = get_custom_skills_dir() / "command"
-        dst_project_command = project_root / "command"
-        if src_msg_command.exists():
-            console.print(f"正在複製從 {src_msg_command} 到 {dst_project_command}...")
-            shutil.copytree(src_msg_command, dst_project_command, dirs_exist_ok=True)
-
-        # Agents → Project/agent
-        src_msg_agent = get_custom_skills_dir() / "agent"
-        dst_project_agent = project_root / "agent"
-        if src_msg_agent.exists():
-            console.print(f"正在複製從 {src_msg_agent} 到 {dst_project_agent}...")
-            shutil.copytree(src_msg_agent, dst_project_agent, dirs_exist_ok=True)
+    # Agents → Project
+    src_agent_all = get_custom_skills_dir() / "agent"
+    dst_project_agent = project_root / "agent"
+    copy_tree_if_exists(
+        src_agent_all,
+        dst_project_agent,
+        f"正在複製從 {src_agent_all} 到 {dst_project_agent}...",
+    )
