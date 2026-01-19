@@ -29,6 +29,9 @@ from utils.shared import (
     load_toggle_config,
     disable_resource,
     enable_resource,
+    get_mcp_config_path,
+    open_in_editor,
+    open_in_file_manager,
 )
 
 
@@ -137,6 +140,8 @@ class SkillManagerApp(App):
         Binding("n", "select_none", "Select None"),
         Binding("s", "save", "Save"),
         Binding("p", "add_package", "Add Package"),
+        Binding("e", "open_mcp_editor", "Edit MCP"),
+        Binding("f", "open_mcp_finder", "Open Folder"),
     ]
 
     def __init__(self) -> None:
@@ -176,11 +181,20 @@ class SkillManagerApp(App):
         # 資源列表
         yield VerticalScroll(id="resource-list")
 
+        # MCP Config 區塊
+        with Container(id="mcp-config-section"):
+            yield Static("MCP Config", id="mcp-title")
+            yield Label("", id="mcp-path-label")
+            with Horizontal(id="mcp-button-row"):
+                yield Button("Open in Editor", id="btn-mcp-editor", variant="primary")
+                yield Button("Open Folder", id="btn-mcp-folder", variant="default")
+
         yield Footer()
 
     def on_mount(self) -> None:
         """初始化時載入資源列表。"""
         self.refresh_resource_list()
+        self.update_mcp_config_display()
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """處理下拉選單變更。"""
@@ -194,6 +208,7 @@ class SkillManagerApp(App):
                 type_select.value = type_options[0][1]
                 self.current_type = type_options[0][1]
             self.refresh_resource_list()
+            self.update_mcp_config_display()
 
         elif event.select.id == "type-select":
             self.current_type = str(event.value)
@@ -213,6 +228,10 @@ class SkillManagerApp(App):
             self.push_screen(AddSkillsModal())
         elif button_id == "btn-quit":
             self.exit()
+        elif button_id == "btn-mcp-editor":
+            self.action_open_mcp_editor()
+        elif button_id == "btn-mcp-folder":
+            self.action_open_mcp_finder()
 
     def run_cli_command(self, command: str) -> None:
         """在終端機中執行 CLI 指令。"""
@@ -328,6 +347,43 @@ class SkillManagerApp(App):
     def action_add_package(self) -> None:
         """開啟新增套件對話框。"""
         self.push_screen(AddSkillsModal())
+
+    def update_mcp_config_display(self) -> None:
+        """更新 MCP Config 區塊顯示。"""
+        path, exists = get_mcp_config_path(self.current_target)
+        path_label = self.query_one("#mcp-path-label", Label)
+
+        # 顯示路徑，使用 ~ 簡化 home 目錄
+        display_path = str(path).replace(str(Path.home()), "~")
+        status = "✓" if exists else "✗ (not found)"
+        path_label.update(f"Path: {display_path}  {status}")
+
+    def action_open_mcp_editor(self) -> None:
+        """在編輯器中開啟 MCP 設定檔。"""
+        path, exists = get_mcp_config_path(self.current_target)
+        if not exists:
+            self.notify(f"Config file not found: {path}", severity="warning")
+            return
+
+        if open_in_editor(path):
+            self.notify(f"Opening {path.name} in editor...", severity="information")
+        else:
+            self.notify("Failed to open editor", severity="error")
+
+    def action_open_mcp_finder(self) -> None:
+        """在檔案管理器中開啟 MCP 設定檔所在目錄。"""
+        path, exists = get_mcp_config_path(self.current_target)
+        if not exists:
+            # 檔案不存在時，開啟父目錄
+            path = path.parent
+            if not path.exists():
+                self.notify(f"Directory not found: {path}", severity="warning")
+                return
+
+        if open_in_file_manager(path):
+            self.notify("Opening in file manager...", severity="information")
+        else:
+            self.notify("Failed to open file manager", severity="error")
 
 
 def main() -> None:

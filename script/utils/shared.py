@@ -879,3 +879,117 @@ def show_skills_npm_hint() -> None:
     console.print("   - npx skills update             更新已安裝的 skills")
     console.print()
     console.print("   範例：npx skills add vercel-labs/agent-skills")
+
+
+# ============================================================
+# MCP Config 路徑管理
+# ============================================================
+
+
+def get_mcp_config_path(target: TargetType) -> tuple[Path, bool]:
+    """取得各工具的 MCP 設定檔路徑。
+
+    Args:
+        target: 目標工具 (claude, antigravity, opencode)
+
+    Returns:
+        tuple[Path, bool]: (設定檔路徑, 檔案是否存在)
+    """
+    home = Path.home()
+
+    paths = {
+        "claude": home / ".claude.json",
+        "antigravity": home / ".gemini" / "antigravity" / "mcp_config.json",
+        "opencode": home / ".config" / "opencode" / "opencode.json",
+    }
+
+    path = paths.get(target, home / ".claude.json")
+    return path, path.exists()
+
+
+def open_in_editor(file_path: Path) -> bool:
+    """在外部編輯器中開啟檔案。
+
+    優先順序：
+    1. 環境變數 EDITOR 指定的編輯器
+    2. VS Code (code)
+    3. 系統預設開啟方式 (open on macOS, xdg-open on Linux)
+
+    Args:
+        file_path: 要開啟的檔案路徑
+
+    Returns:
+        bool: True 表示成功啟動編輯器，False 表示失敗
+    """
+    import subprocess
+    import platform
+
+    # 1. 嘗試使用 EDITOR 環境變數
+    editor = os.environ.get("EDITOR")
+    if editor:
+        try:
+            subprocess.Popen([editor, str(file_path)])
+            return True
+        except Exception:
+            pass
+
+    # 2. 嘗試使用 VS Code
+    try:
+        subprocess.Popen(["code", str(file_path)])
+        return True
+    except Exception:
+        pass
+
+    # 3. 使用系統預設開啟方式
+    system = platform.system()
+    try:
+        if system == "Darwin":  # macOS
+            subprocess.Popen(["open", str(file_path)])
+            return True
+        elif system == "Linux":
+            subprocess.Popen(["xdg-open", str(file_path)])
+            return True
+        elif system == "Windows":
+            subprocess.Popen(["start", "", str(file_path)], shell=True)
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def open_in_file_manager(file_path: Path) -> bool:
+    """在檔案管理器中開啟檔案所在目錄（並選取該檔案）。
+
+    Args:
+        file_path: 要開啟的檔案路徑
+
+    Returns:
+        bool: True 表示成功啟動檔案管理器，False 表示失敗
+    """
+    import subprocess
+    import platform
+
+    system = platform.system()
+    try:
+        if system == "Darwin":  # macOS Finder
+            # -R 選項會在 Finder 中顯示並選取檔案
+            subprocess.Popen(["open", "-R", str(file_path)])
+            return True
+        elif system == "Linux":
+            # 嘗試使用 nautilus 或 xdg-open
+            parent_dir = file_path.parent
+            try:
+                subprocess.Popen(["nautilus", "--select", str(file_path)])
+                return True
+            except Exception:
+                subprocess.Popen(["xdg-open", str(parent_dir)])
+                return True
+        elif system == "Windows":
+            # Explorer 的 /select 選項會選取檔案
+            subprocess.Popen(["explorer", "/select,", str(file_path)])
+            return True
+    except Exception:
+        pass
+
+    return False

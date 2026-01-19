@@ -1100,7 +1100,32 @@ uv run python script/main.py tui
 - Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode）
 - Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
 - 資源列表：Checkbox 勾選啟用/停用
-- 快捷鍵：Space 切換、A 全選、N 全取消、S 儲存、P 新增套件
+- MCP Config 區塊：顯示目前工具的 MCP 設定檔路徑與快速開啟按鈕
+
+**MCP Config 區塊**：
+
+TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
+
+| 工具 | 設定檔路徑 |
+|------|-----------|
+| Claude Code | `~/.claude.json` |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json` |
+| OpenCode | `~/.config/opencode/opencode.json` |
+
+點擊「Open in Editor」可在編輯器中開啟設定檔，點擊「Open Folder」可在檔案管理器中開啟。
+
+**快捷鍵**：
+
+| 按鍵 | 功能 |
+|------|------|
+| `q` | 退出 |
+| `Space` | 切換選中項目 |
+| `a` | 全選 |
+| `n` | 全取消 |
+| `s` | 儲存並同步 |
+| `p` | 開啟 Add Skills 對話框 |
+| `e` | 在編輯器中開啟 MCP 設定檔 |
+| `f` | 在檔案管理器中開啟 MCP 設定檔所在目錄 |
 
 **Add Skills 對話框**：
 - 輸入套件名稱（如 `vercel-labs/agent-skills`）

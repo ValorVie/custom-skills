@@ -117,3 +117,37 @@ AddSkillsModal {
     margin: 0 1;
     min-width: 10;
 }
+
+/* MCP Config Section */
+#mcp-config-section {
+    width: 100%;
+    height: auto;
+    min-height: 5;
+    padding: 0 1;
+    margin: 0 1 1 1;
+    border: solid $secondary;
+    background: $surface-darken-1;
+}
+
+#mcp-title {
+    text-style: bold;
+    color: $secondary;
+    margin-bottom: 0;
+}
+
+#mcp-path-label {
+    width: 100%;
+    color: $text;
+    margin: 0 0 1 0;
+}
+
+#mcp-button-row {
+    width: 100%;
+    height: auto;
+    align: left middle;
+}
+
+#mcp-button-row Button {
+    margin: 0 1 0 0;
+    min-width: 14;
+}

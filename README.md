@@ -206,6 +206,19 @@ uv run script/main.py tui
 - Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
 - 資源列表：Checkbox 勾選啟用/停用
 - Add Skills 對話框：輸入套件名稱並執行 `npx skills add`
+- MCP Config 區塊：檢視並快速開啟各工具的 MCP 設定檔
+
+**MCP Config 區塊：**
+
+TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
+
+| 工具 | 設定檔路徑 |
+|------|-----------|
+| Claude Code | `~/.claude.json` |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json` |
+| OpenCode | `~/.config/opencode/opencode.json` |
+
+點擊「Open in Editor」可在 VS Code 中開啟設定檔，點擊「Open Folder」可在檔案管理器中開啟。
 
 **快捷鍵：**
 
@@ -217,6 +230,8 @@ uv run script/main.py tui
 | `n` | 全取消 |
 | `s` | 儲存並同步 |
 | `p` | 開啟 Add Skills 對話框 |
+| `e` | 在編輯器中開啟 MCP 設定檔 |
+| `f` | 在檔案管理器中開啟 MCP 設定檔所在目錄 |
 
 ### 第三方 Skills 管理
 
