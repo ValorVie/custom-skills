@@ -4,13 +4,11 @@ AI Development Environment Manager TUI
 使用 Textual 框架建立的互動式終端介面。
 """
 
-import asyncio
 from pathlib import Path
-from typing import Optional
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
@@ -19,7 +17,6 @@ from textual.widgets import (
     Header,
     Input,
     Label,
-    Log,
     Select,
     Static,
 )
@@ -76,48 +73,28 @@ class AddSkillsModal(ModalScreen):
             with Horizontal(id="button-row"):
                 yield Button("Install", id="install-btn", variant="primary")
                 yield Button("Close", id="close-btn", variant="default")
-            yield Static("Output:", id="output-label")
-            yield Log(id="output-log")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "install-btn":
             package = self.query_one("#package-input", Input).value.strip()
             if package:
-                self.run_worker(self.run_npx_skills_add(package))
+                self.run_npx_skills_add(package)
         elif event.button.id == "close-btn":
             self.dismiss()
 
-    async def run_npx_skills_add(self, package: str) -> None:
-        """執行 npx skills add <package> 並顯示輸出。"""
-        log = self.query_one("#output-log", Log)
-        log.clear()
-        log.write_line(f"$ npx skills add {package}")
+    def run_npx_skills_add(self, package: str) -> None:
+        """執行 npx skills add <package>，使用 suspend 暫停 TUI。"""
+        import subprocess
 
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                "npx",
-                "skills",
-                "add",
-                package,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-            )
+        # 使用 suspend 暫停 TUI，讓 npx skills 的互動式介面正常顯示
+        with self.app.suspend():
+            print(f"\n--- Installing: npx skills add {package} ---\n")
+            subprocess.run(["npx", "skills", "add", package], check=False)
+            print("\n--- Press Enter to return to TUI ---")
+            input()
 
-            if proc.stdout:
-                async for line in proc.stdout:
-                    log.write_line(line.decode().rstrip())
-
-            await proc.wait()
-
-            if proc.returncode == 0:
-                log.write_line("[green]Installation complete[/green]")
-            else:
-                log.write_line(f"[red]Installation failed (exit code: {proc.returncode})[/red]")
-
-        except FileNotFoundError:
-            log.write_line("[red]Error: npx not found. Please install Node.js.[/red]")
-        except Exception as e:
-            log.write_line(f"[red]Error: {e}[/red]")
+        # 返回後關閉 Modal
+        self.dismiss()
 
 
 class ResourceItem(Horizontal):

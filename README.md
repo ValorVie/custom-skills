@@ -208,12 +208,18 @@ uv run script/main.py tui
 使用 `npx skills` 安裝第三方 Skills：
 
 ```bash
-# 安裝第三方 skill 套件
-npx skills add vercel-labs/agent-skills
-npx skills add anthropics/skills
+# 可用指令
+npx skills add <package>      # 安裝 skill 套件
+npx skills a <package>        # 同上（別名）
+npx skills install <package>  # 同上（別名）
+npx skills i <package>        # 同上（別名）
 
-# 列出已安裝套件
-npx skills list
+# 計畫中
+npx skills find <query>       # 搜尋 skills
+npx skills update             # 更新已安裝的 skills
+
+# 範例
+npx skills add vercel-labs/agent-skills
 ```
 
 ## 開發
