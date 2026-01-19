@@ -7,6 +7,9 @@ import stat
 import errno
 import shutil
 from pathlib import Path
+from typing import Literal
+
+import yaml
 from rich.console import Console
 
 from utils.paths import (
@@ -23,6 +26,10 @@ from utils.paths import (
 
 console = Console()
 
+# 類型定義
+TargetType = Literal["claude", "antigravity", "opencode"]
+ResourceType = Literal["skills", "commands", "agents", "workflows"]
+
 # ============================================================
 # 共用配置
 # ============================================================
@@ -33,6 +40,7 @@ NPM_PACKAGES = [
     "@google/gemini-cli",
     "universal-dev-standards",
     "opencode-ai@latest",
+    "skills",
 ]
 
 REPOS = {
@@ -229,3 +237,201 @@ def copy_skills():
         dst_project_agent,
         f"正在複製... 從... 從 {src_agent_all} 到 {dst_project_agent}...",
     )
+
+
+# ============================================================
+# Toggle 配置管理
+# ============================================================
+
+TOGGLE_CONFIG_PATH = get_custom_skills_dir() / "toggle-config.yaml"
+
+DEFAULT_TOGGLE_CONFIG = {
+    "claude": {
+        "skills": {"enabled": True, "disabled": []},
+        "commands": {"enabled": True, "disabled": []},
+    },
+    "antigravity": {
+        "skills": {"enabled": True, "disabled": []},
+        "workflows": {"enabled": True, "disabled": []},
+    },
+    "opencode": {
+        "agents": {"enabled": True, "disabled": []},
+    },
+}
+
+
+def load_toggle_config() -> dict:
+    """載入 toggle 配置檔，不存在時回傳預設值。"""
+    if not TOGGLE_CONFIG_PATH.exists():
+        return DEFAULT_TOGGLE_CONFIG.copy()
+    try:
+        with open(TOGGLE_CONFIG_PATH, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+            if config is None:
+                return DEFAULT_TOGGLE_CONFIG.copy()
+            # 合併預設值以確保結構完整
+            for target, settings in DEFAULT_TOGGLE_CONFIG.items():
+                if target not in config:
+                    config[target] = settings
+                else:
+                    for resource_type, defaults in settings.items():
+                        if resource_type not in config[target]:
+                            config[target][resource_type] = defaults
+            return config
+    except Exception:
+        return DEFAULT_TOGGLE_CONFIG.copy()
+
+
+def save_toggle_config(config: dict) -> None:
+    """儲存 toggle 配置檔。"""
+    TOGGLE_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(TOGGLE_CONFIG_PATH, "w", encoding="utf-8") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+
+def is_resource_enabled(
+    config: dict, target: TargetType, resource_type: ResourceType, name: str
+) -> bool:
+    """檢查特定資源是否啟用。"""
+    target_config = config.get(target, {})
+    type_config = target_config.get(resource_type, {"enabled": True, "disabled": []})
+    if not type_config.get("enabled", True):
+        return False
+    disabled_list = type_config.get("disabled", [])
+    return name not in disabled_list
+
+
+# ============================================================
+# 資源列表與來源識別
+# ============================================================
+
+# 來源名稱映射
+SOURCE_NAMES = {
+    "uds": "universal-dev-standards",
+    "obsidian": "obsidian-skills",
+    "anthropic": "anthropic-skills",
+    "custom": "custom-skills",
+    "user": "user",
+}
+
+
+def get_source_skills() -> dict[str, set[str]]:
+    """取得各來源的 skill 名稱集合。"""
+    sources = {}
+
+    # UDS skills
+    uds_path = get_uds_dir() / "skills" / "claude-code"
+    if uds_path.exists():
+        sources["uds"] = {d.name for d in uds_path.iterdir() if d.is_dir()}
+    else:
+        sources["uds"] = set()
+
+    # Obsidian skills
+    obsidian_path = get_obsidian_skills_dir() / "skills"
+    if obsidian_path.exists():
+        sources["obsidian"] = {d.name for d in obsidian_path.iterdir() if d.is_dir()}
+    else:
+        sources["obsidian"] = set()
+
+    # Anthropic skills
+    anthropic_path = get_anthropic_skills_dir() / "skills" / "skill-creator"
+    if anthropic_path.exists():
+        sources["anthropic"] = {"skill-creator"}
+    else:
+        sources["anthropic"] = set()
+
+    # Custom skills (本專案)
+    custom_path = get_custom_skills_dir() / "skills"
+    if custom_path.exists():
+        # 排除來自其他來源的
+        all_known = sources["uds"] | sources["obsidian"] | sources["anthropic"]
+        sources["custom"] = {
+            d.name for d in custom_path.iterdir() if d.is_dir() and d.name not in all_known
+        }
+    else:
+        sources["custom"] = set()
+
+    return sources
+
+
+def identify_source(name: str, sources: dict[str, set[str]]) -> str:
+    """識別資源的來源。"""
+    for source_key, names in sources.items():
+        if name in names:
+            return SOURCE_NAMES.get(source_key, source_key)
+    return SOURCE_NAMES["user"]
+
+
+def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | None:
+    """取得目標工具的資源路徑。"""
+    paths = {
+        ("claude", "skills"): get_claude_config_dir() / "skills",
+        ("claude", "commands"): get_claude_config_dir() / "commands",
+        ("antigravity", "skills"): get_antigravity_config_dir() / "skills",
+        ("antigravity", "workflows"): get_antigravity_config_dir() / "global_workflows",
+        ("opencode", "agents"): get_opencode_config_dir() / "agent",
+    }
+    return paths.get((target, resource_type))
+
+
+def list_installed_resources(
+    target: TargetType | None = None, resource_type: ResourceType | None = None
+) -> dict[str, list[dict[str, str]]]:
+    """列出已安裝的資源及其來源。
+
+    回傳格式：
+    {
+        "claude": {
+            "skills": [{"name": "foo", "source": "uds"}, ...],
+            "commands": [...],
+        },
+        ...
+    }
+    """
+    sources = get_source_skills()
+    result = {}
+
+    targets = [target] if target else ["claude", "antigravity", "opencode"]
+    type_mapping = {
+        "claude": ["skills", "commands"],
+        "antigravity": ["skills", "workflows"],
+        "opencode": ["agents"],
+    }
+
+    for t in targets:
+        result[t] = {}
+        types = [resource_type] if resource_type else type_mapping.get(t, [])
+
+        for rt in types:
+            path = get_target_path(t, rt)
+            if path and path.exists():
+                items = []
+                for item in sorted(path.iterdir()):
+                    if item.is_dir():
+                        source = identify_source(item.name, sources)
+                        items.append({"name": item.name, "source": source})
+                result[t][rt] = items
+            else:
+                result[t][rt] = []
+
+    return result
+
+
+def get_all_skill_names() -> list[str]:
+    """取得所有已安裝的 skill 名稱（用於重複名稱警告）。"""
+    sources = get_source_skills()
+    all_names = set()
+    for names in sources.values():
+        all_names.update(names)
+    return sorted(all_names)
+
+
+def show_skills_npm_hint() -> None:
+    """顯示 npx skills 可用指令提示。"""
+    console.print()
+    console.print("[cyan]💡 第三方 Skills 管理（使用 npx skills）：[/cyan]")
+    console.print("   - npx skills add <package>     安裝 skill 套件")
+    console.print("   - npx skills install <package> 同上（別名）")
+    console.print("   - npx skills list              列出已安裝套件")
+    console.print()
+    console.print("   範例：npx skills add vercel-labs/agent-skills")

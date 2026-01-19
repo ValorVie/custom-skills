@@ -1002,6 +1002,124 @@ opencode auth login
 
 ---
 
+## 使用 CLI 腳本自動化管理
+
+本專案提供了 Python CLI 腳本來自動化環境安裝與維護流程。
+
+### 安裝與啟動
+
+```shell
+cd ~/.config/custom-skills
+uv run python script/main.py --help
+```
+
+### 可用指令
+
+| 指令 | 說明 |
+|------|------|
+| `install` | 首次安裝 AI 開發環境（NPM 套件、目錄、Git 儲存庫、Skills 複製） |
+| `maintain` | 每日維護：更新工具並同步設定 |
+| `status` | 檢查環境狀態與工具版本 |
+| `list` | 列出已安裝的 Skills、Commands、Agents |
+| `toggle` | 啟用/停用特定工具的特定資源 |
+| `tui` | 啟動互動式終端介面 |
+
+### List 指令
+
+列出各工具已安裝的資源：
+
+```shell
+# 列出 Claude Code 的 Skills
+uv run python script/main.py list --target claude --type skills
+
+# 列出 Antigravity 的 Workflows
+uv run python script/main.py list --target antigravity --type workflows
+
+# 列出 OpenCode 的 Agents
+uv run python script/main.py list --target opencode --type agents
+
+# 顯示已停用的資源
+uv run python script/main.py list --show-disabled
+```
+
+### Toggle 指令
+
+啟用或停用特定資源：
+
+```shell
+# 停用特定 skill
+uv run python script/main.py toggle --target claude --type skills --name skill-creator --disable
+
+# 重新啟用
+uv run python script/main.py toggle --target claude --type skills --name skill-creator --enable
+
+# 查看目前狀態
+uv run python script/main.py toggle --list
+
+# 停用但不同步（跳過 copy_skills）
+uv run python script/main.py toggle --target claude --type skills --name foo --disable --no-sync
+```
+
+**配置檔位置**：`~/.config/custom-skills/toggle-config.yaml`
+
+```yaml
+claude:
+  skills:
+    enabled: true
+    disabled:
+      - "some-skill-to-disable"
+  commands:
+    enabled: true
+    disabled: []
+
+antigravity:
+  skills:
+    enabled: true
+    disabled: []
+  workflows:
+    enabled: true
+    disabled: []
+
+opencode:
+  agents:
+    enabled: true
+    disabled: []
+```
+
+### TUI 互動介面
+
+啟動 TUI 可視化管理介面：
+
+```shell
+uv run python script/main.py tui
+```
+
+**功能**：
+- 頂部按鈕列：Install / Maintain / Status / Add Skills / Quit
+- Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode）
+- Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
+- 資源列表：Checkbox 勾選啟用/停用
+- 快捷鍵：Space 切換、A 全選、N 全取消、S 儲存、P 新增套件
+
+**Add Skills 對話框**：
+- 輸入套件名稱（如 `vercel-labs/agent-skills`）
+- 執行 `npx skills add` 並顯示即時輸出
+
+### 第三方 Skills 管理
+
+使用 `npx skills` 安裝第三方 Skills：
+
+```shell
+# 安裝第三方 skill 套件
+npx skills add vercel-labs/agent-skills
+npx skills add anthropics/skills
+
+# 列出已安裝套件
+npx skills list
+```
+
+---
+
 ## 附錄：目錄結構總覽
 
 ```
@@ -1060,6 +1178,7 @@ project/
 
 | 日期 | 版本 | 變更內容 |
 |------|------|----------|
+| 2026-01-19 | 1.3.0 | 新增 CLI 腳本自動化管理說明（list、toggle、tui 指令） |
 | 2026-01-15 | 1.2.0 | 補完 custom-skills 倉庫、Command/Agent 複製流程、OpenCode Superpowers 安裝、Windows 指令格式修正 |
 | 2026-01-14 | 1.1.1 | 加入公司推薦的 oh-my-opencode Agent 配置 |
 | 2026-01-14 | 1.1.0 | 新增 OpenCode 與 oh-my-opencode 完整教學 |

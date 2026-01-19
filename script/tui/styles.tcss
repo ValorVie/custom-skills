@@ -1,0 +1,161 @@
+/* AI Development Environment Manager TUI Styles */
+
+Screen {
+    background: $surface;
+}
+
+Header {
+    dock: top;
+    height: 3;
+    background: $primary;
+}
+
+Footer {
+    dock: bottom;
+    height: 3;
+}
+
+/* Button Bar */
+#button-bar {
+    dock: top;
+    height: 3;
+    layout: horizontal;
+    padding: 0 1;
+    background: $surface-darken-1;
+}
+
+#button-bar Button {
+    margin: 0 1;
+    min-width: 12;
+}
+
+#button-bar Button.action-install {
+    background: $success;
+}
+
+#button-bar Button.action-maintain {
+    background: $warning;
+}
+
+#button-bar Button.action-status {
+    background: $primary;
+}
+
+#button-bar Button.action-add-skills {
+    background: $secondary;
+}
+
+#button-bar Button.action-quit {
+    background: $error;
+}
+
+/* Filter Bar */
+#filter-bar {
+    dock: top;
+    height: 3;
+    layout: horizontal;
+    padding: 0 1;
+    background: $surface-darken-2;
+}
+
+#filter-bar Label {
+    padding: 0 1;
+    content-align: center middle;
+}
+
+#filter-bar Select {
+    width: 20;
+    margin: 0 1;
+}
+
+/* Resource List */
+#resource-list {
+    height: 1fr;
+    border: solid $primary;
+    margin: 1;
+}
+
+.resource-item {
+    height: 1;
+    padding: 0 1;
+}
+
+.resource-item:hover {
+    background: $primary-darken-1;
+}
+
+.resource-item.disabled {
+    color: $text-muted;
+}
+
+.resource-name {
+    width: 30;
+}
+
+.resource-source {
+    width: 20;
+    color: $text-muted;
+}
+
+.resource-status {
+    width: 10;
+}
+
+.resource-status.enabled {
+    color: $success;
+}
+
+.resource-status.disabled {
+    color: $error;
+}
+
+/* Add Skills Modal */
+AddSkillsModal {
+    align: center middle;
+}
+
+#add-skills-dialog {
+    width: 60;
+    height: auto;
+    max-height: 30;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#add-skills-dialog #title {
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#add-skills-dialog #package-input {
+    width: 100%;
+    margin: 1 0;
+}
+
+#add-skills-dialog #examples {
+    color: $text-muted;
+    margin: 1 0;
+}
+
+#add-skills-dialog #install-btn {
+    width: 100%;
+    margin: 1 0;
+}
+
+#add-skills-dialog #output-log {
+    height: 8;
+    border: solid $primary-darken-2;
+    margin-top: 1;
+}
+
+#button-row {
+    layout: horizontal;
+    height: 3;
+    align: center middle;
+}
+
+#button-row Button {
+    margin: 0 1;
+}

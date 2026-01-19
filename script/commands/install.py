@@ -10,7 +10,7 @@ from utils.paths import (
     get_superpowers_dir,
     get_uds_dir,
 )
-from utils.shared import NPM_PACKAGES, REPOS, copy_skills
+from utils.shared import NPM_PACKAGES, REPOS, copy_skills, get_all_skill_names, show_skills_npm_hint
 
 app = typer.Typer()
 console = Console()
@@ -82,4 +82,17 @@ def install(
         console.print("[green]正在複製... 從 Skills 與設定...[/green]")
         copy_skills()
 
+    # 6. 顯示已安裝的 Skills 警告
+    console.print()
+    console.print("[yellow]⚠️ 已安裝的 Skills（建立自訂 skill 時請避免使用重複名稱）：[/yellow]")
+    skill_names = get_all_skill_names()
+    for name in skill_names:
+        console.print(f"   - {name}")
+    console.print()
+    console.print("[dim]提示：使用獨特前綴（如 user-、local-、公司名-）來避免名稱衝突[/dim]")
+
+    # 7. 顯示 npx skills 提示
+    show_skills_npm_hint()
+
+    console.print()
     console.print("[bold green]安裝完成！[/bold green]")

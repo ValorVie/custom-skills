@@ -60,6 +60,7 @@ def status():
         "@google/gemini-cli",
         "universal-dev-standards",
         "opencode-ai",
+        "skills",
     ]
 
     for pkg in packages:
