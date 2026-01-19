@@ -1026,7 +1026,7 @@ uv run python script/main.py --help
 
 ### List 指令
 
-列出各工具已安裝的資源：
+列出各工具已安裝的資源（預設包含停用的資源）：
 
 ```shell
 # 列出 Claude Code 的 Skills
@@ -1038,13 +1038,13 @@ uv run python script/main.py list --target antigravity --type workflows
 # 列出 OpenCode 的 Agents
 uv run python script/main.py list --target opencode --type agents
 
-# 顯示已停用的資源
-uv run python script/main.py list --show-disabled
+# 隱藏已停用的資源
+uv run python script/main.py list --hide-disabled
 ```
 
 ### Toggle 指令
 
-啟用或停用特定資源：
+啟用或停用特定資源。停用時會將檔案移動到 `~/.config/custom-skills/disabled/` 目錄，啟用時會移回原位置。
 
 ```shell
 # 停用特定 skill
@@ -1055,10 +1055,11 @@ uv run python script/main.py toggle --target claude --type skills --name skill-c
 
 # 查看目前狀態
 uv run python script/main.py toggle --list
-
-# 停用但不同步（跳過 copy_skills）
-uv run python script/main.py toggle --target claude --type skills --name foo --disable --no-sync
 ```
+
+**停用機制**：停用的資源會被移動到 `~/.config/custom-skills/disabled/<target>/<type>/` 目錄，啟用時會複製回原位置並刪除 disabled 中的檔案。
+
+> **注意**：停用/啟用後需要重啟對應的 AI 工具才會生效。
 
 **配置檔位置**：`~/.config/custom-skills/toggle-config.yaml`
 
