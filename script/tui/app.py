@@ -27,9 +27,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.shared import (
     list_installed_resources,
     load_toggle_config,
-    save_toggle_config,
-    is_resource_enabled,
-    copy_skills,
+    disable_resource,
+    enable_resource,
 )
 
 
@@ -247,12 +246,8 @@ class SkillManagerApp(App):
         for item in type_resources:
             name = item["name"]
             source = item["source"]
-            enabled = is_resource_enabled(
-                self.toggle_config,
-                self.current_target,
-                self.current_type,
-                name,
-            )
+            # 使用 disabled 欄位判斷是否啟用（disabled=True 表示停用）
+            enabled = not item.get("disabled", False)
             container.mount(
                 ResourceItem(
                     name=name,
@@ -264,6 +259,45 @@ class SkillManagerApp(App):
                 )
             )
 
+    def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
+        """處理 checkbox 變更事件，即時停用/啟用資源。"""
+        checkbox = event.checkbox
+
+        # 從 checkbox 的 parent (ResourceItem) 取得資源資訊
+        parent = checkbox.parent
+        if not isinstance(parent, ResourceItem):
+            return
+
+        name = parent.resource_name
+        target = parent.resource_target
+        resource_type = parent.resource_type
+
+        if event.value:
+            # 啟用資源
+            self.notify(f"Enabling {name}...")
+            success = enable_resource(target, resource_type, name)
+            if success:
+                self.toggle_config = load_toggle_config()
+                self.notify(f"Enabled {name}", severity="information")
+            else:
+                self.notify(f"Failed to enable {name}", severity="error")
+                # 還原 checkbox 狀態
+                checkbox.value = False
+        else:
+            # 停用資源
+            self.notify(f"Disabling {name}...")
+            success = disable_resource(target, resource_type, name)
+            if success:
+                self.toggle_config = load_toggle_config()
+                self.notify(f"Disabled {name}", severity="warning")
+            else:
+                self.notify(f"Failed to disable {name}", severity="error")
+                # 還原 checkbox 狀態
+                checkbox.value = True
+
+        # 重新整理列表
+        self.refresh_resource_list()
+
     def action_toggle_selected(self) -> None:
         """切換選中項目的啟用狀態。"""
         focused = self.focused
@@ -271,41 +305,25 @@ class SkillManagerApp(App):
             focused.toggle()
 
     def action_select_all(self) -> None:
-        """選取所有項目。"""
+        """啟用所有項目（會逐一移動檔案）。"""
+        self.notify("Enabling all resources...", severity="warning")
         for checkbox in self.query(Checkbox):
-            checkbox.value = True
+            if not checkbox.value:
+                checkbox.value = True
 
     def action_select_none(self) -> None:
-        """取消選取所有項目。"""
+        """停用所有項目（會逐一移動檔案）。"""
+        self.notify("Disabling all resources...", severity="warning")
         for checkbox in self.query(Checkbox):
-            checkbox.value = False
+            if checkbox.value:
+                checkbox.value = False
 
     def action_save(self) -> None:
-        """儲存目前的設定。"""
-        # 收集所有 ResourceItem 的狀態
-        disabled_list = []
-
-        for item in self.query(ResourceItem):
-            checkbox = item.query_one(Checkbox)
-            if not checkbox.value:
-                disabled_list.append(item.resource_name)
-
-        # 更新 toggle_config
-        if self.current_target not in self.toggle_config:
-            self.toggle_config[self.current_target] = {}
-        if self.current_type not in self.toggle_config[self.current_target]:
-            self.toggle_config[self.current_target][self.current_type] = {
-                "enabled": True,
-                "disabled": [],
-            }
-
-        self.toggle_config[self.current_target][self.current_type]["disabled"] = disabled_list
-        save_toggle_config(self.toggle_config)
-
-        # 執行同步
-        self.notify("Syncing resources...")
-        copy_skills()
-        self.notify("Settings saved and synced!", severity="information")
+        """儲存目前的設定（已改為即時生效，此方法保留為重新整理狀態）。"""
+        # 重新載入配置以確保同步
+        self.toggle_config = load_toggle_config()
+        self.refresh_resource_list()
+        self.notify("Settings refreshed!", severity="information")
 
     def action_add_package(self) -> None:
         """開啟新增套件對話框。"""

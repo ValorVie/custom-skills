@@ -10,9 +10,8 @@ from rich.table import Table
 
 from utils.shared import (
     load_toggle_config,
-    save_toggle_config,
-    copy_skills,
-    list_installed_resources,
+    disable_resource,
+    enable_resource,
 )
 
 app = typer.Typer()
@@ -62,11 +61,6 @@ def toggle(
         "--list",
         "-l",
         help="列出目前的開關狀態",
-    ),
-    sync: bool = typer.Option(
-        True,
-        "--sync/--no-sync",
-        help="操作後是否同步（預設是）",
     ),
 ):
     """啟用/停用特定工具的特定資源。"""
@@ -119,25 +113,19 @@ def toggle(
     disabled_list = config[target][resource_type].get("disabled", [])
 
     if disable:
-        if name not in disabled_list:
-            disabled_list.append(name)
-            console.print(f"[yellow]已停用 {target}/{resource_type}/{name}[/yellow]")
-        else:
-            console.print(f"[dim]{name} 已經是停用狀態[/dim]")
-    else:  # enable
         if name in disabled_list:
-            disabled_list.remove(name)
-            console.print(f"[green]已啟用 {target}/{resource_type}/{name}[/green]")
+            console.print(f"[dim]{name} 已經是停用狀態[/dim]")
         else:
+            # 使用檔案移動機制停用資源
+            if not disable_resource(target, resource_type, name):
+                raise typer.Exit(code=1)
+    else:  # enable
+        if name not in disabled_list:
             console.print(f"[dim]{name} 已經是啟用狀態[/dim]")
-
-    config[target][resource_type]["disabled"] = disabled_list
-    save_toggle_config(config)
-
-    if sync:
-        console.print("[blue]正在同步資源...[/blue]")
-        copy_skills()
-        console.print("[green]同步完成[/green]")
+        else:
+            # 使用檔案還原機制啟用資源
+            if not enable_resource(target, resource_type, name):
+                raise typer.Exit(code=1)
 
 
 def show_toggle_status(config: dict):

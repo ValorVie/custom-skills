@@ -240,6 +240,310 @@ def copy_skills():
 
 
 # ============================================================
+# Disabled 目錄管理
+# ============================================================
+
+
+def get_disabled_base_dir() -> Path:
+    """取得 disabled 目錄的基礎路徑。"""
+    return get_custom_skills_dir() / "disabled"
+
+
+def get_disabled_path(target: TargetType, resource_type: ResourceType, name: str) -> Path:
+    """取得特定資源在 disabled 目錄中的路徑。
+
+    Args:
+        target: 目標工具 (claude, antigravity, opencode)
+        resource_type: 資源類型 (skills, commands, agents, workflows)
+        name: 資源名稱
+
+    Returns:
+        Path: disabled 目錄中的完整路徑
+    """
+    return get_disabled_base_dir() / target / resource_type / name
+
+
+def get_resource_file_path(
+    target: TargetType, resource_type: ResourceType, name: str
+) -> Path | None:
+    """取得資源在目標工具目錄中的完整路徑（包含副檔名）。
+
+    Args:
+        target: 目標工具
+        resource_type: 資源類型
+        name: 資源名稱
+
+    Returns:
+        Path | None: 完整路徑，若目標路徑不存在則回傳 None
+    """
+    base_path = get_target_path(target, resource_type)
+    if not base_path:
+        return None
+
+    # Skills 是目錄，其他是 .md 檔案
+    if resource_type == "skills":
+        return base_path / name
+    else:
+        return base_path / f"{name}.md"
+
+
+def show_restart_reminder(target: TargetType) -> None:
+    """顯示重啟提醒訊息。
+
+    Args:
+        target: 目標工具 (claude, antigravity, opencode)
+    """
+    reminders = {
+        "claude": """
+⚠️  請重啟 Claude Code 以套用變更
+
+重啟方式：
+  1. 輸入 exit 離開 Claude Code
+  2. 重新執行 claude 指令
+""",
+        "antigravity": """
+⚠️  請重啟 Antigravity 以套用變更
+
+重啟方式：
+  1. 關閉 VSCode
+  2. 重新開啟 VSCode
+""",
+        "opencode": """
+⚠️  請重啟 OpenCode 以套用變更
+
+重啟方式：
+  1. 輸入 exit 離開 OpenCode
+  2. 重新執行 opencode 指令
+""",
+    }
+
+    reminder = reminders.get(target)
+    if reminder:
+        console.print(f"[yellow]{reminder}[/yellow]")
+
+
+def disable_resource(
+    target: TargetType, resource_type: ResourceType, name: str
+) -> bool:
+    """停用資源：將檔案從目標工具目錄複製到 disabled 目錄，再刪除原檔案。
+
+    Args:
+        target: 目標工具 (claude, antigravity, opencode)
+        resource_type: 資源類型 (skills, commands, agents, workflows)
+        name: 資源名稱
+
+    Returns:
+        bool: True 表示成功，False 表示失敗
+    """
+    # 1. 取得來源路徑
+    source_path = get_resource_file_path(target, resource_type, name)
+    if not source_path:
+        console.print(f"[red]無法取得 {target}/{resource_type} 的路徑[/red]")
+        return False
+
+    # 2. 檢查來源是否存在
+    if not source_path.exists():
+        console.print(f"[red]資源 {name} 不存在，無法停用[/red]")
+        return False
+
+    # 3. 取得 disabled 路徑
+    if resource_type == "skills":
+        disabled_path = get_disabled_path(target, resource_type, name)
+    else:
+        disabled_path = get_disabled_path(target, resource_type, f"{name}.md")
+
+    # 4. 確保 disabled 目錄存在
+    disabled_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 5. 若目標已存在，先移除
+    if disabled_path.exists():
+        if disabled_path.is_dir():
+            shutil.rmtree(disabled_path)
+        else:
+            disabled_path.unlink()
+
+    # 6. 複製後刪除（先複製到 disabled，確認成功後再刪除原檔案）
+    try:
+        if source_path.is_dir():
+            shutil.copytree(source_path, disabled_path)
+        else:
+            shutil.copy2(source_path, disabled_path)
+    except Exception as e:
+        console.print(f"[red]複製檔案失敗：{e}[/red]")
+        return False
+
+    # 複製成功後刪除原檔案
+    try:
+        if source_path.is_dir():
+            shutil.rmtree(source_path)
+        else:
+            source_path.unlink()
+    except Exception as e:
+        console.print(f"[red]刪除原檔案失敗：{e}[/red]")
+        # 複製已成功，繼續執行
+
+    # 7. 更新 toggle-config.yaml
+    config = load_toggle_config()
+    if target not in config:
+        config[target] = {}
+    if resource_type not in config[target]:
+        config[target][resource_type] = {"enabled": True, "disabled": []}
+    disabled_list = config[target][resource_type].get("disabled", [])
+    if name not in disabled_list:
+        disabled_list.append(name)
+    config[target][resource_type]["disabled"] = disabled_list
+    save_toggle_config(config)
+
+    console.print(f"[yellow]已停用 {target}/{resource_type}/{name}[/yellow]")
+
+    # 8. 顯示重啟提醒
+    show_restart_reminder(target)
+
+    return True
+
+
+def enable_resource(
+    target: TargetType, resource_type: ResourceType, name: str
+) -> bool:
+    """啟用資源：將檔案從 disabled 目錄複製回目標工具目錄，再刪除 disabled 中的檔案。
+
+    Args:
+        target: 目標工具 (claude, antigravity, opencode)
+        resource_type: 資源類型 (skills, commands, agents, workflows)
+        name: 資源名稱
+
+    Returns:
+        bool: True 表示成功，False 表示失敗
+    """
+    # 1. 取得 disabled 路徑
+    if resource_type == "skills":
+        disabled_path = get_disabled_path(target, resource_type, name)
+    else:
+        disabled_path = get_disabled_path(target, resource_type, f"{name}.md")
+
+    # 2. 取得目標路徑
+    target_path = get_resource_file_path(target, resource_type, name)
+    if not target_path:
+        console.print(f"[red]無法取得 {target}/{resource_type} 的路徑[/red]")
+        return False
+
+    # 3. 確保目標目錄存在
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 4. 檢查 disabled 目錄中是否存在
+    if disabled_path.exists():
+        # 若目標已存在，先移除
+        if target_path.exists():
+            if target_path.is_dir():
+                shutil.rmtree(target_path)
+            else:
+                target_path.unlink()
+
+        # 複製後刪除（先複製回目標目錄，確認成功後再刪除 disabled 中的檔案）
+        try:
+            if disabled_path.is_dir():
+                shutil.copytree(disabled_path, target_path)
+            else:
+                shutil.copy2(disabled_path, target_path)
+        except Exception as e:
+            console.print(f"[red]複製檔案失敗：{e}[/red]")
+            return False
+
+        # 複製成功後刪除 disabled 中的檔案
+        try:
+            if disabled_path.is_dir():
+                shutil.rmtree(disabled_path)
+            else:
+                disabled_path.unlink()
+        except Exception as e:
+            console.print(f"[red]刪除 disabled 檔案失敗：{e}[/red]")
+            # 複製已成功，繼續執行
+    else:
+        # disabled 中不存在，從來源重新複製
+        console.print(f"[dim]disabled 目錄中不存在 {name}，嘗試從來源重新複製...[/dim]")
+        if not copy_single_resource(target, resource_type, name):
+            console.print(f"[red]無法找到資源 {name} 的來源[/red]")
+            return False
+
+    # 5. 更新 toggle-config.yaml（移除 disabled 記錄）
+    config = load_toggle_config()
+    if target in config and resource_type in config[target]:
+        disabled_list = config[target][resource_type].get("disabled", [])
+        if name in disabled_list:
+            disabled_list.remove(name)
+        config[target][resource_type]["disabled"] = disabled_list
+        save_toggle_config(config)
+
+    console.print(f"[green]已啟用 {target}/{resource_type}/{name}[/green]")
+
+    # 6. 顯示重啟提醒
+    show_restart_reminder(target)
+
+    return True
+
+
+def copy_single_resource(
+    target: TargetType, resource_type: ResourceType, name: str
+) -> bool:
+    """從來源複製單一資源到目標目錄。
+
+    Args:
+        target: 目標工具
+        resource_type: 資源類型
+        name: 資源名稱
+
+    Returns:
+        bool: True 表示成功，False 表示失敗
+    """
+    target_path = get_resource_file_path(target, resource_type, name)
+    if not target_path:
+        return False
+
+    # 根據資源類型尋找來源
+    if resource_type == "skills":
+        # Skills 來源：UDS, Obsidian, Anthropic, Custom
+        sources = [
+            get_uds_dir() / "skills" / "claude-code" / name,
+            get_obsidian_skills_dir() / "skills" / name,
+            get_custom_skills_dir() / "skills" / name,
+        ]
+        if name == "skill-creator":
+            sources.insert(0, get_anthropic_skills_dir() / "skills" / "skill-creator")
+
+        for src in sources:
+            if src.exists() and src.is_dir():
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(src, target_path, dirs_exist_ok=True)
+                return True
+
+    elif resource_type == "commands":
+        # Commands 來源：custom-skills/command/claude
+        src = get_custom_skills_dir() / "command" / "claude" / f"{name}.md"
+        if src.exists():
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, target_path)
+            return True
+
+    elif resource_type == "workflows":
+        # Workflows 來源：custom-skills/command/antigravity
+        src = get_custom_skills_dir() / "command" / "antigravity" / f"{name}.md"
+        if src.exists():
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, target_path)
+            return True
+
+    elif resource_type == "agents":
+        # Agents 來源：custom-skills/agent/opencode
+        src = get_custom_skills_dir() / "agent" / "opencode" / f"{name}.md"
+        if src.exists():
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, target_path)
+            return True
+
+    return False
+
+
+# ============================================================
 # Toggle 配置管理
 # ============================================================
 
@@ -422,15 +726,46 @@ def get_source_agents() -> dict[str, set[str]]:
     return sources
 
 
+def list_disabled_resources(
+    target: TargetType, resource_type: ResourceType
+) -> list[str]:
+    """列出 disabled 目錄中的資源名稱。
+
+    Args:
+        target: 目標工具
+        resource_type: 資源類型
+
+    Returns:
+        list[str]: 被停用的資源名稱列表
+    """
+    disabled_path = get_disabled_base_dir() / target / resource_type
+    if not disabled_path.exists():
+        return []
+
+    names = []
+    if resource_type == "skills":
+        # Skills 是目錄
+        for item in disabled_path.iterdir():
+            if item.is_dir():
+                names.append(item.name)
+    else:
+        # Commands, Workflows, Agents 是 .md 檔案
+        for item in disabled_path.iterdir():
+            if item.is_file() and item.suffix == ".md":
+                names.append(item.stem)
+
+    return sorted(names)
+
+
 def list_installed_resources(
     target: TargetType | None = None, resource_type: ResourceType | None = None
 ) -> dict[str, list[dict[str, str]]]:
-    """列出已安裝的資源及其來源。
+    """列出已安裝的資源及其來源（包含被停用的資源）。
 
     回傳格式：
     {
         "claude": {
-            "skills": [{"name": "foo", "source": "uds"}, ...],
+            "skills": [{"name": "foo", "source": "uds", "disabled": False}, ...],
             "commands": [...],
         },
         ...
@@ -455,16 +790,23 @@ def list_installed_resources(
         types = [resource_type] if resource_type else type_mapping.get(t, [])
 
         for rt in types:
+            items = []
+            seen_names = set()
+
+            # 1. 先列出啟用中的資源（目標目錄）
             path = get_target_path(t, rt)
             if path and path.exists():
-                items = []
-
                 # Skills 是目錄結構
                 if rt == "skills":
-                    for item in sorted(path.iterdir()):
+                    for item in path.iterdir():
                         if item.is_dir():
                             source = identify_source(item.name, skill_sources)
-                            items.append({"name": item.name, "source": source})
+                            items.append({
+                                "name": item.name,
+                                "source": source,
+                                "disabled": False,
+                            })
+                            seen_names.add(item.name)
                 # Commands, Workflows, Agents 是 .md 檔案
                 else:
                     sources_map = {
@@ -474,15 +816,41 @@ def list_installed_resources(
                     }
                     sources = sources_map.get(rt, {})
 
-                    for item in sorted(path.iterdir()):
+                    for item in path.iterdir():
                         if item.is_file() and item.suffix == ".md":
                             name = item.stem
                             source = identify_source(name, sources)
-                            items.append({"name": name, "source": source})
+                            items.append({
+                                "name": name,
+                                "source": source,
+                                "disabled": False,
+                            })
+                            seen_names.add(name)
 
-                result[t][rt] = items
-            else:
-                result[t][rt] = []
+            # 2. 再列出被停用的資源（disabled 目錄）
+            disabled_names = list_disabled_resources(t, rt)
+            for name in disabled_names:
+                if name not in seen_names:
+                    if rt == "skills":
+                        source = identify_source(name, skill_sources)
+                    else:
+                        sources_map = {
+                            "commands": command_sources,
+                            "workflows": workflow_sources,
+                            "agents": agent_sources,
+                        }
+                        sources = sources_map.get(rt, {})
+                        source = identify_source(name, sources)
+
+                    items.append({
+                        "name": name,
+                        "source": source,
+                        "disabled": True,
+                    })
+
+            # 排序：先依啟用狀態（啟用在前），再依名稱
+            items.sort(key=lambda x: (x["disabled"], x["name"]))
+            result[t][rt] = items
 
     return result
 

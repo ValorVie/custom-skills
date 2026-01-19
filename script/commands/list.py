@@ -10,8 +10,6 @@ from rich.table import Table
 
 from utils.shared import (
     list_installed_resources,
-    load_toggle_config,
-    is_resource_enabled,
     TargetType,
     ResourceType,
 )
@@ -47,14 +45,14 @@ def list_resources(
         "-T",
         help="資源類型：skills, commands, agents, workflows",
     ),
-    show_disabled: bool = typer.Option(
+    hide_disabled: bool = typer.Option(
         False,
-        "--show-disabled",
-        "-d",
-        help="顯示已停用的資源",
+        "--hide-disabled",
+        "-H",
+        help="隱藏已停用的資源",
     ),
 ):
-    """列出已安裝的 Skills、Commands、Agents。"""
+    """列出已安裝的 Skills、Commands、Agents（包含停用的）。"""
     # 驗證參數
     valid_targets = ["claude", "antigravity", "opencode"]
     valid_types = ["skills", "commands", "agents", "workflows"]
@@ -71,7 +69,6 @@ def list_resources(
 
     # 取得資源列表
     resources = list_installed_resources(target, resource_type)
-    toggle_config = load_toggle_config()
 
     # 顯示結果
     for t, types in resources.items():
@@ -90,13 +87,13 @@ def list_resources(
             for item in items:
                 name = item["name"]
                 source = item["source"]
-                enabled = is_resource_enabled(toggle_config, t, rt, name)
+                disabled = item.get("disabled", False)
 
-                if not enabled and not show_disabled:
+                if disabled and hide_disabled:
                     continue
 
-                status = "✓ 啟用" if enabled else "✗ 停用"
-                status_style = "green" if enabled else "red"
+                status = "✗ 停用" if disabled else "✓ 啟用"
+                status_style = "red" if disabled else "green"
 
                 table.add_row(name, source, f"[{status_style}]{status}[/{status_style}]")
 
