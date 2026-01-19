@@ -174,11 +174,11 @@ class SkillManagerApp(App):
 
         # 按鈕列
         with Horizontal(id="button-bar"):
-            yield Button("Install", id="btn-install", classes="action-install")
-            yield Button("Maintain", id="btn-maintain", classes="action-maintain")
-            yield Button("Status", id="btn-status", classes="action-status")
-            yield Button("Add Skills", id="btn-add-skills", classes="action-add-skills")
-            yield Button("Quit", id="btn-quit", classes="action-quit")
+            yield Button("Install", id="btn-install", variant="success")
+            yield Button("Maintain", id="btn-maintain", variant="warning")
+            yield Button("Status", id="btn-status", variant="primary")
+            yield Button("Add Skills", id="btn-add-skills", variant="default")
+            yield Button("Quit", id="btn-quit", variant="error")
 
         # 篩選列
         with Horizontal(id="filter-bar"):
@@ -187,12 +187,14 @@ class SkillManagerApp(App):
                 TARGET_OPTIONS,
                 value="claude",
                 id="target-select",
+                allow_blank=False,
             )
             yield Label("Type:")
             yield Select(
                 TYPE_OPTIONS_BY_TARGET["claude"],
                 value="skills",
                 id="type-select",
+                allow_blank=False,
             )
 
         # 資源列表
@@ -238,20 +240,21 @@ class SkillManagerApp(App):
 
     def run_cli_command(self, command: str) -> None:
         """在終端機中執行 CLI 指令。"""
-        self.notify(f"Executing {command}...")
-        try:
-            # 暫時離開 TUI 執行指令
-            import subprocess
-            import sys
+        import subprocess
+        import sys
 
-            script_dir = Path(__file__).parent.parent
-            subprocess.run(
-                [sys.executable, str(script_dir / "main.py"), command],
-                check=False,
-            )
-            self.notify(f"{command} completed", severity="information")
-        except Exception as e:
-            self.notify(f"Error: {e}", severity="error")
+        script_dir = Path(__file__).parent.parent
+        cmd = [sys.executable, str(script_dir / "main.py"), command]
+
+        # 使用 suspend 暫停 TUI，讓終端機正常顯示
+        with self.suspend():
+            print(f"\n--- Executing: {command} ---\n")
+            subprocess.run(cmd, check=False)
+            print("\n--- Press Enter to return to TUI ---")
+            input()
+
+        # 返回 TUI 後刷新畫面
+        self.refresh_resource_list()
 
     def refresh_resource_list(self) -> None:
         """重新載入資源列表。"""

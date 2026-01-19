@@ -374,6 +374,54 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
     return paths.get((target, resource_type))
 
 
+def get_source_commands() -> dict[str, set[str]]:
+    """取得 commands 的來源名稱集合。"""
+    sources = {}
+
+    # Custom commands (本專案)
+    custom_cmd_claude = get_custom_skills_dir() / "command" / "claude"
+    if custom_cmd_claude.exists():
+        sources["custom"] = {
+            f.stem for f in custom_cmd_claude.iterdir() if f.is_file() and f.suffix == ".md"
+        }
+    else:
+        sources["custom"] = set()
+
+    return sources
+
+
+def get_source_workflows() -> dict[str, set[str]]:
+    """取得 workflows 的來源名稱集合。"""
+    sources = {}
+
+    # Custom workflows (本專案)
+    custom_wf = get_custom_skills_dir() / "command" / "antigravity"
+    if custom_wf.exists():
+        sources["custom"] = {
+            f.stem for f in custom_wf.iterdir() if f.is_file() and f.suffix == ".md"
+        }
+    else:
+        sources["custom"] = set()
+
+    return sources
+
+
+def get_source_agents() -> dict[str, set[str]]:
+    """取得 agents 的來源名稱集合。"""
+    sources = {}
+
+    # Custom agents (本專案)
+    custom_agent = get_custom_skills_dir() / "agent" / "opencode"
+    if custom_agent.exists():
+        sources["custom"] = {
+            f.stem for f in custom_agent.iterdir() if f.is_file() and f.suffix == ".md"
+        }
+    else:
+        sources["custom"] = set()
+
+    return sources
+
+
 def list_installed_resources(
     target: TargetType | None = None, resource_type: ResourceType | None = None
 ) -> dict[str, list[dict[str, str]]]:
@@ -388,7 +436,11 @@ def list_installed_resources(
         ...
     }
     """
-    sources = get_source_skills()
+    skill_sources = get_source_skills()
+    command_sources = get_source_commands()
+    workflow_sources = get_source_workflows()
+    agent_sources = get_source_agents()
+
     result = {}
 
     targets = [target] if target else ["claude", "antigravity", "opencode"]
@@ -406,10 +458,28 @@ def list_installed_resources(
             path = get_target_path(t, rt)
             if path and path.exists():
                 items = []
-                for item in sorted(path.iterdir()):
-                    if item.is_dir():
-                        source = identify_source(item.name, sources)
-                        items.append({"name": item.name, "source": source})
+
+                # Skills 是目錄結構
+                if rt == "skills":
+                    for item in sorted(path.iterdir()):
+                        if item.is_dir():
+                            source = identify_source(item.name, skill_sources)
+                            items.append({"name": item.name, "source": source})
+                # Commands, Workflows, Agents 是 .md 檔案
+                else:
+                    sources_map = {
+                        "commands": command_sources,
+                        "workflows": workflow_sources,
+                        "agents": agent_sources,
+                    }
+                    sources = sources_map.get(rt, {})
+
+                    for item in sorted(path.iterdir()):
+                        if item.is_file() and item.suffix == ".md":
+                            name = item.stem
+                            source = identify_source(name, sources)
+                            items.append({"name": name, "source": source})
+
                 result[t][rt] = items
             else:
                 result[t][rt] = []
