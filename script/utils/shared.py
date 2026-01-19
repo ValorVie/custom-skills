@@ -118,49 +118,55 @@ def copy_skills():
     dst_antigravity = get_antigravity_config_dir() / "skills"
 
     # 1. UDS + Obsidian + Anthropic → Custom Skills (統一來源)
-    copy_tree_if_exists(src_uds, dst_custom, f"正在複製從 {src_uds} 到 {dst_custom}...")
+    copy_tree_if_exists(
+        src_uds, dst_custom, f"正在複製... 從... 從 {src_uds} 到 {dst_custom}..."
+    )
     clean_unwanted_files(dst_custom)
     copy_tree_if_exists(
-        src_obsidian, dst_custom, f"正在複製 {src_obsidian} 到 {dst_custom}..."
+        src_obsidian, dst_custom, f"正在複製... 從 {src_obsidian} 到 {dst_custom}..."
     )
     copy_tree_if_exists(
         src_anthropic,
         dst_custom / "skill-creator",
-        f"正在複製 {src_anthropic} 到 {dst_custom / 'skill-creator'}...",
+        f"正在複製... 從 {src_anthropic} 到 {dst_custom / 'skill-creator'}...",
     )
 
     # 2. UDS + Obsidian + Anthropic → Claude Code
-    copy_tree_if_exists(src_uds, dst_claude, f"正在複製從 {src_uds} 到 {dst_claude}...")
+    copy_tree_if_exists(
+        src_uds, dst_claude, f"正在複製... 從... 從 {src_uds} 到 {dst_claude}..."
+    )
     clean_unwanted_files(dst_claude)
     copy_tree_if_exists(
-        src_obsidian, dst_claude, f"正在複製 {src_obsidian} 到 {dst_claude}..."
+        src_obsidian, dst_claude, f"正在複製... 從 {src_obsidian} 到 {dst_claude}..."
     )
     copy_tree_if_exists(
         src_anthropic,
         dst_claude / "skill-creator",
-        f"正在複製 {src_anthropic} 到 {dst_claude / 'skill-creator'}...",
+        f"正在複製... 從 {src_anthropic} 到 {dst_claude / 'skill-creator'}...",
     )
 
     # 3. Custom Skills + Obsidian + Anthropic → Antigravity
     copy_tree_if_exists(
-        src_custom, dst_antigravity, f"正在複製從 {src_custom} 到 {dst_antigravity}..."
+        src_custom,
+        dst_antigravity,
+        f"正在複製... 從... 從 {src_custom} 到 {dst_antigravity}...",
     )
     copy_tree_if_exists(
         src_obsidian,
         dst_antigravity,
-        f"正在複製 {src_obsidian} 到 {dst_antigravity}...",
+        f"正在複製... 從 {src_obsidian} 到 {dst_antigravity}...",
     )
     copy_tree_if_exists(
         src_anthropic,
         dst_antigravity / "skill-creator",
-        f"正在複製 {src_anthropic} 到 {dst_antigravity / 'skill-creator'}...",
+        f"正在複製... 從 {src_anthropic} 到 {dst_antigravity / 'skill-creator'}...",
     )
 
     # 4. Commands
     src_cmd_claude = get_custom_skills_dir() / "command" / "claude"
     dst_cmd_claude = get_claude_config_dir() / "commands"
     if src_cmd_claude.exists() and dst_cmd_claude.exists():
-        console.print(f"正在複製 Commands 到 {dst_cmd_claude}...")
+        console.print(f"正在複製... 從 Commands 到 {dst_cmd_claude}...")
         shutil.copytree(src_cmd_claude, dst_cmd_claude, dirs_exist_ok=True)
 
     src_cmd_antigravity = get_custom_skills_dir() / "command" / "antigravity"
@@ -168,13 +174,15 @@ def copy_skills():
     copy_tree_if_exists(
         src_cmd_antigravity,
         dst_cmd_antigravity,
-        f"正在複製 Workflows 到 {dst_cmd_antigravity}...",
+        f"正在複製... 從 Workflows 到 {dst_cmd_antigravity}...",
     )
 
     # 5. Agents
     src_agent = get_custom_skills_dir() / "agent" / "opencode"
     dst_agent = get_opencode_config_dir() / "agent"
-    copy_tree_if_exists(src_agent, dst_agent, f"正在複製 Agents 到 {dst_agent}...")
+    copy_tree_if_exists(
+        src_agent, dst_agent, f"正在複製... 從 Agents 到 {dst_agent}..."
+    )
 
     # 6. 專案目錄 (開發環境)
     project_root = get_project_root()
@@ -188,18 +196,20 @@ def copy_skills():
     # Skills → Project
     dst_project_skills = project_root / "skills"
     copy_tree_if_exists(
-        src_uds, dst_project_skills, f"正在複製從 {src_uds} 到 {dst_project_skills}..."
+        src_uds,
+        dst_project_skills,
+        f"正在複製... 從... 從 {src_uds} 到 {dst_project_skills}...",
     )
     clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
     copy_tree_if_exists(
         src_obsidian,
         dst_project_skills,
-        f"正在複製 {src_obsidian} 到 {dst_project_skills}...",
+        f"正在複製... 從 {src_obsidian} 到 {dst_project_skills}...",
     )
     copy_tree_if_exists(
         src_anthropic,
         dst_project_skills / "skill-creator",
-        f"正在複製 {src_anthropic} 到 {dst_project_skills / 'skill-creator'}...",
+        f"正在複製... 從 {src_anthropic} 到 {dst_project_skills / 'skill-creator'}...",
     )
 
     # Commands → Project
@@ -208,7 +218,7 @@ def copy_skills():
     copy_tree_if_exists(
         src_command,
         dst_project_command,
-        f"正在複製從 {src_command} 到 {dst_project_command}...",
+        f"正在複製... 從... 從 {src_command} 到 {dst_project_command}...",
     )
 
     # Agents → Project
@@ -217,5 +227,5 @@ def copy_skills():
     copy_tree_if_exists(
         src_agent_all,
         dst_project_agent,
-        f"正在複製從 {src_agent_all} 到 {dst_project_agent}...",
+        f"正在複製... 從... 從 {src_agent_all} 到 {dst_project_agent}...",
     )

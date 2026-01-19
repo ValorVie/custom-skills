@@ -79,7 +79,7 @@ def install(
     if skip_skills:
         console.print("[yellow]跳過複製 Skills[/yellow]")
     else:
-        console.print("[green]正在複製 Skills 與設定...[/green]")
+        console.print("[green]正在複製... 從 Skills 與設定...[/green]")
         copy_skills()
 
     console.print("[bold green]安裝完成！[/bold green]")
