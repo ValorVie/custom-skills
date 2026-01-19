@@ -95,7 +95,7 @@ uv run script/main.py status
 
 ### 列出已安裝資源 (List)
 
-列出各工具已安裝的 Skills、Commands、Agents：
+列出各工具已安裝的 Skills、Commands、Agents（預設包含停用的資源）：
 
 ```bash
 # 列出 Claude Code 的 Skills
@@ -107,8 +107,8 @@ uv run script/main.py list --target antigravity --type workflows
 # 列出 OpenCode 的 Agents
 uv run script/main.py list --target opencode --type agents
 
-# 顯示已停用的資源
-uv run script/main.py list --show-disabled
+# 隱藏已停用的資源
+uv run script/main.py list --hide-disabled
 ```
 
 #### 可選參數
@@ -117,11 +117,11 @@ uv run script/main.py list --show-disabled
 |------|------|
 | `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode` |
 | `--type`, `-T` | 資源類型：`skills`, `commands`, `agents`, `workflows` |
-| `--show-disabled`, `-d` | 顯示已停用的資源 |
+| `--hide-disabled`, `-H` | 隱藏已停用的資源（預設顯示全部） |
 
 ### 啟用/停用資源 (Toggle)
 
-啟用或停用特定工具的特定資源：
+啟用或停用特定工具的特定資源。停用時會將檔案移動到 `~/.config/custom-skills/disabled/` 目錄，啟用時會移回原位置。
 
 ```bash
 # 停用特定 skill
@@ -132,9 +132,6 @@ uv run script/main.py toggle --target claude --type skills --name skill-creator 
 
 # 查看目前狀態
 uv run script/main.py toggle --list
-
-# 停用但不同步（跳過 copy_skills）
-uv run script/main.py toggle --target claude --type skills --name foo --disable --no-sync
 ```
 
 #### 可選參數
@@ -147,7 +144,25 @@ uv run script/main.py toggle --target claude --type skills --name foo --disable 
 | `--enable`, `-e` | 啟用資源 |
 | `--disable`, `-d` | 停用資源 |
 | `--list`, `-l` | 列出目前的開關狀態 |
-| `--sync/--no-sync` | 操作後是否同步（預設是） |
+
+#### 停用機制
+
+停用資源時，檔案會被移動到 `~/.config/custom-skills/disabled/<target>/<type>/` 目錄：
+
+```
+~/.config/custom-skills/disabled/
+├── claude/
+│   ├── skills/
+│   │   └── some-disabled-skill/
+│   └── commands/
+│       └── some-disabled-command.md
+├── antigravity/
+│   └── ...
+└── opencode/
+    └── ...
+```
+
+**注意**：停用/啟用後需要重啟對應的 AI 工具才會生效。
 
 #### 配置檔
 
