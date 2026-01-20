@@ -4,8 +4,8 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from rich.console import Console
-from utils.system import run_command
-from utils.paths import (
+from ..utils.system import run_command
+from ..utils.paths import (
     get_custom_skills_dir,
     get_superpowers_dir,
     get_uds_dir,
@@ -13,7 +13,7 @@ from utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
 )
-from utils.shared import NPM_PACKAGES, copy_skills
+from ..utils.shared import NPM_PACKAGES, copy_skills
 
 app = typer.Typer()
 console = Console()

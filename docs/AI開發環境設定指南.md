@@ -1004,16 +1004,41 @@ opencode auth login
 
 ## 使用 CLI 腳本自動化管理
 
-本專案提供了 Python CLI 腳本來自動化環境安裝與維護流程。
+本專案提供了 `ai-dev` CLI 工具來自動化環境安裝與維護流程。
 
-### 安裝與啟動
+### 安裝 CLI 工具
+
+**從 GitHub 安裝（推薦）：**
+
+```shell
+# 使用 uv（推薦）
+uv tool install git+https://github.com/ValorVie/custom-skills.git
+
+# 使用 pipx
+pipx install git+https://github.com/ValorVie/custom-skills.git
+
+# 私有倉庫需要 token
+uv tool install git+https://<GITHUB_TOKEN>@github.com/ValorVie/custom-skills.git
+```
+
+**更新 CLI 工具：**
+
+```shell
+uv tool upgrade ai-dev
+```
+
+**本地開發安裝：**
 
 ```shell
 cd ~/.config/custom-skills
-uv run python script/main.py --help
+uv tool install . --force
 ```
 
 ### 可用指令
+
+```shell
+ai-dev --help
+```
 
 | 指令 | 說明 |
 |------|------|
@@ -1023,6 +1048,26 @@ uv run python script/main.py --help
 | `list` | 列出已安裝的 Skills、Commands、Agents |
 | `toggle` | 啟用/停用特定工具的特定資源 |
 | `tui` | 啟動互動式終端介面 |
+| `project` | 專案級別的初始化與更新操作 |
+
+### Project 指令（專案級操作）
+
+在專案目錄下初始化或更新配置：
+
+```shell
+# 初始化專案（整合 openspec init + uds init）
+ai-dev project init
+
+# 只初始化特定工具
+ai-dev project init --only openspec
+ai-dev project init --only uds
+
+# 更新專案配置（整合 openspec update + uds update）
+ai-dev project update
+
+# 只更新特定工具
+ai-dev project update --only openspec
+```
 
 ### List 指令
 
@@ -1030,16 +1075,16 @@ uv run python script/main.py --help
 
 ```shell
 # 列出 Claude Code 的 Skills
-uv run python script/main.py list --target claude --type skills
+ai-dev list --target claude --type skills
 
 # 列出 Antigravity 的 Workflows
-uv run python script/main.py list --target antigravity --type workflows
+ai-dev list --target antigravity --type workflows
 
 # 列出 OpenCode 的 Agents
-uv run python script/main.py list --target opencode --type agents
+ai-dev list --target opencode --type agents
 
 # 隱藏已停用的資源
-uv run python script/main.py list --hide-disabled
+ai-dev list --hide-disabled
 ```
 
 ### Toggle 指令
@@ -1048,13 +1093,13 @@ uv run python script/main.py list --hide-disabled
 
 ```shell
 # 停用特定 skill
-uv run python script/main.py toggle --target claude --type skills --name skill-creator --disable
+ai-dev toggle --target claude --type skills --name skill-creator --disable
 
 # 重新啟用
-uv run python script/main.py toggle --target claude --type skills --name skill-creator --enable
+ai-dev toggle --target claude --type skills --name skill-creator --enable
 
 # 查看目前狀態
-uv run python script/main.py toggle --list
+ai-dev toggle --list
 ```
 
 **停用機制**：停用的資源會被移動到 `~/.config/custom-skills/disabled/<target>/<type>/` 目錄，啟用時會複製回原位置並刪除 disabled 中的檔案。
@@ -1092,7 +1137,7 @@ opencode:
 啟動 TUI 可視化管理介面：
 
 ```shell
-uv run python script/main.py tui
+ai-dev tui
 ```
 
 **功能**：
@@ -1210,6 +1255,7 @@ project/
 
 | 日期 | 版本 | 變更內容 |
 |------|------|----------|
+| 2026-01-20 | 1.4.0 | CLI 工具打包為 `ai-dev`，支援全域安裝；新增 `project init/update` 專案級指令 |
 | 2026-01-19 | 1.3.0 | 新增 CLI 腳本自動化管理說明（list、toggle、tui 指令） |
 | 2026-01-15 | 1.2.0 | 補完 custom-skills 倉庫、Command/Agent 複製流程、OpenCode Superpowers 安裝、Windows 指令格式修正 |
 | 2026-01-14 | 1.1.1 | 加入公司推薦的 oh-my-opencode Agent 配置 |

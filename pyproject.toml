@@ -1,12 +1,26 @@
 [project]
-name = "custom-skills-scripts"
-version = "0.1.0"
-description = "Add your description here"
+name = "ai-dev"
+version = "0.2.0"
+description = "AI Development Environment Setup CLI - 統一管理 Skills、Commands 與 Agent 配置"
 readme = "README.md"
 requires-python = ">=3.13"
+license = "MIT"
+authors = [
+    { name = "ValorVie" }
+]
+keywords = ["ai", "development", "cli", "skills", "claude-code", "openspec"]
 dependencies = [
     "typer>=0.9.0",
     "rich>=13.0.0",
     "pyyaml>=6.0.0",
     "textual>=0.89.0",
 ]
+
+[project.scripts]
+ai-dev = "script.main:app"
+
+[tool.setuptools.packages.find]
+include = ["script*"]
+
+[tool.uv]
+dev-dependencies = []

@@ -1,8 +1,10 @@
-# AI 開發環境設定腳本
+# AI 開發環境設定工具 (ai-dev)
 
-統一的自動化設定與維護工具，支援 macOS, Linux 與 Windows。
+統一的自動化設定與維護 CLI 工具，支援 macOS, Linux 與 Windows。
 
-## 前置需求
+## 安裝
+
+### 前置需求
 
 請先安裝 `uv` (Python 專案管理工具)：
 
@@ -16,16 +18,48 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
+### 安裝 CLI 工具
+
+**從 GitHub 安裝（推薦）：**
+
+```bash
+# 使用 uv
+uv tool install git+https://github.com/ValorVie/custom-skills.git
+
+# 使用 pipx
+pipx install git+https://github.com/ValorVie/custom-skills.git
+
+# 私有倉庫需要 token
+uv tool install git+https://<GITHUB_TOKEN>@github.com/ValorVie/custom-skills.git
+```
+
+**更新 CLI 工具：**
+
+```bash
+uv tool upgrade ai-dev
+```
+
+**本地開發安裝：**
+
+```bash
+cd ~/.config/custom-skills
+uv tool install . --force
+```
+
 ## 使用方式
 
-所有指令均透過 `main.py` 執行。
+安裝後，可在任意目錄使用 `ai-dev` 指令。
+
+```bash
+ai-dev --help
+```
 
 ### 首次安裝 (Install)
 
 執行以下指令進行全新環境設定：
 
 ```bash
-uv run script/main.py install
+ai-dev install
 ```
 
 這會自動：
@@ -47,7 +81,7 @@ uv run script/main.py install
 **範例：**
 ```bash
 # 只 Clone 儲存庫（跳過 NPM 和 Skills 複製）
-uv run script/main.py install --skip-npm --skip-skills
+ai-dev install --skip-npm --skip-skills
 ```
 
 ### 每日維護 (Maintain)
@@ -55,7 +89,7 @@ uv run script/main.py install --skip-npm --skip-skills
 建議每天開始工作前執行，以保持環境最新：
 
 ```bash
-uv run script/main.py maintain
+ai-dev maintain
 ```
 
 這會自動：
@@ -74,18 +108,55 @@ uv run script/main.py maintain
 **範例：**
 ```bash
 # 只更新 Git 儲存庫（跳過 NPM 和 Skills）
-uv run script/main.py maintain --skip-npm --skip-skills
+ai-dev maintain --skip-npm --skip-skills
 
 # 只更新 NPM 套件（跳過 Git 和 Skills）
-uv run script/main.py maintain --skip-repos --skip-skills
+ai-dev maintain --skip-repos --skip-skills
 ```
+
+### 專案級操作 (Project)
+
+在專案目錄下初始化或更新配置：
+
+```bash
+# 初始化專案（整合 openspec init + uds init）
+ai-dev project init
+
+# 只初始化特定工具
+ai-dev project init --only openspec
+ai-dev project init --only uds
+
+# 強制重新初始化
+ai-dev project init --force
+
+# 更新專案配置（整合 openspec update + uds update）
+ai-dev project update
+
+# 只更新特定工具
+ai-dev project update --only openspec
+```
+
+#### 可選參數
+
+**init:**
+
+| 參數 | 說明 |
+|------|------|
+| `--only`, `-o` | 只初始化特定工具：`openspec`, `uds` |
+| `--force`, `-f` | 強制重新初始化（即使已存在） |
+
+**update:**
+
+| 參數 | 說明 |
+|------|------|
+| `--only`, `-o` | 只更新特定工具：`openspec`, `uds` |
 
 ### 狀態檢查 (Status)
 
 隨時檢查環境配置狀態：
 
 ```bash
-uv run script/main.py status
+ai-dev status
 ```
 
 這會顯示：
@@ -99,16 +170,16 @@ uv run script/main.py status
 
 ```bash
 # 列出 Claude Code 的 Skills
-uv run script/main.py list --target claude --type skills
+ai-dev list --target claude --type skills
 
 # 列出 Antigravity 的 Workflows
-uv run script/main.py list --target antigravity --type workflows
+ai-dev list --target antigravity --type workflows
 
 # 列出 OpenCode 的 Agents
-uv run script/main.py list --target opencode --type agents
+ai-dev list --target opencode --type agents
 
 # 隱藏已停用的資源
-uv run script/main.py list --hide-disabled
+ai-dev list --hide-disabled
 ```
 
 #### 可選參數
@@ -125,13 +196,13 @@ uv run script/main.py list --hide-disabled
 
 ```bash
 # 停用特定 skill
-uv run script/main.py toggle --target claude --type skills --name skill-creator --disable
+ai-dev toggle --target claude --type skills --name skill-creator --disable
 
 # 重新啟用
-uv run script/main.py toggle --target claude --type skills --name skill-creator --enable
+ai-dev toggle --target claude --type skills --name skill-creator --enable
 
 # 查看目前狀態
-uv run script/main.py toggle --list
+ai-dev toggle --list
 ```
 
 #### 可選參數
@@ -197,7 +268,7 @@ opencode:
 啟動視覺化管理介面：
 
 ```bash
-uv run script/main.py tui
+ai-dev tui
 ```
 
 **功能：**
@@ -252,6 +323,19 @@ npx skills update             # 更新已安裝的 skills
 npx skills add vercel-labs/agent-skills
 ```
 
+## 指令總覽
+
+| 指令 | 說明 |
+|------|------|
+| `ai-dev install` | 首次安裝 AI 開發環境 |
+| `ai-dev maintain` | 每日維護：更新工具並同步設定 |
+| `ai-dev project init` | 初始化專案（openspec + uds） |
+| `ai-dev project update` | 更新專案配置 |
+| `ai-dev status` | 檢查環境狀態與工具版本 |
+| `ai-dev list` | 列出已安裝的 Skills、Commands、Agents |
+| `ai-dev toggle` | 啟用/停用特定資源 |
+| `ai-dev tui` | 啟動互動式終端介面 |
+
 ## 開發
 
 本專案使用 `uv` 管理依賴，設定檔位於 `pyproject.toml`。
@@ -263,6 +347,9 @@ uv add <package>
 # 同步依賴
 uv sync
 
-# 執行測試 (TODO)
-# uv run pytest
+# 本地安裝測試
+uv tool install . --force
+
+# 建置套件
+uv build
 ```

@@ -12,7 +12,7 @@ from typing import Literal
 import yaml
 from rich.console import Console
 
-from utils.paths import (
+from .paths import (
     get_custom_skills_dir,
     get_claude_config_dir,
     get_antigravity_config_dir,

@@ -3,7 +3,7 @@ import shutil
 import subprocess
 from rich.console import Console
 from rich.table import Table
-from utils.paths import (
+from ..utils.paths import (
     get_custom_skills_dir,
     get_superpowers_dir,
     get_uds_dir,

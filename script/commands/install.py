@@ -1,7 +1,7 @@
 import typer
 from rich.console import Console
-from utils.system import run_command, check_command_exists
-from utils.paths import (
+from ..utils.system import run_command, check_command_exists
+from ..utils.paths import (
     get_config_dir,
     get_custom_skills_dir,
     get_claude_config_dir,
@@ -10,7 +10,7 @@ from utils.paths import (
     get_superpowers_dir,
     get_uds_dir,
 )
-from utils.shared import NPM_PACKAGES, REPOS, copy_skills, get_all_skill_names, show_skills_npm_hint
+from ..utils.shared import NPM_PACKAGES, REPOS, copy_skills, get_all_skill_names, show_skills_npm_hint
 
 app = typer.Typer()
 console = Console()

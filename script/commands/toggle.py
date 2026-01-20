@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from utils.shared import (
+from ..utils.shared import (
     load_toggle_config,
     disable_resource,
     enable_resource,

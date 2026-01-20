@@ -5,3 +5,8 @@ logs
 
 backups
 disabled
+
+# Build artifacts
+build
+dist
+*.egg-info
