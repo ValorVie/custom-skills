@@ -2,8 +2,8 @@
 
 > **Language**: English | [繁體中文](../locales/zh-TW/core/checkin-standards.md)
 
-**Version**: 1.3.0
-**Last Updated**: 2026-01-05
+**Version**: 1.4.0
+**Last Updated**: 2026-01-16
 **Applicability**: All software projects using version control
 
 ---
@@ -89,6 +89,42 @@ pytest --cov=src tests/
 - Run all test suites locally
 - Review test coverage report
 - Ensure new code paths are tested
+
+#### Bug Fix Testing Evaluation
+
+When fixing bugs, evaluate whether to add regression tests:
+
+**✅ MUST Add Tests (High Value)**:
+| Condition | Reason |
+|-----------|--------|
+| Security-related bugs | Prevent recurrence of vulnerabilities |
+| Data integrity bugs | Protect critical business data |
+| Bugs that caused outages | Ensure system stability |
+| Bugs that recurred | Break the cycle of repeated issues |
+| Complex business logic bugs | Document expected behavior |
+
+**⚠️ OPTIONAL Tests (Lower Value)**:
+| Condition | Reason |
+|-----------|--------|
+| Simple typos | Low recurrence risk |
+| Obvious logic errors (e.g., `>` vs `<`) | Easy to spot in review |
+| Already covered by existing tests | Avoid redundant tests |
+| One-time configuration errors | Won't recur in code |
+
+**Quick Decision Questions**:
+1. Could this bug recur from future code changes? → YES = Add test
+2. Would existing tests have caught this bug? → NO = Add test
+3. Is this a critical path or core functionality? → YES = Add test
+4. Did this bug occur before? → YES = Add test
+
+**Regression Test Naming**:
+```javascript
+describe('Regression: [BUG-ID or description]', () => {
+  it('should [correct behavior] when [trigger condition]', () => {
+    // Test that would have caught the bug
+  });
+});
+```
 
 ---
 
@@ -356,7 +392,7 @@ During development workflow execution, the following events should trigger check
 ### Reminder Format
 
 ```
-┌────────────────────────────────────────��───────┐
+┌────────────────────────────────────────────────┐
 │ 🔔 Check-in Checkpoint                         │
 ├────────────────────────────────────────────────┤
 │ Phase 1 completed                              │
@@ -901,6 +937,7 @@ git commit -m "feat(module-c): add export to CSV feature"
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.4.0 | 2026-01-16 | Added: Bug Fix Testing Evaluation section with decision matrix |
 | 1.3.0 | 2026-01-05 | Added: SWEBOK v4.0 Chapter 6 (Software Configuration Management) to References |
 | 1.2.5 | 2025-12-16 | Clarified: CHANGELOG update is for user-facing changes only, added to [Unreleased] section |
 | 1.2.4 | 2025-12-11 | Added: Pre-commit directory hygiene section (IDE artifacts, verification commands) |

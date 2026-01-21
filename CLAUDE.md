@@ -1,22 +1,3 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-
-These instructions are for AI assistants working in this project.
-
-Always open `@/openspec/AGENTS.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `@/openspec/AGENTS.md` to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
-
-<!-- OPENSPEC:END -->
-
 # Claude Code 專案指南
 # 由 Universal Dev Standards CLI 生成
 # https://github.com/AsiaOstrich/universal-dev-standards
@@ -53,29 +34,33 @@ AI 助手應以繁體中文回覆使用者的問題與請求。
 ---
 
 ## 提交訊息標準
-參考: .standards/commit-message-guide.md
+參考: .standards/commit-message-guide.md, .standards/options/traditional-chinese.ai.yaml
 
 ### 格式
 ```
-<type>(<scope>): <subject>
+<類型>(<範圍>): <主旨>
 
-<body>
+<本文>
 
-<footer>
+<頁腳>
 ```
 
 ### 類型
-- `feat`: 新功能
-- `fix`: 錯誤修復
-- `docs`: 僅文件更新
-- `style`: 格式調整（無程式碼變更）
-- `refactor`: 程式碼重構
-- `test`: 新增/更新測試
-- `chore`: 維護任務
+| 類型 | 英文對照 | 說明 | 範例 |
+|------|----------|------|------|
+| `功能` | feat | 新功能 | 功能(認證): 新增 OAuth2 登入 |
+| `修正` | fix | 錯誤修正 | 修正(api): 處理空值回應 |
+| `文件` | docs | 文件更新 | 文件(readme): 更新安裝指南 |
+| `樣式` | style | 格式調整 | 樣式(lint): 修正縮排 |
+| `重構` | refactor | 程式碼重構 | 重構(user): 抽取驗證邏輯 |
+| `測試` | test | 測試相關 | 測試(cart): 新增結帳測試 |
+| `雜項` | chore | 維護任務 | 雜項(deps): 更新套件 |
+| `效能` | perf | 效能改善 | 效能(query): 優化資料庫查詢 |
+| `整合` | ci | 持續整合 | 整合(github): 新增部署流程 |
 
 ### 規則
 - 主題行: 最多 72 字元
-- 使用祈使語氣: 「add」而非「added」
+- 使用祈使語氣
 - 本文: 說明做了什麼及為什麼，而非如何做
 
 ---
