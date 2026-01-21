@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-01-21
+
+### Fixed
+
+- 修正 TUI 內部呼叫 CLI 指令的方式，改用 `shutil.which("ai-dev")` 找到已安裝的指令
+- 修正打包設定，加入 `[tool.setuptools.package-data]` 以包含 `.tcss` 樣式檔
+
+### Docs
+
+- 新增本地開發安裝的注意事項：需更新版本號才會重新安裝
+
+## [0.3.0] - 2026-01-21
+
+### Changed
+
+- **指令重新命名**：`ai-dev maintain` 改為 `ai-dev update`
+  - 使指令名稱更符合「更新」的語意
+  - 與常見 CLI 慣例一致（如 `apt update`、`brew update`）
+- TUI 介面按鈕標籤從 "Maintain" 改為 "Update"
+- 更新所有相關文檔與規格文件
+
 ## [0.2.0] - 2026-01-20
 
 ### Added
@@ -23,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 更新 `pyproject.toml` 新增 entry point 配置
 - 更新安裝說明文件
 
-## [0.1.0] - 2025-01-01
+## [0.1.0] - 2026-01-15
 
 ### Added
 

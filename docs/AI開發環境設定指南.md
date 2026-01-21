@@ -1034,6 +1034,8 @@ cd ~/.config/custom-skills
 uv tool install . --force
 ```
 
+> **注意**：`uv` 會根據版本號判斷是否需要重新安裝。如果修改了程式碼但版本號未變更，可能會使用快取。請先更新 `pyproject.toml` 中的 `version` 欄位後再執行安裝。
+
 ### 可用指令
 
 ```shell
@@ -1043,7 +1045,7 @@ ai-dev --help
 | 指令 | 說明 |
 |------|------|
 | `install` | 首次安裝 AI 開發環境（NPM 套件、目錄、Git 儲存庫、Skills 複製） |
-| `maintain` | 每日維護：更新工具並同步設定 |
+| `update` | 每日更新：更新工具並同步設定 |
 | `status` | 檢查環境狀態與工具版本 |
 | `list` | 列出已安裝的 Skills、Commands、Agents |
 | `toggle` | 啟用/停用特定工具的特定資源 |

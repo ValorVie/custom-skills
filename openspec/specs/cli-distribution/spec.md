@@ -25,7 +25,7 @@ ai-dev = "script.main:app"
 則應該：
 1. 安裝 CLI 到使用者的 tool 環境
 2. `ai-dev` 命令可在任意目錄下執行
-3. 所有子命令（`install`、`maintain`、`project` 等）皆可使用
+3. 所有子命令（`install`、`update`、`project` 等）皆可使用
 
 #### Scenario: 使用 pipx install 安裝
 

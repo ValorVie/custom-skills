@@ -1,6 +1,6 @@
 [project]
 name = "ai-dev"
-version = "0.2.0"
+version = "0.3.1"
 description = "AI Development Environment Setup CLI - 統一管理 Skills、Commands 與 Agent 配置"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -21,6 +21,9 @@ ai-dev = "script.main:app"
 
 [tool.setuptools.packages.find]
 include = ["script*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.tcss"]
 
 [tool.uv]
 dev-dependencies = []

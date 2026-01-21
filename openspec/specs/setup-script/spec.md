@@ -21,17 +21,16 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 當執行 `uv run script/main.py install` 時
 則應該使用 Windows 路徑與指令執行對應步驟。
 
-### Requirement: Maintain Logic (維護邏輯)
-腳本 MUST (必須) 實作 `maintain` 指令以進行每日更新。
+### Requirement: Update Logic (更新邏輯)
+腳本 MUST (必須) 實作 `update` 指令以進行每日更新。
 
 #### 場景：每日更新
 給定已安裝的環境
-當執行 `uv run script/main.py maintain` 時
+當執行 `ai-dev update` 時
 則應該：
 1. 更新全域 NPM 套件。
-2. 在已 clone 的儲存庫中執行 `git pull`。
+2. 在已 clone 的儲存庫中執行 `git fetch --all` 與 `git reset --hard origin/HEAD`。
 3. 重新複製 skills 到目標目錄，覆寫舊檔。
-4. 清理指定的過時檔案/目錄。
 
 ### Requirement: Multi-platform Support (跨平台支援)
 腳本 MUST (必須) 偵測作業系統並使用適當的路徑/指令。

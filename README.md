@@ -46,6 +46,8 @@ cd ~/.config/custom-skills
 uv tool install . --force
 ```
 
+> **注意**：`uv` 會根據版本號判斷是否需要重新安裝。如果修改了程式碼但版本號未變更，可能會使用快取。請先更新 `pyproject.toml` 中的 `version` 欄位後再執行安裝。
+
 ## 使用方式
 
 安裝後，可在任意目錄使用 `ai-dev` 指令。
@@ -84,12 +86,12 @@ ai-dev install
 ai-dev install --skip-npm --skip-skills
 ```
 
-### 每日維護 (Maintain)
+### 每日更新 (Update)
 
 建議每天開始工作前執行，以保持環境最新：
 
 ```bash
-ai-dev maintain
+ai-dev update
 ```
 
 這會自動：
@@ -108,10 +110,10 @@ ai-dev maintain
 **範例：**
 ```bash
 # 只更新 Git 儲存庫（跳過 NPM 和 Skills）
-ai-dev maintain --skip-npm --skip-skills
+ai-dev update --skip-npm --skip-skills
 
 # 只更新 NPM 套件（跳過 Git 和 Skills）
-ai-dev maintain --skip-repos --skip-skills
+ai-dev update --skip-repos --skip-skills
 ```
 
 ### 專案級操作 (Project)
@@ -328,7 +330,7 @@ npx skills add vercel-labs/agent-skills
 | 指令 | 說明 |
 |------|------|
 | `ai-dev install` | 首次安裝 AI 開發環境 |
-| `ai-dev maintain` | 每日維護：更新工具並同步設定 |
+| `ai-dev update` | 每日更新：更新工具並同步設定 |
 | `ai-dev project init` | 初始化專案（openspec + uds） |
 | `ai-dev project update` | 更新專案配置 |
 | `ai-dev status` | 檢查環境狀態與工具版本 |

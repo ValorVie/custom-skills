@@ -4,7 +4,7 @@
 TBD - created by archiving change enhance-skill-management. Update Purpose after archive.
 ## Requirements
 ### Requirement: Skills NPM Package Maintenance (Skills NPM 套件維護)
-腳本 MUST (必須) 在 `install` 與 `maintain` 指令中包含 `skills` npm 套件的安裝與更新。
+腳本 MUST (必須) 在 `install` 與 `update` 指令中包含 `skills` npm 套件的安裝與更新。
 
 #### Scenario: 安裝 skills 套件
 給定使用者執行 `install` 指令
@@ -12,7 +12,7 @@ TBD - created by archiving change enhance-skill-management. Update Purpose after
 則應該包含 `skills` 套件的安裝。
 
 #### Scenario: 更新 skills 套件
-給定使用者執行 `maintain` 指令
+給定使用者執行 `update` 指令
 當更新全域 NPM 套件時
 則應該更新 `skills` 套件到最新版本。
 

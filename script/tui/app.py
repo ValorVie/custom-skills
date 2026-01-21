@@ -153,7 +153,7 @@ class SkillManagerApp(App):
         # 按鈕列
         with Horizontal(id="button-bar"):
             yield Button("Install", id="btn-install", variant="success")
-            yield Button("Maintain", id="btn-maintain", variant="warning")
+            yield Button("Update", id="btn-update", variant="warning")
             yield Button("Status", id="btn-status", variant="primary")
             yield Button("Add Skills", id="btn-add-skills", variant="default")
             yield Button("Quit", id="btn-quit", variant="error")
@@ -217,8 +217,8 @@ class SkillManagerApp(App):
 
         if button_id == "btn-install":
             self.run_cli_command("install")
-        elif button_id == "btn-maintain":
-            self.run_cli_command("maintain")
+        elif button_id == "btn-update":
+            self.run_cli_command("update")
         elif button_id == "btn-status":
             self.run_cli_command("status")
         elif button_id == "btn-add-skills":
@@ -233,10 +233,15 @@ class SkillManagerApp(App):
     def run_cli_command(self, command: str) -> None:
         """在終端機中執行 CLI 指令。"""
         import subprocess
-        import sys
+        import shutil
 
-        script_dir = Path(__file__).parent.parent
-        cmd = [sys.executable, str(script_dir / "main.py"), command]
+        # 優先使用已安裝的 ai-dev 指令，否則回退到 python -m
+        ai_dev_path = shutil.which("ai-dev")
+        if ai_dev_path:
+            cmd = [ai_dev_path, command]
+        else:
+            import sys
+            cmd = [sys.executable, "-m", "script.main", command]
 
         # 使用 suspend 暫停 TUI，讓終端機正常顯示
         with self.suspend():

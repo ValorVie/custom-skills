@@ -15,9 +15,9 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 `script/README.md` MUST (必須) 提供關於如何使用腳本的清晰說明。
 
 #### 場景：README 內容
-當使用者閱讀 `script/README.md` 時
+當使用者閱讀 README 時
 則它應該說明：
-1. 如何安裝 `uv`。
-2. 如何執行安裝 (`uv run script/main.py install`)。
-3. 如何執行維護 (`uv run script/main.py maintain`)。
+1. 如何安裝 CLI 工具（透過 `uv tool install` 或 `pipx`）。
+2. 如何執行安裝 (`ai-dev install`)。
+3. 如何執行更新 (`ai-dev update`)。
 
