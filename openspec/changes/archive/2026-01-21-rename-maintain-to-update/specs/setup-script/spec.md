@@ -23,8 +23,3 @@
 當執行 `ai-dev update --skip-npm --skip-repos` 時
 則應該只執行 skills 同步，跳過 NPM 與 Git 更新
 
-## REMOVED Requirements
-
-### Requirement: Maintain Logic (維護邏輯)
-
-> **移除說明**：此需求已被「Update Logic」取代。原 `maintain` 指令不再存在。
