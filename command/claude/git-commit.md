@@ -30,9 +30,7 @@ description: 統一的 Git 提交流程。支援本地/遠端同步與單次/整
 
 ## 執行指引
 
-**請讀取 `git-commit-custom` Skill 並依照其指示執行。**
-
-Skill 路徑：`skills/git-commit-custom/SKILL.md`
+**請讀取並檢查 skill 資料庫中的 `git-commit-custom` Skill 並依照其指示執行。**
 
 > [!IMPORTANT]
 > 執行前必須先讀取 Skill 的 `SKILL.md` 取得完整路由邏輯與模組說明。
