@@ -63,6 +63,7 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 | **Antigravity**    | VSCode 整合的 AI 助手 | 圖形介面、IDE 整合         |
 | **OpenCode**       | 開源 AI 編程助手       | 多模型支援、可自訂 Agent     |
 | **oh-my-opencode** | OpenCode 增強套件    | 平行代理、深度探索、免費模型整合    |
+| **Codex**          | OpenAI Codex CLI  | GPT-4 整合、程式碼生成      |
 | **Gemini CLI**     | Google AI 命令列工具  | 免費額度、程式碼審查          |
 
 ### Skills 與 Plugin 架構
@@ -80,14 +81,14 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 │                   (統一 Skills 管理目錄)                     │
 └─────────────────────────────────────────────────────────────┘
                               ↓
-      ┌───────────────────────┼───────────────────────┐
-      ↓                       ↓                       ↓
-┌─────────────┐      ┌─────────────────┐      ┌─────────────┐
-│ ~/.claude/  │      │ ~/.gemini/      │      │ ~/.config/  │
-│   skills/   │      │ antigravity/    │      │  opencode/  │
-│             │      │   skills/       │      │             │
-│ Claude Code │      │  Antigravity    │      │  OpenCode   │
-└─────────────┘      └─────────────────┘      └─────────────┘
+      ┌───────────┬───────────┼───────────┬───────────┐
+      ↓           ↓           ↓           ↓           ↓
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│~/.claude/│ │~/.gemini/│ │~/.config/│ │~/.codex/ │ │~/.gemini/│
+│ skills/  │ │antigrav./│ │opencode/ │ │ skills/  │ │ skills/  │
+│          │ │ skills/  │ │          │ │          │ │commands/ │
+│  Claude  │ │Antigrav. │ │ OpenCode │ │  Codex   │ │Gemini CLI│
+└──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
 ```
 
 ### 關鍵 Skills 說明
@@ -1084,6 +1085,12 @@ ai-dev list --target antigravity --type workflows
 
 # 列出 OpenCode 的 Agents
 ai-dev list --target opencode --type agents
+
+# 列出 Codex 的 Skills
+ai-dev list --target codex --type skills
+
+# 列出 Gemini CLI 的 Skills
+ai-dev list --target gemini --type skills
 
 # 隱藏已停用的資源
 ai-dev list --hide-disabled

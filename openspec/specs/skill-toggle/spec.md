@@ -44,18 +44,35 @@ TBD - created by archiving change enhance-skill-management. Update Purpose after
 則應該顯示所有工具的啟用/停用狀態表格。
 
 ### Requirement: Target Tool Support (目標工具支援)
-腳本 MUST (必須) 支援以下目標工具：
 
-| Target | Skills 路徑 | Commands/Workflows 路徑 | Agents 路徑 |
-|--------|------------|------------------------|------------|
-| claude | ~/.claude/skills/ | ~/.claude/commands/ | N/A |
-| antigravity | ~/.gemini/antigravity/skills/ | ~/.gemini/antigravity/global_workflows/ | N/A |
-| opencode | (讀取 ~/.claude/skills/) | N/A | ~/.config/opencode/agent/ |
+toggle 指令 MUST (必須) 支援多個目標工具。
 
-#### Scenario: OpenCode 使用 Claude Skills 路徑
-給定使用者停用 Claude 的某個 skill
-當 OpenCode 讀取 skills 時
-則該 skill 也會被停用（因為 OpenCode 預設讀取 Claude 路徑）。
+> **變更說明**：新增 Codex 和 Gemini CLI 作為支援的目標工具。
+
+目前支援的目標工具及其資源類型：
+- `claude`: skills, commands
+- `antigravity`: skills, workflows
+- `opencode`: agents
+- `codex`: skills（新增）
+- `gemini`: skills, commands（新增）
+
+#### Scenario: Codex 的 Skills 路徑
+
+給定使用者指定 `--target codex`
+當執行 toggle 指令時
+則應該操作 `~/.codex/skills` 目錄下的資源
+
+#### Scenario: Gemini CLI 的 Skills 路徑
+
+給定使用者指定 `--target gemini`
+當執行 toggle 指令時
+則應該操作 `~/.gemini/skills` 目錄下的資源
+
+#### Scenario: Gemini CLI 的 Commands 路徑
+
+給定使用者指定 `--target gemini --type commands`
+當執行 toggle 指令時
+則應該操作 `~/.gemini/commands` 目錄下的資源
 
 ### Requirement: toggle 指令整合檔案移動機制 (MUST)
 
@@ -74,4 +91,30 @@ TBD - created by archiving change enhance-skill-management. Update Purpose after
 **When** 指令執行
 **Then** 系統應呼叫 `enable_resource()` 函式還原檔案
 **And** 不再呼叫 `copy_skills()` 進行全量同步
+
+### Requirement: Codex Restart Reminder (Codex 重啟提醒)
+
+toggle 指令 MUST (必須) 在操作 Codex 資源後顯示重啟提醒。
+
+#### Scenario: Codex 重啟提醒
+
+給定使用者停用或啟用 Codex 的 skill
+當操作成功完成時
+則應該顯示：
+```
+⚠️  請重新啟動 Codex CLI 以使變更生效
+```
+
+### Requirement: Gemini CLI Restart Reminder (Gemini CLI 重啟提醒)
+
+toggle 指令 MUST (必須) 在操作 Gemini CLI 資源後顯示重啟提醒。
+
+#### Scenario: Gemini CLI 重啟提醒
+
+給定使用者停用或啟用 Gemini CLI 的 skill 或 command
+當操作成功完成時
+則應該顯示：
+```
+⚠️  請重新啟動 Gemini CLI 以使變更生效
+```
 

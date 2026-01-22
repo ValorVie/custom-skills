@@ -17,6 +17,8 @@ from .paths import (
     get_claude_config_dir,
     get_antigravity_config_dir,
     get_opencode_config_dir,
+    get_codex_config_dir,
+    get_gemini_cli_config_dir,
     get_superpowers_dir,
     get_uds_dir,
     get_obsidian_skills_dir,
@@ -27,7 +29,7 @@ from .paths import (
 console = Console()
 
 # 類型定義
-TargetType = Literal["claude", "antigravity", "opencode"]
+TargetType = Literal["claude", "antigravity", "opencode", "codex", "gemini"]
 ResourceType = Literal["skills", "commands", "agents", "workflows"]
 
 # ============================================================
@@ -192,7 +194,46 @@ def copy_skills():
         src_agent, dst_agent, f"正在複製... 從 Agents 到 {dst_agent}..."
     )
 
-    # 6. 專案目錄 (開發環境)
+    # 6. Codex Skills
+    dst_codex = get_codex_config_dir() / "skills"
+    copy_tree_if_exists(
+        src_uds, dst_codex, f"正在複製... 從 {src_uds} 到 {dst_codex}..."
+    )
+    clean_unwanted_files(dst_codex)
+    copy_tree_if_exists(
+        src_obsidian, dst_codex, f"正在複製... 從 {src_obsidian} 到 {dst_codex}..."
+    )
+    copy_tree_if_exists(
+        src_anthropic,
+        dst_codex / "skill-creator",
+        f"正在複製... 從 {src_anthropic} 到 {dst_codex / 'skill-creator'}...",
+    )
+
+    # 7. Gemini CLI Skills
+    dst_gemini = get_gemini_cli_config_dir() / "skills"
+    copy_tree_if_exists(
+        src_uds, dst_gemini, f"正在複製... 從 {src_uds} 到 {dst_gemini}..."
+    )
+    clean_unwanted_files(dst_gemini)
+    copy_tree_if_exists(
+        src_obsidian, dst_gemini, f"正在複製... 從 {src_obsidian} 到 {dst_gemini}..."
+    )
+    copy_tree_if_exists(
+        src_anthropic,
+        dst_gemini / "skill-creator",
+        f"正在複製... 從 {src_anthropic} 到 {dst_gemini / 'skill-creator'}...",
+    )
+
+    # 8. Gemini CLI Commands
+    src_cmd_gemini = get_custom_skills_dir() / "command" / "gemini"
+    dst_cmd_gemini = get_gemini_cli_config_dir() / "commands"
+    copy_tree_if_exists(
+        src_cmd_gemini,
+        dst_cmd_gemini,
+        f"正在複製... 從 Commands 到 {dst_cmd_gemini}...",
+    )
+
+    # 9. 專案目錄 (開發環境)
     project_root = get_project_root()
     if not (
         (project_root / ".git").exists() and (project_root / "pyproject.toml").exists()
@@ -291,7 +332,7 @@ def show_restart_reminder(target: TargetType) -> None:
     """顯示重啟提醒訊息。
 
     Args:
-        target: 目標工具 (claude, antigravity, opencode)
+        target: 目標工具 (claude, antigravity, opencode, codex, gemini)
     """
     reminders = {
         "claude": """
@@ -314,6 +355,20 @@ def show_restart_reminder(target: TargetType) -> None:
 重啟方式：
   1. 輸入 exit 離開 OpenCode
   2. 重新執行 opencode 指令
+""",
+        "codex": """
+⚠️  請重啟 Codex CLI 以套用變更
+
+重啟方式：
+  1. 輸入 exit 離開 Codex
+  2. 重新執行 codex 指令
+""",
+        "gemini": """
+⚠️  請重啟 Gemini CLI 以套用變更
+
+重啟方式：
+  1. 輸入 exit 離開 Gemini CLI
+  2. 重新執行 gemini 指令
 """,
     }
 
@@ -674,6 +729,9 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
         ("antigravity", "skills"): get_antigravity_config_dir() / "skills",
         ("antigravity", "workflows"): get_antigravity_config_dir() / "global_workflows",
         ("opencode", "agents"): get_opencode_config_dir() / "agent",
+        ("codex", "skills"): get_codex_config_dir() / "skills",
+        ("gemini", "skills"): get_gemini_cli_config_dir() / "skills",
+        ("gemini", "commands"): get_gemini_cli_config_dir() / "commands",
     }
     return paths.get((target, resource_type))
 
@@ -778,11 +836,13 @@ def list_installed_resources(
 
     result = {}
 
-    targets = [target] if target else ["claude", "antigravity", "opencode"]
+    targets = [target] if target else ["claude", "antigravity", "opencode", "codex", "gemini"]
     type_mapping = {
         "claude": ["skills", "commands"],
         "antigravity": ["skills", "workflows"],
         "opencode": ["agents"],
+        "codex": ["skills"],
+        "gemini": ["skills", "commands"],
     }
 
     for t in targets:
@@ -799,7 +859,8 @@ def list_installed_resources(
                 # Skills 是目錄結構
                 if rt == "skills":
                     for item in path.iterdir():
-                        if item.is_dir():
+                        # 過濾隱藏目錄（如 .system）
+                        if item.is_dir() and not item.name.startswith("."):
                             source = identify_source(item.name, skill_sources)
                             items.append({
                                 "name": item.name,
@@ -890,7 +951,7 @@ def get_mcp_config_path(target: TargetType) -> tuple[Path, bool]:
     """取得各工具的 MCP 設定檔路徑。
 
     Args:
-        target: 目標工具 (claude, antigravity, opencode)
+        target: 目標工具 (claude, antigravity, opencode, codex, gemini)
 
     Returns:
         tuple[Path, bool]: (設定檔路徑, 檔案是否存在)
@@ -901,6 +962,8 @@ def get_mcp_config_path(target: TargetType) -> tuple[Path, bool]:
         "claude": home / ".claude.json",
         "antigravity": home / ".gemini" / "antigravity" / "mcp_config.json",
         "opencode": home / ".config" / "opencode" / "opencode.json",
+        "codex": home / ".codex" / "config.json",
+        "gemini": home / ".gemini" / "settings.json",
     }
 
     path = paths.get(target, home / ".claude.json")

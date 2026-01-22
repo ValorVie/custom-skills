@@ -37,6 +37,8 @@ TARGET_OPTIONS = [
     ("Claude Code", "claude"),
     ("Antigravity", "antigravity"),
     ("OpenCode", "opencode"),
+    ("Codex", "codex"),
+    ("Gemini CLI", "gemini"),
 ]
 
 # 各工具支援的資源類型
@@ -44,7 +46,30 @@ TYPE_OPTIONS_BY_TARGET = {
     "claude": [("Skills", "skills"), ("Commands", "commands")],
     "antigravity": [("Skills", "skills"), ("Workflows", "workflows")],
     "opencode": [("Agents", "agents")],
+    "codex": [("Skills", "skills")],
+    "gemini": [("Skills", "skills"), ("Commands", "commands")],
 }
+
+
+def sanitize_widget_id(name: str) -> str:
+    """將資源名稱轉換為有效的 Textual widget ID。
+
+    Textual widget ID 只能包含字母、數字、底線和連字符，
+    且不能以數字開頭。
+    """
+    import re
+
+    # 將無效字元替換為底線
+    safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+    # 確保不以數字開頭（加上前綴）
+    if safe_id and safe_id[0].isdigit():
+        safe_id = f"r{safe_id}"
+    # 移除開頭的底線
+    safe_id = safe_id.lstrip("_")
+    # 如果結果為空，使用預設值
+    if not safe_id:
+        safe_id = "unnamed"
+    return safe_id
 
 
 class AddSkillsModal(ModalScreen):
@@ -116,10 +141,12 @@ class ResourceItem(Horizontal):
         self.resource_type = resource_type
 
     def compose(self) -> ComposeResult:
+        # 使用清理過的 ID 避免無效字元（如 .system → _system）
+        safe_id = sanitize_widget_id(self.resource_name)
         yield Checkbox(
             self.resource_name,
             value=self.resource_enabled,
-            id=f"cb-{self.resource_name}",
+            id=f"cb-{safe_id}",
         )
         yield Label(f"({self.resource_source})", classes="resource-source")
 

@@ -33,6 +33,7 @@
 | `script/commands/list.py` | 新增 codex/gemini 的列表支援 |
 | `script/tui/app.py` | 更新 `TARGET_OPTIONS` 和 `TYPE_OPTIONS_BY_TARGET` |
 | `README.md` | 更新支援的工具清單 |
+| `docs/AI開發環境設定指南.md` | 更新支援的工具清單與指令說明 |
 
 ### 複製策略
 

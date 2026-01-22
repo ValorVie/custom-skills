@@ -28,6 +28,16 @@ def get_opencode_config_dir() -> Path:
     return get_config_dir() / "opencode"
 
 
+def get_codex_config_dir() -> Path:
+    """回傳 OpenAI Codex CLI 的配置目錄路徑。"""
+    return get_home_dir() / ".codex"
+
+
+def get_gemini_cli_config_dir() -> Path:
+    """回傳 Gemini CLI 的配置目錄路徑。"""
+    return get_home_dir() / ".gemini"
+
+
 def get_superpowers_dir() -> Path:
     return get_config_dir() / "superpowers"
 

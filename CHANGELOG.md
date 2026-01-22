@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-01-21
+
+### Fixed
+
+- 修正 TUI 在資源名稱包含特殊字元時的 BadIdentifier 錯誤
+  - 新增 `sanitize_widget_id()` 函式處理特殊字元
+- 過濾隱藏資源（如 Codex 的 `.system` 系統目錄）不顯示於列表中
+
+## [0.4.0] - 2026-01-21
+
+### Added
+
+- **新增 Codex 目標工具支援**
+  - Skills 路徑：`~/.codex/skills`
+  - `list`、`toggle`、TUI 皆支援 `--target codex`
+- **新增 Gemini CLI 目標工具支援**
+  - Skills 路徑：`~/.gemini/skills`
+  - Commands 路徑：`~/.gemini/commands`
+  - `list`、`toggle`、TUI 皆支援 `--target gemini`
+- `install` 和 `update` 指令會自動複製 Skills 到 Codex 和 Gemini CLI 目錄
+
+### Changed
+
+- TUI Target 下拉選單新增 Codex 和 Gemini CLI 選項
+- MCP Config 區塊新增 Codex 和 Gemini CLI 的設定檔路徑
+
 ## [0.3.1] - 2026-01-21
 
 ### Fixed

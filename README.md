@@ -180,6 +180,12 @@ ai-dev list --target antigravity --type workflows
 # 列出 OpenCode 的 Agents
 ai-dev list --target opencode --type agents
 
+# 列出 Codex 的 Skills
+ai-dev list --target codex --type skills
+
+# 列出 Gemini CLI 的 Skills
+ai-dev list --target gemini --type skills
+
 # 隱藏已停用的資源
 ai-dev list --hide-disabled
 ```
@@ -188,7 +194,7 @@ ai-dev list --hide-disabled
 
 | 參數 | 說明 |
 |------|------|
-| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode` |
+| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode`, `codex`, `gemini` |
 | `--type`, `-T` | 資源類型：`skills`, `commands`, `agents`, `workflows` |
 | `--hide-disabled`, `-H` | 隱藏已停用的資源（預設顯示全部） |
 
@@ -211,7 +217,7 @@ ai-dev toggle --list
 
 | 參數 | 說明 |
 |------|------|
-| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode` |
+| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode`, `codex`, `gemini` |
 | `--type`, `-T` | 資源類型：`skills`, `commands`, `agents`, `workflows` |
 | `--name`, `-n` | 資源名稱 |
 | `--enable`, `-e` | 啟用資源 |
@@ -231,8 +237,16 @@ ai-dev toggle --list
 │       └── some-disabled-command.md
 ├── antigravity/
 │   └── ...
-└── opencode/
-    └── ...
+├── opencode/
+│   └── ...
+├── codex/
+│   └── skills/
+│       └── ...
+└── gemini/
+    ├── skills/
+    │   └── ...
+    └── commands/
+        └── ...
 ```
 
 **注意**：停用/啟用後需要重啟對應的 AI 工具才會生效。
@@ -263,6 +277,19 @@ opencode:
   agents:
     enabled: true
     disabled: []
+
+codex:
+  skills:
+    enabled: true
+    disabled: []
+
+gemini:
+  skills:
+    enabled: true
+    disabled: []
+  commands:
+    enabled: true
+    disabled: []
 ```
 
 ### 互動式 TUI 介面 (TUI)
@@ -275,7 +302,7 @@ ai-dev tui
 
 **功能：**
 - 頂部按鈕列：Install / Maintain / Status / Add Skills / Quit
-- Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode）
+- Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode / Codex / Gemini CLI）
 - Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
 - 資源列表：Checkbox 勾選啟用/停用
 - Add Skills 對話框：輸入套件名稱並執行 `npx skills add`
@@ -290,6 +317,8 @@ TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
 | Claude Code | `~/.claude.json` |
 | Antigravity | `~/.gemini/antigravity/mcp_config.json` |
 | OpenCode | `~/.config/opencode/opencode.json` |
+| Codex | `~/.codex/config.json` |
+| Gemini CLI | `~/.gemini/settings.json` |
 
 點擊「Open in Editor」可在 VS Code 中開啟設定檔，點擊「Open Folder」可在檔案管理器中開啟。
 
