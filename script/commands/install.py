@@ -18,8 +18,8 @@ from ..utils.shared import (
     copy_skills,
     get_all_skill_names,
     show_skills_npm_hint,
-    check_claude_installed,
-    show_claude_install_instructions,
+    show_claude_status,
+    get_npm_package_version,
 )
 
 app = typer.Typer()
@@ -51,9 +51,8 @@ def install(
         console.print("[bold red]找不到 Git，請先安裝 Git。[/bold red]")
         raise typer.Exit(code=1)
 
-    # 1.1 檢查 Claude Code 是否已安裝
-    if not check_claude_installed():
-        show_claude_install_instructions()
+    # 1.1 檢查 Claude Code 安裝狀態（顯示詳細資訊）
+    show_claude_status()
 
     # 2. 安裝全域 NPM 套件
     if skip_npm:
@@ -62,7 +61,15 @@ def install(
         console.print("[green]正在安裝全域 NPM 套件...[/green]")
         total = len(NPM_PACKAGES)
         for i, package in enumerate(NPM_PACKAGES, 1):
-            console.print(f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]")
+            # 檢查套件是否已安裝
+            existing_version = get_npm_package_version(package)
+            if existing_version:
+                console.print(
+                    f"[bold cyan][{i}/{total}][/bold cyan] {package} "
+                    f"[dim](已安裝 v{existing_version}，檢查更新...)[/dim]"
+                )
+            else:
+                console.print(f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]")
             run_command(["npm", "install", "-g", package])
 
     # 3. 建立目錄
@@ -77,7 +84,7 @@ def install(
         get_claude_config_dir() / "skills",
         get_claude_config_dir() / "commands",
         # Antigravity
-        get_antigravity_config_dir() / "skills",
+        get_antigravity_config_dir() / "global_skills",
         get_antigravity_config_dir() / "global_workflows",
         # OpenCode（新增 skills 和 commands）
         get_opencode_config_dir() / "skills",

@@ -76,7 +76,7 @@ COPY_TARGETS = {
         "commands": get_claude_config_dir() / "commands",
     },
     "antigravity": {
-        "skills": get_antigravity_config_dir() / "skills",
+        "skills": get_antigravity_config_dir() / "global_skills",
         "workflows": get_antigravity_config_dir() / "global_workflows",
     },
     "opencode": {
@@ -173,6 +173,75 @@ def show_claude_install_instructions() -> None:
     console.print("[dim]  - WinGet (Windows): winget install Anthropic.ClaudeCode[/dim]")
     console.print("[dim]  - 參考文件: https://code.claude.com/docs[/dim]")
     console.print()
+
+
+def show_claude_status() -> None:
+    """顯示 Claude Code 的安裝狀態（用於 install 流程）。"""
+    install_type = get_claude_install_type()
+
+    if install_type is None:
+        show_claude_install_instructions()
+    elif install_type == "npm":
+        console.print("[yellow]⚠️  Claude Code (npm) 已安裝[/yellow]")
+        console.print("[dim]   建議切換到 native 安裝以獲得自動更新功能[/dim]")
+    else:
+        console.print("[green]✓ Claude Code (native) 已安裝[/green]")
+
+
+# ============================================================
+# NPM 套件檢查
+# ============================================================
+
+
+def get_npm_package_version(package_name: str) -> str | None:
+    """檢查 NPM 套件是否已全域安裝，並回傳版本號。
+
+    Args:
+        package_name: NPM 套件名稱（可包含 @latest 等版本標籤）
+
+    Returns:
+        str | None: 已安裝的版本號，未安裝則回傳 None
+    """
+    import subprocess
+
+    # 移除版本標籤（如 @latest）
+    clean_name = package_name.split("@")[0] if "@" in package_name else package_name
+    # 處理 scoped packages（如 @google/gemini-cli）
+    if package_name.startswith("@"):
+        parts = package_name.split("/")
+        if len(parts) >= 2:
+            # @scope/name@version -> @scope/name
+            clean_name = f"{parts[0]}/{parts[1].split('@')[0]}"
+
+    try:
+        result = subprocess.run(
+            ["npm", "list", "-g", clean_name, "--depth=0", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            shell=True,  # Windows 需要
+        )
+        if result.returncode == 0:
+            import json
+            data = json.loads(result.stdout)
+            deps = data.get("dependencies", {})
+            if clean_name in deps:
+                return deps[clean_name].get("version", "installed")
+    except Exception:
+        pass
+
+    return None
+
+
+def check_uds_initialized() -> bool:
+    """檢查當前目錄是否已初始化 universal-dev-standards。
+
+    Returns:
+        bool: True 表示已初始化（存在 .standards 目錄）
+    """
+    from pathlib import Path
+    cwd = Path.cwd()
+    return (cwd / ".standards").exists()
 
 
 # ============================================================
@@ -855,7 +924,7 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
     paths = {
         ("claude", "skills"): get_claude_config_dir() / "skills",
         ("claude", "commands"): get_claude_config_dir() / "commands",
-        ("antigravity", "skills"): get_antigravity_config_dir() / "skills",
+        ("antigravity", "skills"): get_antigravity_config_dir() / "global_skills",
         ("antigravity", "workflows"): get_antigravity_config_dir() / "global_workflows",
         ("opencode", "skills"): get_opencode_config_dir() / "skills",
         ("opencode", "commands"): get_opencode_config_dir() / "commands",

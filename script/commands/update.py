@@ -13,7 +13,7 @@ from ..utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
 )
-from ..utils.shared import NPM_PACKAGES, copy_skills, update_claude_code
+from ..utils.shared import NPM_PACKAGES, copy_skills, update_claude_code, check_uds_initialized
 
 app = typer.Typer()
 console = Console()
@@ -94,8 +94,17 @@ def update(
             console.print(f"[bold cyan][{i}/{total}] 正在更新 {package}...[/bold cyan]")
             run_command(["npm", "install", "-g", package])
 
-        # 執行 uds update
-        run_command(["uds", "update"], check=False)
+        # 執行 uds update（僅在專案已初始化時）
+        if check_uds_initialized():
+            console.print("[green]正在更新專案 Standards...[/green]")
+            run_command(["uds", "update"], check=False)
+        else:
+            console.print(
+                "[dim]ℹ️  當前目錄未初始化 Standards（跳過 uds update）[/dim]"
+            )
+            console.print(
+                "[dim]   如需在此專案使用，請執行: uds init[/dim]"
+            )
 
     # 3. 更新儲存庫
     if skip_repos:
