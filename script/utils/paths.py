@@ -18,6 +18,16 @@ def get_claude_config_dir() -> Path:
     return get_home_dir() / ".claude"
 
 
+def get_claude_agents_dir() -> Path:
+    """回傳 Claude Code agents 目錄路徑。"""
+    return get_claude_config_dir() / "agents"
+
+
+def get_claude_workflows_dir() -> Path:
+    """回傳 Claude Code workflows 目錄路徑。"""
+    return get_claude_config_dir() / "workflows"
+
+
 def get_antigravity_config_dir() -> Path:
     if get_os() == "windows":
         return get_home_dir() / ".gemini" / "antigravity"

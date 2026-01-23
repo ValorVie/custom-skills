@@ -5,6 +5,8 @@ from ..utils.paths import (
     get_config_dir,
     get_custom_skills_dir,
     get_claude_config_dir,
+    get_claude_agents_dir,
+    get_claude_workflows_dir,
     get_antigravity_config_dir,
     get_opencode_config_dir,
     get_codex_config_dir,
@@ -83,13 +85,15 @@ def install(
         # Claude Code
         get_claude_config_dir() / "skills",
         get_claude_config_dir() / "commands",
+        get_claude_agents_dir(),
+        get_claude_workflows_dir(),
         # Antigravity
         get_antigravity_config_dir() / "global_skills",
         get_antigravity_config_dir() / "global_workflows",
         # OpenCode（新增 skills 和 commands）
         get_opencode_config_dir() / "skills",
         get_opencode_config_dir() / "commands",
-        get_opencode_config_dir() / "agent",
+        get_opencode_config_dir() / "agents",
         # Codex
         get_codex_config_dir() / "skills",
         # Gemini CLI

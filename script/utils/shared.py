@@ -15,6 +15,8 @@ from rich.console import Console
 from .paths import (
     get_custom_skills_dir,
     get_claude_config_dir,
+    get_claude_agents_dir,
+    get_claude_workflows_dir,
     get_antigravity_config_dir,
     get_opencode_config_dir,
     get_codex_config_dir,
@@ -74,6 +76,8 @@ COPY_TARGETS = {
     "claude": {
         "skills": get_claude_config_dir() / "skills",
         "commands": get_claude_config_dir() / "commands",
+        "agents": get_claude_agents_dir(),
+        "workflows": get_claude_workflows_dir(),
     },
     "antigravity": {
         "skills": get_antigravity_config_dir() / "global_skills",
@@ -82,7 +86,7 @@ COPY_TARGETS = {
     "opencode": {
         "skills": get_opencode_config_dir() / "skills",
         "commands": get_opencode_config_dir() / "commands",
-        "agents": get_opencode_config_dir() / "agent",
+        "agents": get_opencode_config_dir() / "agents",
     },
     "codex": {
         "skills": get_codex_config_dir() / "skills",
@@ -300,7 +304,7 @@ def copy_sources_to_custom_skills() -> None:
     """Stage 2: 將外部來源整合到 custom-skills 目錄。
 
     來源：
-    - UDS skills
+    - UDS skills, agents, workflows
     - Obsidian skills
     - Anthropic skill-creator
     """
@@ -309,13 +313,55 @@ def copy_sources_to_custom_skills() -> None:
     dst_custom = get_custom_skills_dir() / "skills"
     dst_custom.mkdir(parents=True, exist_ok=True)
 
-    # UDS skills
+    # UDS skills（排除 agents 和 workflows 子目錄）
     src_uds = get_uds_dir() / "skills" / "claude-code"
     if src_uds.exists():
         console.print(f"  [dim]{shorten_path(src_uds)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_custom)}[/dim]")
-        shutil.copytree(src_uds, dst_custom, dirs_exist_ok=True)
+        # 複製時排除 agents 和 workflows（這些有專門的目的地）
+        for item in src_uds.iterdir():
+            if item.name in ("agents", "workflows", "commands"):
+                continue  # 這些會單獨處理
+            dst_item = dst_custom / item.name
+            if item.is_dir():
+                shutil.copytree(item, dst_item, dirs_exist_ok=True)
+            else:
+                shutil.copy2(item, dst_item)
         clean_unwanted_files(dst_custom)
+
+    # UDS agents → custom-skills/agents/claude 和 custom-skills/agents/opencode
+    src_uds_agents = get_uds_dir() / "skills" / "claude-code" / "agents"
+    if src_uds_agents.exists():
+        # 複製到 claude
+        dst_agents_claude = get_custom_skills_dir() / "agents" / "claude"
+        console.print(f"  [dim]{shorten_path(src_uds_agents)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_agents_claude)}[/dim]")
+        dst_agents_claude.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_agents, dst_agents_claude, dirs_exist_ok=True)
+
+        # 同時複製到 opencode
+        dst_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
+        console.print(f"    → [dim]{shorten_path(dst_agents_opencode)}[/dim]")
+        dst_agents_opencode.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_agents, dst_agents_opencode, dirs_exist_ok=True)
+
+    # UDS workflows → custom-skills/command/workflows
+    src_uds_workflows = get_uds_dir() / "skills" / "claude-code" / "workflows"
+    dst_workflows = get_custom_skills_dir() / "command" / "workflows"
+    if src_uds_workflows.exists():
+        console.print(f"  [dim]{shorten_path(src_uds_workflows)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_workflows)}[/dim]")
+        dst_workflows.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_workflows, dst_workflows, dirs_exist_ok=True)
+
+    # UDS commands → custom-skills/command/claude（如果存在）
+    src_uds_commands = get_uds_dir() / "skills" / "claude-code" / "commands"
+    dst_commands = get_custom_skills_dir() / "command" / "claude"
+    if src_uds_commands.exists():
+        console.print(f"  [dim]{shorten_path(src_uds_commands)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_commands)}[/dim]")
+        dst_commands.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_commands, dst_commands, dirs_exist_ok=True)
 
     # Obsidian skills
     src_obsidian = get_obsidian_skills_dir() / "skills"
@@ -357,13 +403,19 @@ def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
     src_cmd_antigravity = get_custom_skills_dir() / "command" / "antigravity"
     src_cmd_opencode = get_custom_skills_dir() / "command" / "opencode"
     src_cmd_gemini = get_custom_skills_dir() / "command" / "gemini"
-    src_agent_opencode = get_custom_skills_dir() / "agent" / "opencode"
+    src_cmd_workflows = get_custom_skills_dir() / "command" / "workflows"
+    src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
+    src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
 
     # 1. Claude Code
     dst_claude_skills = COPY_TARGETS["claude"]["skills"]
     dst_claude_commands = COPY_TARGETS["claude"]["commands"]
+    dst_claude_agents = COPY_TARGETS["claude"]["agents"]
+    dst_claude_workflows = COPY_TARGETS["claude"]["workflows"]
     _copy_with_log(src_skills, dst_claude_skills, "skills", "Claude Code")
     _copy_with_log(src_cmd_claude, dst_claude_commands, "commands", "Claude Code")
+    _copy_with_log(src_agents_claude, dst_claude_agents, "agents", "Claude Code")
+    _copy_with_log(src_cmd_workflows, dst_claude_workflows, "workflows", "Claude Code")
 
     # 2. Antigravity
     dst_antigravity_skills = COPY_TARGETS["antigravity"]["skills"]
@@ -377,7 +429,7 @@ def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
     dst_opencode_agents = COPY_TARGETS["opencode"]["agents"]
     _copy_with_log(src_skills, dst_opencode_skills, "skills", "OpenCode")
     _copy_with_log(src_cmd_opencode, dst_opencode_commands, "commands", "OpenCode")
-    _copy_with_log(src_agent_opencode, dst_opencode_agents, "agents", "OpenCode")
+    _copy_with_log(src_agents_opencode, dst_opencode_agents, "agents", "OpenCode")
 
     # 4. Codex
     dst_codex_skills = COPY_TARGETS["codex"]["skills"]
@@ -443,12 +495,12 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         shutil.copytree(src_command, dst_project_command, dirs_exist_ok=True)
 
     # Agents → Project
-    src_agent_all = get_custom_skills_dir() / "agent"
-    if src_agent_all.exists():
-        dst_project_agent = project_root / "agent"
+    src_agents_all = get_custom_skills_dir() / "agents"
+    if src_agents_all.exists():
+        dst_project_agents = project_root / "agents"
         console.print(f"  [green]agents[/green] → [cyan]專案目錄[/cyan]")
-        console.print(f"    [dim]{shorten_path(src_agent_all)} → {shorten_path(dst_project_agent)}[/dim]")
-        shutil.copytree(src_agent_all, dst_project_agent, dirs_exist_ok=True)
+        console.print(f"    [dim]{shorten_path(src_agents_all)} → {shorten_path(dst_project_agents)}[/dim]")
+        shutil.copytree(src_agents_all, dst_project_agents, dirs_exist_ok=True)
 
 
 def copy_skills(sync_project: bool = True) -> None:
@@ -777,12 +829,16 @@ def copy_single_resource(
             return True
 
     elif resource_type == "agents":
-        # Agents 來源：custom-skills/agent/opencode
-        src = get_custom_skills_dir() / "agent" / "opencode" / f"{name}.md"
-        if src.exists():
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, target_path)
-            return True
+        # Agents 來源：根據目標選擇不同的來源目錄
+        sources = [
+            get_custom_skills_dir() / "agents" / "claude" / f"{name}.md",
+            get_custom_skills_dir() / "agents" / "opencode" / f"{name}.md",
+        ]
+        for src in sources:
+            if src.exists():
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, target_path)
+                return True
 
     return False
 
@@ -797,6 +853,8 @@ DEFAULT_TOGGLE_CONFIG = {
     "claude": {
         "skills": {"enabled": True, "disabled": []},
         "commands": {"enabled": True, "disabled": []},
+        "agents": {"enabled": True, "disabled": []},
+        "workflows": {"enabled": True, "disabled": []},
     },
     "antigravity": {
         "skills": {"enabled": True, "disabled": []},
@@ -924,11 +982,13 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
     paths = {
         ("claude", "skills"): get_claude_config_dir() / "skills",
         ("claude", "commands"): get_claude_config_dir() / "commands",
+        ("claude", "agents"): get_claude_agents_dir(),
+        ("claude", "workflows"): get_claude_workflows_dir(),
         ("antigravity", "skills"): get_antigravity_config_dir() / "global_skills",
         ("antigravity", "workflows"): get_antigravity_config_dir() / "global_workflows",
         ("opencode", "skills"): get_opencode_config_dir() / "skills",
         ("opencode", "commands"): get_opencode_config_dir() / "commands",
-        ("opencode", "agents"): get_opencode_config_dir() / "agent",
+        ("opencode", "agents"): get_opencode_config_dir() / "agents",
         ("codex", "skills"): get_codex_config_dir() / "skills",
         ("gemini", "skills"): get_gemini_cli_config_dir() / "skills",
         ("gemini", "commands"): get_gemini_cli_config_dir() / "commands",
@@ -971,16 +1031,23 @@ def get_source_workflows() -> dict[str, set[str]]:
 def get_source_agents() -> dict[str, set[str]]:
     """取得 agents 的來源名稱集合。"""
     sources = {}
+    all_agents = set()
 
-    # Custom agents (本專案)
-    custom_agent = get_custom_skills_dir() / "agent" / "opencode"
-    if custom_agent.exists():
-        sources["custom"] = {
-            f.stem for f in custom_agent.iterdir() if f.is_file() and f.suffix == ".md"
-        }
-    else:
-        sources["custom"] = set()
+    # Claude agents
+    claude_agents_dir = get_custom_skills_dir() / "agents" / "claude"
+    if claude_agents_dir.exists():
+        all_agents.update(
+            f.stem for f in claude_agents_dir.iterdir() if f.is_file() and f.suffix == ".md"
+        )
 
+    # OpenCode agents
+    opencode_agents_dir = get_custom_skills_dir() / "agents" / "opencode"
+    if opencode_agents_dir.exists():
+        all_agents.update(
+            f.stem for f in opencode_agents_dir.iterdir() if f.is_file() and f.suffix == ".md"
+        )
+
+    sources["custom"] = all_agents
     return sources
 
 
@@ -1038,7 +1105,7 @@ def list_installed_resources(
 
     targets = [target] if target else ["claude", "antigravity", "opencode", "codex", "gemini"]
     type_mapping = {
-        "claude": ["skills", "commands"],
+        "claude": ["skills", "commands", "agents", "workflows"],
         "antigravity": ["skills", "workflows"],
         "opencode": ["skills", "commands", "agents"],
         "codex": ["skills"],
