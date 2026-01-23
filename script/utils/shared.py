@@ -104,6 +104,62 @@ def check_claude_installed() -> bool:
     return shutil.which("claude") is not None
 
 
+def get_claude_install_type() -> str | None:
+    """判斷 Claude Code 的安裝方式。
+
+    Returns:
+        "npm": 透過 npm 全域安裝
+        "native": 透過 native 方式安裝（curl / Homebrew / WinGet）
+        None: 未安裝
+    """
+    import subprocess
+
+    claude_path = shutil.which("claude")
+    if not claude_path:
+        return None
+
+    # 檢查是否透過 npm 安裝
+    try:
+        result = subprocess.run(
+            ["npm", "list", "-g", "@anthropic-ai/claude-code", "--depth=0"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0 and "@anthropic-ai/claude-code" in result.stdout:
+            return "npm"
+    except Exception:
+        pass
+
+    # 如果 npm 找不到，視為 native 安裝
+    return "native"
+
+
+def update_claude_code() -> None:
+    """根據安裝方式更新 Claude Code。"""
+    from .system import run_command
+
+    install_type = get_claude_install_type()
+
+    if install_type is None:
+        console.print("[yellow]⚠️  Claude Code CLI 尚未安裝[/yellow]")
+        show_claude_install_instructions()
+        return
+
+    if install_type == "npm":
+        console.print("[bold cyan]正在更新 Claude Code (npm)...[/bold cyan]")
+        run_command(["npm", "install", "-g", "@anthropic-ai/claude-code@latest"])
+        # 提醒切換到 native 安裝
+        console.print()
+        console.print("[yellow]💡 建議切換到 native 安裝方式以獲得自動更新：[/yellow]")
+        console.print("[dim]   1. 移除 npm 版本: npm uninstall -g @anthropic-ai/claude-code[/dim]")
+        console.print("[dim]   2. 安裝 native 版本: curl -fsSL https://claude.ai/install.sh | bash[/dim]")
+        console.print()
+    else:
+        # native 安裝會自動更新
+        console.print("[green]✓ Claude Code (native) - 自動更新[/green]")
+
+
 def show_claude_install_instructions() -> None:
     """顯示 Claude Code 安裝指引。"""
     console.print()

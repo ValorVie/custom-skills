@@ -13,7 +13,7 @@ from ..utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
 )
-from ..utils.shared import NPM_PACKAGES, copy_skills
+from ..utils.shared import NPM_PACKAGES, copy_skills, update_claude_code
 
 app = typer.Typer()
 console = Console()
@@ -78,7 +78,13 @@ def update(
     """每日更新：更新工具並同步設定。"""
     console.print("[bold blue]開始更新...[/bold blue]")
 
-    # 1. 更新全域 NPM 工具
+    # 1. 更新 Claude Code
+    if skip_npm:
+        console.print("[yellow]跳過 Claude Code 更新[/yellow]")
+    else:
+        update_claude_code()
+
+    # 2. 更新全域 NPM 工具
     if skip_npm:
         console.print("[yellow]跳過 NPM 套件更新[/yellow]")
     else:
@@ -91,7 +97,7 @@ def update(
         # 執行 uds update
         run_command(["uds", "update"], check=False)
 
-    # 2. 更新儲存庫
+    # 3. 更新儲存庫
     if skip_repos:
         console.print("[yellow]跳過 Git 儲存庫更新[/yellow]")
     else:
@@ -121,7 +127,7 @@ def update(
                     check=False,
                 )
 
-    # 3. 重新同步 Skills（Stage 2 + Stage 3）
+    # 4. 重新同步 Skills（Stage 2 + Stage 3）
     if skip_skills:
         console.print("[yellow]跳過複製 Skills[/yellow]")
     else:
