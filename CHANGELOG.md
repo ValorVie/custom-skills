@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-23
+
+### Added
+
+- **版本資訊顯示**
+  - CLI 支援 `--version` / `-v` 參數
+  - TUI 標題列顯示版本號
+- **Claude Code 智慧更新**
+  - 自動偵測安裝方式（npm 或 native）
+  - npm 用戶會收到切換 native 安裝的提示
+  - native 用戶顯示自動更新提示
+- **OpenCode 完整支援**
+  - 新增 Commands 和 Agents 資源類型支援
+  - TUI Type 選單支援 Skills / Commands / Agents
+- **TUI Sync to Project 選項**
+  - 新增 "Sync to Project" 核取方塊
+  - 可控制是否同步到專案目錄
+
+### Changed
+
+- **三階段複製架構**
+  - Stage 1: Clone 儲存庫到 `~/.config/`
+  - Stage 2: 整合至 `~/.config/custom-skills/`
+  - Stage 3: 分發到各 AI 工具目錄
+- **專案同步邏輯改進**
+  - 只在 custom-skills 專案目錄中執行時才同步回專案
+  - 透過 pyproject.toml 的 `name = "ai-dev"` 判斷
+- **複製訊息顯示來源與目標路徑**
+  - 使用 `~` 簡化路徑顯示
+  - 更清晰的複製操作追蹤
+
+### Fixed
+
+- 修正 `get_project_root()` 返回錯誤目錄的問題
+
 ## [0.4.1] - 2026-01-21
 
 ### Fixed
