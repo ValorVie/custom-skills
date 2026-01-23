@@ -37,7 +37,6 @@ ResourceType = Literal["skills", "commands", "agents", "workflows"]
 # ============================================================
 
 NPM_PACKAGES = [
-    "@anthropic-ai/claude-code",
     "@fission-ai/openspec@latest",
     "@google/gemini-cli",
     "universal-dev-standards",
@@ -69,6 +68,55 @@ UNWANTED_UDS_FILES = [
     "install.sh",
     "README.md",
 ]
+
+# 複製目標配置表：定義各工具的資源目錄
+COPY_TARGETS = {
+    "claude": {
+        "skills": get_claude_config_dir() / "skills",
+        "commands": get_claude_config_dir() / "commands",
+    },
+    "antigravity": {
+        "skills": get_antigravity_config_dir() / "skills",
+        "workflows": get_antigravity_config_dir() / "global_workflows",
+    },
+    "opencode": {
+        "skills": get_opencode_config_dir() / "skills",
+        "commands": get_opencode_config_dir() / "commands",
+        "agents": get_opencode_config_dir() / "agent",
+    },
+    "codex": {
+        "skills": get_codex_config_dir() / "skills",
+    },
+    "gemini": {
+        "skills": get_gemini_cli_config_dir() / "skills",
+        "commands": get_gemini_cli_config_dir() / "commands",
+    },
+}
+
+
+# ============================================================
+# Claude Code 安裝檢測
+# ============================================================
+
+
+def check_claude_installed() -> bool:
+    """檢查 Claude Code CLI 是否已安裝。"""
+    return shutil.which("claude") is not None
+
+
+def show_claude_install_instructions() -> None:
+    """顯示 Claude Code 安裝指引。"""
+    console.print()
+    console.print("[yellow]⚠️  Claude Code CLI 尚未安裝。[/yellow]")
+    console.print()
+    console.print("[bold]推薦安裝方式（自動更新）：[/bold]")
+    console.print("[cyan]  curl -fsSL https://claude.ai/install.sh | bash[/cyan]")
+    console.print()
+    console.print("[dim]其他安裝方式：[/dim]")
+    console.print("[dim]  - Homebrew (macOS): brew install --cask claude-code[/dim]")
+    console.print("[dim]  - WinGet (Windows): winget install Anthropic.ClaudeCode[/dim]")
+    console.print("[dim]  - 參考文件: https://code.claude.com/docs[/dim]")
+    console.print()
 
 
 # ============================================================
@@ -110,174 +158,174 @@ def copy_tree_if_exists(src: Path, dst: Path, msg: str):
 
 
 # ============================================================
-# 主要函式
+# 三階段複製邏輯
 # ============================================================
 
 
-def copy_skills():
-    """複製 Skills 從來源到目標目錄。"""
-    # 來源路徑
-    src_uds = get_uds_dir() / "skills" / "claude-code"
-    src_obsidian = get_obsidian_skills_dir() / "skills"
-    src_anthropic = get_anthropic_skills_dir() / "skills" / "skill-creator"
-    src_custom = get_custom_skills_dir() / "skills"
+def copy_sources_to_custom_skills() -> None:
+    """Stage 2: 將外部來源整合到 custom-skills 目錄。
 
-    # 目標路徑
+    來源：
+    - UDS skills
+    - Obsidian skills
+    - Anthropic skill-creator
+    """
+    console.print("[bold cyan]Stage 2: 整合外部來源到 custom-skills...[/bold cyan]")
+
     dst_custom = get_custom_skills_dir() / "skills"
-    dst_claude = get_claude_config_dir() / "skills"
-    dst_antigravity = get_antigravity_config_dir() / "skills"
+    dst_custom.mkdir(parents=True, exist_ok=True)
 
-    # 1. UDS + Obsidian + Anthropic → Custom Skills (統一來源)
-    copy_tree_if_exists(
-        src_uds, dst_custom, f"正在複製... 從... 從 {src_uds} 到 {dst_custom}..."
-    )
-    clean_unwanted_files(dst_custom)
-    copy_tree_if_exists(
-        src_obsidian, dst_custom, f"正在複製... 從 {src_obsidian} 到 {dst_custom}..."
-    )
-    copy_tree_if_exists(
-        src_anthropic,
-        dst_custom / "skill-creator",
-        f"正在複製... 從 {src_anthropic} 到 {dst_custom / 'skill-creator'}...",
-    )
+    # UDS skills
+    src_uds = get_uds_dir() / "skills" / "claude-code"
+    if src_uds.exists():
+        console.print(f"  從 UDS 複製 skills...")
+        shutil.copytree(src_uds, dst_custom, dirs_exist_ok=True)
+        clean_unwanted_files(dst_custom)
 
-    # 2. UDS + Obsidian + Anthropic → Claude Code
-    copy_tree_if_exists(
-        src_uds, dst_claude, f"正在複製... 從... 從 {src_uds} 到 {dst_claude}..."
-    )
-    clean_unwanted_files(dst_claude)
-    copy_tree_if_exists(
-        src_obsidian, dst_claude, f"正在複製... 從 {src_obsidian} 到 {dst_claude}..."
-    )
-    copy_tree_if_exists(
-        src_anthropic,
-        dst_claude / "skill-creator",
-        f"正在複製... 從 {src_anthropic} 到 {dst_claude / 'skill-creator'}...",
-    )
+    # Obsidian skills
+    src_obsidian = get_obsidian_skills_dir() / "skills"
+    if src_obsidian.exists():
+        console.print(f"  從 obsidian-skills 複製 skills...")
+        shutil.copytree(src_obsidian, dst_custom, dirs_exist_ok=True)
 
-    # 3. Custom Skills + Obsidian + Anthropic → Antigravity
-    copy_tree_if_exists(
-        src_custom,
-        dst_antigravity,
-        f"正在複製... 從... 從 {src_custom} 到 {dst_antigravity}...",
-    )
-    copy_tree_if_exists(
-        src_obsidian,
-        dst_antigravity,
-        f"正在複製... 從 {src_obsidian} 到 {dst_antigravity}...",
-    )
-    copy_tree_if_exists(
-        src_anthropic,
-        dst_antigravity / "skill-creator",
-        f"正在複製... 從 {src_anthropic} 到 {dst_antigravity / 'skill-creator'}...",
-    )
+    # Anthropic skill-creator
+    src_anthropic = get_anthropic_skills_dir() / "skills" / "skill-creator"
+    if src_anthropic.exists():
+        dst_skill_creator = dst_custom / "skill-creator"
+        console.print(f"  從 anthropic-skills 複製 skill-creator...")
+        shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
 
-    # 4. Commands
+
+def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
+    """Stage 3: 將 custom-skills 分發到各工具目錄。
+
+    Args:
+        sync_project: 是否同步到專案目錄（預設為 True）
+    """
+    console.print("[bold cyan]Stage 3: 分發到各工具目錄...[/bold cyan]")
+
+    # 來源路徑
+    src_skills = get_custom_skills_dir() / "skills"
     src_cmd_claude = get_custom_skills_dir() / "command" / "claude"
-    dst_cmd_claude = get_claude_config_dir() / "commands"
-    if src_cmd_claude.exists() and dst_cmd_claude.exists():
-        console.print(f"正在複製... 從 Commands 到 {dst_cmd_claude}...")
-        shutil.copytree(src_cmd_claude, dst_cmd_claude, dirs_exist_ok=True)
-
     src_cmd_antigravity = get_custom_skills_dir() / "command" / "antigravity"
-    dst_cmd_antigravity = get_antigravity_config_dir() / "global_workflows"
-    copy_tree_if_exists(
-        src_cmd_antigravity,
-        dst_cmd_antigravity,
-        f"正在複製... 從 Workflows 到 {dst_cmd_antigravity}...",
-    )
-
-    # 5. Agents
-    src_agent = get_custom_skills_dir() / "agent" / "opencode"
-    dst_agent = get_opencode_config_dir() / "agent"
-    copy_tree_if_exists(
-        src_agent, dst_agent, f"正在複製... 從 Agents 到 {dst_agent}..."
-    )
-
-    # 6. Codex Skills
-    dst_codex = get_codex_config_dir() / "skills"
-    copy_tree_if_exists(
-        src_uds, dst_codex, f"正在複製... 從 {src_uds} 到 {dst_codex}..."
-    )
-    clean_unwanted_files(dst_codex)
-    copy_tree_if_exists(
-        src_obsidian, dst_codex, f"正在複製... 從 {src_obsidian} 到 {dst_codex}..."
-    )
-    copy_tree_if_exists(
-        src_anthropic,
-        dst_codex / "skill-creator",
-        f"正在複製... 從 {src_anthropic} 到 {dst_codex / 'skill-creator'}...",
-    )
-
-    # 7. Gemini CLI Skills
-    dst_gemini = get_gemini_cli_config_dir() / "skills"
-    copy_tree_if_exists(
-        src_uds, dst_gemini, f"正在複製... 從 {src_uds} 到 {dst_gemini}..."
-    )
-    clean_unwanted_files(dst_gemini)
-    copy_tree_if_exists(
-        src_obsidian, dst_gemini, f"正在複製... 從 {src_obsidian} 到 {dst_gemini}..."
-    )
-    copy_tree_if_exists(
-        src_anthropic,
-        dst_gemini / "skill-creator",
-        f"正在複製... 從 {src_anthropic} 到 {dst_gemini / 'skill-creator'}...",
-    )
-
-    # 8. Gemini CLI Commands
+    src_cmd_opencode = get_custom_skills_dir() / "command" / "opencode"
     src_cmd_gemini = get_custom_skills_dir() / "command" / "gemini"
-    dst_cmd_gemini = get_gemini_cli_config_dir() / "commands"
-    copy_tree_if_exists(
-        src_cmd_gemini,
-        dst_cmd_gemini,
-        f"正在複製... 從 Commands 到 {dst_cmd_gemini}...",
-    )
+    src_agent_opencode = get_custom_skills_dir() / "agent" / "opencode"
 
-    # 9. 專案目錄 (開發環境)
+    # 1. Claude Code
+    dst_claude_skills = COPY_TARGETS["claude"]["skills"]
+    dst_claude_commands = COPY_TARGETS["claude"]["commands"]
+    if src_skills.exists():
+        console.print(f"  複製 skills 到 Claude Code...")
+        dst_claude_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_skills, dst_claude_skills, dirs_exist_ok=True)
+    if src_cmd_claude.exists():
+        console.print(f"  複製 commands 到 Claude Code...")
+        dst_claude_commands.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_cmd_claude, dst_claude_commands, dirs_exist_ok=True)
+
+    # 2. Antigravity
+    dst_antigravity_skills = COPY_TARGETS["antigravity"]["skills"]
+    dst_antigravity_workflows = COPY_TARGETS["antigravity"]["workflows"]
+    if src_skills.exists():
+        console.print(f"  複製 skills 到 Antigravity...")
+        dst_antigravity_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_skills, dst_antigravity_skills, dirs_exist_ok=True)
+    if src_cmd_antigravity.exists():
+        console.print(f"  複製 workflows 到 Antigravity...")
+        dst_antigravity_workflows.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_cmd_antigravity, dst_antigravity_workflows, dirs_exist_ok=True)
+
+    # 3. OpenCode（新增完整支援）
+    dst_opencode_skills = COPY_TARGETS["opencode"]["skills"]
+    dst_opencode_commands = COPY_TARGETS["opencode"]["commands"]
+    dst_opencode_agents = COPY_TARGETS["opencode"]["agents"]
+    if src_skills.exists():
+        console.print(f"  複製 skills 到 OpenCode...")
+        dst_opencode_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_skills, dst_opencode_skills, dirs_exist_ok=True)
+    if src_cmd_opencode.exists():
+        console.print(f"  複製 commands 到 OpenCode...")
+        dst_opencode_commands.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_cmd_opencode, dst_opencode_commands, dirs_exist_ok=True)
+    if src_agent_opencode.exists():
+        console.print(f"  複製 agents 到 OpenCode...")
+        dst_opencode_agents.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_agent_opencode, dst_opencode_agents, dirs_exist_ok=True)
+
+    # 4. Codex
+    dst_codex_skills = COPY_TARGETS["codex"]["skills"]
+    if src_skills.exists():
+        console.print(f"  複製 skills 到 Codex...")
+        dst_codex_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_skills, dst_codex_skills, dirs_exist_ok=True)
+
+    # 5. Gemini CLI
+    dst_gemini_skills = COPY_TARGETS["gemini"]["skills"]
+    dst_gemini_commands = COPY_TARGETS["gemini"]["commands"]
+    if src_skills.exists():
+        console.print(f"  複製 skills 到 Gemini CLI...")
+        dst_gemini_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_skills, dst_gemini_skills, dirs_exist_ok=True)
+    if src_cmd_gemini.exists():
+        console.print(f"  複製 commands 到 Gemini CLI...")
+        dst_gemini_commands.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_cmd_gemini, dst_gemini_commands, dirs_exist_ok=True)
+
+    # 6. 專案目錄同步
+    if sync_project:
+        _sync_to_project_directory(src_skills)
+
+
+def _sync_to_project_directory(src_skills: Path) -> None:
+    """同步資源到專案目錄（內部函式）。"""
     project_root = get_project_root()
-    if not (
-        (project_root / ".git").exists() and (project_root / "pyproject.toml").exists()
-    ):
+
+    # 檢查是否在有效專案目錄中
+    if not ((project_root / ".git").exists() and (project_root / "pyproject.toml").exists()):
         return
 
-    console.print(f"[bold yellow]偵測到專案目錄：{project_root}[/bold yellow]")
+    console.print(f"[bold yellow]  偵測到專案目錄：{project_root}[/bold yellow]")
 
     # Skills → Project
-    dst_project_skills = project_root / "skills"
-    copy_tree_if_exists(
-        src_uds,
-        dst_project_skills,
-        f"正在複製... 從... 從 {src_uds} 到 {dst_project_skills}...",
-    )
-    clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
-    copy_tree_if_exists(
-        src_obsidian,
-        dst_project_skills,
-        f"正在複製... 從 {src_obsidian} 到 {dst_project_skills}...",
-    )
-    copy_tree_if_exists(
-        src_anthropic,
-        dst_project_skills / "skill-creator",
-        f"正在複製... 從 {src_anthropic} 到 {dst_project_skills / 'skill-creator'}...",
-    )
+    if src_skills.exists():
+        dst_project_skills = project_root / "skills"
+        console.print(f"  複製 skills 到專案目錄...")
+        dst_project_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_skills, dst_project_skills, dirs_exist_ok=True)
+        clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
 
     # Commands → Project
     src_command = get_custom_skills_dir() / "command"
-    dst_project_command = project_root / "command"
-    copy_tree_if_exists(
-        src_command,
-        dst_project_command,
-        f"正在複製... 從... 從 {src_command} 到 {dst_project_command}...",
-    )
+    if src_command.exists():
+        dst_project_command = project_root / "command"
+        console.print(f"  複製 commands 到專案目錄...")
+        shutil.copytree(src_command, dst_project_command, dirs_exist_ok=True)
 
     # Agents → Project
     src_agent_all = get_custom_skills_dir() / "agent"
-    dst_project_agent = project_root / "agent"
-    copy_tree_if_exists(
-        src_agent_all,
-        dst_project_agent,
-        f"正在複製... 從... 從 {src_agent_all} 到 {dst_project_agent}...",
-    )
+    if src_agent_all.exists():
+        dst_project_agent = project_root / "agent"
+        console.print(f"  複製 agents 到專案目錄...")
+        shutil.copytree(src_agent_all, dst_project_agent, dirs_exist_ok=True)
+
+
+def copy_skills(sync_project: bool = True) -> None:
+    """複製 Skills 從來源到目標目錄（三階段流程）。
+
+    三階段流程：
+    1. Stage 1: Clone 外部套件（由 install/update 指令處理）
+    2. Stage 2: 整合到 custom-skills
+    3. Stage 3: 分發到各工具目錄
+
+    Args:
+        sync_project: 是否同步到專案目錄（預設為 True）
+    """
+    # Stage 2: 整合外部來源
+    copy_sources_to_custom_skills()
+
+    # Stage 3: 分發到目標目錄
+    copy_custom_skills_to_targets(sync_project=sync_project)
 
 
 # ============================================================
@@ -614,7 +662,16 @@ DEFAULT_TOGGLE_CONFIG = {
         "workflows": {"enabled": True, "disabled": []},
     },
     "opencode": {
+        "skills": {"enabled": True, "disabled": []},
+        "commands": {"enabled": True, "disabled": []},
         "agents": {"enabled": True, "disabled": []},
+    },
+    "codex": {
+        "skills": {"enabled": True, "disabled": []},
+    },
+    "gemini": {
+        "skills": {"enabled": True, "disabled": []},
+        "commands": {"enabled": True, "disabled": []},
     },
 }
 
@@ -728,6 +785,8 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
         ("claude", "commands"): get_claude_config_dir() / "commands",
         ("antigravity", "skills"): get_antigravity_config_dir() / "skills",
         ("antigravity", "workflows"): get_antigravity_config_dir() / "global_workflows",
+        ("opencode", "skills"): get_opencode_config_dir() / "skills",
+        ("opencode", "commands"): get_opencode_config_dir() / "commands",
         ("opencode", "agents"): get_opencode_config_dir() / "agent",
         ("codex", "skills"): get_codex_config_dir() / "skills",
         ("gemini", "skills"): get_gemini_cli_config_dir() / "skills",
@@ -840,7 +899,7 @@ def list_installed_resources(
     type_mapping = {
         "claude": ["skills", "commands"],
         "antigravity": ["skills", "workflows"],
-        "opencode": ["agents"],
+        "opencode": ["skills", "commands", "agents"],
         "codex": ["skills"],
         "gemini": ["skills", "commands"],
     }

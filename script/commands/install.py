@@ -7,10 +7,20 @@ from ..utils.paths import (
     get_claude_config_dir,
     get_antigravity_config_dir,
     get_opencode_config_dir,
+    get_codex_config_dir,
+    get_gemini_cli_config_dir,
     get_superpowers_dir,
     get_uds_dir,
 )
-from ..utils.shared import NPM_PACKAGES, REPOS, copy_skills, get_all_skill_names, show_skills_npm_hint
+from ..utils.shared import (
+    NPM_PACKAGES,
+    REPOS,
+    copy_skills,
+    get_all_skill_names,
+    show_skills_npm_hint,
+    check_claude_installed,
+    show_claude_install_instructions,
+)
 
 app = typer.Typer()
 console = Console()
@@ -23,6 +33,11 @@ def install(
         False, "--skip-repos", help="跳過 Git 儲存庫 Clone"
     ),
     skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
+    sync_project: bool = typer.Option(
+        True,
+        "--sync-project/--no-sync-project",
+        help="是否同步到專案目錄（預設：是）",
+    ),
 ):
     """首次安裝 AI 開發環境。"""
     console.print("[bold blue]開始安裝...[/bold blue]")
@@ -35,6 +50,10 @@ def install(
     if not check_command_exists("git"):
         console.print("[bold red]找不到 Git，請先安裝 Git。[/bold red]")
         raise typer.Exit(code=1)
+
+    # 1.1 檢查 Claude Code 是否已安裝
+    if not check_claude_installed():
+        show_claude_install_instructions()
 
     # 2. 安裝全域 NPM 套件
     if skip_npm:
@@ -49,15 +68,26 @@ def install(
     # 3. 建立目錄
     console.print("[green]正在建立目錄...[/green]")
     dirs = [
+        # 基礎目錄
         get_config_dir(),
         get_custom_skills_dir(),
         get_superpowers_dir(),
         get_uds_dir(),
+        # Claude Code
         get_claude_config_dir() / "skills",
         get_claude_config_dir() / "commands",
+        # Antigravity
         get_antigravity_config_dir() / "skills",
         get_antigravity_config_dir() / "global_workflows",
+        # OpenCode（新增 skills 和 commands）
+        get_opencode_config_dir() / "skills",
+        get_opencode_config_dir() / "commands",
         get_opencode_config_dir() / "agent",
+        # Codex
+        get_codex_config_dir() / "skills",
+        # Gemini CLI
+        get_gemini_cli_config_dir() / "skills",
+        get_gemini_cli_config_dir() / "commands",
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
@@ -75,12 +105,12 @@ def install(
             else:
                 console.print(f"{path} 已存在，跳過 Clone。")
 
-    # 5. 複製 Skills 與設定
+    # 5. 複製 Skills 與設定（Stage 2 + Stage 3）
     if skip_skills:
         console.print("[yellow]跳過複製 Skills[/yellow]")
     else:
-        console.print("[green]正在複製... 從 Skills 與設定...[/green]")
-        copy_skills()
+        console.print("[green]正在同步 Skills 與設定...[/green]")
+        copy_skills(sync_project=sync_project)
 
     # 6. 顯示已安裝的 Skills 警告
     console.print()

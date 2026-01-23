@@ -18,6 +18,27 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
+### 安裝 Claude Code
+
+Claude Code 需要使用 native 安裝方式，不再透過 NPM 安裝：
+
+**macOS / Linux（推薦）：**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**macOS (Homebrew)：**
+```bash
+brew install --cask claude-code
+```
+
+**Windows (WinGet)：**
+```powershell
+winget install Anthropic.ClaudeCode
+```
+
+> 詳細說明請參考 [Claude Code 官方文件](https://code.claude.com/docs)
+
 ### 安裝 CLI 工具
 
 **從 GitHub 安裝（推薦）：**
@@ -66,11 +87,15 @@ ai-dev install
 
 這會自動：
 1. 檢查 Node.js 與 Git。
-2. 安裝全域 NPM 工具 (`claude-code`, `openspec`, `gemini-cli`, `skills` 等)。
-3. Clone必要的設定儲存庫 (`custom-skills`, `superpowers`, `obsidian-skills` 等)。
-4. 複製 Skills 與設定到各個 AI 工具的目錄。
-5. 顯示已安裝的 Skills 清單與重複名稱警告。
-6. 顯示 `npx skills` 可用指令提示。
+2. 檢查 Claude Code CLI 是否已安裝（若無則顯示安裝指引）。
+3. 安裝全域 NPM 工具 (`openspec`, `gemini-cli`, `skills` 等)。
+4. Clone 必要的設定儲存庫到 `~/.config/` （Stage 1）。
+5. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
+6. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
+7. 顯示已安裝的 Skills 清單與重複名稱警告。
+8. 顯示 `npx skills` 可用指令提示。
+
+> **注意**：Claude Code 需要使用 native 安裝方式，不再透過 NPM 安裝。
 
 #### 可選參數
 
@@ -79,11 +104,15 @@ ai-dev install
 | `--skip-npm` | 跳過 NPM 套件安裝 |
 | `--skip-repos` | 跳過 Git 儲存庫 Clone |
 | `--skip-skills` | 跳過複製 Skills |
+| `--sync-project/--no-sync-project` | 是否同步到專案目錄（預設：是） |
 
 **範例：**
 ```bash
 # 只 Clone 儲存庫（跳過 NPM 和 Skills 複製）
 ai-dev install --skip-npm --skip-skills
+
+# 安裝但不同步到當前專案目錄
+ai-dev install --no-sync-project
 ```
 
 ### 每日更新 (Update)
@@ -95,9 +124,10 @@ ai-dev update
 ```
 
 這會自動：
-1. 更新全域 NPM 工具。
+1. 更新全域 NPM 工具（不含 Claude Code）。
 2. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
-3. 重新同步 Skills 與設定。
+3. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
+4. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
 
 #### 可選參數
 
@@ -106,6 +136,7 @@ ai-dev update
 | `--skip-npm` | 跳過 NPM 套件更新 |
 | `--skip-repos` | 跳過 Git 儲存庫更新 |
 | `--skip-skills` | 跳過複製 Skills |
+| `--sync-project/--no-sync-project` | 是否同步到專案目錄（預設：是） |
 
 **範例：**
 ```bash
@@ -114,6 +145,9 @@ ai-dev update --skip-npm --skip-skills
 
 # 只更新 NPM 套件（跳過 Git 和 Skills）
 ai-dev update --skip-repos --skip-skills
+
+# 更新但不同步到當前專案目錄
+ai-dev update --no-sync-project
 ```
 
 ### 專案級操作 (Project)

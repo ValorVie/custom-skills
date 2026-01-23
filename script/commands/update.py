@@ -69,6 +69,11 @@ def update(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
     skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
     skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
+    sync_project: bool = typer.Option(
+        True,
+        "--sync-project/--no-sync-project",
+        help="是否同步到專案目錄（預設：是）",
+    ),
 ):
     """每日更新：更新工具並同步設定。"""
     console.print("[bold blue]開始更新...[/bold blue]")
@@ -116,11 +121,11 @@ def update(
                     check=False,
                 )
 
-    # 3. 重新同步 Skills
+    # 3. 重新同步 Skills（Stage 2 + Stage 3）
     if skip_skills:
         console.print("[yellow]跳過複製 Skills[/yellow]")
     else:
         console.print("[green]正在重新同步 Skills...[/green]")
-        copy_skills()
+        copy_skills(sync_project=sync_project)
 
     console.print("[bold green]更新完成！[/bold green]")
