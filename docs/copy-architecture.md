@@ -56,8 +56,8 @@
 |------|----------|----------|
 | **UDS skills** | `~/.config/universal-dev-standards/skills/claude-code/*` | `~/.config/custom-skills/skills/` |
 | **UDS agents** | `~/.config/universal-dev-standards/skills/claude-code/agents/` | `~/.config/custom-skills/agents/claude/` 和 `~/.config/custom-skills/agents/opencode/` |
-| **UDS workflows** | `~/.config/universal-dev-standards/skills/claude-code/workflows/` | `~/.config/custom-skills/command/workflows/` |
-| **UDS commands** | `~/.config/universal-dev-standards/skills/claude-code/commands/` | `~/.config/custom-skills/command/claude/` |
+| **UDS workflows** | `~/.config/universal-dev-standards/skills/claude-code/workflows/` | `~/.config/custom-skills/commands/workflows/` |
+| **UDS commands** | `~/.config/universal-dev-standards/skills/claude-code/commands/` | `~/.config/custom-skills/commands/claude/` |
 | **Obsidian skills** | `~/.config/obsidian-skills/skills/` | `~/.config/custom-skills/skills/` |
 | **Anthropic skill-creator** | `~/.config/anthropic-skills/skills/skill-creator/` | `~/.config/custom-skills/skills/skill-creator/` |
 
@@ -73,11 +73,11 @@
 | | OpenCode | `~/.config/opencode/skills/` |
 | | Codex | `~/.codex/skills/` |
 | | Gemini CLI | `~/.gemini/skills/` |
-| `custom-skills/command/claude/` | Claude Code | `~/.claude/commands/` |
-| `custom-skills/command/antigravity/` | Antigravity | `~/.gemini/antigravity/global_workflows/` |
-| `custom-skills/command/opencode/` | OpenCode | `~/.config/opencode/commands/` |
-| `custom-skills/command/gemini/` | Gemini CLI | `~/.gemini/commands/` |
-| `custom-skills/command/workflows/` | Claude Code | `~/.claude/workflows/` |
+| `custom-skills/commands/claude/` | Claude Code | `~/.claude/commands/` |
+| `custom-skills/commands/antigravity/` | Antigravity | `~/.gemini/antigravity/global_workflows/` |
+| `custom-skills/commands/opencode/` | OpenCode | `~/.config/opencode/commands/` |
+| `custom-skills/commands/gemini/` | Gemini CLI | `~/.gemini/commands/` |
+| `custom-skills/commands/workflows/` | Claude Code | `~/.claude/workflows/` |
 | `custom-skills/agents/claude/` | Claude Code | `~/.claude/agents/` |
 | `custom-skills/agents/opencode/` | OpenCode | `~/.config/opencode/agents/` |
 
@@ -92,7 +92,7 @@ custom-skills/
 │   ├── changelog-guide/
 │   ├── skill-creator/
 │   └── ...
-├── command/                   # 工具專屬 commands
+├── commands/                  # 工具專屬 commands
 │   ├── claude/               # Claude Code commands
 │   ├── antigravity/          # Antigravity workflows
 │   ├── opencode/             # OpenCode commands
@@ -142,7 +142,7 @@ custom-skills/
 ├─────────────────────────────────────────────────────────────────┤
 │  ~/.config/custom-skills/                                       │
 │  ├── skills/        ←── UDS skills + Obsidian + Anthropic       │
-│  ├── command/                                                   │
+│  ├── commands/                                                  │
 │  │   ├── claude/    ←── UDS commands                            │
 │  │   └── workflows/ ←── UDS workflows                           │
 │  └── agents/                                                    │

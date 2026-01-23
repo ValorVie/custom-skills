@@ -345,18 +345,18 @@ def copy_sources_to_custom_skills() -> None:
         dst_agents_opencode.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src_uds_agents, dst_agents_opencode, dirs_exist_ok=True)
 
-    # UDS workflows → custom-skills/command/workflows
+    # UDS workflows → custom-skills/commands/workflows
     src_uds_workflows = get_uds_dir() / "skills" / "claude-code" / "workflows"
-    dst_workflows = get_custom_skills_dir() / "command" / "workflows"
+    dst_workflows = get_custom_skills_dir() / "commands" / "workflows"
     if src_uds_workflows.exists():
         console.print(f"  [dim]{shorten_path(src_uds_workflows)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_workflows)}[/dim]")
         dst_workflows.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src_uds_workflows, dst_workflows, dirs_exist_ok=True)
 
-    # UDS commands → custom-skills/command/claude（如果存在）
+    # UDS commands → custom-skills/commands/claude（如果存在）
     src_uds_commands = get_uds_dir() / "skills" / "claude-code" / "commands"
-    dst_commands = get_custom_skills_dir() / "command" / "claude"
+    dst_commands = get_custom_skills_dir() / "commands" / "claude"
     if src_uds_commands.exists():
         console.print(f"  [dim]{shorten_path(src_uds_commands)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_commands)}[/dim]")
@@ -399,11 +399,11 @@ def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
 
     # 來源路徑
     src_skills = get_custom_skills_dir() / "skills"
-    src_cmd_claude = get_custom_skills_dir() / "command" / "claude"
-    src_cmd_antigravity = get_custom_skills_dir() / "command" / "antigravity"
-    src_cmd_opencode = get_custom_skills_dir() / "command" / "opencode"
-    src_cmd_gemini = get_custom_skills_dir() / "command" / "gemini"
-    src_cmd_workflows = get_custom_skills_dir() / "command" / "workflows"
+    src_cmd_claude = get_custom_skills_dir() / "commands" / "claude"
+    src_cmd_antigravity = get_custom_skills_dir() / "commands" / "antigravity"
+    src_cmd_opencode = get_custom_skills_dir() / "commands" / "opencode"
+    src_cmd_gemini = get_custom_skills_dir() / "commands" / "gemini"
+    src_cmd_workflows = get_custom_skills_dir() / "commands" / "workflows"
     src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
     src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
 
@@ -487,12 +487,12 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
 
     # Commands → Project
-    src_command = get_custom_skills_dir() / "command"
-    if src_command.exists():
-        dst_project_command = project_root / "command"
+    src_commands = get_custom_skills_dir() / "commands"
+    if src_commands.exists():
+        dst_project_commands = project_root / "commands"
         console.print(f"  [green]commands[/green] → [cyan]專案目錄[/cyan]")
-        console.print(f"    [dim]{shorten_path(src_command)} → {shorten_path(dst_project_command)}[/dim]")
-        shutil.copytree(src_command, dst_project_command, dirs_exist_ok=True)
+        console.print(f"    [dim]{shorten_path(src_commands)} → {shorten_path(dst_project_commands)}[/dim]")
+        shutil.copytree(src_commands, dst_project_commands, dirs_exist_ok=True)
 
     # Agents → Project
     src_agents_all = get_custom_skills_dir() / "agents"
@@ -813,16 +813,16 @@ def copy_single_resource(
                 return True
 
     elif resource_type == "commands":
-        # Commands 來源：custom-skills/command/claude
-        src = get_custom_skills_dir() / "command" / "claude" / f"{name}.md"
+        # Commands 來源：custom-skills/commands/claude
+        src = get_custom_skills_dir() / "commands" / "claude" / f"{name}.md"
         if src.exists():
             target_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, target_path)
             return True
 
     elif resource_type == "workflows":
-        # Workflows 來源：custom-skills/command/antigravity
-        src = get_custom_skills_dir() / "command" / "antigravity" / f"{name}.md"
+        # Workflows 來源：custom-skills/commands/antigravity
+        src = get_custom_skills_dir() / "commands" / "antigravity" / f"{name}.md"
         if src.exists():
             target_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, target_path)
@@ -1001,7 +1001,7 @@ def get_source_commands() -> dict[str, set[str]]:
     sources = {}
 
     # Custom commands (本專案)
-    custom_cmd_claude = get_custom_skills_dir() / "command" / "claude"
+    custom_cmd_claude = get_custom_skills_dir() / "commands" / "claude"
     if custom_cmd_claude.exists():
         sources["custom"] = {
             f.stem for f in custom_cmd_claude.iterdir() if f.is_file() and f.suffix == ".md"
@@ -1017,7 +1017,7 @@ def get_source_workflows() -> dict[str, set[str]]:
     sources = {}
 
     # Custom workflows (本專案)
-    custom_wf = get_custom_skills_dir() / "command" / "antigravity"
+    custom_wf = get_custom_skills_dir() / "commands" / "antigravity"
     if custom_wf.exists():
         sources["custom"] = {
             f.stem for f in custom_wf.iterdir() if f.is_file() and f.suffix == ".md"
