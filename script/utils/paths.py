@@ -57,8 +57,9 @@ def get_anthropic_skills_dir() -> Path:
 
 
 def get_project_root() -> Path:
-    """Find the project root by looking for pyproject.toml."""
-    # Assuming the script is run from near the root or we find the root marker
-    # The file is in root/script/utils/paths.py
-    # So .parent.parent.parent is root.
-    return Path(__file__).parent.parent.parent
+    """取得用戶當前工作目錄作為專案根目錄。
+
+    Returns:
+        Path: 當前工作目錄
+    """
+    return Path.cwd()

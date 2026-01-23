@@ -21,6 +21,7 @@ from textual.widgets import (
     Static,
 )
 
+from ..main import get_app_version
 from ..utils.shared import (
     list_installed_resources,
     load_toggle_config,
@@ -45,7 +46,7 @@ TARGET_OPTIONS = [
 TYPE_OPTIONS_BY_TARGET = {
     "claude": [("Skills", "skills"), ("Commands", "commands")],
     "antigravity": [("Skills", "skills"), ("Workflows", "workflows")],
-    "opencode": [("Agents", "agents")],
+    "opencode": [("Skills", "skills"), ("Commands", "commands"), ("Agents", "agents")],
     "codex": [("Skills", "skills")],
     "gemini": [("Skills", "skills"), ("Commands", "commands")],
 }
@@ -156,6 +157,7 @@ class SkillManagerApp(App):
 
     CSS_PATH = "styles.tcss"
     TITLE = "AI Development Environment Manager"
+    SUB_TITLE = f"v{get_app_version()}"
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -201,6 +203,11 @@ class SkillManagerApp(App):
                 id="type-select",
                 allow_blank=False,
             )
+            yield Checkbox(
+                "Sync to Project",
+                value=True,
+                id="cb-sync-project",
+            )
 
         # 資源列表
         yield VerticalScroll(id="resource-list")
@@ -238,14 +245,25 @@ class SkillManagerApp(App):
             self.current_type = str(event.value)
             self.refresh_resource_list()
 
+    def _get_sync_project_args(self) -> list[str]:
+        """取得 sync-project 參數。"""
+        try:
+            sync_checkbox = self.query_one("#cb-sync-project", Checkbox)
+            if sync_checkbox.value:
+                return ["--sync-project"]
+            else:
+                return ["--no-sync-project"]
+        except Exception:
+            return []
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """處理按鈕點擊。"""
         button_id = event.button.id
 
         if button_id == "btn-install":
-            self.run_cli_command("install")
+            self.run_cli_command("install", self._get_sync_project_args())
         elif button_id == "btn-update":
-            self.run_cli_command("update")
+            self.run_cli_command("update", self._get_sync_project_args())
         elif button_id == "btn-status":
             self.run_cli_command("status")
         elif button_id == "btn-add-skills":
@@ -257,8 +275,13 @@ class SkillManagerApp(App):
         elif button_id == "btn-mcp-folder":
             self.action_open_mcp_finder()
 
-    def run_cli_command(self, command: str) -> None:
-        """在終端機中執行 CLI 指令。"""
+    def run_cli_command(self, command: str, extra_args: list[str] | None = None) -> None:
+        """在終端機中執行 CLI 指令。
+
+        Args:
+            command: CLI 子指令（如 install, update, status）
+            extra_args: 額外的命令列參數
+        """
         import subprocess
         import shutil
 
@@ -270,9 +293,13 @@ class SkillManagerApp(App):
             import sys
             cmd = [sys.executable, "-m", "script.main", command]
 
+        # 添加額外參數
+        if extra_args:
+            cmd.extend(extra_args)
+
         # 使用 suspend 暫停 TUI，讓終端機正常顯示
         with self.suspend():
-            print(f"\n--- Executing: {command} ---\n")
+            print(f"\n--- Executing: {' '.join(cmd)} ---\n")
             subprocess.run(cmd, check=False)
             print("\n--- Press Enter to return to TUI ---")
             input()

@@ -147,6 +147,15 @@ def clean_unwanted_files(target_dir: Path, use_readonly_handler: bool = False):
             path.unlink()
 
 
+def shorten_path(path: Path) -> str:
+    """將路徑中的 home 目錄替換為 ~，使顯示更簡潔。"""
+    home = str(Path.home())
+    path_str = str(path)
+    if path_str.startswith(home):
+        return path_str.replace(home, "~", 1)
+    return path_str
+
+
 def copy_tree_if_exists(src: Path, dst: Path, msg: str):
     """若來源存在，複製目錄樹到目標位置。"""
     if src.exists():
@@ -178,22 +187,35 @@ def copy_sources_to_custom_skills() -> None:
     # UDS skills
     src_uds = get_uds_dir() / "skills" / "claude-code"
     if src_uds.exists():
-        console.print(f"  從 UDS 複製 skills...")
+        console.print(f"  [dim]{shorten_path(src_uds)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_custom)}[/dim]")
         shutil.copytree(src_uds, dst_custom, dirs_exist_ok=True)
         clean_unwanted_files(dst_custom)
 
     # Obsidian skills
     src_obsidian = get_obsidian_skills_dir() / "skills"
     if src_obsidian.exists():
-        console.print(f"  從 obsidian-skills 複製 skills...")
+        console.print(f"  [dim]{shorten_path(src_obsidian)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_custom)}[/dim]")
         shutil.copytree(src_obsidian, dst_custom, dirs_exist_ok=True)
 
     # Anthropic skill-creator
     src_anthropic = get_anthropic_skills_dir() / "skills" / "skill-creator"
     if src_anthropic.exists():
         dst_skill_creator = dst_custom / "skill-creator"
-        console.print(f"  從 anthropic-skills 複製 skill-creator...")
+        console.print(f"  [dim]{shorten_path(src_anthropic)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_skill_creator)}[/dim]")
         shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
+
+
+def _copy_with_log(src: Path, dst: Path, resource_type: str, target_name: str) -> None:
+    """複製目錄並輸出帶路徑的日誌。"""
+    if not src.exists():
+        return
+    console.print(f"  [green]{resource_type}[/green] → [cyan]{target_name}[/cyan]")
+    console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
+    dst.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(src, dst, dirs_exist_ok=True)
 
 
 def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
@@ -215,82 +237,74 @@ def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
     # 1. Claude Code
     dst_claude_skills = COPY_TARGETS["claude"]["skills"]
     dst_claude_commands = COPY_TARGETS["claude"]["commands"]
-    if src_skills.exists():
-        console.print(f"  複製 skills 到 Claude Code...")
-        dst_claude_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_skills, dst_claude_skills, dirs_exist_ok=True)
-    if src_cmd_claude.exists():
-        console.print(f"  複製 commands 到 Claude Code...")
-        dst_claude_commands.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_cmd_claude, dst_claude_commands, dirs_exist_ok=True)
+    _copy_with_log(src_skills, dst_claude_skills, "skills", "Claude Code")
+    _copy_with_log(src_cmd_claude, dst_claude_commands, "commands", "Claude Code")
 
     # 2. Antigravity
     dst_antigravity_skills = COPY_TARGETS["antigravity"]["skills"]
     dst_antigravity_workflows = COPY_TARGETS["antigravity"]["workflows"]
-    if src_skills.exists():
-        console.print(f"  複製 skills 到 Antigravity...")
-        dst_antigravity_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_skills, dst_antigravity_skills, dirs_exist_ok=True)
-    if src_cmd_antigravity.exists():
-        console.print(f"  複製 workflows 到 Antigravity...")
-        dst_antigravity_workflows.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_cmd_antigravity, dst_antigravity_workflows, dirs_exist_ok=True)
+    _copy_with_log(src_skills, dst_antigravity_skills, "skills", "Antigravity")
+    _copy_with_log(src_cmd_antigravity, dst_antigravity_workflows, "workflows", "Antigravity")
 
-    # 3. OpenCode（新增完整支援）
+    # 3. OpenCode
     dst_opencode_skills = COPY_TARGETS["opencode"]["skills"]
     dst_opencode_commands = COPY_TARGETS["opencode"]["commands"]
     dst_opencode_agents = COPY_TARGETS["opencode"]["agents"]
-    if src_skills.exists():
-        console.print(f"  複製 skills 到 OpenCode...")
-        dst_opencode_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_skills, dst_opencode_skills, dirs_exist_ok=True)
-    if src_cmd_opencode.exists():
-        console.print(f"  複製 commands 到 OpenCode...")
-        dst_opencode_commands.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_cmd_opencode, dst_opencode_commands, dirs_exist_ok=True)
-    if src_agent_opencode.exists():
-        console.print(f"  複製 agents 到 OpenCode...")
-        dst_opencode_agents.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_agent_opencode, dst_opencode_agents, dirs_exist_ok=True)
+    _copy_with_log(src_skills, dst_opencode_skills, "skills", "OpenCode")
+    _copy_with_log(src_cmd_opencode, dst_opencode_commands, "commands", "OpenCode")
+    _copy_with_log(src_agent_opencode, dst_opencode_agents, "agents", "OpenCode")
 
     # 4. Codex
     dst_codex_skills = COPY_TARGETS["codex"]["skills"]
-    if src_skills.exists():
-        console.print(f"  複製 skills 到 Codex...")
-        dst_codex_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_skills, dst_codex_skills, dirs_exist_ok=True)
+    _copy_with_log(src_skills, dst_codex_skills, "skills", "Codex")
 
     # 5. Gemini CLI
     dst_gemini_skills = COPY_TARGETS["gemini"]["skills"]
     dst_gemini_commands = COPY_TARGETS["gemini"]["commands"]
-    if src_skills.exists():
-        console.print(f"  複製 skills 到 Gemini CLI...")
-        dst_gemini_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_skills, dst_gemini_skills, dirs_exist_ok=True)
-    if src_cmd_gemini.exists():
-        console.print(f"  複製 commands 到 Gemini CLI...")
-        dst_gemini_commands.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_cmd_gemini, dst_gemini_commands, dirs_exist_ok=True)
+    _copy_with_log(src_skills, dst_gemini_skills, "skills", "Gemini CLI")
+    _copy_with_log(src_cmd_gemini, dst_gemini_commands, "commands", "Gemini CLI")
 
     # 6. 專案目錄同步
     if sync_project:
         _sync_to_project_directory(src_skills)
 
 
+def _is_custom_skills_project(project_root: Path) -> bool:
+    """檢查是否在 custom-skills 專案目錄中。
+
+    透過檢查 pyproject.toml 中的 name = "ai-dev" 來判斷。
+    """
+    pyproject_path = project_root / "pyproject.toml"
+    if not pyproject_path.exists():
+        return False
+
+    try:
+        content = pyproject_path.read_text(encoding="utf-8")
+        # 簡單檢查是否包含 name = "ai-dev"
+        return 'name = "ai-dev"' in content
+    except Exception:
+        return False
+
+
 def _sync_to_project_directory(src_skills: Path) -> None:
-    """同步資源到專案目錄（內部函式）。"""
+    """同步資源到 custom-skills 專案目錄（內部函式）。
+
+    只有當前目錄是 custom-skills 專案時才會同步，
+    這是為了讓開發人員在本地開發時能同步最新的外部資源。
+    """
     project_root = get_project_root()
 
-    # 檢查是否在有效專案目錄中
-    if not ((project_root / ".git").exists() and (project_root / "pyproject.toml").exists()):
+    # 只在 custom-skills 專案中才同步
+    if not _is_custom_skills_project(project_root):
         return
 
-    console.print(f"[bold yellow]  偵測到專案目錄：{project_root}[/bold yellow]")
+    console.print(f"[bold yellow]  偵測到 custom-skills 專案：{shorten_path(project_root)}[/bold yellow]")
 
     # Skills → Project
     if src_skills.exists():
         dst_project_skills = project_root / "skills"
-        console.print(f"  複製 skills 到專案目錄...")
+        console.print(f"  [green]skills[/green] → [cyan]專案目錄[/cyan]")
+        console.print(f"    [dim]{shorten_path(src_skills)} → {shorten_path(dst_project_skills)}[/dim]")
         dst_project_skills.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src_skills, dst_project_skills, dirs_exist_ok=True)
         clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
@@ -299,14 +313,16 @@ def _sync_to_project_directory(src_skills: Path) -> None:
     src_command = get_custom_skills_dir() / "command"
     if src_command.exists():
         dst_project_command = project_root / "command"
-        console.print(f"  複製 commands 到專案目錄...")
+        console.print(f"  [green]commands[/green] → [cyan]專案目錄[/cyan]")
+        console.print(f"    [dim]{shorten_path(src_command)} → {shorten_path(dst_project_command)}[/dim]")
         shutil.copytree(src_command, dst_project_command, dirs_exist_ok=True)
 
     # Agents → Project
     src_agent_all = get_custom_skills_dir() / "agent"
     if src_agent_all.exists():
         dst_project_agent = project_root / "agent"
-        console.print(f"  複製 agents 到專案目錄...")
+        console.print(f"  [green]agents[/green] → [cyan]專案目錄[/cyan]")
+        console.print(f"    [dim]{shorten_path(src_agent_all)} → {shorten_path(dst_project_agent)}[/dim]")
         shutil.copytree(src_agent_all, dst_project_agent, dirs_exist_ok=True)
 
 

@@ -74,6 +74,11 @@ uv tool install . --force
 安裝後，可在任意目錄使用 `ai-dev` 指令。
 
 ```bash
+# 顯示版本
+ai-dev --version
+ai-dev -v
+
+# 顯示說明
 ai-dev --help
 ```
 
@@ -335,9 +340,10 @@ ai-dev tui
 ```
 
 **功能：**
-- 頂部按鈕列：Install / Maintain / Status / Add Skills / Quit
+- 頂部按鈕列：Install / Update / Status / Add Skills / Quit
 - Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode / Codex / Gemini CLI）
 - Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
+- Sync to Project：勾選時會同步到 custom-skills 專案目錄（僅開發人員需要）
 - 資源列表：Checkbox 勾選啟用/停用
 - Add Skills 對話框：輸入套件名稱並執行 `npx skills add`
 - MCP Config 區塊：檢視並快速開啟各工具的 MCP 設定檔

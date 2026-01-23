@@ -49,45 +49,110 @@ Pre-select tools detected in the environment. Note: Codex and OpenCode share `AG
 
 ### Step 3: Ask Skills Installation | 步驟 3：詢問 Skills 安裝
 
-For tools that support Skills, use AskUserQuestion with multiSelect allowing per-tool installation:
+For tools that support Skills, use **Smart Grouping** strategy based on tool count.
 
-對於支援 Skills 的工具，使用 AskUserQuestion（多選），允許為每個工具選擇安裝位置：
+對於支援 Skills 的工具，根據工具數量使用**智能分組**策略。
 
-**For Claude Code**: Plugin Marketplace option is shown first (recommended).
+**IMPORTANT: AskUserQuestion has a 4-option limit.** Use smart grouping to handle this.
 
+**重要：AskUserQuestion 最多只能有 4 個選項。** 使用智能分組來處理。
+
+#### Strategy A: 1-2 Tools → Combined Question | 策略 A：1-2 個工具 → 合併詢問
+
+**Example (Claude Code only):**
 ```
-? Select where to install Skills (multiple selections allowed):
-❯ ◉ Plugin Marketplace (Recommended) - Auto-updates, easy version management
-  ── Or choose file installation location ──
-  ◯ Claude Code - User Level (~/.claude/skills/)
-  ◯ Claude Code - Project Level (.claude/skills/)
-  ◯ Cursor - User Level (~/.cursor/skills/)
-  ◯ Cursor - Project Level (.cursor/skills/)
-  ──────────────
-  ◯ Skip (No Skills installation)
+Question: "Skills 要安裝到哪裡？"
+Options:
+1. Plugin Marketplace (建議) - 自動更新，易於管理
+2. User Level (~/.claude/skills/) - 所有專案共用
+3. Project Level (.claude/skills/) - 僅此專案
+4. 跳過 - 不安裝 Skills
 ```
 
-Each AI tool can have different installation levels (User/Project), providing flexibility for different project needs.
+**Example (Claude Code + OpenCode):**
+```
+Question: "Skills 要安裝到哪裡？"
+Options:
+1. Plugin Marketplace + OpenCode Project Level (建議)
+2. 全部 User Level - 所有專案共用
+3. 全部 Project Level - 僅此專案
+4. 跳過 - 不安裝 Skills
+```
+
+#### Strategy B: 3+ Tools → Two-Stage Question | 策略 B：3+ 個工具 → 兩階段詢問
+
+**Stage 1: Ask unified or individual**
+```
+Question: "您選擇了 3 個以上的 AI 工具，Skills 安裝層級要如何設定？"
+Options:
+1. 統一層級 (建議) - 所有工具使用相同層級
+2. 個別設定 - 為每個工具分別選擇層級
+3. 跳過 - 不安裝 Skills
+```
+
+**Stage 2a: If unified → ask level once**
+```
+Question: "所有 Skills 要安裝到哪個層級？"
+Options:
+1. User Level - 所有專案共用
+2. Project Level (建議) - 僅此專案
+```
+Note: Claude Code uses Plugin Marketplace by default; only other tools use selected level.
+
+**Stage 2b: If individual → per-tool questions**
+Ask each tool separately (see Strategy A examples).
 
 ### Step 4: Ask Commands Installation | 步驟 4：詢問 Commands 安裝
 
-For tools that support Commands (OpenCode, Copilot, Gemini CLI), use AskUserQuestion with multiSelect allowing per-tool installation level:
+For tools that support Commands (OpenCode, Copilot, Gemini CLI), use **Smart Grouping** strategy.
 
-對於支援 Commands 的工具，使用多選介面，允許為每個工具選擇安裝層級：
+對於支援 Commands 的工具，使用**智能分組**策略。
 
+**IMPORTANT: AskUserQuestion has a 4-option limit.** Use smart grouping to handle this.
+
+**重要：AskUserQuestion 最多只能有 4 個選項。** 使用智能分組來處理。
+
+#### Strategy A: 1-2 Tools → Combined Question | 策略 A：1-2 個工具 → 合併詢問
+
+**Example (OpenCode only):**
 ```
-? Select where to install slash commands (multiple selections allowed):
-❯ ◉ OpenCode - User Level (~/.config/opencode/command/)
-  ◉ OpenCode - Project Level (.opencode/command/)  [default checked]
-  ◯ GitHub Copilot - User Level (~/.config/github-copilot/commands/)
-  ◉ GitHub Copilot - Project Level (.github/commands/)  [default checked]
-  ◯ Gemini CLI - User Level (~/.gemini/commands/)
-  ◉ Gemini CLI - Project Level (.gemini/commands/)  [default checked]
-  ──────────────
-  ◯ Skip (use Skills instead)
+Question: "Commands 要安裝到哪裡？"
+Options:
+1. User Level (~/.config/opencode/command/) - 所有專案共用
+2. Project Level (.opencode/command/) - 僅此專案 (建議)
+3. 跳過 - 使用 Skills 即可
 ```
 
-Project Level is checked by default. Each AI tool can have commands installed at different levels (User/Project).
+**Example (OpenCode + Copilot):**
+```
+Question: "Commands 要安裝到哪裡？"
+Options:
+1. 全部 User Level - 所有專案共用
+2. 全部 Project Level (建議) - 僅此專案
+3. 跳過 - 使用 Skills 即可
+```
+
+#### Strategy B: 3+ Tools → Two-Stage Question | 策略 B：3+ 個工具 → 兩階段詢問
+
+**Stage 1: Ask unified or individual**
+```
+Question: "您選擇了多個支援 Commands 的 AI 工具，安裝層級要如何設定？"
+Options:
+1. 統一層級 (建議) - 所有工具使用相同層級
+2. 個別設定 - 為每個工具分別選擇層級
+3. 跳過 - 不安裝 Commands
+```
+
+**Stage 2a: If unified → ask level once**
+```
+Question: "所有 Commands 要安裝到哪個層級？"
+Options:
+1. User Level - 所有專案共用
+2. Project Level (建議) - 僅此專案
+```
+
+**Stage 2b: If individual → per-tool questions**
+Ask each tool separately (see Strategy A examples).
 
 ### Step 5: Ask Standards Scope | 步驟 5：詢問標準範圍
 
