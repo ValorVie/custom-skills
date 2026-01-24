@@ -1,0 +1,27 @@
+# UDS (universal-dev-standards) 檔案對照表
+# UDS 資源使用專屬格式（YAML frontmatter + Markdown）
+
+# Skills（UDS 格式）
+skills:
+  # 直接複製到 skills/ 目錄
+  claude-code/: skills/
+
+# Agents（UDS 格式）
+agents:
+  claude-code/agents/: agents/claude/
+
+# Commands（UDS 格式）
+commands:
+  claude-code/commands/: commands/claude/
+
+# Workflows
+workflows:
+  claude-code/workflows/: commands/workflows/
+
+# 排除項目（不複製）
+excluded:
+  - tdd-assistant/              # 已有更完整的版本
+  - CONTRIBUTING.template.md
+  - install.ps1
+  - install.sh
+  - README.md

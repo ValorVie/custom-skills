@@ -46,6 +46,17 @@ NPM_PACKAGES = [
     "skills",
 ]
 
+def get_ecc_dir() -> Path:
+    """回傳 everything-claude-code 儲存庫的本地路徑。"""
+    from .paths import get_config_dir
+    return get_config_dir() / "everything-claude-code"
+
+
+def get_ecc_sources_dir() -> Path:
+    """回傳專案內 sources/ecc 目錄的路徑。"""
+    return get_project_root() / "sources" / "ecc"
+
+
 REPOS = {
     "custom_skills": (
         "https://github.com/ValorVie/custom-skills.git",
@@ -60,6 +71,10 @@ REPOS = {
     "anthropic_skills": (
         "https://github.com/anthropics/skills.git",
         get_anthropic_skills_dir,
+    ),
+    "everything_claude_code": (
+        "https://github.com/affaan-m/everything-claude-code.git",
+        get_ecc_dir,
     ),
 }
 
@@ -303,8 +318,10 @@ def copy_tree_if_exists(src: Path, dst: Path, msg: str):
 def copy_sources_to_custom_skills() -> None:
     """Stage 2: 將外部來源整合到 custom-skills 目錄。
 
-    來源：
-    - UDS skills, agents, workflows
+    直接從 ~/.config/<repo>/ 讀取外部來源。
+
+    整合來源：
+    - UDS (skills, agents, workflows, commands)
     - Obsidian skills
     - Anthropic skill-creator
     """
@@ -313,7 +330,9 @@ def copy_sources_to_custom_skills() -> None:
     dst_custom = get_custom_skills_dir() / "skills"
     dst_custom.mkdir(parents=True, exist_ok=True)
 
-    # UDS skills（排除 agents 和 workflows 子目錄）
+    # ============================================================
+    # UDS 來源 - 主要整合來源
+    # ============================================================
     src_uds = get_uds_dir() / "skills" / "claude-code"
     if src_uds.exists():
         console.print(f"  [dim]{shorten_path(src_uds)}[/dim]")
@@ -363,20 +382,63 @@ def copy_sources_to_custom_skills() -> None:
         dst_commands.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src_uds_commands, dst_commands, dirs_exist_ok=True)
 
+    # ============================================================
     # Obsidian skills
+    # ============================================================
     src_obsidian = get_obsidian_skills_dir() / "skills"
     if src_obsidian.exists():
         console.print(f"  [dim]{shorten_path(src_obsidian)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_custom)}[/dim]")
         shutil.copytree(src_obsidian, dst_custom, dirs_exist_ok=True)
 
+    # ============================================================
     # Anthropic skill-creator
+    # ============================================================
     src_anthropic = get_anthropic_skills_dir() / "skills" / "skill-creator"
     if src_anthropic.exists():
         dst_skill_creator = dst_custom / "skill-creator"
         console.print(f"  [dim]{shorten_path(src_anthropic)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_skill_creator)}[/dim]")
         shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
+
+    # ============================================================
+    # ECC (everything-claude-code) 資源
+    # ============================================================
+    src_ecc = get_ecc_sources_dir()
+    if src_ecc.exists():
+        console.print("[bold cyan]  整合 ECC 資源...[/bold cyan]")
+
+        # ECC skills → custom-skills/skills
+        src_ecc_skills = src_ecc / "skills"
+        if src_ecc_skills.exists():
+            console.print(f"  [dim]{shorten_path(src_ecc_skills)}[/dim]")
+            console.print(f"    → [dim]{shorten_path(dst_custom)}[/dim]")
+            for skill_dir in src_ecc_skills.iterdir():
+                if skill_dir.is_dir():
+                    dst_skill = dst_custom / skill_dir.name
+                    shutil.copytree(skill_dir, dst_skill, dirs_exist_ok=True)
+
+        # ECC agents → custom-skills/agents/claude
+        src_ecc_agents = src_ecc / "agents"
+        if src_ecc_agents.exists():
+            dst_agents_claude = get_custom_skills_dir() / "agents" / "claude"
+            console.print(f"  [dim]{shorten_path(src_ecc_agents)}[/dim]")
+            console.print(f"    → [dim]{shorten_path(dst_agents_claude)}[/dim]")
+            dst_agents_claude.mkdir(parents=True, exist_ok=True)
+            for agent_file in src_ecc_agents.iterdir():
+                if agent_file.is_file() and agent_file.suffix == ".md":
+                    shutil.copy2(agent_file, dst_agents_claude / agent_file.name)
+
+        # ECC commands → custom-skills/commands/claude
+        src_ecc_commands = src_ecc / "commands"
+        if src_ecc_commands.exists():
+            dst_commands_claude = get_custom_skills_dir() / "commands" / "claude"
+            console.print(f"  [dim]{shorten_path(src_ecc_commands)}[/dim]")
+            console.print(f"    → [dim]{shorten_path(dst_commands_claude)}[/dim]")
+            dst_commands_claude.mkdir(parents=True, exist_ok=True)
+            for cmd_file in src_ecc_commands.iterdir():
+                if cmd_file.is_file() and cmd_file.suffix == ".md":
+                    shutil.copy2(cmd_file, dst_commands_claude / cmd_file.name)
 
 
 def _copy_with_log(src: Path, dst: Path, resource_type: str, target_name: str) -> None:
@@ -507,8 +569,8 @@ def copy_skills(sync_project: bool = True) -> None:
     """複製 Skills 從來源到目標目錄（三階段流程）。
 
     三階段流程：
-    1. Stage 1: Clone 外部套件（由 install/update 指令處理）
-    2. Stage 2: 整合到 custom-skills
+    1. Stage 1: Clone/Pull 外部套件（由 install/update 指令處理）
+    2. Stage 2: 從 ~/.config/<repo>/ 整合到 custom-skills
     3. Stage 3: 分發到各工具目錄
 
     Args:
@@ -797,10 +859,11 @@ def copy_single_resource(
 
     # 根據資源類型尋找來源
     if resource_type == "skills":
-        # Skills 來源：UDS, Obsidian, Anthropic, Custom
+        # Skills 來源：UDS, Obsidian, Anthropic, ECC, Custom
         sources = [
             get_uds_dir() / "skills" / "claude-code" / name,
             get_obsidian_skills_dir() / "skills" / name,
+            get_ecc_sources_dir() / "skills" / name,
             get_custom_skills_dir() / "skills" / name,
         ]
         if name == "skill-creator":
@@ -813,12 +876,16 @@ def copy_single_resource(
                 return True
 
     elif resource_type == "commands":
-        # Commands 來源：custom-skills/commands/claude
-        src = get_custom_skills_dir() / "commands" / "claude" / f"{name}.md"
-        if src.exists():
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, target_path)
-            return True
+        # Commands 來源：ECC, custom-skills/commands/claude
+        sources = [
+            get_ecc_sources_dir() / "commands" / f"{name}.md",
+            get_custom_skills_dir() / "commands" / "claude" / f"{name}.md",
+        ]
+        for src in sources:
+            if src.exists():
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, target_path)
+                return True
 
     elif resource_type == "workflows":
         # Workflows 來源：custom-skills/commands/antigravity
@@ -829,8 +896,9 @@ def copy_single_resource(
             return True
 
     elif resource_type == "agents":
-        # Agents 來源：根據目標選擇不同的來源目錄
+        # Agents 來源：ECC, Claude, OpenCode
         sources = [
+            get_ecc_sources_dir() / "agents" / f"{name}.md",
             get_custom_skills_dir() / "agents" / "claude" / f"{name}.md",
             get_custom_skills_dir() / "agents" / "opencode" / f"{name}.md",
         ]
@@ -925,6 +993,7 @@ SOURCE_NAMES = {
     "uds": "universal-dev-standards",
     "obsidian": "obsidian-skills",
     "anthropic": "anthropic-skills",
+    "ecc": "everything-claude-code",
     "custom": "custom-skills",
     "user": "user",
 }
@@ -955,11 +1024,18 @@ def get_source_skills() -> dict[str, set[str]]:
     else:
         sources["anthropic"] = set()
 
+    # ECC skills (everything-claude-code)
+    ecc_path = get_ecc_sources_dir() / "skills"
+    if ecc_path.exists():
+        sources["ecc"] = {d.name for d in ecc_path.iterdir() if d.is_dir()}
+    else:
+        sources["ecc"] = set()
+
     # Custom skills (本專案)
     custom_path = get_custom_skills_dir() / "skills"
     if custom_path.exists():
         # 排除來自其他來源的
-        all_known = sources["uds"] | sources["obsidian"] | sources["anthropic"]
+        all_known = sources["uds"] | sources["obsidian"] | sources["anthropic"] | sources["ecc"]
         sources["custom"] = {
             d.name for d in custom_path.iterdir() if d.is_dir() and d.name not in all_known
         }
@@ -1000,11 +1076,22 @@ def get_source_commands() -> dict[str, set[str]]:
     """取得 commands 的來源名稱集合。"""
     sources = {}
 
+    # ECC commands (everything-claude-code)
+    ecc_cmd = get_ecc_sources_dir() / "commands"
+    if ecc_cmd.exists():
+        sources["ecc"] = {
+            f.stem for f in ecc_cmd.iterdir() if f.is_file() and f.suffix == ".md"
+        }
+    else:
+        sources["ecc"] = set()
+
     # Custom commands (本專案)
     custom_cmd_claude = get_custom_skills_dir() / "commands" / "claude"
     if custom_cmd_claude.exists():
+        # 排除 ECC 來源
         sources["custom"] = {
-            f.stem for f in custom_cmd_claude.iterdir() if f.is_file() and f.suffix == ".md"
+            f.stem for f in custom_cmd_claude.iterdir()
+            if f.is_file() and f.suffix == ".md" and f.stem not in sources["ecc"]
         }
     else:
         sources["custom"] = set()
@@ -1031,6 +1118,16 @@ def get_source_workflows() -> dict[str, set[str]]:
 def get_source_agents() -> dict[str, set[str]]:
     """取得 agents 的來源名稱集合。"""
     sources = {}
+
+    # ECC agents (everything-claude-code)
+    ecc_agents = get_ecc_sources_dir() / "agents"
+    if ecc_agents.exists():
+        sources["ecc"] = {
+            f.stem for f in ecc_agents.iterdir() if f.is_file() and f.suffix == ".md"
+        }
+    else:
+        sources["ecc"] = set()
+
     all_agents = set()
 
     # Claude agents
@@ -1047,7 +1144,8 @@ def get_source_agents() -> dict[str, set[str]]:
             f.stem for f in opencode_agents_dir.iterdir() if f.is_file() and f.suffix == ".md"
         )
 
-    sources["custom"] = all_agents
+    # 排除 ECC 來源
+    sources["custom"] = all_agents - sources["ecc"]
     return sources
 
 
@@ -1323,3 +1421,116 @@ def open_in_file_manager(file_path: Path) -> bool:
         pass
 
     return False
+
+
+# =============================================================================
+# ECC Hooks Plugin Functions
+# =============================================================================
+
+
+def get_ecc_hooks_source_dir() -> Path:
+    """取得 ECC Hooks 來源目錄。"""
+    return get_ecc_sources_dir() / "hooks"
+
+
+def get_ecc_hooks_plugin_dir() -> Path:
+    """取得 ECC Hooks Plugin 安裝目錄。"""
+    return Path.home() / ".claude" / "plugins" / "ecc-hooks"
+
+
+def get_ecc_hooks_status() -> dict:
+    """取得 ECC Hooks Plugin 狀態。
+
+    Returns:
+        dict: 包含以下鍵值：
+            - installed: bool - 是否已安裝
+            - source_exists: bool - 來源目錄是否存在
+            - plugin_path: Path - Plugin 安裝路徑
+            - hooks_json_path: Path | None - hooks.json 路徑（若存在）
+    """
+    plugin_dir = get_ecc_hooks_plugin_dir()
+    source_dir = get_ecc_hooks_source_dir()
+
+    hooks_json = plugin_dir / "hooks" / "hooks.json"
+    if not hooks_json.exists():
+        hooks_json = None
+
+    return {
+        "installed": plugin_dir.exists() and (plugin_dir / ".claude-plugin").exists(),
+        "source_exists": source_dir.exists(),
+        "plugin_path": plugin_dir,
+        "hooks_json_path": hooks_json,
+    }
+
+
+def show_ecc_hooks_status() -> None:
+    """顯示 ECC Hooks Plugin 狀態。"""
+    status = get_ecc_hooks_status()
+
+    console.print("[bold]ECC Hooks Plugin Status[/bold]")
+    console.print()
+
+    if status["installed"]:
+        console.print(f"[green]✓ Installed[/green] at {shorten_path(status['plugin_path'])}")
+        if status["hooks_json_path"]:
+            console.print(f"  Config: {shorten_path(status['hooks_json_path'])}")
+    else:
+        console.print("[yellow]✗ Not installed[/yellow]")
+
+    if status["source_exists"]:
+        console.print(f"[dim]Source: {shorten_path(get_ecc_hooks_source_dir())}[/dim]")
+    else:
+        console.print("[red]✗ Source not found[/red]")
+
+
+def install_ecc_hooks_plugin() -> bool:
+    """安裝或更新 ECC Hooks Plugin。
+
+    Returns:
+        bool: True 表示成功，False 表示失敗
+    """
+    source_dir = get_ecc_hooks_source_dir()
+    plugin_dir = get_ecc_hooks_plugin_dir()
+
+    if not source_dir.exists():
+        console.print(f"[red]Error: Source not found at {source_dir}[/red]")
+        console.print("[dim]Run 'ai-dev install' or 'ai-dev update' first[/dim]")
+        return False
+
+    # 確保目標目錄的父目錄存在
+    plugin_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    # 移除舊的 plugin（如果存在）
+    if plugin_dir.exists():
+        shutil.rmtree(plugin_dir, onerror=handle_remove_readonly)
+        console.print(f"[dim]Removed old plugin at {shorten_path(plugin_dir)}[/dim]")
+
+    # 複製新的 plugin
+    shutil.copytree(source_dir, plugin_dir)
+    console.print(f"[green]✓ Installed ECC Hooks Plugin[/green]")
+    console.print(f"  From: {shorten_path(source_dir)}")
+    console.print(f"  To:   {shorten_path(plugin_dir)}")
+
+    return True
+
+
+def uninstall_ecc_hooks_plugin() -> bool:
+    """移除 ECC Hooks Plugin。
+
+    Returns:
+        bool: True 表示成功，False 表示失敗
+    """
+    plugin_dir = get_ecc_hooks_plugin_dir()
+
+    if not plugin_dir.exists():
+        console.print("[yellow]ECC Hooks Plugin is not installed[/yellow]")
+        return True
+
+    try:
+        shutil.rmtree(plugin_dir, onerror=handle_remove_readonly)
+        console.print(f"[green]✓ Removed ECC Hooks Plugin[/green]")
+        console.print(f"  Path: {shorten_path(plugin_dir)}")
+        return True
+    except Exception as e:
+        console.print(f"[red]Error removing plugin: {e}[/red]")
+        return False

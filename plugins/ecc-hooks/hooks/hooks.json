@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"(npm run dev|pnpm( run)? dev|yarn dev|bun run dev)\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import sys; print('[Hook] BLOCKED: Dev server must run in tmux for log access', file=sys.stderr); print('[Hook] Use: tmux new-session -d -s dev \\\"npm run dev\\\"', file=sys.stderr); print('[Hook] Then: tmux attach -t dev', file=sys.stderr); sys.exit(1)\""
+          }
+        ],
+        "description": "Block dev servers outside tmux - ensures you can access logs"
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"(npm (install|test)|pnpm (install|test)|yarn (install|test)?|bun (install|test)|cargo build|make|docker|pytest|vitest|playwright)\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import os,sys; os.environ.get('TMUX') or (print('[Hook] Consider running in tmux for session persistence', file=sys.stderr), print('[Hook] tmux new -s dev  |  tmux attach -t dev', file=sys.stderr))\""
+          }
+        ],
+        "description": "Reminder to use tmux for long-running commands"
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"git push\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import sys; print('[Hook] Review changes before push...', file=sys.stderr); print('[Hook] Continuing with push (remove this hook to add interactive review)', file=sys.stderr)\""
+          }
+        ],
+        "description": "Reminder before git push to review changes"
+      },
+      {
+        "matcher": "tool == \"Edit\" || tool == \"Write\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/strategic-compact/suggest-compact.py\""
+          }
+        ],
+        "description": "Suggest manual compaction at logical intervals"
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/memory-persistence/pre-compact.py\""
+          }
+        ],
+        "description": "Save state before context compaction"
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/memory-persistence/session-start.py\""
+          }
+        ],
+        "description": "Load previous context and detect package manager on new session"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "tool == \"Bash\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import sys,json,re; d=sys.stdin.read(); i=json.loads(d) if d.strip() else {}; cmd=i.get('tool_input',{}).get('command',''); out=i.get('tool_output',{}).get('output',''); m=re.search(r'https://github.com/[^/]+/[^/]+/pull/\\d+',out) if 'gh pr create' in cmd else None; m and (print(f'[Hook] PR created: {m.group()}',file=sys.stderr), print(f'[Hook] To review: gh pr review {m.group().split(\"/\")[-1]} --repo {m.group().split(\"/\")[3]}/{m.group().split(\"/\")[4]}',file=sys.stderr)); print(d)\""
+          }
+        ],
+        "description": "Log PR URL and provide review command after PR creation"
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import sys,json,subprocess,os; d=sys.stdin.read(); subprocess.run(['git','rev-parse','--git-dir'],capture_output=True).returncode==0 or (print(d),sys.exit(0)); files=[f for f in subprocess.run(['git','diff','--name-only','HEAD'],capture_output=True,text=True).stdout.split('\\n') if f and any(f.endswith(e) for e in ['.ts','.tsx','.js','.jsx']) and os.path.exists(f)]; any(open(f).read().find('console.log')!=-1 and print(f'[Hook] WARNING: console.log found in {f}',file=sys.stderr) for f in files); print(d)\""
+          }
+        ],
+        "description": "Check for console.log in modified files after each response"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/memory-persistence/session-end.py\""
+          }
+        ],
+        "description": "Persist session state on end"
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/memory-persistence/evaluate-session.py\""
+          }
+        ],
+        "description": "Evaluate session for extractable patterns"
+      }
+    ]
+  }
+}

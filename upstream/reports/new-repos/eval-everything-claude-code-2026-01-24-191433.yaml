@@ -1,0 +1,276 @@
+generated_at: '2026-01-24T19:14:33.724702'
+report_type: new_repo_evaluation
+repo:
+  name: everything-claude-code
+  local_path: C:\Users\jack3\.config\everything-claude-code
+  remote_url: https://github.com/affaan-m/everything-claude-code.git
+  current_commit: 660e0d3badd31d5081b0e28206a2f027ba5a08e9
+  recommendation: Evaluate
+  reasoning: '包含 14 個 skill 檔案、包含 9 個 agent 檔案、包含 15 個 command 檔案、包含 11 個 hook 檔案、近期有
+    29 個 commit、新框架: Claude Plugin System, OpenCode Support, Hook System, MCP Integration,
+    Test Framework、新結構: examples, mcp-configs, plugins、特殊模式: Claude Plugin 架構, Marketplace
+    配置, Plugin 配置 等。高價值，建議詳細評估內容品質與整合價值。'
+  summary:
+    total_commits: 29
+    by_type:
+      fix: 12
+      other: 2
+      feat: 8
+      style: 1
+      docs: 2
+      refactor: 4
+    by_category:
+      other: 15
+      docs: 5
+      agents: 9
+      commands: 15
+      contexts: 3
+      hooks: 11
+      rules: 8
+      skills: 14
+    files_added: 80
+    files_modified: 0
+    files_deleted: 0
+    total_insertions: 13294
+    total_deletions: 134
+    remote_url: https://github.com/affaan-m/everything-claude-code.git
+    is_new_repo: true
+    novel_structures:
+      new_directories:
+      - name: examples
+        example_files:
+        - examples/CLAUDE.md
+        - examples/sessions/2026-01-17-debugging-memory.tmp
+        - examples/sessions/2026-01-19-refactor-api.tmp
+        - examples/sessions/2026-01-20-feature-auth.tmp
+        - examples/statusline.json
+      - name: mcp-configs
+        example_files:
+        - mcp-configs/mcp-servers.json
+      - name: plugins
+        example_files:
+        - plugins/README.md
+      notable_patterns:
+      - pattern: .claude-plugin/
+        description: Claude Plugin 架構
+        example_path: .claude-plugin/marketplace.json
+      - pattern: marketplace.json
+        description: Marketplace 配置
+        example_path: .claude-plugin/marketplace.json
+      - pattern: plugin.json
+        description: Plugin 配置
+        example_path: .claude-plugin/plugin.json
+      - pattern: examples/
+        description: 範例目錄
+        example_path: examples/CLAUDE.md
+      - pattern: hooks.json
+        description: Hooks 配置檔
+        example_path: hooks/hooks.json
+      - pattern: session-start.sh
+        description: Session 啟動腳本
+        example_path: hooks/memory-persistence/session-start.sh
+      - pattern: mcp-configs/
+        description: MCP 配置目錄
+        example_path: mcp-configs/mcp-servers.json
+      - pattern: plugins/
+        description: Plugin 目錄
+        example_path: plugins/README.md
+      - pattern: lib/
+        description: 共用函式庫
+        example_path: scripts/lib/package-manager.js
+      - pattern: tests/
+        description: 測試目錄
+        example_path: tests/hooks/hooks.test.js
+      new_file_types:
+      - .gitignore
+      - .tmp
+      framework_indicators:
+      - framework: Claude Plugin System
+        description: 支援 Claude Code Plugin 架構，可作為獨立插件發布
+        files:
+        - .claude-plugin/marketplace.json
+        - .claude-plugin/plugin.json
+      - framework: OpenCode Support
+        description: 支援 OpenCode 整合
+        files:
+        - plugins/README.md
+      - framework: Hook System
+        description: 包含自動化 Hook 機制
+        files:
+        - hooks/hooks.json
+        - hooks/memory-persistence/pre-compact.sh
+        - hooks/memory-persistence/session-end.sh
+        - hooks/memory-persistence/session-start.sh
+        - hooks/strategic-compact/suggest-compact.sh
+      - framework: MCP Integration
+        description: 包含 MCP (Model Context Protocol) 配置
+        files:
+        - mcp-configs/mcp-servers.json
+      - framework: Test Framework
+        description: 包含測試結構
+        files:
+        - tests/hooks/hooks.test.js
+        - tests/lib/package-manager.test.js
+        - tests/lib/utils.test.js
+        - tests/run-all.js
+  recent_commits:
+  - hash: 660e0d3
+    subject: 'fix: security and documentation fixes'
+    author: Affaan Mustafa
+    date: 2026-01-24 01:36:02 -0800
+    type: fix
+  - hash: a7bc5f2
+    subject: 'revert: remove hooks declaration - auto-loaded by convention'
+    author: Affaan Mustafa
+    date: 2026-01-23 22:27:21 -0800
+    type: other
+  - hash: 22ad036
+    subject: 'fix: add hooks declaration to plugin.json for proper hook loading'
+    author: Affaan Mustafa
+    date: 2026-01-23 20:47:22 -0800
+    type: fix
+  - hash: '5230892'
+    subject: 'fix: remove version fields from marketplace.json'
+    author: gzb1128
+    date: 2026-01-23 15:14:23 +0800
+    type: fix
+  - hash: 970f8bf
+    subject: 'feat: cross-platform support with Node.js scripts'
+    author: zerx-lab
+    date: 2026-01-23 15:08:07 +0800
+    type: feat
+  - hash: 4ec7a6b
+    subject: 'fix: remove version field to enable automatic plugin updates'
+    author: gzb1128
+    date: 2026-01-23 14:31:20 +0800
+    type: fix
+  - hash: 0d438dd
+    subject: 'style: side-by-side guide layout matching profile README'
+    author: Affaan Mustafa
+    date: 2026-01-22 22:29:06 -0800
+    type: style
+  - hash: 7f4f622
+    subject: 'feat: add star history chart and minimal badge bar'
+    author: Affaan Mustafa
+    date: 2026-01-22 22:19:01 -0800
+    type: feat
+  - hash: c3f1594
+    subject: 'fix: move session-end hooks from Stop to SessionEnd'
+    author: Affaan Mustafa
+    date: 2026-01-22 21:06:23 -0800
+    type: fix
+  - hash: 19345df
+    subject: 'fix: remove duplicate hooks field from plugin.json'
+    author: Affaan Mustafa
+    date: 2026-01-22 16:45:07 -0800
+    type: fix
+  - hash: 73bda1a
+    subject: 'fix: use ${CLAUDE_PLUGIN_ROOT} for hook script paths'
+    author: Affaan Mustafa
+    date: 2026-01-22 16:42:04 -0800
+    type: fix
+  - hash: ecfbbd3
+    subject: 'fix: use relative path ''./'' for plugin source instead of GitHub object'
+    author: Affaan Mustafa
+    date: 2026-01-22 15:02:48 -0800
+    type: fix
+  - hash: ee5affb
+    subject: 'fix: remove agents field temporarily to debug validation'
+    author: Affaan Mustafa
+    date: 2026-01-22 13:37:10 -0800
+    type: fix
+  - hash: d362ae6
+    subject: 'fix: use string format for repository field in plugin.json'
+    author: Affaan Mustafa
+    date: 2026-01-22 13:35:57 -0800
+    type: fix
+  - hash: 9e8006c
+    subject: 'fix: use GitHub source object in marketplace.json'
+    author: Affaan Mustafa
+    date: 2026-01-22 13:14:19 -0800
+    type: fix
+  - hash: 5010f82
+    subject: 'feat: package as Claude Code plugin with marketplace distribution'
+    author: Affaan Mustafa
+    date: 2026-01-22 04:16:39 -0800
+    type: feat
+  - hash: 4491f15
+    subject: Clarify README description of the repository
+    author: Affaan Mustafa
+    date: 2026-01-21 12:23:50 -0800
+    type: docs
+  - hash: e6440d3
+    subject: 'docs: restructure README to flow shorthand → longform guides together'
+    author: Affaan Mustafa
+    date: 2026-01-21 12:05:58 -0800
+    type: docs
+  - hash: fa0928a
+    subject: Enhance README with update section and resources
+    author: Affaan Mustafa
+    date: 2026-01-21 11:40:43 -0800
+    type: refactor
+  - hash: 2d6fd70
+    subject: 'feat: add strategic-compact hook and update hooks.json with all hooks'
+    author: Affaan Mustafa
+    date: 2026-01-20 19:57:05 -0800
+    type: feat
+  file_structure:
+    skills:
+    - skills/backend-patterns/SKILL.md
+    - skills/clickhouse-io/SKILL.md
+    - skills/coding-standards/SKILL.md
+    - skills/continuous-learning/SKILL.md
+    - skills/continuous-learning/config.json
+    - skills/continuous-learning/evaluate-session.sh
+    - skills/eval-harness/SKILL.md
+    - skills/frontend-patterns/SKILL.md
+    - skills/project-guidelines-example/SKILL.md
+    - skills/security-review/SKILL.md
+    - skills/strategic-compact/SKILL.md
+    - skills/strategic-compact/suggest-compact.sh
+    - skills/tdd-workflow/SKILL.md
+    - skills/verification-loop/SKILL.md
+    agents:
+    - agents/architect.md
+    - agents/build-error-resolver.md
+    - agents/code-reviewer.md
+    - agents/doc-updater.md
+    - agents/e2e-runner.md
+    - agents/planner.md
+    - agents/refactor-cleaner.md
+    - agents/security-reviewer.md
+    - agents/tdd-guide.md
+    commands:
+    - commands/build-fix.md
+    - commands/checkpoint.md
+    - commands/code-review.md
+    - commands/e2e.md
+    - commands/eval.md
+    - commands/learn.md
+    - commands/orchestrate.md
+    - commands/plan.md
+    - commands/refactor-clean.md
+    - commands/setup-pm.md
+    - commands/tdd.md
+    - commands/test-coverage.md
+    - commands/update-codemaps.md
+    - commands/update-docs.md
+    - commands/verify.md
+    hooks:
+    - hooks/hooks.json
+    - hooks/memory-persistence/pre-compact.sh
+    - hooks/memory-persistence/session-end.sh
+    - hooks/memory-persistence/session-start.sh
+    - hooks/strategic-compact/suggest-compact.sh
+    - scripts/hooks/evaluate-session.js
+    - scripts/hooks/pre-compact.js
+    - scripts/hooks/session-end.js
+    - scripts/hooks/session-start.js
+    - scripts/hooks/suggest-compact.js
+    docs:
+    - CONTRIBUTING.md
+    - README.md
+    - examples/CLAUDE.md
+    - examples/user-CLAUDE.md
+    - plugins/README.md
+    other_count: 15

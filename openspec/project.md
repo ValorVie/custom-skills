@@ -23,11 +23,15 @@
 - [Claude Code](https://www.anthropic.com/claude/code)：主力 AI 編程助手
 - [Antigravity](https://deepmind.google/technologies/gemini/)：Google Gemini 驅動的編程助手
 - [OpenCode](https://github.com/code-yeongyu/opencode)：開源 AI 編程助手
+- [Codex](https://github.com/openai/codex)：OpenAI Codex CLI
+- [Gemini CLI](https://github.com/google/gemini-cli)：Google AI 命令列工具
 - [OpenSpec](https://github.com/fission-codes/openspec)：規格驅動開發工具
 
 ### 整合的標準來源
 - [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)：通用開發標準（提交訊息、測試、Git 工作流等）
+- [everything-claude-code](https://github.com/affaan-m/everything-claude-code)：進階 Claude Code 工作流程（Hooks、Skills、Agents、Commands）
 - [superpowers](https://github.com/obra/superpowers)：進階開發工作流與 Skills
+- [anthropic-skills](https://github.com/anthropics/skills)：Anthropic 官方 Skills
 - [obsidian-skills](https://github.com/kepano/obsidian-skills)：Obsidian 相容的 Agent Skills（Markdown、Bases、Canvas 格式）
 
 ## Project Conventions
@@ -65,10 +69,14 @@
 
 #### 目錄結構原則
 - **`skills/`**：可複用的 AI 行為規範（自動觸發）
-- **`command/`**, **`agent/`**, **`.agent/workflows`**：手動觸發的工作流與任務封裝
+- **`commands/`**：手動觸發的指令（按工具分類：claude/, antigravity/, opencode/, gemini/）
+- **`agents/`**：專業化的 AI 子代理（按工具分類：claude/, opencode/）
+- **`sources/`**：上游資源整合（ecc/）
+- **`upstream/`**：上游追蹤系統（同步狀態、mapping）
 - **`.standards/`**：專案層級的開發標準（由 universal-dev-standards 生成）
 - **`docs/`**：概念性文件與使用指南
 - **`openspec/`**：OpenSpec 規格驅動開發的配置
+- **`project-template/`**：專案初始化模板
 
 ### Testing Strategy
 
@@ -147,9 +155,12 @@
 
 ### 配置管理策略
 
-- **單一來源原則**：`~/.config/custom-skills` 為主要來源,同步至各工具
+- **單一來源原則**：`~/.config/custom-skills` 為主要來源，同步至各工具
+- **三階段複製流程**：Stage 1 (Clone) → Stage 2 (整合) → Stage 3 (分發)
+- **上游追蹤**：`upstream/` 目錄追蹤所有第三方 repo 的同步狀態
 - **分層覆蓋**：全域 → 專案 → 臨時（優先順序遞增）
-- **版本控制**：所有配置納入 Git,記錄變更歷史
+- **版本控制**：所有配置納入 Git，記錄變更歷史
+- **標準體系切換**：支援 uds/ecc/minimal 三種 profiles
 
 ## Important Constraints
 
@@ -189,7 +200,9 @@
 
 ### 外部標準來源
 - [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)：定期同步更新
+- [everything-claude-code](https://github.com/affaan-m/everything-claude-code)：進階 Claude Code 工作流程
 - [superpowers](https://github.com/obra/superpowers)：進階工作流
+- [anthropic-skills](https://github.com/anthropics/skills)：Anthropic 官方 Skills
 - [openspec](https://github.com/fission-codes/openspec)：規格驅動開發標準
 - [obsidian-skills](https://github.com/kepano/obsidian-skills)：Obsidian 相容的 Skills（`.md`, `.base`, `.canvas`）
 

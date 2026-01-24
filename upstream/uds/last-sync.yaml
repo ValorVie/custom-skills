@@ -1,0 +1,5 @@
+# UDS (universal-dev-standards) 最後同步資訊
+
+status: synced
+# 透過現有 ai-dev 機制持續同步
+# UDS 是主要來源，每次 ai-dev update 都會拉取

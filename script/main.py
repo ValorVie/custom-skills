@@ -3,10 +3,14 @@ from importlib.metadata import version as get_version
 
 from .commands.install import install
 from .commands.update import update
+from .commands.clone import clone
 from .commands.status import status
 from .commands.list import list_resources
 from .commands.toggle import toggle
+from .commands.add_repo import add_repo
 from .commands import project
+from .commands import standards
+from .commands import hooks
 
 
 def get_app_version() -> str:
@@ -44,10 +48,14 @@ def main_callback(
 
 app.command()(install)
 app.command()(update)
+app.command()(clone)
 app.command()(status)
 app.command(name="list")(list_resources)
 app.command()(toggle)
+app.command(name="add-repo")(add_repo)
 app.add_typer(project.app, name="project")
+app.add_typer(standards.app, name="standards")
+app.add_typer(hooks.app, name="hooks")
 
 
 def tui():
