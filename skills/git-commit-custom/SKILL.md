@@ -19,6 +19,8 @@ description: Git 提交工作流模組 - 提供同步、分析、提交、推送
 | 提交 | `commit.md` | Normal/Final 模式提交 |
 | 推送 | `push.md` | 推送至遠端、處理分叉 |
 | 合併 | `merge.md` | 多分支整合測試 |
+| PR | `pr.md` | 建立 Pull Request 流程 |
+| PR 分析 | `pr-analyze.md` | PR 專用的變更分析與摘要生成 |
 
 ---
 
@@ -35,6 +37,10 @@ description: Git 提交工作流模組 - 提供同步、分析、提交、推送
 ### 路由邏輯
 
 ```
+IF pr 子指令:
+    → 讀取並執行 `pr.md`（內部調用 `pr-analyze.md`）
+    → 結束
+
 IF merge 子指令:
     → 讀取並執行 `merge.md`
     → 結束
@@ -52,6 +58,21 @@ ELSE (開發分支):
     3. 讀取並執行 `commit.md`  — 執行提交
     4. IF --push:
         → 讀取並執行 `push.md` — 推送至遠端
+```
+
+### pr 模式路由
+
+當使用 `git-commit pr` 時：
+
+```
+1. 讀取 `_utils.md`      — 取得主分支名稱
+2. 讀取並執行 `pr.md`    — PR 主流程
+   ├─ 前置檢查（分支、gh CLI）
+   ├─ 範圍判定
+   ├─ 讀取並執行 `pr-analyze.md` — 變更分析與摘要生成
+   ├─ 提交整理（除非 --no-squash）
+   ├─ 推送
+   └─ 建立 PR（預設草稿，--direct 為正式）
 ```
 
 ### --direct 模式路由

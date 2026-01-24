@@ -1,0 +1,29 @@
+# ECC (everything-claude-code) 同步紀錄
+
+source:
+  repo: affaan-m/everything-claude-code
+  branch: main
+  url: https://github.com/affaan-m/everything-claude-code
+
+last_sync:
+  date: "2026-01-24"
+  commit: null  # 首次整合，無特定 commit
+  synced_by: claude-code
+
+changes:
+  - date: "2026-01-24"
+    type: initial_integration
+    description: |
+      首次整合 everything-claude-code 資源
+      - 6 個 hooks (Python 重寫版)
+      - 5 個 skills
+      - 4 個 agents
+      - 6 個 commands
+      - MCP 配置參考
+      - Plugins 安裝指南
+
+notes: |
+  重要變更：
+  - 所有 Node.js hooks 已重寫為 Python 以確保跨平台相容性
+  - 增加 utils.py 提供共用工具函式（package manager 偵測等）
+  - 所有檔案已加入 upstream 標頭註解

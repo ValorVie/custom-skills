@@ -1,0 +1,5 @@
+# anthropic-skills 檔案對照表
+
+# 直接複製的 Skills
+skills:
+  skill-creator/: skills/skill-creator/

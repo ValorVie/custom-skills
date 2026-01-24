@@ -1,0 +1,37 @@
+# Upstream Sources Registry
+# 上游來源註冊表 - 記錄所有第三方 repo 的來源資訊
+#
+# 用途：
+# - upstream-sync 分析上游 commit 差異
+# - 記錄 repo 位置與分支資訊
+#
+# 注意：
+# - ai-dev update 會拉取這些 repo 到 ~/.config/
+# - ai-dev clone 會從 ~/.config/ 整合內容到各工具目錄
+
+sources:
+  obsidian-skills:
+    repo: kepano/obsidian-skills
+    branch: main
+    local_path: ~/.config/obsidian-skills/
+    format: claude-code-native
+  anthropic-skills:
+    repo: anthropics/skills
+    branch: main
+    local_path: ~/.config/anthropic-skills/
+    format: claude-code-native
+  superpowers:
+    repo: obra/superpowers
+    branch: main
+    local_path: ~/.config/superpowers/
+    format: claude-code-native
+  universal-dev-standards:
+    repo: AsiaOstrich/universal-dev-standards
+    branch: main
+    local_path: ~/.config/universal-dev-standards/
+    format: uds
+  everything-claude-code:
+    repo: affaan-m/everything-claude-code
+    branch: main
+    local_path: ~/.config/everything-claude-code/
+    format: claude-code-native

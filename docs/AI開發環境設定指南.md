@@ -5,7 +5,7 @@ tags:
   - dev-stack
   - vibe-coding
 date created: 2026-01-14T16:00:00+08:00
-date modified: 2026-01-15T02:33:30+08:00
+date modified: 2026-01-25T10:00:00+08:00
 description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設定、使用說明與設計理念
 ---
 
@@ -72,13 +72,22 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 ┌─────────────────────────────────────────────────────────────┐
 │                     Skills 來源                             │
 ├─────────────────────────────────────────────────────────────┤
-│  universal-dev-standards   │   superpowers   │   openspec   │
-│  (開發標準)                │   (進階工作流)   │   (規格驅動)  │
+│  universal-dev-standards  │  everything-claude-code  │      │
+│  (開發標準)               │  (ECC: Hooks/Skills/    │      │
+│                           │   Agents/Commands)       │      │
+├───────────────────────────┼──────────────────────────┤      │
+│  superpowers  │  anthropic-skills  │  obsidian-skills │      │
+│  (進階工作流) │  (官方 Skills)     │  (Obsidian)      │      │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                   ~/.config/custom-skills/                  │
 │                   (統一 Skills 管理目錄)                     │
+│  ├── skills/      # 共用 Skills                             │
+│  ├── commands/    # 工具專屬 Commands                       │
+│  ├── agents/      # 工具專屬 Agents                         │
+│  ├── sources/ecc/ # ECC 資源整合                            │
+│  └── upstream/    # 上游追蹤系統                            │
 └─────────────────────────────────────────────────────────────┘
                               ↓
       ┌───────────┬───────────┼───────────┬───────────┐
@@ -86,12 +95,15 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
 │~/.claude/│ │~/.gemini/│ │~/.config/│ │~/.codex/ │ │~/.gemini/│
 │ skills/  │ │antigrav./│ │opencode/ │ │ skills/  │ │ skills/  │
-│          │ │ skills/  │ │          │ │          │ │commands/ │
+│commands/ │ │ skills/  │ │ skills/  │ │          │ │commands/ │
+│ agents/  │ │workflows/│ │ agents/  │ │          │ │          │
 │  Claude  │ │Antigrav. │ │ OpenCode │ │  Codex   │ │Gemini CLI│
 └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
 ```
 
 ### 關鍵 Skills 說明
+
+#### UDS Skills（核心開發標準）
 
 | Skill | 功能 | 何時觸發 |
 |-------|------|----------|
@@ -100,6 +112,15 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 | `code-review-assistant` | 程式碼審查清單 | 審查 PR 或提交前 |
 | `testing-guide` | 測試策略指南 | 撰寫測試時 |
 | `spec-driven-dev` | 規格驅動開發工作流 | 規劃功能時 |
+
+#### ECC Skills（進階工作流）
+
+| Skill | 功能 | 何時觸發 |
+|-------|------|----------|
+| `continuous-learning` | 從會話萃取學習模式 | 完成開發任務後 |
+| `eval-harness` | Eval 驅動開發測試框架 | 驗證 AI 回應品質時 |
+| `security-review` | OWASP 安全漏洞檢測 | 程式碼安全審查時 |
+| `tdd-workflow` | TDD 開發流程整合 | 測試驅動開發時 |
 
 ---
 
@@ -718,6 +739,9 @@ claude
 # 初始化專案
 /init
 
+# 查看狀態（建議關閉 Auto Compact ）
+/status
+
 # 壓縮對話（保留重要內容）
 /compact 保留前端相關對話
 
@@ -1031,7 +1055,8 @@ uv tool upgrade ai-dev
 **本地開發安裝：**
 
 ```shell
-cd ~/.config/custom-skills
+git clone https://github.com/ValorVie/custom-skills.git
+cd custom-skills
 uv tool install . --force
 ```
 
@@ -1046,12 +1071,14 @@ ai-dev --help
 | 指令 | 說明 |
 |------|------|
 | `install` | 首次安裝 AI 開發環境（NPM 套件、目錄、Git 儲存庫、Skills 複製） |
-| `update` | 每日更新：更新工具並同步設定 |
+| `update` | 每日更新：更新 NPM 工具與 Git 儲存庫 |
 | `status` | 檢查環境狀態與工具版本 |
 | `list` | 列出已安裝的 Skills、Commands、Agents |
 | `toggle` | 啟用/停用特定工具的特定資源 |
 | `tui` | 啟動互動式終端介面 |
 | `project` | 專案級別的初始化與更新操作 |
+| `clone` | 分發 Skills 內容到各 AI 工具目錄 |
+| `standards` | 管理標準體系 profiles（uds/ecc/minimal） |
 
 ### Project 指令（專案級操作）
 
@@ -1150,9 +1177,10 @@ ai-dev tui
 ```
 
 **功能**：
-- 頂部按鈕列：Install / Maintain / Status / Add Skills / Quit
-- Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode）
+- 頂部按鈕列：Install / Update / Status / Add Skills / Quit
+- Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode / Codex / Gemini CLI）
 - Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
+- Sync to Project：勾選時會同步到 custom-skills 專案目錄（僅開發人員需要）
 - 資源列表：Checkbox 勾選啟用/停用
 - MCP Config 區塊：顯示目前工具的 MCP 設定檔路徑與快速開啟按鈕
 
@@ -1165,6 +1193,8 @@ TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
 | Claude Code | `~/.claude.json` |
 | Antigravity | `~/.gemini/antigravity/mcp_config.json` |
 | OpenCode | `~/.config/opencode/opencode.json` |
+| Codex | `~/.codex/config.json` |
+| Gemini CLI | `~/.gemini/settings.json` |
 
 點擊「Open in Editor」可在編輯器中開啟設定檔，點擊「Open Folder」可在檔案管理器中開啟。
 
@@ -1220,19 +1250,38 @@ npx skills add vercel-labs/agent-skills
 
 ~/.gemini/
 ├── GEMINI.md              # 全域用戶指南
+├── settings.json          # Gemini CLI 設定
 ├── mcp_config.json        # Antigravity MCP 設定
+├── skills/                # Gemini CLI Skills
+├── commands/              # Gemini CLI Commands
 └── antigravity/
     ├── skills/            # Antigravity Skills
     └── global_workflows/  # 全域工作流
 
+~/.codex/
+├── config.json            # Codex MCP 設定
+└── skills/                # Codex Skills
+
 ~/.config/
 ├── custom-skills/         # 統一 Skills 管理（公司自訂）
 │   ├── skills/            # 共用 Skills
-│   ├── command/           # 共用 Command
+│   ├── commands/          # 共用 Commands
 │   │   ├── claude/
-│   │   └── antigravity/
-│   └── agent/             # 共用 Agent
-│       └── opencode/
+│   │   ├── antigravity/
+│   │   └── gemini/
+│   ├── agents/            # 共用 Agents
+│   │   ├── claude/
+│   │   └── opencode/
+│   ├── sources/           # 整合的外部來源
+│   │   └── ecc/           # Everything Claude Code
+│   │       ├── hooks/     # Python 跨平台 hooks
+│   │       ├── skills/    # ECC Skills
+│   │       ├── agents/    # ECC Agents
+│   │       └── commands/  # ECC Commands
+│   ├── upstream/          # 上游追蹤系統
+│   │   ├── sources.yaml   # 來源註冊表
+│   │   └── <repo>/        # 各 repo 同步狀態
+│   └── disabled/          # 停用的資源
 ├── superpowers/           # Superpowers 來源
 ├── universal-dev-standards/  # UDS 來源
 └── opencode/
@@ -1250,6 +1299,7 @@ project/
 ├── .agent/                # 專案級 Antigravity 設定
 ├── .opencode/             # 專案級 OpenCode 設定
 │   └── agent/             # 專案級 Agent
+├── .codex/                # 專案級 Codex 設定
 ├── .standards/            # UDS 專案標準
 ├── openspec/              # OpenSpec 規格
 │   ├── project.md
@@ -1260,10 +1310,62 @@ project/
 
 ---
 
+### ECC (Everything Claude Code) 整合
+
+v0.6.0 新增 Everything Claude Code 資源整合，提供進階的 Claude Code 工作流程工具：
+
+| 類型 | 說明 |
+|------|------|
+| **Hooks** | Python 跨平台 hooks（memory-persistence, strategic-compact） |
+| **Skills** | continuous-learning, eval-harness, security-review, tdd-workflow |
+| **Agents** | build-error-resolver, e2e-runner, doc-updater, security-reviewer |
+| **Commands** | /checkpoint, /build-fix, /e2e, /learn, /test-coverage, /eval |
+
+詳見 `sources/ecc/README.md`。
+
+### 標準體系切換 (Standards Profiles)
+
+支援在不同標準體系之間切換：
+
+```shell
+# 查看目前狀態
+ai-dev standards status
+
+# 列出可用 profiles
+ai-dev standards list
+
+# 切換 profile
+ai-dev standards switch ecc
+```
+
+可用 profiles：
+- `uds` - Universal Dev Standards 完整版（預設）
+- `ecc` - Everything Claude Code 工作流程
+- `minimal` - 最小化配置
+
+### 上游追蹤與同步
+
+追蹤第三方 repo 的同步狀態：
+
+```shell
+# 使用 Skills 進行上游審核
+/upstream-sync      # 生成結構化分析報告
+/upstream-compare   # AI 生成整合建議
+```
+
+上游追蹤資訊位於 `upstream/` 目錄，包含：
+- `sources.yaml` - 上游來源註冊表
+- `<repo>/mapping.yaml` - 檔案對照表
+- `<repo>/last-sync.yaml` - 最後同步資訊
+
+---
+
 ## 更新日誌
 
 | 日期 | 版本 | 變更內容 |
 |------|------|----------|
+| 2026-01-25 | 1.6.0 | 更新 `update` 指令說明（移除不存在的 `--sync-upstream` 參數）、修正上游同步流程說明 |
+| 2026-01-24 | 1.5.0 | 整合 ECC 資源、新增上游追蹤系統、標準體系切換、clone 與 standards 指令 |
 | 2026-01-20 | 1.4.0 | CLI 工具打包為 `ai-dev`，支援全域安裝；新增 `project init/update` 專案級指令 |
 | 2026-01-19 | 1.3.0 | 新增 CLI 腳本自動化管理說明（list、toggle、tui 指令） |
 | 2026-01-15 | 1.2.0 | 補完 custom-skills 倉庫、Command/Agent 複製流程、OpenCode Superpowers 安裝、Windows 指令格式修正 |
