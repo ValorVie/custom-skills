@@ -112,3 +112,54 @@ TBD - created by archiving change implement-resource-disable-mechanism. Update P
 **Then** 系統應顯示警告：`資源 nonexistent-skill 不存在，無法停用`
 **And** 操作應失敗（exit code 1）
 
+---
+
+### Requirement: disabled.yaml Profile 來源標記 (MUST)
+
+系統 SHALL 在 `.claude/disabled.yaml` 中區分 profile 停用與手動停用來源。
+
+#### Scenario: Profile 切換停用項目
+
+**Given** 使用者執行 `ai-dev standards switch ecc`
+**When** 切換完成
+**Then** 系統應在 `disabled.yaml` 中設定 `_profile: ecc`
+**And** 將 profile 停用的項目記錄在 `_profile_disabled` 列表
+**And** 保留 `_manual` 列表中的手動停用項目
+**And** 合併產生扁平的 `skills`, `commands`, `agents`, `standards` 列表
+
+#### Scenario: 手動停用保留
+
+**Given** 使用者手動停用了 `some-skill`
+**And** `_manual` 列表包含 `skills:some-skill`
+**When** 使用者執行 `ai-dev standards switch uds`
+**Then** 系統應保留 `_manual` 列表中的 `skills:some-skill`
+**And** `some-skill` 仍出現在合併後的 `skills` 列表
+
+#### Scenario: 向後相容讀取
+
+**Given** 現有工具只讀取 `disabled.yaml` 的 `skills`, `commands`, `agents` 欄位
+**When** 讀取 `disabled.yaml`
+**Then** 應取得合併後的完整停用項目列表
+**And** 無需了解 `_profile`, `_profile_disabled`, `_manual` 等欄位
+
+#### Scenario: disabled.yaml 格式範例
+
+**When** 使用 UDS profile 且手動停用 `some-skill`
+**Then** `disabled.yaml` 應包含以下結構：
+```yaml
+_profile: uds
+_profile_disabled:
+  - skills:tdd-workflow
+  - commands:e2e
+_manual:
+  - skills:some-skill
+skills:
+  - tdd-workflow
+  - some-skill
+commands:
+  - e2e
+agents: []
+standards: []
+hooks: []
+```
+

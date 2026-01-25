@@ -39,6 +39,10 @@ from ..commands.standards import (
     get_active_profile_path,
     load_yaml,
     save_yaml,
+    load_profile,
+    load_overlaps,
+    switch_profile,
+    load_disabled_yaml,
 )
 
 
@@ -80,6 +84,69 @@ def sanitize_widget_id(name: str) -> str:
     if not safe_id:
         safe_id = "unnamed"
     return safe_id
+
+
+class ProfilePreviewModal(ModalScreen):
+    """Profile 切換預覽對話框（顯示重疊分析結果）。"""
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Cancel"),
+        Binding("enter", "confirm", "Confirm"),
+    ]
+
+    def __init__(
+        self,
+        target_profile: str,
+        preview_result: dict,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.target_profile = target_profile
+        self.preview_result = preview_result
+
+    def compose(self) -> ComposeResult:
+        with Container(id="profile-preview-dialog"):
+            yield Static(f"切換到 Profile: {self.target_profile}", id="preview-title")
+
+            # 顯示預覽結果
+            disabled_items = self.preview_result.get('disabled_items', [])
+            manual_items = self.preview_result.get('manual_items', [])
+
+            yield Static("將停用的項目：", classes="preview-section-title")
+
+            if disabled_items:
+                items_text = "\n".join(f"  • {item}" for item in disabled_items[:15])
+                if len(disabled_items) > 15:
+                    items_text += f"\n  ... 及其他 {len(disabled_items) - 15} 項"
+                yield Static(items_text, id="disabled-list")
+            else:
+                yield Static("  （無）", id="disabled-list")
+
+            if manual_items:
+                yield Static("\n保留的手動停用項目：", classes="preview-section-title")
+                manual_text = "\n".join(f"  • {item}" for item in manual_items[:10])
+                if len(manual_items) > 10:
+                    manual_text += f"\n  ... 及其他 {len(manual_items) - 10} 項"
+                yield Static(manual_text, id="manual-list")
+
+            yield Static(
+                f"\n總計：{len(disabled_items)} 項 profile 停用 + {len(manual_items)} 項手動停用",
+                id="summary"
+            )
+
+            with Horizontal(id="preview-button-row"):
+                yield Button("確認切換", id="confirm-btn", variant="primary")
+                yield Button("取消", id="cancel-btn", variant="default")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "confirm-btn":
+            self.dismiss(True)  # 傳回 True 表示確認
+        elif event.button.id == "cancel-btn":
+            self.dismiss(False)  # 傳回 False 表示取消
+
+    def action_confirm(self) -> None:
+        """Enter 確認切換"""
+        self.dismiss(True)
 
 
 class AddSkillsModal(ModalScreen):
@@ -485,9 +552,7 @@ class SkillManagerApp(App):
         self.run_cli_command("clone", self._get_sync_project_args())
 
     def update_standards_profile_display(self) -> None:
-        """更新 Standards Profile 區塊顯示。"""
-        from datetime import datetime
-
+        """更新 Standards Profile 區塊顯示（含重疊分析摘要）。"""
         profile_select = self.query_one("#profile-select", Select)
         info_label = self.query_one("#profile-info-label", Label)
 
@@ -499,7 +564,7 @@ class SkillManagerApp(App):
             info_label.update("執行 `ai-dev project init` 初始化")
             return
 
-        # 載入可用 profiles（從 active-profile.yaml.available）
+        # 載入可用 profiles（從 profiles/*.yaml）
         profiles = list_profiles()
         if not profiles:
             profile_select.set_options([("無可用 profile", "none")])
@@ -507,8 +572,15 @@ class SkillManagerApp(App):
             info_label.update("")
             return
 
-        # 設定下拉選單選項
-        profile_options = [(name, name) for name in sorted(profiles)]
+        # 設定下拉選單選項（顯示名稱 + 值）
+        profile_options = []
+        for name in sorted(profiles):
+            try:
+                profile_data = load_profile(name)
+                display_name = profile_data.get('display_name', name)
+                profile_options.append((f"{display_name} ({name})", name))
+            except Exception:
+                profile_options.append((name, name))
         profile_select.set_options(profile_options)
 
         # 設定目前啟用的 profile
@@ -518,23 +590,33 @@ class SkillManagerApp(App):
         else:
             profile_select.value = profiles[0]
 
-        # 顯示臨時模式提示
-        info_label.update(f"({len(profiles)} profiles 可用，臨時模式)")
+        # 顯示停用項目統計
+        self._update_profile_info_label(active)
 
     def _update_profile_info_label(self, profile_name: str) -> None:
-        """更新 profile 資訊標籤。
-
-        TODO: Phase 2 應讀取 profiles/*.yaml 檔案顯示詳細資訊。
-        當前臨時實作只顯示簡單提示。
-        """
+        """更新 profile 資訊標籤（顯示停用項目統計）。"""
         info_label = self.query_one("#profile-info-label", Label)
-        total_profiles = len(list_profiles())
-        info_label.update(f"({total_profiles} profiles 可用，臨時模式)")
 
-    def switch_standards_profile(self, new_profile: str) -> None:
-        """切換 Standards Profile。"""
-        from datetime import datetime
+        try:
+            disabled = load_disabled_yaml()
+            profile_disabled = disabled.get('_profile_disabled', [])
+            manual_disabled = disabled.get('_manual', [])
+            total_disabled = len(profile_disabled) + len(manual_disabled)
 
+            if total_disabled > 0:
+                info_label.update(f"停用 {total_disabled} 項（profile:{len(profile_disabled)} + 手動:{len(manual_disabled)}）")
+            else:
+                info_label.update("無停用項目")
+        except Exception:
+            info_label.update("")
+
+    def switch_standards_profile(self, new_profile: str, skip_preview: bool = False) -> None:
+        """切換 Standards Profile（使用重疊檢測邏輯）。
+
+        Args:
+            new_profile: 目標 profile 名稱
+            skip_preview: 是否跳過預覽確認（快速切換時使用）
+        """
         # 忽略佔位符和無效值
         if new_profile in ("none", "loading"):
             return
@@ -548,18 +630,69 @@ class SkillManagerApp(App):
         if new_profile == active:
             return
 
-        # 更新 active-profile.yaml
-        active_path = get_active_profile_path()
-        active_config = load_yaml(active_path)
-        active_config['active'] = new_profile
-        active_config['last_updated'] = datetime.now().strftime('%Y-%m-%d')
-        save_yaml(active_path, active_config)
+        # 先取得 dry-run 預覽結果
+        preview_result = switch_profile(new_profile, dry_run=True)
 
-        self.notify(f"已切換到 '{new_profile}' profile", severity="information")
-        self._update_profile_info_label(new_profile)
+        if not preview_result.get('success'):
+            self.notify(f"無法預覽: {preview_result.get('error', '未知錯誤')}", severity="error")
+            return
+
+        # 如果有項目要停用且未跳過預覽，顯示確認對話框
+        disabled_items = preview_result.get('disabled_items', [])
+        if disabled_items and not skip_preview:
+            # 顯示預覽對話框，等待使用者確認
+            self.push_screen(
+                ProfilePreviewModal(new_profile, preview_result),
+                callback=lambda confirmed: self._on_profile_preview_result(confirmed, new_profile)
+            )
+        else:
+            # 無停用項目或跳過預覽，直接執行切換
+            self._execute_profile_switch(new_profile)
+
+    def _on_profile_preview_result(self, confirmed: bool, new_profile: str) -> None:
+        """處理預覽對話框的結果。"""
+        if confirmed:
+            self._execute_profile_switch(new_profile)
+        else:
+            # 還原下拉選單到原本的 profile
+            active = get_active_profile()
+            profile_select = self.query_one("#profile-select", Select)
+            profile_select.value = active
+            self.notify("已取消切換", severity="information")
+
+    def _execute_profile_switch(self, new_profile: str) -> None:
+        """執行實際的 profile 切換。"""
+        result = switch_profile(new_profile)
+
+        if result.get('success'):
+            disabled_count = len(result.get('disabled_items', []))
+            sync_result = result.get('sync_result', {})
+            sync_disabled = sync_result.get('disabled_count', 0)
+            sync_enabled = sync_result.get('enabled_count', 0)
+
+            if sync_disabled > 0 or sync_enabled > 0:
+                msg = f"已切換到 '{new_profile}'，同步 {sync_disabled} 停用/{sync_enabled} 啟用"
+            else:
+                msg = f"已切換到 '{new_profile}'，設定 {disabled_count} 項目"
+
+            self.notify(msg, severity="information")
+            self._update_profile_info_label(new_profile)
+
+            # 如果有警告，另外顯示
+            if result.get('warnings'):
+                self.notify(
+                    f"⚠️ {result['warnings'][0]}",
+                    severity="warning"
+                )
+
+            # 刷新資源列表（因為可能有 skills 被停用/啟用）
+            self.refresh_resource_list()
+        else:
+            error_msg = result.get('error', '未知錯誤')
+            self.notify(f"切換失敗: {error_msg}", severity="error")
 
     def action_toggle_profile(self) -> None:
-        """循環切換 Standards Profile（快捷鍵 t）。"""
+        """循環切換 Standards Profile（快捷鍵 t，跳過預覽直接切換）。"""
         profiles_dir = get_profiles_dir()
         if not profiles_dir.exists():
             self.notify("專案未初始化標準體系", severity="warning")
@@ -582,8 +715,8 @@ class SkillManagerApp(App):
         profile_select = self.query_one("#profile-select", Select)
         profile_select.value = next_profile
 
-        # 切換 profile
-        self.switch_standards_profile(next_profile)
+        # 切換 profile（快速模式跳過預覽）
+        self.switch_standards_profile(next_profile, skip_preview=True)
 
     # =========================================================================
     # ECC Hooks Plugin Methods

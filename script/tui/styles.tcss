@@ -213,3 +213,58 @@ AddSkillsModal {
     color: $text;
     margin: 0;
 }
+
+/* Profile Preview Modal */
+ProfilePreviewModal {
+    align: center middle;
+}
+
+#profile-preview-dialog {
+    width: 60;
+    height: auto;
+    max-height: 70%;
+    border: solid $warning;
+    background: $surface;
+    padding: 1;
+}
+
+#preview-title {
+    text-align: center;
+    text-style: bold;
+    width: 100%;
+    color: $warning;
+    margin-bottom: 1;
+}
+
+.preview-section-title {
+    text-style: bold;
+    margin-top: 1;
+}
+
+#disabled-list {
+    color: $error;
+    margin-left: 1;
+}
+
+#manual-list {
+    color: $text-muted;
+    margin-left: 1;
+}
+
+#summary {
+    text-style: italic;
+    color: $text-muted;
+    margin-top: 1;
+}
+
+#preview-button-row {
+    width: 100%;
+    height: auto;
+    align: center middle;
+    margin-top: 1;
+}
+
+#preview-button-row Button {
+    margin: 0 1;
+    min-width: 12;
+}

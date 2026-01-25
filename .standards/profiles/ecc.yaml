@@ -1,0 +1,24 @@
+# ECC Profile - Everything Claude Code
+# ECC 標準體系，採用 TypeScript/React 導向的實戰開發標準
+
+name: ecc
+display_name: "Everything Claude Code"
+description: "ECC 標準體系，採用 TypeScript/React 導向的實戰開發標準"
+version: "1.0.0"
+
+# 在重疊群組中的偏好
+overlap_preference: ecc
+
+# 是否啟用各體系的獨有功能
+enable_exclusive:
+  uds: false  # 停用所有 UDS 獨有功能
+  ecc: true   # 啟用所有 ECC 獨有功能
+
+# 例外設定（可選）
+exceptions:
+  # 雖然 UDS 獨有，但 ECC 也想使用的項目
+  enable:
+    - spec-driven-dev     # 規格驅動開發
+    - upstream-sync       # 上游同步
+    - upstream-compare    # 上游比較
+    - skill-creator       # skill 建立工具
