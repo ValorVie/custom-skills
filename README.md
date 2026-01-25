@@ -366,6 +366,17 @@ TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
 
 點擊「Open in Editor」可在 VS Code 中開啟設定檔，點擊「Open Folder」可在檔案管理器中開啟。
 
+**ECC Hooks Plugin 區塊：**
+
+TUI 會顯示 ECC Hooks Plugin 的安裝狀態：
+- **已安裝**：顯示安裝路徑與「View Config」按鈕
+- **未安裝**：顯示安裝指引
+
+安裝方式：
+```bash
+npx skills add affaan-m/everything-claude-code
+```
+
 **快捷鍵：**
 
 | 按鍵 | 功能 |
@@ -378,6 +389,8 @@ TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
 | `p` | 開啟 Add Skills 對話框 |
 | `e` | 在編輯器中開啟 MCP 設定檔 |
 | `f` | 在檔案管理器中開啟 MCP 設定檔所在目錄 |
+| `t` | 切換 Standards Profile |
+| `v` | 檢視 ECC Hooks 設定 |
 
 ### 第三方 Skills 管理
 
@@ -478,6 +491,11 @@ ai-dev standards show ecc
 - `ecc` - Everything Claude Code 工作流程
 - `minimal` - 最小化配置
 
+**⚠️ 當前限制（臨時實作）**：
+- Profile 切換功能目前僅更新設定檔，**不會載入不同的標準內容**
+- 所有 profiles 使用相同的 UDS 標準檔案
+- 完整的 Profile 架構（包含 `profiles/*.yaml` 定義檔案與標準來源切換）將在後續版本實作
+
 ### 上游追蹤系統
 
 所有第三方 repo 的同步狀態記錄在 `upstream/` 目錄：
@@ -489,6 +507,30 @@ ai-dev standards show ecc
 ```
 
 詳見 `upstream/README.md`。
+
+### 第三方資源目錄
+
+除了已整合的上游資源,本專案也提供**第三方資源目錄** (`third-party/`),收錄值得關注但尚未整合的外部專案資訊:
+
+```bash
+# 瀏覽第三方資源
+cat third-party/README.md
+
+# 查看特定專案資訊
+cat third-party/catalog/wshobson-agents.md
+```
+
+**第三方資源目錄特色**:
+- 📋 **參考資訊庫**: 提供專案概述、功能清單、適用場景
+- 📝 **手動安裝指南**: 說明如何從 GitHub 取得並整合到自己環境
+- ✅ **評估檢查清單**: 幫助判斷專案是否適合您的需求
+- 🔄 **漸進式採用**: 從探索 → 評估 → 整合的清晰路徑
+
+**與 upstream/ 的差異**:
+- `third-party/` - 待評估資源,手動探索,僅供參考
+- `upstream/` - 已整合資源,自動同步,納入標準工作流
+
+詳見 `third-party/README.md`。
 
 ## Claude Code Plugin
 
