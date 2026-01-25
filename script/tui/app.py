@@ -30,12 +30,9 @@ from ..utils.shared import (
     get_mcp_config_path,
     open_in_editor,
     open_in_file_manager,
-    get_ecc_hooks_status,
-    install_ecc_hooks_plugin,
-    uninstall_ecc_hooks_plugin,
-    shorten_path,
 )
 from ..commands.standards import (
+    is_standards_initialized,
     get_profiles_dir,
     list_profiles,
     get_active_profile,
@@ -182,9 +179,6 @@ class SkillManagerApp(App):
         Binding("f", "open_mcp_finder", "Open Folder"),
         Binding("c", "clone", "Clone"),
         Binding("t", "toggle_profile", "Toggle Profile"),
-        Binding("i", "install_hooks", "Install Hooks"),
-        Binding("u", "uninstall_hooks", "Uninstall Hooks"),
-        Binding("v", "view_hooks_config", "View Hooks"),
     ]
 
     def __init__(self) -> None:
@@ -253,11 +247,7 @@ class SkillManagerApp(App):
         # ECC Hooks Plugin 區塊
         with Container(id="hooks-section"):
             yield Static("ECC Hooks Plugin", id="hooks-title")
-            yield Label("", id="hooks-status-label")
-            with Horizontal(id="hooks-button-row"):
-                yield Button("Install/Update", id="btn-hooks-install", variant="success")
-                yield Button("Uninstall", id="btn-hooks-uninstall", variant="error")
-                yield Button("View Config", id="btn-hooks-view", variant="default")
+            yield Label("", id="hooks-info-label")
 
         yield Footer()
 
@@ -321,10 +311,6 @@ class SkillManagerApp(App):
             self.action_open_mcp_editor()
         elif button_id == "btn-mcp-folder":
             self.action_open_mcp_finder()
-        elif button_id == "btn-hooks-install":
-            self.action_install_hooks()
-        elif button_id == "btn-hooks-uninstall":
-            self.action_uninstall_hooks()
         elif button_id == "btn-hooks-view":
             self.action_view_hooks_config()
 
@@ -502,18 +488,18 @@ class SkillManagerApp(App):
         """更新 Standards Profile 區塊顯示。"""
         from datetime import datetime
 
-        profiles_dir = get_profiles_dir()
         profile_select = self.query_one("#profile-select", Select)
         info_label = self.query_one("#profile-info-label", Label)
 
-        if not profiles_dir.exists():
+        # 使用新的初始化檢查函式
+        if not is_standards_initialized():
             # 專案未初始化
             profile_select.set_options([("未初始化", "none")])
             profile_select.value = "none"
             info_label.update("執行 `ai-dev project init` 初始化")
             return
 
-        # 載入可用 profiles
+        # 載入可用 profiles（從 active-profile.yaml.available）
         profiles = list_profiles()
         if not profiles:
             profile_select.set_options([("無可用 profile", "none")])
@@ -532,22 +518,18 @@ class SkillManagerApp(App):
         else:
             profile_select.value = profiles[0]
 
-        # 顯示 profile 資訊
-        self._update_profile_info_label(active)
+        # 顯示臨時模式提示
+        info_label.update(f"({len(profiles)} profiles 可用，臨時模式)")
 
     def _update_profile_info_label(self, profile_name: str) -> None:
-        """更新 profile 資訊標籤。"""
+        """更新 profile 資訊標籤。
+
+        TODO: Phase 2 應讀取 profiles/*.yaml 檔案顯示詳細資訊。
+        當前臨時實作只顯示簡單提示。
+        """
         info_label = self.query_one("#profile-info-label", Label)
-
-        profile_path = get_profiles_dir() / f"{profile_name}.yaml"
-        if not profile_path.exists():
-            info_label.update("")
-            return
-
-        profile = load_yaml(profile_path)
-        standards = profile.get('standards', [])
         total_profiles = len(list_profiles())
-        info_label.update(f"({len(standards)}/{total_profiles} standards)")
+        info_label.update(f"({total_profiles} profiles 可用，臨時模式)")
 
     def switch_standards_profile(self, new_profile: str) -> None:
         """切換 Standards Profile。"""
@@ -608,82 +590,15 @@ class SkillManagerApp(App):
     # =========================================================================
 
     def update_hooks_status_display(self) -> None:
-        """更新 ECC Hooks Plugin 狀態顯示。"""
-        status = get_ecc_hooks_status()
-        status_label = self.query_one("#hooks-status-label", Label)
+        """更新 ECC Hooks Plugin 安裝資訊顯示。"""
+        info_label = self.query_one("#hooks-info-label", Label)
 
-        if status["installed"]:
-            path_display = shorten_path(status["plugin_path"])
-            status_label.update(f"[green]✓ Installed[/green] at {path_display}")
-        else:
-            status_label.update("[yellow]✗ Not installed[/yellow]")
+        # 只顯示安裝方式參考，不做狀態偵測
+        info_label.update(
+            "安裝方式請參考：[cyan]@plugins/ecc-hooks/README.md[/cyan]\n"
+            "快速安裝：claude --plugin-dir \"/path/to/custom-skills/plugins/ecc-hooks\""
+        )
 
-    def action_install_hooks(self) -> None:
-        """安裝或更新 ECC Hooks Plugin（快捷鍵 i）。"""
-        import subprocess
-        import shutil
-
-        # 使用 suspend 暫停 TUI
-        ai_dev_path = shutil.which("ai-dev")
-        if ai_dev_path:
-            cmd = [ai_dev_path, "hooks", "install"]
-        else:
-            import sys
-            cmd = [sys.executable, "-m", "script.main", "hooks", "install"]
-
-        with self.suspend():
-            print("\n--- Installing ECC Hooks Plugin ---\n")
-            subprocess.run(cmd, check=False)
-            print("\n--- Press Enter to return to TUI ---")
-            input()
-
-        self.update_hooks_status_display()
-        self.notify("Hooks plugin installation completed", severity="information")
-
-    def action_uninstall_hooks(self) -> None:
-        """移除 ECC Hooks Plugin（快捷鍵 u）。"""
-        import subprocess
-        import shutil
-
-        status = get_ecc_hooks_status()
-        if not status["installed"]:
-            self.notify("Hooks plugin is not installed", severity="warning")
-            return
-
-        # 使用 suspend 暫停 TUI
-        ai_dev_path = shutil.which("ai-dev")
-        if ai_dev_path:
-            cmd = [ai_dev_path, "hooks", "uninstall"]
-        else:
-            import sys
-            cmd = [sys.executable, "-m", "script.main", "hooks", "uninstall"]
-
-        with self.suspend():
-            print("\n--- Uninstalling ECC Hooks Plugin ---\n")
-            subprocess.run(cmd, check=False)
-            print("\n--- Press Enter to return to TUI ---")
-            input()
-
-        self.update_hooks_status_display()
-        self.notify("Hooks plugin removed", severity="warning")
-
-    def action_view_hooks_config(self) -> None:
-        """檢視 hooks.json 配置（快捷鍵 v）。"""
-        status = get_ecc_hooks_status()
-
-        if not status["installed"]:
-            self.notify("Hooks plugin is not installed", severity="warning")
-            return
-
-        hooks_json = status["hooks_json_path"]
-        if not hooks_json or not hooks_json.exists():
-            self.notify("hooks.json not found", severity="error")
-            return
-
-        if open_in_editor(hooks_json):
-            self.notify(f"Opening {hooks_json.name} in editor...", severity="information")
-        else:
-            self.notify("Failed to open editor", severity="error")
 
 
 def main() -> None:

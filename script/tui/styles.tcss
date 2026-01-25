@@ -208,19 +208,8 @@ AddSkillsModal {
     margin-bottom: 0;
 }
 
-#hooks-status-label {
+#hooks-info-label {
     width: 100%;
     color: $text;
-    margin: 0 0 1 0;
-}
-
-#hooks-button-row {
-    width: 100%;
-    height: auto;
-    align: left middle;
-}
-
-#hooks-button-row Button {
-    margin: 0 1 0 0;
-    min-width: 14;
+    margin: 0;
 }

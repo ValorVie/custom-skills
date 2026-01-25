@@ -40,11 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 新增 `is_standards_initialized()` 函式統一初始化檢查邏輯
 
 - **TUI ECC Hooks 區塊簡化**
-  - 移除「Install/Update」和「Uninstall」按鈕
-  - 移除快捷鍵 `i`（安裝）和 `u`（移除）
-  - 改為僅顯示安裝狀態與安裝指引
-  - 新增安裝提示：`npx skills add affaan-m/everything-claude-code`
-  - 「View Config」按鈕僅在已安裝時顯示
+  - 移除安裝狀態偵測功能
+  - 移除「Install/Update」、「Uninstall」和「View Config」按鈕
+  - 移除快捷鍵 `i`（安裝）、`u`（移除）和 `v`（檢視設定）
+  - 改為僅顯示安裝方式參考：`@plugins/ecc-hooks/README.md`
+  - 提供快速安裝指令：`claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"`
 
 ### Known Limitations
 
