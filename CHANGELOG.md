@@ -32,8 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **ECC Hooks Python 執行錯誤修正**
-  - 改用 `uv run python3` 執行所有 Python 腳本
-  - 確保使用專案的 Python 環境，避免系統 Python 相容性問題
+  - 改用 `python3` 執行所有 Python 腳本（僅使用標準函式庫，無需 uv）
+  - 修正 Linux 系統上的 "python: Permission denied" 錯誤
 
 - **TUI Standards Profile 偵測邏輯修正**
   - 修正 TUI 誤判專案為「未初始化」的問題
