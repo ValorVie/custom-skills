@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Plugin Marketplace 支援**
+  - 新增 `.claude-plugin/marketplace.json` 設定檔
+  - 支援 `claude plugin marketplace add` 安裝方式
+  - 更新 `plugins/ecc-hooks/README.md` 安裝說明
+
 - **第三方資源目錄 (Third-Party Resource Catalog)**
   - 新增 `third-party/` 目錄作為參考資源庫
   - 提供專案資訊模板 (`templates/project-entry.md`)
