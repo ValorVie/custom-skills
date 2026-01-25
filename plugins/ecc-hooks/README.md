@@ -17,38 +17,28 @@ Everything Claude Code - Memory Persistence & Strategic Compact Hooks
 
 ## Installation
 
-### 方式 1：本地開發測試（最簡單）
-
-直接載入本地 plugin 進行測試，無需推送到 GitHub：
+### 方式 1：從 Marketplace 安裝（推薦）
 
 ```bash
-claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"
-```
-
-### 方式 2：從 Git URL 安裝
-
-1. 先添加 marketplace：
-
-```bash
+# 1. 添加 marketplace
 claude plugin marketplace add https://github.com/ValorVie/custom-skills.git
-```
 
-2. 然後安裝 plugin：
-
-```bash
+# 2. 安裝 plugin
 claude plugin install ecc-hooks@custom-skills
 ```
 
-### 方式 3：在 Claude Code 會話中使用 slash command
+或在 Claude Code 會話中使用 slash command：
 
 ```
 /plugin install ecc-hooks@custom-skills
 ```
 
-### 方式 4：指定完整來源路徑
+### 方式 2：本地開發測試
+
+直接載入本地 plugin 進行測試，無需推送到 GitHub：
 
 ```bash
-/plugin install ecc-hooks --source https://github.com/ValorVie/custom-skills.git --path plugins/ecc-hooks
+claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"
 ```
 
 ## Structure
