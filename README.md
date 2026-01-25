@@ -368,11 +368,11 @@ TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
 
 **ECC Hooks Plugin 區塊：**
 
-TUI 會顯示 ECC Hooks Plugin 的安裝狀態：
-- **已安裝**：顯示安裝路徑與「View Config」按鈕
-- **未安裝**：顯示安裝指引
+TUI 會顯示 ECC Hooks Plugin 的安裝方式參考。
 
-安裝方式：
+詳細安裝說明請參考：`@plugins/ecc-hooks/README.md`
+
+快速安裝：
 ```bash
 npx skills add affaan-m/everything-claude-code
 ```
@@ -390,7 +390,6 @@ npx skills add affaan-m/everything-claude-code
 | `e` | 在編輯器中開啟 MCP 設定檔 |
 | `f` | 在檔案管理器中開啟 MCP 設定檔所在目錄 |
 | `t` | 切換 Standards Profile |
-| `v` | 檢視 ECC Hooks 設定 |
 
 ### 第三方 Skills 管理
 
@@ -516,19 +515,29 @@ ai-dev standards show ecc
 # 瀏覽第三方資源
 cat third-party/README.md
 
-# 查看特定專案資訊
+# 查看特定專案資訊(如 wshobson/agents)
 cat third-party/catalog/wshobson-agents.md
 ```
 
 **第三方資源目錄特色**:
 - 📋 **參考資訊庫**: 提供專案概述、功能清單、適用場景
-- 📝 **手動安裝指南**: 說明如何從 GitHub 取得並整合到自己環境
+- 🔌 **原生安裝方式**: 依照各專案的建議方式安裝(如 Plugin 市場、NPM 套件等)
 - ✅ **評估檢查清單**: 幫助判斷專案是否適合您的需求
 - 🔄 **漸進式採用**: 從探索 → 評估 → 整合的清晰路徑
 
+**安裝方式範例**:
+```bash
+# wshobson/agents - 使用其 Plugin 市場機制
+/plugin marketplace add wshobson/agents
+/plugin install python-development
+
+# 其他專案 - 依各專案文件的建議方式
+npx skills add <package>          # 若專案支援 skills 套件
+```
+
 **與 upstream/ 的差異**:
-- `third-party/` - 待評估資源,手動探索,僅供參考
-- `upstream/` - 已整合資源,自動同步,納入標準工作流
+- `third-party/` - 待評估資源,依原生方式安裝,使用者自行管理
+- `upstream/` - 已整合資源,透過 `ai-dev clone` 自動同步到本專案
 
 詳見 `third-party/README.md`。
 
