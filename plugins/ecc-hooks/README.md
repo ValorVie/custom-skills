@@ -15,6 +15,15 @@ Everything Claude Code - Memory Persistence & Strategic Compact Hooks
 - **PostToolUse**: Log PR URL after creation
 - **Stop**: Check for console.log in modified files
 
+## Requirements
+
+- [uv](https://docs.astral.sh/uv/) - Python 套件管理工具（用於執行 hooks 腳本）
+
+```bash
+# 安裝 uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ## Installation
 
 ### 方式 1：從 Marketplace 安裝（推薦）
