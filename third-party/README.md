@@ -80,34 +80,68 @@
 1. **瀏覽摘要表格**: 快速了解各專案的規模和主要功能
 2. **閱讀詳細資訊**: 點擊連結查看完整的專案介紹
 3. **檢查適用場景**: 確認是否符合您的需求
-4. **查看安裝指南**: 了解如何手動整合到環境
+4. **查看安裝方式**: 了解該專案建議的安裝方法
 
 ### 如何評估專案
 
 1. **使用評估檢查清單**: 參考 [templates/evaluation-checklist.md](templates/evaluation-checklist.md)
-2. **實際測試功能**: 手動 Clone 專案並在本地環境測試
+2. **實際測試功能**: 依照專案建議的方式安裝並測試
 3. **考慮整合成本**: 評估學習曲線、維護負擔和相容性
 4. **決定採用方式**: 個人使用 vs 提議納入 upstream/
 
-### 如何手動整合
+### 如何安裝使用
 
-每個專案資訊文件都包含詳細的手動安裝指南,通常包含以下步驟:
+**重要原則**: 優先使用各專案的**原生安裝方式**,而非手動複製檔案。
+
+每個專案資訊文件都會說明該專案建議的安裝方法,常見方式包括:
+
+#### 方式 1: Plugin 市場機制 (推薦)
+
+適用於有 Plugin 市場的專案 (如 wshobson/agents):
 
 ```bash
-# 1. Clone 第三方專案到本地
+# 1. 新增市場來源
+/plugin marketplace add owner/repo
+
+# 2. 安裝特定 plugin
+/plugin install plugin-name
+
+# 3. 驗證安裝
+/agents  # 或 /skills
+```
+
+#### 方式 2: NPM 套件安裝
+
+適用於發布為 NPM 套件的專案:
+
+```bash
+# 安裝套件
+npx skills add <package-name>
+
+# 驗證安裝
+/skills
+```
+
+#### 方式 3: 手動整合 (僅在必要時)
+
+僅在專案**沒有提供**上述方式時才使用:
+
+```bash
+# 1. Clone 專案
 git clone https://github.com/owner/repo.git ~/.config/third-party-name
 
-# 2. 選擇性複製需要的檔案到 Claude Code 目錄
-cp -r ~/.config/third-party-name/skills/* ~/.claude/skills/
+# 2. 依照專案文件說明配置
+# (每個專案的配置方式可能不同)
 
 # 3. 測試功能
 /skills  # 驗證是否載入
 ```
 
 **注意**:
-- 不同專案的目錄結構可能不同,請參考各專案的安裝指南
-- 建議先在測試環境中驗證,再正式整合
-- 手動整合的內容**不會**被 `ai-dev clone` 覆蓋
+- **優先依照專案文件的建議方式**安裝,不要假設所有專案都用同樣的方法
+- 使用原生安裝方式可獲得更好的版本管理和更新體驗
+- 建議先在測試環境中驗證,再正式使用
+- 透過原生方式安裝的內容通常有自己的更新機制
 
 ## 提交新專案
 
@@ -204,8 +238,15 @@ cp -r ~/.config/third-party-name/skills/* ~/.claude/skills/
 
 ### Q1: third-party/ 與 upstream/ 有何不同?
 
-- **third-party/**: 參考資訊,使用者手動探索和選擇性採用
-- **upstream/**: 已整合資源,自動追蹤同步並分發到各工具目錄
+- **third-party/**
+  - 參考資訊,使用者自行探索和評估
+  - **依照各專案的原生方式安裝** (如 Plugin 市場、NPM 套件等)
+  - 使用者自行管理更新
+
+- **upstream/**
+  - 已整合的精選資源
+  - 透過 `ai-dev clone` 自動同步到本專案目錄
+  - 統一追蹤和管理
 
 ### Q2: 如何決定專案應放在哪裡?
 
@@ -215,8 +256,8 @@ cp -r ~/.config/third-party-name/skills/* ~/.claude/skills/
 ### Q3: 我可以同時使用 third-party/ 和 upstream/ 的資源嗎?
 
 可以。兩者不衝突:
-- `upstream/` 資源透過 `ai-dev clone` 自動更新
-- `third-party/` 資源由您手動管理,不受 clone 影響
+- `upstream/` 資源透過 `ai-dev clone` 自動同步
+- `third-party/` 資源使用原生方式安裝,各自獨立管理
 
 ### Q4: 如何提議將 third-party/ 專案納入 upstream/?
 

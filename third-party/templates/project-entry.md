@@ -70,17 +70,20 @@
    - 使用功能: [列出相關功能]
    - 預期效益: [說明能解決什麼問題]
 
-## 手動安裝指南
+## 安裝指南
+
+> **重要**: 優先使用專案建議的**原生安裝方式**,而非手動複製檔案。
 
 ### 前置需求
 
 - [ ] Claude Code CLI 已安裝
-- [ ] Git 已安裝
-- [ ] [其他必要工具]
+- [ ] [根據專案需求列出其他必要工具]
 
 ### 安裝步驟
 
-#### 方法 1: 使用 Plugin 市場 (推薦)
+**請依照專案的實際情況選擇適合的方法,並在此說明該專案建議的安裝方式:**
+
+#### 方法 1: Plugin 市場 (若專案支援)
 
 ```bash
 # 1. 新增市場來源
@@ -93,30 +96,34 @@
 /plugin install plugin-name
 ```
 
-#### 方法 2: 手動 Clone 與配置
+#### 方法 2: NPM 套件 (若專案發布為套件)
+
+```bash
+# 安裝套件
+npx skills add <package-name>
+
+# 驗證安裝
+/skills
+```
+
+#### 方法 3: 其他原生方式 (若專案有特定安裝流程)
+
+```bash
+# 依照專案文件說明的步驟
+# 例如: 執行安裝腳本、使用 CLI 工具等
+```
+
+#### 方法 4: 手動整合 (僅在專案無提供上述方式時)
 
 ```bash
 # 1. Clone 專案到本地
 git clone https://github.com/owner/repo.git ~/.config/third-party-name
 
-# 2. 複製需要的檔案到 Claude Code 目錄
-# (根據實際需求調整路徑)
-cp -r ~/.config/third-party-name/skills/* ~/.claude/skills/
-cp -r ~/.config/third-party-name/commands/* ~/.claude/commands/
-cp -r ~/.config/third-party-name/agents/* ~/.claude/agents/
+# 2. 依照專案文件說明配置
+# (每個專案的配置方式可能不同,請參考其 README)
 
-# 3. (可選) 複製配置檔案
-cp ~/.config/third-party-name/.claude.json ~/.claude/.claude.json.example
-```
-
-#### 方法 3: 選擇性整合
-
-```bash
-# 僅整合特定 Skill 或 Command
-cp ~/.config/third-party-name/skills/specific-skill.md ~/.claude/skills/
-
-# 或手動複製內容到自己的檔案中
-cat ~/.config/third-party-name/skills/specific-skill.md
+# 3. 如需手動複製,請依實際需求調整
+# cp -r ~/.config/third-party-name/skills/* ~/.claude/skills/
 ```
 
 ### 驗證安裝
