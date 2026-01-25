@@ -47,6 +47,17 @@ def get_active_profile_path() -> Path:
     return get_standards_dir() / 'active-profile.yaml'
 
 
+def is_standards_initialized() -> bool:
+    """檢查專案是否已初始化標準體系
+
+    Returns:
+        True if .standards/ 目錄與 active-profile.yaml 都存在，否則 False
+    """
+    standards_dir = get_standards_dir()
+    active_file = get_active_profile_path()
+    return standards_dir.exists() and active_file.exists()
+
+
 def load_yaml(path: Path) -> dict:
     """載入 YAML 檔案"""
     if not path.exists():
@@ -62,11 +73,14 @@ def save_yaml(path: Path, data: dict) -> None:
 
 
 def list_profiles() -> list:
-    """列出所有可用的 profiles"""
-    profiles_dir = get_profiles_dir()
-    if not profiles_dir.exists():
-        return []
-    return [f.stem for f in profiles_dir.glob('*.yaml')]
+    """列出所有可用的 profiles
+
+    TODO: Phase 2 應改為讀取 profiles/*.yaml 檔案。
+    當前實作為臨時方案，從 active-profile.yaml 的 available 欄位讀取清單。
+    """
+    # 臨時方案：從 active-profile.yaml 讀取 available 清單
+    active_config = load_yaml(get_active_profile_path())
+    return active_config.get('available', [])
 
 
 def get_active_profile() -> str:
@@ -78,10 +92,9 @@ def get_active_profile() -> str:
 @app.command()
 def status():
     """顯示目前狀態"""
-    profiles_dir = get_profiles_dir()
-    if not profiles_dir.exists():
-        console.print("[yellow]⚠️  找不到 .standards/profiles/ 目錄[/yellow]")
-        console.print("[dim]請確認當前目錄是否為已初始化 UDS 的專案[/dim]")
+    if not is_standards_initialized():
+        console.print("[yellow]⚠️  專案尚未初始化標準體系[/yellow]")
+        console.print("[dim]請執行 'ai-dev project init' 初始化專案[/dim]")
         return
 
     active = get_active_profile()
@@ -89,42 +102,40 @@ def status():
 
     console.print("[bold]Standards Profile 狀態[/bold]")
     console.print(f"目前啟用: [cyan]{active}[/cyan]")
-    console.print(f"可用 profiles: {', '.join(profiles)}")
+    if profiles:
+        console.print(f"可用 profiles: {', '.join(profiles)}")
+    else:
+        console.print("[dim]無可用 profiles[/dim]")
     console.print()
-
-    # 載入並顯示 active profile 的描述
-    profile_path = get_profiles_dir() / f"{active}.yaml"
-    profile = load_yaml(profile_path)
-    if profile:
-        console.print(f"描述: {profile.get('description', '無')}")
-        standards = profile.get('standards', [])
-        console.print(f"啟用標準數量: {len(standards)}")
+    console.print("[yellow]注意：Profile 切換目前為臨時功能，不會載入不同標準[/yellow]")
 
 
 @app.command(name="list")
 def list_cmd():
     """列出所有可用的 profiles"""
-    profiles_dir = get_profiles_dir()
-    if not profiles_dir.exists():
-        console.print("[yellow]⚠️  找不到 .standards/profiles/ 目錄[/yellow]")
+    if not is_standards_initialized():
+        console.print("[yellow]⚠️  專案尚未初始化標準體系[/yellow]")
+        console.print("[dim]請執行 'ai-dev project init' 初始化專案[/dim]")
         return
 
     profiles = list_profiles()
+    if not profiles:
+        console.print("[yellow]無可用的 profiles[/yellow]")
+        return
+
     active = get_active_profile()
 
-    table = Table(title="可用的 Standards Profiles")
+    table = Table(title="可用的 Standards Profiles (臨時清單模式)")
     table.add_column("Profile", style="cyan")
     table.add_column("狀態", style="green")
-    table.add_column("描述")
 
     for name in sorted(profiles):
-        profile_path = get_profiles_dir() / f"{name}.yaml"
-        profile = load_yaml(profile_path)
-        desc = profile.get('description', '無描述')
         status_mark = "✓ 啟用中" if name == active else ""
-        table.add_row(name, status_mark, desc)
+        table.add_row(name, status_mark)
 
     console.print(table)
+    console.print()
+    console.print("[yellow]注意：Profile 切換目前為臨時功能，不會載入不同標準[/yellow]")
 
 
 @app.command()
@@ -154,16 +165,9 @@ def switch(
 
     save_yaml(active_path, active_config)
 
-    console.print(f"[green]✓ 已從 '{old_profile}' 切換到 '{profile_name}'[/green]")
+    console.print(f"[green]已從 '{old_profile}' 切換到 '{profile_name}'[/green]")
     console.print()
-
-    # 顯示新 profile 資訊
-    profile_path = get_profiles_dir() / f"{profile_name}.yaml"
-    profile = load_yaml(profile_path)
-    console.print(f"描述: {profile.get('description', '無')}")
-
-    standards = profile.get('standards', [])
-    console.print(f"啟用標準數量: {len(standards)}")
+    console.print("[yellow]注意：當前為臨時實作，切換不會載入不同標準[/yellow]")
 
 
 @app.command()
@@ -178,50 +182,10 @@ def show(
         console.print(f"可用的 profiles: {', '.join(profiles)}")
         raise typer.Exit(1)
 
-    profile_path = get_profiles_dir() / f"{profile_name}.yaml"
-    profile = load_yaml(profile_path)
-
     active = get_active_profile()
     is_active = "[green](目前啟用)[/green]" if profile_name == active else ""
 
     console.print(f"[bold]Profile: {profile_name}[/bold] {is_active}")
-    console.print(f"版本: {profile.get('version', '未指定')}")
-    console.print(f"描述: {profile.get('description', '無')}")
     console.print()
-
-    # 顯示繼承
-    if 'extends' in profile:
-        console.print(f"繼承自: [cyan]{profile['extends']}[/cyan]")
-        console.print()
-
-    # 顯示標準列表
-    standards = profile.get('standards', [])
-    if standards:
-        console.print("[bold]啟用的標準:[/bold]")
-        for std in standards:
-            console.print(f"  - {std}")
-        console.print()
-
-    # 顯示必要資源 (ECC profile)
-    required = profile.get('required_resources', {})
-    if required:
-        console.print("[bold]必要資源:[/bold]")
-        for category, items in required.items():
-            console.print(f"  [cyan]{category}:[/cyan]")
-            for item in items:
-                console.print(f"    - {item}")
-        console.print()
-
-    # 顯示選用資源
-    optional = profile.get('optional_resources', [])
-    if optional:
-        console.print("[bold]選用資源:[/bold]")
-        for item in optional:
-            console.print(f"  - {item}")
-        console.print()
-
-    # 顯示備註
-    notes = profile.get('notes')
-    if notes:
-        console.print("[bold]備註:[/bold]")
-        console.print(notes)
+    console.print("[yellow]當前為臨時清單模式，無法顯示 profile 詳細資訊[/yellow]")
+    console.print("[dim]Profile 定義檔案（profiles/*.yaml）尚未實作，詳細資訊將在 Phase 2 提供[/dim]")

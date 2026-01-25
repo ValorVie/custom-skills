@@ -374,7 +374,7 @@ TUI 會顯示 ECC Hooks Plugin 的安裝方式參考。
 
 快速安裝：
 ```bash
-npx skills add affaan-m/everything-claude-code
+claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"
 ```
 
 **快捷鍵：**
