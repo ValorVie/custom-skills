@@ -1,0 +1,7 @@
+# obsidian-skills 檔案對照表
+
+# 直接複製的 Skills
+skills:
+  json-canvas/: skills/json-canvas/
+  obsidian-bases/: skills/obsidian-bases/
+  obsidian-markdown/: skills/obsidian-markdown/

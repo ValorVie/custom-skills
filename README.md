@@ -63,7 +63,8 @@ uv tool upgrade ai-dev
 **本地開發安裝：**
 
 ```bash
-cd ~/.config/custom-skills
+git clone https://github.com/ValorVie/custom-skills.git
+cd custom-skills
 uv tool install . --force
 ```
 
@@ -129,30 +130,29 @@ ai-dev update
 ```
 
 這會自動：
-1. 更新全域 NPM 工具（不含 Claude Code）。
-2. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
-3. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
-4. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
+1. 更新 Claude Code（若已安裝）。
+2. 更新全域 NPM 工具。
+3. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
+
+> **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
 
 #### 可選參數
 
 | 參數 | 說明 |
 |------|------|
-| `--skip-npm` | 跳過 NPM 套件更新 |
+| `--skip-npm` | 跳過 NPM 套件更新（含 Claude Code） |
 | `--skip-repos` | 跳過 Git 儲存庫更新 |
-| `--skip-skills` | 跳過複製 Skills |
-| `--sync-project/--no-sync-project` | 是否同步到專案目錄（預設：是） |
 
 **範例：**
 ```bash
-# 只更新 Git 儲存庫（跳過 NPM 和 Skills）
-ai-dev update --skip-npm --skip-skills
+# 只更新 Git 儲存庫（跳過 NPM）
+ai-dev update --skip-npm
 
-# 只更新 NPM 套件（跳過 Git 和 Skills）
-ai-dev update --skip-repos --skip-skills
+# 只更新 NPM 套件（跳過 Git）
+ai-dev update --skip-repos
 
-# 更新但不同步到當前專案目錄
-ai-dev update --no-sync-project
+# 更新後分發 Skills
+ai-dev update && ai-dev clone
 ```
 
 ### 專案級操作 (Project)
@@ -170,6 +170,10 @@ ai-dev project init --only uds
 # 強制重新初始化
 ai-dev project init --force
 
+# 開發者模式：在 custom-skills 專案中反向同步到 project-template/
+# （會將專案根目錄的模板檔案同步回 project-template/）
+cd ~/custom-skills && ai-dev project init --force
+
 # 更新專案配置（整合 openspec update + uds update）
 ai-dev project update
 
@@ -184,7 +188,7 @@ ai-dev project update --only openspec
 | 參數 | 說明 |
 |------|------|
 | `--only`, `-o` | 只初始化特定工具：`openspec`, `uds` |
-| `--force`, `-f` | 強制重新初始化（即使已存在） |
+| `--force`, `-f` | 強制重新初始化（即使已存在）；在 custom-skills 專案中會反向同步到 `project-template/` |
 
 **update:**
 
@@ -399,13 +403,16 @@ npx skills add vercel-labs/agent-skills
 | 指令 | 說明 |
 |------|------|
 | `ai-dev install` | 首次安裝 AI 開發環境 |
-| `ai-dev update` | 每日更新：更新工具並同步設定 |
+| `ai-dev update` | 每日更新：更新工具與儲存庫 |
+| `ai-dev clone` | 分發 Skills 內容到各 AI 工具目錄 |
 | `ai-dev project init` | 初始化專案（openspec + uds） |
 | `ai-dev project update` | 更新專案配置 |
 | `ai-dev status` | 檢查環境狀態與工具版本 |
 | `ai-dev list` | 列出已安裝的 Skills、Commands、Agents |
 | `ai-dev toggle` | 啟用/停用特定資源 |
 | `ai-dev tui` | 啟動互動式終端介面 |
+| `ai-dev standards` | 管理標準體系 profiles |
+| `ai-dev hooks` | 管理 Claude Code Hooks（計劃中） |
 
 ## 開發
 
@@ -424,3 +431,102 @@ uv tool install . --force
 # 建置套件
 uv build
 ```
+
+## 資源來源
+
+本專案整合多個上游資源：
+
+| 來源 | 說明 | 目錄 |
+|------|------|------|
+| [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards) | 開發標準規範 | `.standards/` |
+| [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | Hooks, Skills, Agents, Commands | `sources/ecc/` |
+| [anthropics/skills](https://github.com/anthropics/skills) | 官方 Skills | `sources/anthropic-skills/` |
+| [obra/superpowers](https://github.com/obra/superpowers) | Superpowers Skills | `sources/superpowers/` |
+| [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills) | Obsidian Skills | `sources/obsidian-skills/` |
+
+### ECC (Everything Claude Code) 資源
+
+ECC 提供進階的 Claude Code 工作流程工具：
+
+- **Hooks**: Python 跨平台 hooks（memory-persistence, strategic-compact）
+- **Skills**: continuous-learning, eval-harness, security-review, tdd-workflow
+- **Agents**: build-error-resolver, e2e-runner, doc-updater, security-reviewer
+- **Commands**: /checkpoint, /build-fix, /e2e, /learn, /test-coverage, /eval
+
+詳見 `sources/ecc/README.md`。
+
+### 標準體系 (Standards Profiles)
+
+支援多種標準體系切換：
+
+```bash
+# 查看目前狀態
+ai-dev standards status
+
+# 列出可用 profiles
+ai-dev standards list
+
+# 切換 profile
+ai-dev standards switch ecc
+
+# 顯示 profile 內容
+ai-dev standards show ecc
+```
+
+可用 profiles：
+- `uds` - Universal Dev Standards 完整版（預設）
+- `ecc` - Everything Claude Code 工作流程
+- `minimal` - 最小化配置
+
+### 上游追蹤系統
+
+所有第三方 repo 的同步狀態記錄在 `upstream/` 目錄：
+
+```bash
+# 使用 Skills 進行上游審核
+/upstream-sync      # 生成結構化分析報告
+/upstream-compare   # AI 生成整合建議
+```
+
+詳見 `upstream/README.md`。
+
+## Claude Code Plugin
+
+本專案包含 ECC Hooks Plugin，提供進階的 Claude Code 工作流程：
+
+### ECC Hooks Plugin 安裝
+
+**方式 1：本地開發測試**
+
+```bash
+claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"
+```
+
+**方式 2：從 Git URL 安裝**
+
+```bash
+# 添加 marketplace
+claude plugin marketplace add https://github.com/ValorVie/custom-skills.git
+
+# 安裝 plugin
+claude plugin install ecc-hooks@custom-skills
+```
+
+**方式 3：在會話中使用 slash command**
+
+```
+/plugin install ecc-hooks@custom-skills
+```
+
+詳見 `plugins/ecc-hooks/README.md`。
+
+## 未來計畫
+
+### Hooks 選用/開關機制
+
+提供細粒度的 hooks 控制：
+
+- **個別 Hook 開關**：在 TUI 中啟用/停用個別 hook
+- **事件類型篩選**：按 SessionStart、PreToolUse 等事件分組管理
+- **配置持久化**：更新時保留使用者的開關設定
+- **CLI 支援**：`ai-dev hooks enable/disable/list`

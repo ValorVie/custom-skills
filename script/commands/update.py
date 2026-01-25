@@ -13,36 +13,87 @@ from ..utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
 )
-from ..utils.shared import NPM_PACKAGES, copy_skills, update_claude_code, check_uds_initialized
+from ..utils.shared import NPM_PACKAGES, update_claude_code, check_uds_initialized
 
 app = typer.Typer()
 console = Console()
 
 
-def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
-    """備份儲存庫中未提交的檔案。返回是否有檔案被備份。"""
-    # 取得有更改的檔案列表
+def get_current_branch(repo: Path) -> str | None:
+    """取得當前分支名稱。"""
     result = subprocess.run(
-        ["git", "status", "--porcelain"],
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
         cwd=str(repo),
         capture_output=True,
         text=True,
     )
-    if result.returncode != 0 or not result.stdout.strip():
+    if result.returncode == 0 and result.stdout.strip():
+        return result.stdout.strip()
+    return None
+
+
+def has_local_changes(repo: Path) -> bool:
+    """檢查是否有本地修改（已追蹤檔案的變更）。
+
+    只檢查已追蹤檔案的修改，不包含 untracked 檔案。
+    """
+    # 檢查 staged 和 unstaged 的已追蹤檔案變更
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "HEAD"],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
         return False
 
-    # 解析檔案列表
+    # 也檢查 staged changes
+    staged = subprocess.run(
+        ["git", "diff", "--name-only", "--cached"],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+    )
+
+    return bool(result.stdout.strip() or staged.stdout.strip())
+
+
+def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
+    """備份儲存庫中已追蹤但未提交的檔案。
+
+    只備份已追蹤檔案的本地修改，不備份 untracked 檔案。
+    如果沒有本地修改，不進行備份。
+    """
+    # 取得已追蹤但有修改的檔案
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "HEAD"],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return False
+
     dirty_files = []
-    for line in result.stdout.strip().split("\n"):
-        if line:
-            # git status --porcelain 格式: "XY filename" 或 "XY original -> renamed"
-            file_path = line[3:].split(" -> ")[-1]  # 取得最終檔名
-            dirty_files.append(file_path)
+    if result.stdout.strip():
+        dirty_files.extend(result.stdout.strip().split("\n"))
+
+    # 也取得 staged 的修改
+    staged = subprocess.run(
+        ["git", "diff", "--name-only", "--cached"],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+    )
+    if staged.stdout.strip():
+        for f in staged.stdout.strip().split("\n"):
+            if f and f not in dirty_files:
+                dirty_files.append(f)
 
     if not dirty_files:
         return False
 
-    # 建立備份目錄
+    # 建立備份目錄（使用使用者目錄而非安裝目錄）
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_dir = backup_root / repo.name / timestamp
     backup_dir.mkdir(parents=True, exist_ok=True)
@@ -51,15 +102,14 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
     backed_up = 0
     for file_path in dirty_files:
         src = repo / file_path
-        if src.exists():
+        if src.exists() and src.is_file():
             dst = backup_dir / file_path
             dst.parent.mkdir(parents=True, exist_ok=True)
-            if src.is_file():
-                shutil.copy2(src, dst)
-                backed_up += 1
+            shutil.copy2(src, dst)
+            backed_up += 1
 
     if backed_up > 0:
-        console.print(f"[yellow]已備份 {backed_up} 個檔案到 {backup_dir}[/yellow]")
+        console.print(f"[yellow]已備份 {backed_up} 個已修改檔案到 {backup_dir}[/yellow]")
         return True
     return False
 
@@ -68,14 +118,17 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
 def update(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
     skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
-    skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
-    sync_project: bool = typer.Option(
-        True,
-        "--sync-project/--no-sync-project",
-        help="是否同步到專案目錄（預設：是）",
-    ),
 ):
-    """每日更新：更新工具並同步設定。"""
+    """更新工具與拉取儲存庫。
+
+    此指令負責：
+    1. 更新 Claude Code（除非 --skip-npm）
+    2. 更新全域 NPM 套件（除非 --skip-npm）
+    3. 拉取 ~/.config/ 下的所有 repo（除非 --skip-repos）
+
+    注意：此指令不會分發 Skills 到各工具目錄。
+    如需分發，請執行 `ai-dev clone`。
+    """
     console.print("[bold blue]開始更新...[/bold blue]")
 
     # 1. 更新 Claude Code
@@ -120,27 +173,28 @@ def update(
             get_anthropic_skills_dir(),
         ]
 
-        # 備份目錄位於專案根目錄
-        backup_root = Path(__file__).resolve().parent.parent.parent / "backups"
+        # 備份目錄位於使用者目錄
+        backup_root = Path.home() / ".cache" / "ai-dev" / "backups"
 
         for repo in repos:
             if repo.exists() and (repo / ".git").exists():
-                console.print(f"正在更新 {repo}...")
-                # 先備份未提交的更改
-                backup_dirty_files(repo, backup_root)
-                # 強制更新：取得遠端最新並重置本地更改
+                # 取得當前分支
+                current_branch = get_current_branch(repo)
+                branch_info = f" ({current_branch})" if current_branch else ""
+                console.print(f"正在更新 {repo}{branch_info}...")
+                # 先 fetch 遠端
                 run_command(["git", "fetch", "--all"], cwd=str(repo), check=False)
+                # 只有當本地有修改時才備份
+                if has_local_changes(repo):
+                    backup_dirty_files(repo, backup_root)
+                # 強制更新：重置到當前分支對應的遠端分支
+                remote_ref = f"origin/{current_branch}" if current_branch else "origin/HEAD"
                 run_command(
-                    ["git", "reset", "--hard", "origin/HEAD"],
+                    ["git", "reset", "--hard", remote_ref],
                     cwd=str(repo),
                     check=False,
                 )
 
-    # 4. 重新同步 Skills（Stage 2 + Stage 3）
-    if skip_skills:
-        console.print("[yellow]跳過複製 Skills[/yellow]")
-    else:
-        console.print("[green]正在重新同步 Skills...[/green]")
-        copy_skills(sync_project=sync_project)
-
     console.print("[bold green]更新完成！[/bold green]")
+    console.print()
+    console.print("[dim]提示：如需分發 Skills 到各工具目錄，請執行：ai-dev clone[/dim]")

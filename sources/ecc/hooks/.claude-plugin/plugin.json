@@ -1,0 +1,7 @@
+{
+  "name": "ecc-hooks",
+  "version": "1.0.0",
+  "description": "Everything Claude Code - Memory Persistence & Strategic Compact Hooks",
+  "author": "custom-skills",
+  "hooks": "./hooks/hooks.json"
+}

@@ -1,0 +1,104 @@
+# ECC (everything-claude-code) 檔案對照表
+# 來源: https://github.com/affaan-m/everything-claude-code
+# 格式: Claude Code native (Markdown + config.json)
+
+# Hooks（Python 重寫版本）
+hooks:
+  # 原始 Node.js hooks 已重寫為 Python
+  memory-persistence/:
+    source: MANUAL_REWRITE  # 原始為 Node.js，手動重寫為 Python
+    target: sources/ecc/hooks/memory-persistence/
+    files:
+      - session-start.py
+      - session-end.py
+      - pre-compact.py
+      - evaluate-session.py
+  strategic-compact/:
+    source: MANUAL_REWRITE
+    target: sources/ecc/hooks/strategic-compact/
+    files:
+      - suggest-compact.py
+
+# Skills
+skills:
+  continuous-learning/:
+    source: skills/continuous-learning/
+    target: sources/ecc/skills/continuous-learning/
+    files:
+      - SKILL.md
+      - config.json
+  strategic-compact/:
+    source: skills/strategic-compact/
+    target: sources/ecc/skills/strategic-compact/
+    files:
+      - SKILL.md
+  eval-harness/:
+    source: skills/eval-harness/
+    target: sources/ecc/skills/eval-harness/
+    files:
+      - SKILL.md
+  security-review/:
+    source: skills/security-review/
+    target: sources/ecc/skills/security-review/
+    files:
+      - SKILL.md
+  tdd-workflow/:
+    source: skills/tdd-workflow/
+    target: sources/ecc/skills/tdd-workflow/
+    files:
+      - SKILL.md
+
+# Agents
+agents:
+  build-error-resolver:
+    source: agents/build-error-resolver.md
+    target: sources/ecc/agents/build-error-resolver.md
+  e2e-runner:
+    source: agents/e2e-runner.md
+    target: sources/ecc/agents/e2e-runner.md
+  doc-updater:
+    source: agents/doc-updater.md
+    target: sources/ecc/agents/doc-updater.md
+  security-reviewer:
+    source: agents/security-reviewer.md
+    target: sources/ecc/agents/security-reviewer.md
+
+# Commands
+commands:
+  checkpoint:
+    source: commands/checkpoint.md
+    target: sources/ecc/commands/checkpoint.md
+  build-fix:
+    source: commands/build-fix.md
+    target: sources/ecc/commands/build-fix.md
+  e2e:
+    source: commands/e2e.md
+    target: sources/ecc/commands/e2e.md
+  learn:
+    source: commands/learn.md
+    target: sources/ecc/commands/learn.md
+  test-coverage:
+    source: commands/test-coverage.md
+    target: sources/ecc/commands/test-coverage.md
+  eval:
+    source: commands/eval.md
+    target: sources/ecc/commands/eval.md
+
+# Reference Resources（參考用，不直接執行）
+reference:
+  plugins/:
+    source: plugins/
+    target: sources/ecc/plugins/
+    note: "README only - plugin installation guide"
+  mcp-configs/:
+    source: CUSTOM_CREATION
+    target: sources/ecc/mcp-configs/
+    note: "MCP server configurations reference"
+
+# 排除項目（不複製或已有更好版本）
+excluded:
+  - .github/
+  - docs/
+  - LICENSE
+  - README.md
+  - CONTRIBUTING.md

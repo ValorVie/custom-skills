@@ -30,6 +30,18 @@ from ..utils.shared import (
     get_mcp_config_path,
     open_in_editor,
     open_in_file_manager,
+    get_ecc_hooks_status,
+    install_ecc_hooks_plugin,
+    uninstall_ecc_hooks_plugin,
+    shorten_path,
+)
+from ..commands.standards import (
+    get_profiles_dir,
+    list_profiles,
+    get_active_profile,
+    get_active_profile_path,
+    load_yaml,
+    save_yaml,
 )
 
 
@@ -168,6 +180,11 @@ class SkillManagerApp(App):
         Binding("p", "add_package", "Add Package"),
         Binding("e", "open_mcp_editor", "Edit MCP"),
         Binding("f", "open_mcp_finder", "Open Folder"),
+        Binding("c", "clone", "Clone"),
+        Binding("t", "toggle_profile", "Toggle Profile"),
+        Binding("i", "install_hooks", "Install Hooks"),
+        Binding("u", "uninstall_hooks", "Uninstall Hooks"),
+        Binding("v", "view_hooks_config", "View Hooks"),
     ]
 
     def __init__(self) -> None:
@@ -183,6 +200,7 @@ class SkillManagerApp(App):
         with Horizontal(id="button-bar"):
             yield Button("Install", id="btn-install", variant="success")
             yield Button("Update", id="btn-update", variant="warning")
+            yield Button("Clone", id="btn-clone", variant="default")
             yield Button("Status", id="btn-status", variant="primary")
             yield Button("Add Skills", id="btn-add-skills", variant="default")
             yield Button("Quit", id="btn-quit", variant="error")
@@ -212,6 +230,18 @@ class SkillManagerApp(App):
         # 資源列表
         yield VerticalScroll(id="resource-list")
 
+        # Standards Profile 區塊
+        with Container(id="standards-profile-section"):
+            yield Static("Standards Profile", id="standards-title")
+            with Horizontal(id="standards-row"):
+                yield Label("Profile:")
+                yield Select(
+                    [("載入中...", "loading")],  # 佔位選項，on_mount 時更新
+                    id="profile-select",
+                    allow_blank=False,
+                )
+                yield Label("", id="profile-info-label")
+
         # MCP Config 區塊
         with Container(id="mcp-config-section"):
             yield Static("MCP Config", id="mcp-title")
@@ -220,12 +250,23 @@ class SkillManagerApp(App):
                 yield Button("Open in Editor", id="btn-mcp-editor", variant="primary")
                 yield Button("Open Folder", id="btn-mcp-folder", variant="default")
 
+        # ECC Hooks Plugin 區塊
+        with Container(id="hooks-section"):
+            yield Static("ECC Hooks Plugin", id="hooks-title")
+            yield Label("", id="hooks-status-label")
+            with Horizontal(id="hooks-button-row"):
+                yield Button("Install/Update", id="btn-hooks-install", variant="success")
+                yield Button("Uninstall", id="btn-hooks-uninstall", variant="error")
+                yield Button("View Config", id="btn-hooks-view", variant="default")
+
         yield Footer()
 
     def on_mount(self) -> None:
         """初始化時載入資源列表。"""
         self.refresh_resource_list()
         self.update_mcp_config_display()
+        self.update_standards_profile_display()
+        self.update_hooks_status_display()
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """處理下拉選單變更。"""
@@ -245,6 +286,9 @@ class SkillManagerApp(App):
             self.current_type = str(event.value)
             self.refresh_resource_list()
 
+        elif event.select.id == "profile-select":
+            self.switch_standards_profile(str(event.value))
+
     def _get_sync_project_args(self) -> list[str]:
         """取得 sync-project 參數。"""
         try:
@@ -263,7 +307,10 @@ class SkillManagerApp(App):
         if button_id == "btn-install":
             self.run_cli_command("install", self._get_sync_project_args())
         elif button_id == "btn-update":
-            self.run_cli_command("update", self._get_sync_project_args())
+            # update 命令不支援 --sync-project，只更新 repos 和 NPM
+            self.run_cli_command("update")
+        elif button_id == "btn-clone":
+            self.run_cli_command("clone", self._get_sync_project_args())
         elif button_id == "btn-status":
             self.run_cli_command("status")
         elif button_id == "btn-add-skills":
@@ -274,6 +321,12 @@ class SkillManagerApp(App):
             self.action_open_mcp_editor()
         elif button_id == "btn-mcp-folder":
             self.action_open_mcp_finder()
+        elif button_id == "btn-hooks-install":
+            self.action_install_hooks()
+        elif button_id == "btn-hooks-uninstall":
+            self.action_uninstall_hooks()
+        elif button_id == "btn-hooks-view":
+            self.action_view_hooks_config()
 
     def run_cli_command(self, command: str, extra_args: list[str] | None = None) -> None:
         """在終端機中執行 CLI 指令。
@@ -440,6 +493,197 @@ class SkillManagerApp(App):
             self.notify("Opening in file manager...", severity="information")
         else:
             self.notify("Failed to open file manager", severity="error")
+
+    def action_clone(self) -> None:
+        """執行 Clone 功能（快捷鍵 c）。"""
+        self.run_cli_command("clone", self._get_sync_project_args())
+
+    def update_standards_profile_display(self) -> None:
+        """更新 Standards Profile 區塊顯示。"""
+        from datetime import datetime
+
+        profiles_dir = get_profiles_dir()
+        profile_select = self.query_one("#profile-select", Select)
+        info_label = self.query_one("#profile-info-label", Label)
+
+        if not profiles_dir.exists():
+            # 專案未初始化
+            profile_select.set_options([("未初始化", "none")])
+            profile_select.value = "none"
+            info_label.update("執行 `ai-dev project init` 初始化")
+            return
+
+        # 載入可用 profiles
+        profiles = list_profiles()
+        if not profiles:
+            profile_select.set_options([("無可用 profile", "none")])
+            profile_select.value = "none"
+            info_label.update("")
+            return
+
+        # 設定下拉選單選項
+        profile_options = [(name, name) for name in sorted(profiles)]
+        profile_select.set_options(profile_options)
+
+        # 設定目前啟用的 profile
+        active = get_active_profile()
+        if active in profiles:
+            profile_select.value = active
+        else:
+            profile_select.value = profiles[0]
+
+        # 顯示 profile 資訊
+        self._update_profile_info_label(active)
+
+    def _update_profile_info_label(self, profile_name: str) -> None:
+        """更新 profile 資訊標籤。"""
+        info_label = self.query_one("#profile-info-label", Label)
+
+        profile_path = get_profiles_dir() / f"{profile_name}.yaml"
+        if not profile_path.exists():
+            info_label.update("")
+            return
+
+        profile = load_yaml(profile_path)
+        standards = profile.get('standards', [])
+        total_profiles = len(list_profiles())
+        info_label.update(f"({len(standards)}/{total_profiles} standards)")
+
+    def switch_standards_profile(self, new_profile: str) -> None:
+        """切換 Standards Profile。"""
+        from datetime import datetime
+
+        # 忽略佔位符和無效值
+        if new_profile in ("none", "loading"):
+            return
+
+        profiles = list_profiles()
+        if new_profile not in profiles:
+            self.notify(f"Profile '{new_profile}' 不存在", severity="error")
+            return
+
+        active = get_active_profile()
+        if new_profile == active:
+            return
+
+        # 更新 active-profile.yaml
+        active_path = get_active_profile_path()
+        active_config = load_yaml(active_path)
+        active_config['active'] = new_profile
+        active_config['last_updated'] = datetime.now().strftime('%Y-%m-%d')
+        save_yaml(active_path, active_config)
+
+        self.notify(f"已切換到 '{new_profile}' profile", severity="information")
+        self._update_profile_info_label(new_profile)
+
+    def action_toggle_profile(self) -> None:
+        """循環切換 Standards Profile（快捷鍵 t）。"""
+        profiles_dir = get_profiles_dir()
+        if not profiles_dir.exists():
+            self.notify("專案未初始化標準體系", severity="warning")
+            return
+
+        profiles = sorted(list_profiles())
+        if len(profiles) <= 1:
+            self.notify("只有一個可用 profile", severity="warning")
+            return
+
+        active = get_active_profile()
+        try:
+            current_index = profiles.index(active)
+            next_index = (current_index + 1) % len(profiles)
+            next_profile = profiles[next_index]
+        except ValueError:
+            next_profile = profiles[0]
+
+        # 更新下拉選單
+        profile_select = self.query_one("#profile-select", Select)
+        profile_select.value = next_profile
+
+        # 切換 profile
+        self.switch_standards_profile(next_profile)
+
+    # =========================================================================
+    # ECC Hooks Plugin Methods
+    # =========================================================================
+
+    def update_hooks_status_display(self) -> None:
+        """更新 ECC Hooks Plugin 狀態顯示。"""
+        status = get_ecc_hooks_status()
+        status_label = self.query_one("#hooks-status-label", Label)
+
+        if status["installed"]:
+            path_display = shorten_path(status["plugin_path"])
+            status_label.update(f"[green]✓ Installed[/green] at {path_display}")
+        else:
+            status_label.update("[yellow]✗ Not installed[/yellow]")
+
+    def action_install_hooks(self) -> None:
+        """安裝或更新 ECC Hooks Plugin（快捷鍵 i）。"""
+        import subprocess
+        import shutil
+
+        # 使用 suspend 暫停 TUI
+        ai_dev_path = shutil.which("ai-dev")
+        if ai_dev_path:
+            cmd = [ai_dev_path, "hooks", "install"]
+        else:
+            import sys
+            cmd = [sys.executable, "-m", "script.main", "hooks", "install"]
+
+        with self.suspend():
+            print("\n--- Installing ECC Hooks Plugin ---\n")
+            subprocess.run(cmd, check=False)
+            print("\n--- Press Enter to return to TUI ---")
+            input()
+
+        self.update_hooks_status_display()
+        self.notify("Hooks plugin installation completed", severity="information")
+
+    def action_uninstall_hooks(self) -> None:
+        """移除 ECC Hooks Plugin（快捷鍵 u）。"""
+        import subprocess
+        import shutil
+
+        status = get_ecc_hooks_status()
+        if not status["installed"]:
+            self.notify("Hooks plugin is not installed", severity="warning")
+            return
+
+        # 使用 suspend 暫停 TUI
+        ai_dev_path = shutil.which("ai-dev")
+        if ai_dev_path:
+            cmd = [ai_dev_path, "hooks", "uninstall"]
+        else:
+            import sys
+            cmd = [sys.executable, "-m", "script.main", "hooks", "uninstall"]
+
+        with self.suspend():
+            print("\n--- Uninstalling ECC Hooks Plugin ---\n")
+            subprocess.run(cmd, check=False)
+            print("\n--- Press Enter to return to TUI ---")
+            input()
+
+        self.update_hooks_status_display()
+        self.notify("Hooks plugin removed", severity="warning")
+
+    def action_view_hooks_config(self) -> None:
+        """檢視 hooks.json 配置（快捷鍵 v）。"""
+        status = get_ecc_hooks_status()
+
+        if not status["installed"]:
+            self.notify("Hooks plugin is not installed", severity="warning")
+            return
+
+        hooks_json = status["hooks_json_path"]
+        if not hooks_json or not hooks_json.exists():
+            self.notify("hooks.json not found", severity="error")
+            return
+
+        if open_in_editor(hooks_json):
+            self.notify(f"Opening {hooks_json.name} in editor...", severity="information")
+        else:
+            self.notify("Failed to open editor", severity="error")
 
 
 def main() -> None:
