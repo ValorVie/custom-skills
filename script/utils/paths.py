@@ -66,6 +66,11 @@ def get_anthropic_skills_dir() -> Path:
     return get_config_dir() / "anthropic-skills"
 
 
+def get_ecc_dir() -> Path:
+    """回傳 everything-claude-code 儲存庫的本地路徑。"""
+    return get_config_dir() / "everything-claude-code"
+
+
 def get_project_root() -> Path:
     """取得用戶當前工作目錄作為專案根目錄。
 

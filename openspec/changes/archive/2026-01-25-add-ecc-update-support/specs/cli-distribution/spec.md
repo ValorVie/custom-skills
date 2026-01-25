@@ -1,8 +1,5 @@
-# cli-distribution Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-global-cli-distribution. Update Purpose after archive.
-## Requirements
 ### Requirement: Entry Point Configuration (進入點配置)
 
 CLI 工具 MUST (必須) 透過 `pyproject.toml` 配置 entry point，使其可透過標準 Python 工具鏈安裝。
@@ -31,34 +28,7 @@ CLI 工具 MUST (必須) 透過 `pyproject.toml` 配置 entry point，使其可�
 6. `~/.config/anthropic-skills`
 7. `~/.config/everything-claude-code`
 
-### Requirement: Package Metadata (套件元資料)
-
-`pyproject.toml` MUST (必須) 包含完整的套件元資料以支援發布。
-
-#### Scenario: 必要元資料欄位
-
-給定 `pyproject.toml` 檔案
-則應該包含：
-- `name`：套件名稱（建議 `ai-dev-cli` 或 `custom-skills-cli`）
-- `version`：語意化版本號
-- `description`：簡短描述
-- `authors`：作者資訊
-- `license`：授權條款
-- `readme`：README 檔案路徑
-- `requires-python`：Python 版本需求
-
-### Requirement: Dependency Declaration (依賴宣告)
-
-`pyproject.toml` MUST (必須) 宣告所有執行時期依賴。
-
-#### Scenario: 核心依賴
-
-給定 `pyproject.toml` 的 `[project.dependencies]` 區段
-則應該包含：
-- `typer>=0.9.0`：CLI 框架
-- `rich>=13.0.0`：終端機美化輸出
-- `pyyaml>=6.0.0`：YAML 解析
-- `textual>=0.89.0`：TUI 框架
+## ADDED Requirements
 
 ### Requirement: Update Notification (更新通知)
 
@@ -78,4 +48,3 @@ CLI 工具 MUST (必須) 透過 `pyproject.toml` 配置 entry point，使其可�
 給定所有上游儲存庫皆為最新
 當執行 `ai-dev update` 時
 則應該顯示「所有儲存庫皆為最新」訊息
-
