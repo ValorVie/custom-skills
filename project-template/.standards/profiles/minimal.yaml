@@ -1,0 +1,26 @@
+# Minimal Profile - 最小化標準體系
+# 僅包含核心開發規範，適合輕量化使用
+
+name: minimal
+display_name: "Minimal Standards"
+description: "最小化標準體系，僅包含核心開發規範"
+version: "1.0.0"
+
+# 在重疊群組中的偏好
+overlap_preference: minimal
+
+# 是否啟用各體系的獨有功能
+enable_exclusive:
+  uds: false  # 停用所有 UDS 獨有功能
+  ecc: false  # 停用所有 ECC 獨有功能
+
+# 明確列出要啟用的群組（其他群組停用）
+# 群組名稱必須與 overlaps.yaml 中的定義一致
+enabled_groups:
+  - commit-standards
+  - review-standards
+  - testing-standards
+
+# 例外設定（可選）
+exceptions:
+  enable: []  # 無例外

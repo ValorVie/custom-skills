@@ -469,7 +469,7 @@ ECC 提供進階的 Claude Code 工作流程工具：
 
 ### 標準體系 (Standards Profiles)
 
-支援多種標準體系切換：
+支援多種標準體系切換，基於**重疊檢測**自動管理功能等效的資源：
 
 ```bash
 # 查看目前狀態
@@ -478,11 +478,20 @@ ai-dev standards status
 # 列出可用 profiles
 ai-dev standards list
 
-# 切換 profile
+# 切換 profile（會自動停用重疊資源）
 ai-dev standards switch ecc
+
+# 預覽切換影響
+ai-dev standards switch ecc --dry-run
 
 # 顯示 profile 內容
 ai-dev standards show ecc
+
+# 顯示重疊定義
+ai-dev standards overlaps
+
+# 同步檔案狀態（停用/啟用資源）
+ai-dev standards sync
 ```
 
 可用 profiles：
@@ -490,10 +499,11 @@ ai-dev standards show ecc
 - `ecc` - Everything Claude Code 工作流程
 - `minimal` - 最小化配置
 
-**⚠️ 當前限制（臨時實作）**：
-- Profile 切換功能目前僅更新設定檔，**不會載入不同的標準內容**
-- 所有 profiles 使用相同的 UDS 標準檔案
-- 完整的 Profile 架構（包含 `profiles/*.yaml` 定義檔案與標準來源切換）將在後續版本實作
+**Profile 系統特性**：
+- **重疊檢測**：定義於 `profiles/overlaps.yaml`，標記功能等效的資源（如 UDS 的 `tdd-workflow` 與 ECC 的 `tdd-workflow`）
+- **自動停用**：切換 profile 時，自動停用重疊組中非偏好來源的資源
+- **手動保護**：手動停用的項目不會被 profile 切換覆蓋
+- **同步機制**：`sync` 指令會實際移動檔案到 `.disabled/` 目錄或還原
 
 ### 上游追蹤系統
 

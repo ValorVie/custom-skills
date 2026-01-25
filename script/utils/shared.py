@@ -690,7 +690,7 @@ def show_restart_reminder(target: TargetType) -> None:
 
 
 def disable_resource(
-    target: TargetType, resource_type: ResourceType, name: str
+    target: TargetType, resource_type: ResourceType, name: str, quiet: bool = False
 ) -> bool:
     """停用資源：將檔案從目標工具目錄複製到 disabled 目錄，再刪除原檔案。
 
@@ -698,6 +698,7 @@ def disable_resource(
         target: 目標工具 (claude, antigravity, opencode)
         resource_type: 資源類型 (skills, commands, agents, workflows)
         name: 資源名稱
+        quiet: 是否抑制輸出訊息
 
     Returns:
         bool: True 表示成功，False 表示失敗
@@ -710,7 +711,8 @@ def disable_resource(
 
     # 2. 檢查來源是否存在
     if not source_path.exists():
-        console.print(f"[red]資源 {name} 不存在，無法停用[/red]")
+        if not quiet:
+            console.print(f"[red]資源 {name} 不存在，無法停用[/red]")
         return False
 
     # 3. 取得 disabled 路徑
@@ -761,16 +763,16 @@ def disable_resource(
     config[target][resource_type]["disabled"] = disabled_list
     save_toggle_config(config)
 
-    console.print(f"[yellow]已停用 {target}/{resource_type}/{name}[/yellow]")
-
-    # 8. 顯示重啟提醒
-    show_restart_reminder(target)
+    if not quiet:
+        console.print(f"[yellow]已停用 {target}/{resource_type}/{name}[/yellow]")
+        # 8. 顯示重啟提醒
+        show_restart_reminder(target)
 
     return True
 
 
 def enable_resource(
-    target: TargetType, resource_type: ResourceType, name: str
+    target: TargetType, resource_type: ResourceType, name: str, quiet: bool = False
 ) -> bool:
     """啟用資源：將檔案從 disabled 目錄複製回目標工具目錄，再刪除 disabled 中的檔案。
 
@@ -778,6 +780,7 @@ def enable_resource(
         target: 目標工具 (claude, antigravity, opencode)
         resource_type: 資源類型 (skills, commands, agents, workflows)
         name: 資源名稱
+        quiet: 是否抑制輸出訊息
 
     Returns:
         bool: True 表示成功，False 表示失敗
@@ -827,9 +830,11 @@ def enable_resource(
             # 複製已成功，繼續執行
     else:
         # disabled 中不存在，從來源重新複製
-        console.print(f"[dim]disabled 目錄中不存在 {name}，嘗試從來源重新複製...[/dim]")
+        if not quiet:
+            console.print(f"[dim]disabled 目錄中不存在 {name}，嘗試從來源重新複製...[/dim]")
         if not copy_single_resource(target, resource_type, name):
-            console.print(f"[red]無法找到資源 {name} 的來源[/red]")
+            if not quiet:
+                console.print(f"[red]無法找到資源 {name} 的來源[/red]")
             return False
 
     # 5. 更新 toggle-config.yaml（移除 disabled 記錄）
@@ -841,10 +846,10 @@ def enable_resource(
         config[target][resource_type]["disabled"] = disabled_list
         save_toggle_config(config)
 
-    console.print(f"[green]已啟用 {target}/{resource_type}/{name}[/green]")
-
-    # 6. 顯示重啟提醒
-    show_restart_reminder(target)
+    if not quiet:
+        console.print(f"[green]已啟用 {target}/{resource_type}/{name}[/green]")
+        # 6. 顯示重啟提醒
+        show_restart_reminder(target)
 
     return True
 

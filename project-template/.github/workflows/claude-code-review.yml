@@ -1,0 +1,49 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    # 檔案類型過濾（目前停用，如需啟用請取消註解）
+    # paths:
+    #   - "**/*.py"
+    #   - "**/*.ts"
+    #   - "**/*.tsx"
+    #   - "**/*.js"
+    #   - "**/*.jsx"
+    #   - "**/*.go"
+    #   - "**/*.rs"
+
+jobs:
+  claude-review:
+    # 排除 Draft PR
+    if: github.event.pull_request.draft == false
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # 需要 write 權限才能發表評論
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            請審查此 Pull Request: ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+
+            審查標準請參考：.github/prompts/code-review.md
+
+            回覆語言：繁體中文（專有名詞保留原文）
+          # 授權工具執行
+          claude_args: |
+            --allowedTools Bash,Read,Write,Edit,Glob,Grep
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://code.claude.com/docs/en/cli-reference for available options
