@@ -73,6 +73,7 @@
 - **`agents/`**：專業化的 AI 子代理（按工具分類：claude/, opencode/）
 - **`sources/`**：上游資源整合（ecc/）
 - **`upstream/`**：上游追蹤系統（同步狀態、mapping）
+- **`third-party/`**：第三方專案參考資訊（待評估資源）
 - **`.standards/`**：專案層級的開發標準（由 universal-dev-standards 生成）
 - **`docs/`**：概念性文件與使用指南
 - **`openspec/`**：OpenSpec 規格驅動開發的配置
