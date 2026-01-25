@@ -17,12 +17,9 @@ Everything Claude Code - Memory Persistence & Strategic Compact Hooks
 
 ## Requirements
 
-- [uv](https://docs.astral.sh/uv/) - Python 套件管理工具（用於執行 hooks 腳本）
-
-```bash
-# 安裝 uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+- Python 3.x（腳本僅使用標準函式庫）
+  - Linux/macOS: `python3` 應已預裝
+  - Windows: 安裝 Python 3.6+ 會自動加入 `python3.exe` 到 PATH
 
 ## Installation
 
