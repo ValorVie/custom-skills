@@ -1,0 +1,211 @@
+# Overlaps Definition - 功能重疊定義
+# 定義各標準體系間的功能重疊項目
+# 用於 Profile 切換時判定哪些資源需停用
+
+version: "1.2.0"
+description: "定義 UDS、ECC、Minimal 體系間的功能差異"
+
+# 資源類型說明
+resource_types:
+  - skills      # skills/*/SKILL.md
+  - standards   # .standards/*.ai.yaml
+  - commands    # commands/claude/*.md
+  - agents      # agents/claude/*.md
+  - hooks       # hooks/
+
+# =============================================================================
+# 共用項目定義（所有 Profile 都啟用）
+# 這些資源只有一份，所有體系共用，不受 Profile 切換影響
+# =============================================================================
+shared:
+  description: "所有 Profile 共用的資源（不受切換影響）"
+  skills:
+    - custom-skills-dev
+    - git-commit-custom
+    - custom-skills-doc-updater
+    - custom-skills-upstream-compare
+    - custom-skills-upstream-sync
+  standards:
+    # - anti-hallucination.ai.yaml
+    # - ai-instruction-standards.ai.yaml
+  commands:
+    - git-commit
+  agents:
+    # 所有體系共用的 agents（已合併）
+    # - reviewer
+    # - security-reviewer
+    # - doc-updater
+    # - build-error-resolver
+    # - e2e-runner
+
+# =============================================================================
+# 功能群組定義
+# Profile 可以選擇啟用或停用整個群組
+# 群組內可能包含「名稱不同但功能相同」的資源對應
+# =============================================================================
+groups:
+  # ---------------------------------------------------------------------------
+  # TDD/Testing 相關規範（UDS 有額外規範，ECC/Minimal 較精簡）
+  # ---------------------------------------------------------------------------
+  testing-standards:
+    description: "測試相關規範（UDS 較完整，Minimal 基本）"
+    mutual_exclusive: false  # 不互斥，只是功能開關
+
+    uds:
+      standards:
+        - testing.ai.yaml
+        - test-driven-development.ai.yaml
+        - test-completeness-dimensions.ai.yaml
+
+    ecc:
+      skills:
+        - tdd-workflow
+
+    minimal:
+      skills:
+        - tdd-workflow
+
+  # ---------------------------------------------------------------------------
+  # Code Review 規範
+  # ---------------------------------------------------------------------------
+  review-standards:
+    description: "程式碼審查規範"
+    mutual_exclusive: false
+
+    uds:
+      standards:
+        - code-review.ai.yaml
+        - checkin-standards.ai.yaml
+
+    ecc:
+      skills:
+        - security-review
+
+    minimal:
+      skills:
+        - security-review
+
+  # ---------------------------------------------------------------------------
+  # 文件規範
+  # ---------------------------------------------------------------------------
+  doc-standards:
+    description: "文件撰寫規範"
+    mutual_exclusive: false
+
+    uds: {}
+    ecc: {}
+    minimal: {}
+
+  # ---------------------------------------------------------------------------
+  # 提交訊息規範
+  # ---------------------------------------------------------------------------
+  commit-standards:
+    description: "提交訊息規範（UDS 繁中，ECC 英文）"
+    mutual_exclusive: false
+
+    uds: {}
+    ecc: {}
+    minimal: {}
+
+
+  # ---------------------------------------------------------------------------
+  # ECC 額外命令（UDS 無對應）
+  # ---------------------------------------------------------------------------
+  ecc-commands:
+    description: "ECC 特有命令"
+    mutual_exclusive: false
+
+    uds: {}
+    ecc: {}
+    minimal: {}
+
+  # ---------------------------------------------------------------------------
+  # ECC Hooks（UDS 無對應）
+  # ---------------------------------------------------------------------------
+  ecc-hooks:
+    description: "ECC 特有 Hooks"
+    mutual_exclusive: false
+
+    uds: {}
+    ecc: {}
+    minimal: {}
+
+# =============================================================================
+# 獨有項目定義
+# 只存在於單一體系的功能，可透過 Profile 啟用/停用
+# =============================================================================
+exclusive:
+  uds:
+    description: "UDS 獨有功能"
+    # skills:
+    #   - methodology-system
+    #   - atdd-assistant
+    #   - bdd-assistant
+    #   - forward-derivation
+    #   - requirement-assistant
+    #   - release-standards
+    #   - changelog-guide
+    #   - error-code-guide
+    #   - logging-guide
+    #   - project-structure-guide
+    #   - git-workflow-guide
+    #   - ai-collaboration-standards
+    #   - custom-skills-dev
+    #   - spec-driven-dev
+    #   - reverse-engineer
+    #   - refactoring-assistant
+    #   - test-coverage-assistant
+    # standards:
+    #   - acceptance-test-driven-development.ai.yaml
+    #   - behavior-driven-development.ai.yaml
+    #   - forward-derivation-standards.ai.yaml
+    #   - ai-friendly-architecture.ai.yaml
+    #   - changelog.ai.yaml
+    #   - error-codes.ai.yaml
+    #   - logging.ai.yaml
+    #   - project-structure.ai.yaml
+    #   - git-workflow.ai.yaml
+    #   - versioning.ai.yaml
+    #   - spec-driven-development.ai.yaml
+    #   - reverse-engineering-standards.ai.yaml
+    #   - refactoring-standards.ai.yaml
+    #   - options/github-flow.ai.yaml
+    #   - options/squash-merge.ai.yaml
+    #   - options/unit-testing.ai.yaml
+    #   - options/integration-testing.ai.yaml
+    # commands:
+    #   - atdd
+    #   - bdd
+    #   - methodology
+    #   - requirement
+    #   - release
+    #   - changelog
+    #   - derive-all
+    #   - derive-bdd
+    #   - derive-tdd
+    #   - derive-atdd
+    #   - reverse-bdd
+    #   - reverse-tdd
+    #   - reverse-spec
+    #   - spec
+    #   - refactor
+    #   - init
+    #   - check
+    #   - config
+    #   - update
+    #   - upstream-sync
+    # agents:
+    #   - code-architect
+    #   - doc-writer
+    #   - spec-analyst
+    #   - test-specialist
+
+  ecc:
+    description: "ECC 獨有功能（無 UDS 對應）"
+    # ECC 的 skills/agents 大部分已合併到主目錄，成為共用資源
+    # 這裡只放「真正獨有且未合併」的項目
+    # 目前所有推薦項目都已合併，此區塊為空
+
+  minimal:
+    description: "Minimal 獨有功能"
+    # Minimal 是精簡版，不會有獨有功能
