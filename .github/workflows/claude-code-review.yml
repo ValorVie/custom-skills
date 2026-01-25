@@ -37,11 +37,19 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            請審查此 Pull Request: ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+            請審查此 Pull Request #${{ github.event.pull_request.number }}
 
-            審查標準請參考：.github/prompts/code-review.md
+            ## 任務
+            1. 使用 `gh pr diff ${{ github.event.pull_request.number }}` 查看變更
+            2. 根據 .github/prompts/code-review.md 的標準進行審查
+            3. **重要**：審查完成後，必須使用以下命令發表評論：
+               ```
+               gh pr comment ${{ github.event.pull_request.number }} --body "你的審查結果"
+               ```
 
-            回覆語言：繁體中文（專有名詞保留原文）
+            ## 回覆格式
+            - 語言：繁體中文（專有名詞保留原文）
+            - 包含：摘要、優點、建議改進項目、結論
           # 授權工具執行
           claude_args: |
             --allowedTools Bash,Read,Write,Edit,Glob,Grep
