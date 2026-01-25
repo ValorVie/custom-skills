@@ -5,7 +5,7 @@ tags:
   - dev-stack
   - vibe-coding
 date created: 2026-01-14T16:00:00+08:00
-date modified: 2026-01-25T10:00:00+08:00
+date modified: 2026-01-25T18:00:00+08:00
 description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設定、使用說明與設計理念
 ---
 
@@ -1334,14 +1334,32 @@ ai-dev standards status
 # 列出可用 profiles
 ai-dev standards list
 
-# 切換 profile
+# 切換 profile（會自動停用重疊資源）
 ai-dev standards switch ecc
+
+# 預覽切換影響
+ai-dev standards switch ecc --dry-run
+
+# 顯示 profile 內容
+ai-dev standards show ecc
+
+# 顯示重疊定義
+ai-dev standards overlaps
+
+# 同步檔案狀態
+ai-dev standards sync
 ```
 
 可用 profiles：
 - `uds` - Universal Dev Standards 完整版（預設）
 - `ecc` - Everything Claude Code 工作流程
 - `minimal` - 最小化配置
+
+**Profile 系統特性**：
+- **重疊檢測**：定義於 `profiles/overlaps.yaml`，標記功能等效的資源
+- **自動停用**：切換 profile 時，自動停用重疊組中非偏好來源的資源
+- **手動保護**：手動停用的項目不會被 profile 切換覆蓋
+- **同步機制**：`sync` 指令會實際移動檔案到 `.disabled/` 目錄或還原
 
 ### 上游追蹤與同步
 
@@ -1364,6 +1382,7 @@ ai-dev standards switch ecc
 
 | 日期 | 版本 | 變更內容 |
 |------|------|----------|
+| 2026-01-25 | 1.7.0 | 新增 Profile 重疊檢測系統說明（`overlaps`, `sync`, `--dry-run` 指令） |
 | 2026-01-25 | 1.6.0 | 更新 `update` 指令說明（移除不存在的 `--sync-upstream` 參數）、修正上游同步流程說明 |
 | 2026-01-24 | 1.5.0 | 整合 ECC 資源、新增上游追蹤系統、標準體系切換、clone 與 standards 指令 |
 | 2026-01-20 | 1.4.0 | CLI 工具打包為 `ai-dev`，支援全域安裝；新增 `project init/update` 專案級指令 |
