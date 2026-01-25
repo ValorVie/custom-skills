@@ -12,6 +12,7 @@ from ..utils.paths import (
     get_opencode_config_dir,
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
+    get_ecc_dir,
 )
 from ..utils.shared import NPM_PACKAGES, update_claude_code, check_uds_initialized
 
@@ -56,6 +57,39 @@ def has_local_changes(repo: Path) -> bool:
     )
 
     return bool(result.stdout.strip() or staged.stdout.strip())
+
+
+def check_for_updates(repo: Path, branch: str | None) -> bool:
+    """檢查儲存庫是否有可用的更新。
+
+    在 fetch 後比較本地 HEAD 與遠端分支的 commit。
+    """
+    if not branch:
+        return False
+
+    remote_ref = f"origin/{branch}"
+
+    # 取得本地 HEAD commit
+    local_result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+    )
+    if local_result.returncode != 0:
+        return False
+
+    # 取得遠端 commit
+    remote_result = subprocess.run(
+        ["git", "rev-parse", remote_ref],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+    )
+    if remote_result.returncode != 0:
+        return False
+
+    return local_result.stdout.strip() != remote_result.stdout.strip()
 
 
 def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
@@ -171,10 +205,14 @@ def update(
             get_opencode_config_dir() / "superpowers",
             get_obsidian_skills_dir(),
             get_anthropic_skills_dir(),
+            get_ecc_dir(),
         ]
 
         # 備份目錄位於使用者目錄
         backup_root = Path.home() / ".cache" / "ai-dev" / "backups"
+
+        # 記錄有更新的儲存庫
+        updated_repos: list[str] = []
 
         for repo in repos:
             if repo.exists() and (repo / ".git").exists():
@@ -184,6 +222,10 @@ def update(
                 console.print(f"正在更新 {repo}{branch_info}...")
                 # 先 fetch 遠端
                 run_command(["git", "fetch", "--all"], cwd=str(repo), check=False)
+                # 檢查是否有更新
+                has_updates = check_for_updates(repo, current_branch)
+                if has_updates:
+                    updated_repos.append(repo.name)
                 # 只有當本地有修改時才備份
                 if has_local_changes(repo):
                     backup_dirty_files(repo, backup_root)
@@ -194,6 +236,16 @@ def update(
                     cwd=str(repo),
                     check=False,
                 )
+
+        # 顯示更新摘要
+        if updated_repos:
+            console.print()
+            console.print("[bold cyan]以下儲存庫有新更新：[/bold cyan]")
+            for name in updated_repos:
+                console.print(f"  • {name}")
+        else:
+            console.print()
+            console.print("[dim]所有儲存庫皆為最新[/dim]")
 
     console.print("[bold green]更新完成！[/bold green]")
     console.print()
