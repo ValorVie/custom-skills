@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(openspec validate:*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(python -m openspec:*)",
+      "Bash(echo:*)",
+      "Bash(python openspec/cli.py:*)",
+      "Bash(dir:*)"
+    ]
+  }
+}

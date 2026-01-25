@@ -5,7 +5,7 @@ tags:
   - antigravity
   - dev-stack
 date created: 2026-01-14T16:30:00+08:00
-date modified: 2026-01-14T16:30:00+08:00
+date modified: 2026-01-24T19:00:00+08:00
 description: 說明 AI 開發工具中 Skill、Command、Agent 的差異與使用時機
 ---
 
@@ -349,6 +349,38 @@ project/.claude/.agent/
 | Workflow | `~/.gemini/antigravity/global_workflows/` | `.agent/workflows/` |
 | Prompt | `~/.gemini/GEMINI.md` | `.agent/*.md` |
 
+### OpenCode
+
+| 類型 | 用戶級別 | 專案級別 |
+|------|----------|----------|
+| Skill | `~/.claude/skills/<name>/`（共用 Claude Code） | `.opencode/skills/<name>/` |
+| Command | `~/.claude/commands/<name>.md`（共用 Claude Code） | `.opencode/commands/<name>.md` |
+| Agent | `~/.config/opencode/agent/<name>.md` | `.opencode/agent/<name>.md` |
+
+### Codex
+
+| 類型 | 用戶級別 | 專案級別 |
+|------|----------|----------|
+| Skill | `~/.codex/skills/<name>/` | `.codex/skills/<name>/` |
+
+### Gemini CLI
+
+| 類型 | 用戶級別 | 專案級別 |
+|------|----------|----------|
+| Skill | `~/.gemini/skills/<name>/` | N/A |
+| Command | `~/.gemini/commands/<name>.md` | N/A |
+
+### 統一管理目錄（custom-skills）
+
+所有資源的主要管理位置：
+
+| 類型 | 路徑 |
+|------|------|
+| Skill | `~/.config/custom-skills/skills/<name>/` |
+| Command | `~/.config/custom-skills/commands/<tool>/<name>.md` |
+| Agent | `~/.config/custom-skills/agents/<tool>/<name>.md` |
+| ECC 資源 | `~/.config/custom-skills/sources/ecc/` |
+
 ---
 
 ## 總結
@@ -364,3 +396,28 @@ project/.claude/.agent/
 - 如果你在想「AI 應該怎麼做」→ 用 **Skill**
 - 如果你在想「我要執行什麼」→ 用 **Command**
 - 如果你在想「我需要專家幫忙」→ 用 **Agent**
+
+---
+
+## 附錄：內建 Agents 清單
+
+### UDS Agents（核心開發）
+
+| Agent | 角色 | 說明 |
+|-------|------|------|
+| `code-architect` | specialist | 軟體架構與系統設計 |
+| `test-specialist` | specialist | 測試策略與實作 |
+| `reviewer` | reviewer | 程式碼審查與品質評估 |
+| `doc-writer` | specialist | 文件與技術寫作 |
+| `spec-analyst` | specialist | 規格分析與需求萃取 |
+
+### ECC Agents（進階工作流）
+
+| Agent | 角色 | 說明 |
+|-------|------|------|
+| `build-error-resolver` | specialist | TypeScript 建置錯誤解決專家 |
+| `e2e-runner` | specialist | Playwright E2E 測試執行器 |
+| `doc-updater` | specialist | 文件與 Codemap 產生器 |
+| `security-reviewer` | reviewer | OWASP 安全漏洞掃描器 |
+
+> 詳細說明請參考 `agents/claude/README.md`
