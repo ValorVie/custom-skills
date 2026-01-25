@@ -1,0 +1,21 @@
+# UDS Profile - Universal Dev Standards
+# 完整的 UDS 標準體系，包含繁體中文提交訊息與完整 SDD/TDD/BDD 整合
+
+name: uds
+display_name: "Universal Dev Standards"
+description: "完整的 UDS 標準體系，包含繁體中文提交訊息與完整 SDD/TDD/BDD 整合"
+version: "1.0.0"
+
+# 在重疊群組中的偏好
+overlap_preference: uds
+
+# 是否啟用各體系的獨有功能
+enable_exclusive:
+  uds: true   # 啟用所有 UDS 獨有功能
+  ecc: false  # 停用所有 ECC 獨有功能
+
+# 例外設定（可選）
+exceptions:
+  # 雖然 ECC 獨有，但 UDS 也想使用的項目
+  enable:
+    - strategic-compact  # 有用的 compact 策略

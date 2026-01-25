@@ -220,6 +220,264 @@ NOTABLE_PATTERNS = {
 }
 
 
+# ============================================================
+# 重疊偵測
+# ============================================================
+
+def load_overlaps_yaml(project_root: Path) -> dict:
+    """載入現有的 overlaps.yaml。"""
+    overlaps_file = project_root / ".standards" / "profiles" / "overlaps.yaml"
+    if not overlaps_file.exists():
+        return {}
+    with open(overlaps_file, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def get_existing_items(project_root: Path) -> dict:
+    """取得本專案已有的 skills, commands, agents 名稱。"""
+    existing = {
+        "skills": set(),
+        "commands": set(),
+        "agents": set(),
+    }
+
+    # 掃描 skills/
+    skills_dir = project_root / "skills"
+    if skills_dir.exists():
+        for item in skills_dir.iterdir():
+            if item.is_dir() and (item / "SKILL.md").exists():
+                existing["skills"].add(item.name)
+
+    # 掃描 commands/
+    commands_dir = project_root / "commands" / "claude"
+    if commands_dir.exists():
+        for item in commands_dir.iterdir():
+            if item.suffix == ".md":
+                existing["commands"].add(item.stem)
+
+    # 掃描 agents/
+    agents_dir = project_root / "agents" / "claude"
+    if agents_dir.exists():
+        for item in agents_dir.iterdir():
+            if item.suffix == ".md":
+                existing["agents"].add(item.stem)
+
+    # 也掃描 sources/ 中的項目
+    for source_dir in (project_root / "sources").iterdir() if (project_root / "sources").exists() else []:
+        if not source_dir.is_dir():
+            continue
+        for subdir_name in ["skills", "commands", "agents"]:
+            subdir = source_dir / subdir_name
+            if subdir.exists():
+                for item in subdir.iterdir():
+                    if subdir_name == "skills" and item.is_dir() and (item / "SKILL.md").exists():
+                        existing["skills"].add(item.name)
+                    elif item.suffix == ".md":
+                        existing[subdir_name].add(item.stem)
+
+    return existing
+
+
+def compute_similarity(name1: str, name2: str) -> float:
+    """計算兩個名稱的相似度 (Levenshtein distance based)。"""
+    # 簡易 Levenshtein distance 實作
+    if name1 == name2:
+        return 1.0
+
+    len1, len2 = len(name1), len(name2)
+    if len1 == 0 or len2 == 0:
+        return 0.0
+
+    # 使用動態規劃計算編輯距離
+    dp = [[0] * (len2 + 1) for _ in range(len1 + 1)]
+    for i in range(len1 + 1):
+        dp[i][0] = i
+    for j in range(len2 + 1):
+        dp[0][j] = j
+
+    for i in range(1, len1 + 1):
+        for j in range(1, len2 + 1):
+            cost = 0 if name1[i - 1] == name2[j - 1] else 1
+            dp[i][j] = min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost)
+
+    distance = dp[len1][len2]
+    max_len = max(len1, len2)
+    return 1.0 - (distance / max_len)
+
+
+# 功能關鍵字對應表（用於偵測功能相似的項目）
+FUNCTIONAL_KEYWORDS = {
+    "tdd": ["tdd", "test-driven", "testing", "test"],
+    "bdd": ["bdd", "behavior", "gherkin", "cucumber"],
+    "commit": ["commit", "git-commit", "conventional"],
+    "review": ["review", "code-review", "checkin"],
+    "documentation": ["doc", "docs", "documentation", "readme"],
+    "refactor": ["refactor", "refactoring", "simplify"],
+    "security": ["security", "audit", "vulnerability"],
+    "logging": ["log", "logging", "logger"],
+    "spec": ["spec", "specification", "requirement"],
+}
+
+
+def get_functional_category(name: str) -> Optional[str]:
+    """根據名稱判斷功能類別。"""
+    name_lower = name.lower().replace("-", "").replace("_", "")
+    for category, keywords in FUNCTIONAL_KEYWORDS.items():
+        for kw in keywords:
+            if kw.replace("-", "") in name_lower:
+                return category
+    return None
+
+
+def detect_overlaps(upstream_items: dict, existing_items: dict, overlaps_config: dict) -> dict:
+    """偵測上游項目與本專案的重疊。
+
+    Args:
+        upstream_items: 上游 repo 的 {skills: [...], commands: [...], agents: [...]}
+        existing_items: 本專案已有的 {skills: set(), commands: set(), agents: set()}
+        overlaps_config: 現有 overlaps.yaml 配置
+
+    Returns:
+        dict: {
+            "exact_matches": [...],      # 名稱完全相同
+            "similar_names": [...],      # 名稱相似 (similarity > 0.7)
+            "functional_overlaps": [...], # 功能關鍵字匹配
+            "new_items": [...],          # 全新項目（無重疊）
+            "already_defined": [...],    # 已在 overlaps.yaml 定義
+            "suggested_groups": {...},   # 建議的群組分類
+        }
+    """
+    result = {
+        "exact_matches": [],
+        "similar_names": [],
+        "functional_overlaps": [],
+        "new_items": [],
+        "already_defined": [],
+        "suggested_groups": {},
+    }
+
+    # 取得已在 overlaps.yaml 定義的項目
+    defined_items = set()
+    for group_name, group_def in overlaps_config.get("groups", {}).items():
+        for system in ["uds", "ecc", "minimal"]:
+            system_def = group_def.get(system, {})
+            if isinstance(system_def, dict):
+                for item_type in ["skills", "commands", "agents"]:
+                    for item in system_def.get(item_type, []):
+                        defined_items.add(f"{item_type}:{item}")
+
+    for item_type in ["skills", "commands", "agents"]:
+        upstream_list = upstream_items.get(item_type, [])
+        existing_set = existing_items.get(item_type, set())
+
+        for upstream_name in upstream_list:
+            item_key = f"{item_type}:{upstream_name}"
+
+            # 1. 檢查是否已在 overlaps.yaml 定義
+            if item_key in defined_items:
+                result["already_defined"].append({
+                    "type": item_type,
+                    "name": upstream_name,
+                    "note": "已在 overlaps.yaml 定義"
+                })
+                continue
+
+            # 2. 檢查完全匹配
+            if upstream_name in existing_set:
+                result["exact_matches"].append({
+                    "type": item_type,
+                    "name": upstream_name,
+                    "local_name": upstream_name,
+                    "similarity": 1.0,
+                })
+                continue
+
+            # 3. 檢查名稱相似
+            best_match = None
+            best_similarity = 0.0
+            for existing_name in existing_set:
+                sim = compute_similarity(upstream_name.lower(), existing_name.lower())
+                if sim > best_similarity:
+                    best_similarity = sim
+                    best_match = existing_name
+
+            if best_similarity > 0.7:
+                result["similar_names"].append({
+                    "type": item_type,
+                    "name": upstream_name,
+                    "local_name": best_match,
+                    "similarity": round(best_similarity, 2),
+                })
+                continue
+
+            # 4. 檢查功能關鍵字匹配
+            upstream_category = get_functional_category(upstream_name)
+            if upstream_category:
+                # 找本地同類別的項目
+                local_same_category = [
+                    n for n in existing_set
+                    if get_functional_category(n) == upstream_category
+                ]
+                if local_same_category:
+                    result["functional_overlaps"].append({
+                        "type": item_type,
+                        "name": upstream_name,
+                        "category": upstream_category,
+                        "local_similar": local_same_category[:3],  # 最多列 3 個
+                    })
+                    # 建議的群組分類
+                    if upstream_category not in result["suggested_groups"]:
+                        result["suggested_groups"][upstream_category] = {"uds": [], "ecc": []}
+                    result["suggested_groups"][upstream_category]["ecc"].append({
+                        "type": item_type,
+                        "name": upstream_name,
+                    })
+                    continue
+
+            # 5. 全新項目
+            result["new_items"].append({
+                "type": item_type,
+                "name": upstream_name,
+            })
+
+    return result
+
+
+def generate_overlaps_yaml_snippet(overlap_result: dict, upstream_name: str) -> str:
+    """生成可直接加入 overlaps.yaml 的 YAML 片段。"""
+    lines = [f"# 建議新增：來自 {upstream_name} 的重疊定義"]
+    lines.append("")
+
+    # 按建議群組輸出
+    for category, items in overlap_result.get("suggested_groups", {}).items():
+        lines.append(f"  # {category} 群組建議新增：")
+        ecc_items = items.get("ecc", [])
+        if ecc_items:
+            lines.append(f"  # ecc:")
+            for item in ecc_items:
+                lines.append(f"  #   {item['type']}:")
+                lines.append(f"  #     - {item['name']}")
+        lines.append("")
+
+    # 新增獨有項目（exclusive）
+    new_items = overlap_result.get("new_items", [])
+    if new_items:
+        lines.append("# 建議新增到 exclusive.ecc:")
+        by_type = {}
+        for item in new_items:
+            t = item["type"]
+            if t not in by_type:
+                by_type[t] = []
+            by_type[t].append(item["name"])
+
+        for t, names in by_type.items():
+            lines.append(f"#   {t}:")
+            for name in names:
+                lines.append(f"#     - {name}")
+
+    return "\n".join(lines)
+
+
 def detect_novel_structures(file_changes: list[FileChange]) -> dict:
     """偵測上游 repo 中本專案沒有的新結構/框架。
 
@@ -639,7 +897,7 @@ def generate_structured_report(analyses: list[RepoAnalysis], project_root: Path)
     return report_file
 
 
-def analyze_new_repo(repo_path: Path) -> Optional[RepoAnalysis]:
+def analyze_new_repo(repo_path: Path, project_root: Optional[Path] = None) -> Optional[RepoAnalysis]:
     """分析新的本地 repo（全量分析，非 commit 差異）。"""
     if not repo_path.exists():
         return None
@@ -698,12 +956,81 @@ def analyze_new_repo(repo_path: Path) -> Optional[RepoAnalysis]:
     novel = detect_novel_structures(analysis.file_changes)
     summary["novel_structures"] = novel
 
+    # 偵測重疊（若提供了 project_root）
+    if project_root:
+        # 從檔案變更中提取 skills, commands, agents 名稱
+        upstream_items = extract_items_from_file_changes(analysis.file_changes)
+        existing_items = get_existing_items(project_root)
+        overlaps_config = load_overlaps_yaml(project_root)
+        overlap_analysis = detect_overlaps(upstream_items, existing_items, overlaps_config)
+        summary["overlap_analysis"] = overlap_analysis
+
     analysis.summary = summary
 
     # 生成建議（針對新 repo 的特殊評估）
     analysis.recommendation, analysis.reasoning = generate_new_repo_recommendation(analysis)
 
     return analysis
+
+
+def extract_items_from_file_changes(file_changes: list[FileChange]) -> dict:
+    """從檔案變更中提取 skills, commands, agents 名稱。"""
+    items = {
+        "skills": [],
+        "commands": [],
+        "agents": [],
+    }
+
+    seen = {"skills": set(), "commands": set(), "agents": set()}
+
+    for change in file_changes:
+        path = change.path
+
+        # skills: skills/xxx/SKILL.md -> xxx
+        if "/skills/" in path or path.startswith("skills/"):
+            parts = path.split("/")
+            if "skills" in parts:
+                idx = parts.index("skills")
+                if idx + 1 < len(parts):
+                    skill_name = parts[idx + 1]
+                    if skill_name not in seen["skills"]:
+                        seen["skills"].add(skill_name)
+                        items["skills"].append(skill_name)
+
+        # commands: commands/xxx.md -> xxx (去除 .md)
+        if "/commands/" in path or path.startswith("commands/"):
+            parts = path.split("/")
+            if "commands" in parts:
+                idx = parts.index("commands")
+                if idx + 1 < len(parts):
+                    cmd_file = parts[idx + 1] if idx + 1 < len(parts) else ""
+                    # 可能是目錄下的檔案
+                    if cmd_file and not cmd_file.endswith(".md"):
+                        # 繼續找
+                        for p in parts[idx + 1:]:
+                            if p.endswith(".md"):
+                                cmd_file = p
+                                break
+                    if cmd_file.endswith(".md"):
+                        cmd_name = cmd_file[:-3]  # 去除 .md
+                        if cmd_name not in seen["commands"]:
+                            seen["commands"].add(cmd_name)
+                            items["commands"].append(cmd_name)
+
+        # agents: agents/xxx.md -> xxx
+        if "/agents/" in path or path.startswith("agents/"):
+            parts = path.split("/")
+            if "agents" in parts:
+                idx = parts.index("agents")
+                for p in parts[idx + 1:]:
+                    if p.endswith(".md"):
+                        agent_name = p[:-3]
+                        if agent_name not in seen["agents"]:
+                            seen["agents"].add(agent_name)
+                            items["agents"].append(agent_name)
+                        break
+
+    return items
 
 
 def generate_new_repo_recommendation(analysis: RepoAnalysis) -> tuple[str, str]:
@@ -781,7 +1108,7 @@ def generate_new_repo_recommendation(analysis: RepoAnalysis) -> tuple[str, str]:
         return "Skip", "沒有發現可整合的 skills/agents/commands 或新架構。"
 
 
-def generate_new_repo_report(analysis: RepoAnalysis, project_root: Path) -> Path:
+def generate_new_repo_report(analysis: RepoAnalysis, project_root: Path, generate_overlaps: bool = False) -> Path:
     """生成新 repo 評估報告。"""
     report_dir = project_root / "upstream" / "reports" / "new-repos"
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -821,8 +1148,21 @@ def generate_new_repo_report(analysis: RepoAnalysis, project_root: Path) -> Path
         },
     }
 
+    # 加入 overlap_analysis（若有）
+    overlap_analysis = analysis.summary.get("overlap_analysis")
+    if overlap_analysis:
+        data["repo"]["overlap_analysis"] = overlap_analysis
+
     with open(report_file, "w", encoding="utf-8") as f:
         yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    # 若 generate_overlaps，另外生成 overlaps.yaml 草稿
+    if generate_overlaps and overlap_analysis:
+        draft_file = report_dir / f"overlaps-draft-{analysis.name}-{timestamp}.yaml"
+        snippet = generate_overlaps_yaml_snippet(overlap_analysis, analysis.name)
+        with open(draft_file, "w", encoding="utf-8") as f:
+            f.write(snippet)
+        print(f"重疊定義草稿: {draft_file}")
 
     return report_file
 
@@ -832,6 +1172,8 @@ def main():
     parser.add_argument("--source", type=str, help="只分析特定 source")
     parser.add_argument("--update-sync", action="store_true", help="更新 last-sync.yaml")
     parser.add_argument("--new-repo", type=str, metavar="PATH", help="分析新的本地 repo（評估是否適合整合）")
+    parser.add_argument("--detect-overlaps", action="store_true", help="偵測重疊並加入報告")
+    parser.add_argument("--generate-overlaps", action="store_true", help="生成 overlaps.yaml 草稿（需配合 --new-repo 或 --detect-overlaps）")
     args = parser.parse_args()
 
     project_root = get_project_root()
@@ -850,7 +1192,9 @@ def main():
             print(f"錯誤: 不是 git repository: {repo_path}")
             sys.exit(1)
 
-        analysis = analyze_new_repo(repo_path)
+        # 若 --detect-overlaps 或 --generate-overlaps，傳入 project_root 以執行重疊偵測
+        detect = args.detect_overlaps or args.generate_overlaps
+        analysis = analyze_new_repo(repo_path, project_root if detect else None)
         if not analysis:
             print("錯誤: 無法分析 repo")
             sys.exit(1)
@@ -864,8 +1208,18 @@ def main():
         print(f"  建議: {analysis.recommendation}")
         print(f"  原因: {analysis.reasoning}")
 
+        # 顯示重疊分析（若有）
+        overlap_analysis = analysis.summary.get("overlap_analysis")
+        if overlap_analysis:
+            print(f"\n=== 重疊分析 ===")
+            print(f"  完全匹配: {len(overlap_analysis.get('exact_matches', []))} 個")
+            print(f"  名稱相似: {len(overlap_analysis.get('similar_names', []))} 個")
+            print(f"  功能重疊: {len(overlap_analysis.get('functional_overlaps', []))} 個")
+            print(f"  全新項目: {len(overlap_analysis.get('new_items', []))} 個")
+            print(f"  已定義: {len(overlap_analysis.get('already_defined', []))} 個")
+
         # 生成報告
-        report_file = generate_new_repo_report(analysis, project_root)
+        report_file = generate_new_repo_report(analysis, project_root, args.generate_overlaps)
         print(f"\n報告已生成: {report_file}")
         print(f"\n下一步: 執行 /upstream-compare --new-repo {report_file.name}")
         return

@@ -185,6 +185,61 @@ upstream/reports/new-repos/eval-{repo-name}-{timestamp}.yaml
 | `repo.file_structure.commands` | Commands 列表 | 指令擴充 |
 | `repo.recent_commits` | 近期 commits | 活躍度與品質 |
 | `repo.summary.novel_structures` | 新架構偵測 | **重要！見下方說明** |
+| `repo.overlap_analysis` | 重疊偵測結果 | **重要！見下方說明** |
+
+#### 重疊偵測分析（重要）
+
+報告中的 `overlap_analysis`（需使用 `--detect-overlaps` 參數）：
+
+```yaml
+overlap_analysis:
+  # 名稱完全相同的項目
+  exact_matches:
+    - type: skills
+      name: tdd-workflow
+      local_name: tdd-workflow
+      similarity: 1.0
+
+  # 名稱相似的項目 (similarity > 0.7)
+  similar_names:
+    - type: skills
+      name: test-assistant
+      local_name: testing-guide
+      similarity: 0.85
+
+  # 功能關鍵字匹配
+  functional_overlaps:
+    - type: skills
+      name: testing-helper
+      category: tdd
+      local_similar: [testing-guide, tdd-workflow]
+
+  # 全新項目（無重疊）
+  new_items:
+    - type: skills
+      name: unique-skill
+
+  # 已在 overlaps.yaml 定義
+  already_defined:
+    - type: skills
+      name: commit-standards
+      note: 已在 overlaps.yaml 定義
+
+  # 建議的群組分類
+  suggested_groups:
+    tdd:
+      ecc:
+        - type: skills
+          name: testing-helper
+```
+
+**AI 分析時必須評估：**
+
+1. **完全匹配** - 這些是同名項目，需決定使用哪個版本
+2. **名稱相似** - 可能是功能相同但名稱不同，需比較內容
+3. **功能重疊** - 同類功能，需決定是否合併或選擇
+4. **全新項目** - 可直接整合，無衝突風險
+5. **建議群組** - 參考 suggested_groups 更新 overlaps.yaml
 
 #### 新架構/框架分析（重要）
 
