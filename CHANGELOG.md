@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **第三方資源目錄 (Third-Party Resource Catalog)**
+  - 新增 `third-party/` 目錄作為參考資源庫
+  - 提供專案資訊模板 (`templates/project-entry.md`)
+  - 提供評估檢查清單 (`templates/evaluation-checklist.md`)
+  - 收錄 wshobson/agents 專案資訊作為首個範例
+  - 在 README.md 和 openspec/project.md 中加入說明
+
 - **git-commit PR 模式**
   - 新增 `git-commit pr` 子指令，自動化建立 Pull Request 流程
   - 預設建立草稿 PR，使用 `--direct` 建立正式 PR
@@ -16,6 +23,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 支援 `--from` 和 `--range` 指定 commit 範圍
   - 自動生成 PR 標題與內文
   - 新增 `pr.md` 和 `pr-analyze.md` 模組
+
+### Fixed
+
+- **TUI Standards Profile 偵測邏輯修正**
+  - 修正 TUI 誤判專案為「未初始化」的問題
+  - 改用 `.standards/` 目錄與 `active-profile.yaml` 檔案判斷初始化狀態
+  - 不再依賴尚未實作的 `profiles/` 目錄
+
+### Changed
+
+- **Standards Profile 簡化為清單模式（臨時方案）**
+  - `list_profiles()` 函式改為從 `active-profile.yaml` 的 `available` 欄位讀取
+  - CLI 指令（`ai-dev standards status/list/switch/show`）均已更新
+  - 移除對 `profiles/*.yaml` 檔案的依賴
+  - 新增 `is_standards_initialized()` 函式統一初始化檢查邏輯
+
+- **TUI ECC Hooks 區塊簡化**
+  - 移除安裝狀態偵測功能
+  - 移除「Install/Update」、「Uninstall」和「View Config」按鈕
+  - 移除快捷鍵 `i`（安裝）、`u`（移除）和 `v`（檢視設定）
+  - 改為僅顯示安裝方式參考：`@plugins/ecc-hooks/README.md`
+  - 提供快速安裝指令：`claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"`
+
+### Known Limitations
+
+- **Profile 切換功能為臨時實作**
+  - 目前切換 profile 僅更新設定檔中的 `active` 欄位
+  - **不會載入不同的標準內容**（所有 profiles 使用相同的 UDS 標準）
+  - 完整的 Profile 架構（包含 `profiles/*.yaml` 定義檔案與標準來源切換）將在後續版本實作
+
+### Compatibility
+
+- CLI 指令完全向後相容，不影響現有使用者
+- TUI 移除的安裝功能可改用 CLI 指令或 `npx skills add` 完成
 
 ---
 

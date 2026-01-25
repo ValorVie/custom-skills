@@ -537,6 +537,15 @@ def _sync_to_project_directory(src_skills: Path) -> None:
     if not _is_custom_skills_project(project_root):
         return
 
+    # 防止在分發目錄中執行 clone 時自我複製
+    # 當專案目錄就是 ~/.config/custom-skills 時，跳過同步
+    custom_skills_dir = get_custom_skills_dir()
+    if project_root.resolve() == custom_skills_dir.resolve():
+        console.print(
+            f"[yellow]  跳過專案同步：當前目錄就是分發目錄 ({shorten_path(custom_skills_dir)})[/yellow]"
+        )
+        return
+
     console.print(f"[bold yellow]  偵測到 custom-skills 專案：{shorten_path(project_root)}[/bold yellow]")
 
     # Skills → Project
