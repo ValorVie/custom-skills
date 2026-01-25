@@ -1,0 +1,22 @@
+# ALL Profile - 全部啟用
+# 不禁用任何資源，適合想要完整功能的使用者
+
+name: all
+display_name: "All Features"
+description: "啟用所有功能，不禁用任何資源"
+version: "1.0.0"
+
+# 在重疊群組中的偏好（使用 all 作為特殊標記）
+overlap_preference: all
+
+# 啟用所有體系的獨有功能
+enable_exclusive:
+  uds: true
+  ecc: true
+  minimal: true
+
+# 不設定 enabled_groups，預設全部啟用
+
+# 無例外設定（全部都要）
+exceptions:
+  enable: []

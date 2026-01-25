@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.9.7] - 2026-01-25
+
 ### Added
+
+- **Profile 重疊檢測系統**
+  - 新增 `profiles/overlaps.yaml` 定義功能等效的資源群組
+  - 新增 `shared` 區塊定義所有 Profile 共用且強制啟用的資源
+  - 新增 `ai-dev standards overlaps` 指令顯示重疊定義
+  - 新增 `ai-dev standards sync` 指令同步檔案狀態
+  - 新增 `--dry-run` 參數預覽 profile 切換影響
+  - Profile 切換時自動停用重疊資源，保留手動停用項目與共用項目
+
+- **upstream-sync 重疊偵測整合**
+  - `analyze_upstream.py` 新增 `detect_overlaps()` 函式
+  - 新增 `--detect-overlaps` 和 `--generate-overlaps` CLI 參數
+  - 分析新 repo 時自動偵測與現有資源的重疊
+  - 報告包含 overlap_analysis 區塊與建議
+
+- **TUI Profile 預覽對話框**
+  - 在下拉選單切換 profile 前顯示預覽確認
+  - 顯示將停用的項目清單與手動保留項目
+  - 快捷鍵 `t` 循環切換時跳過預覽
 
 - **Plugin Marketplace 支援**
   - 新增 `.claude-plugin/marketplace.json` 設定檔
@@ -38,15 +61,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **TUI Standards Profile 偵測邏輯修正**
   - 修正 TUI 誤判專案為「未初始化」的問題
   - 改用 `.standards/` 目錄與 `active-profile.yaml` 檔案判斷初始化狀態
-  - 不再依賴尚未實作的 `profiles/` 目錄
+
+- **Profile 切換冗餘輸出修正**
+  - 批次停用/啟用資源時使用靜默模式
+  - 僅顯示摘要而非每個操作的個別訊息
 
 ### Changed
 
-- **Standards Profile 簡化為清單模式（臨時方案）**
-  - `list_profiles()` 函式改為從 `active-profile.yaml` 的 `available` 欄位讀取
-  - CLI 指令（`ai-dev standards status/list/switch/show`）均已更新
-  - 移除對 `profiles/*.yaml` 檔案的依賴
-  - 新增 `is_standards_initialized()` 函式統一初始化檢查邏輯
+- **Profile 系統完全重構**
+  - 從清單模式升級為基於重疊檢測的完整架構
+  - `profiles/` 目錄包含 `uds.yaml`, `ecc.yaml`, `minimal.yaml`, `overlaps.yaml`
+  - `switch_profile()` 函式基於 `overlaps.yaml` 計算需停用的項目
+  - `disabled.yaml` 新增 `_profile`, `_profile_disabled`, `_manual` 欄位追蹤來源
+  - 自動呼叫 `sync_resources()` 同步檔案狀態
 
 - **TUI ECC Hooks 區塊簡化**
   - 移除安裝狀態偵測功能
@@ -55,17 +82,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 改為僅顯示安裝方式參考：`@plugins/ecc-hooks/README.md`
   - 提供快速安裝指令：`claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"`
 
-### Known Limitations
-
-- **Profile 切換功能為臨時實作**
-  - 目前切換 profile 僅更新設定檔中的 `active` 欄位
-  - **不會載入不同的標準內容**（所有 profiles 使用相同的 UDS 標準）
-  - 完整的 Profile 架構（包含 `profiles/*.yaml` 定義檔案與標準來源切換）將在後續版本實作
-
 ### Compatibility
 
 - CLI 指令完全向後相容，不影響現有使用者
 - TUI 移除的安裝功能可改用 CLI 指令或 `npx skills add` 完成
+- `disabled.yaml` 向後相容，舊格式仍可讀取
 
 ---
 

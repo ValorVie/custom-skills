@@ -1,4 +1,4 @@
-active: uds
+active: all
 available:
 - uds
 - ecc
