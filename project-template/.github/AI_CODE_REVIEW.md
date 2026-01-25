@@ -192,6 +192,131 @@ on:
 
 ---
 
+## GitHub Action 設定注意事項
+
+### 1. 權限設定
+
+Claude Code Action 需要 **write** 權限才能在 PR 上發表評論：
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write  # ❌ read 無法發表評論
+  issues: read
+  id-token: write
+```
+
+**常見錯誤**：設定為 `pull-requests: read` 會導致 Claude 執行成功但無法發表評論。
+
+### 2. 工具授權
+
+Claude Code Action 預設不授權執行 Bash 等工具。若需要 Claude 使用 `gh` CLI 或其他命令，必須明確授權：
+
+```yaml
+- uses: anthropics/claude-code-action@v1
+  with:
+    claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    claude_args: |
+      --allowedTools Bash,Read,Write,Edit,Glob,Grep
+```
+
+**常見錯誤**：日誌顯示 `permission_denials` 表示工具被拒絕執行。
+
+### 3. Workflow 檔案驗證
+
+Claude Code Action 會驗證 **PR 分支** 與 **main 分支** 的 workflow 檔案必須相同。
+
+**錯誤訊息**：
+```
+Workflow validation failed. The workflow file must exist and have
+identical content to the version on the repository's default branch.
+```
+
+**解決方式**：
+1. 先將 workflow 變更合併到 main 分支
+2. 確保 PR 分支的 workflow 與 main 分支完全一致
+3. 然後重新觸發 PR
+
+### 4. Prompt 需明確指示發表評論
+
+Claude 不會自動發表 PR 評論，需要在 prompt 中明確指示：
+
+```yaml
+prompt: |
+  請審查此 Pull Request #${{ github.event.pull_request.number }}
+
+  ## 任務
+  1. 使用 `gh pr diff ${{ github.event.pull_request.number }}` 查看變更
+  2. 根據 .github/prompts/code-review.md 的標準進行審查
+  3. **重要**：審查完成後，必須使用以下命令發表評論：
+     ```
+     gh pr comment ${{ github.event.pull_request.number }} --body "你的審查結果"
+     ```
+```
+
+### 5. 完整 Workflow 範例
+
+```yaml
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  claude-review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # 必須是 write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            請審查此 Pull Request #${{ github.event.pull_request.number }}
+
+            審查完成後，使用 gh pr comment 發表評論。
+          claude_args: |
+            --allowedTools Bash,Read,Write,Edit,Glob,Grep
+```
+
+### 6. 除錯技巧
+
+#### 查看 Workflow 日誌
+
+```bash
+# 列出最近的 workflow runs
+gh run list --workflow=claude-code-review.yml
+
+# 查看特定 run 的日誌
+gh run view <run-id> --log
+
+# 搜尋錯誤訊息
+gh run view <run-id> --log 2>&1 | grep -E "(Error|error|denied|permission)"
+```
+
+#### 常見日誌訊息
+
+| 訊息 | 原因 | 解決方式 |
+|------|------|----------|
+| `permission_denials: [Bash...]` | 工具未授權 | 加入 `--allowedTools Bash` |
+| `Workflow validation failed` | Workflow 檔案不一致 | 同步 main 分支 |
+| `401 Unauthorized` | Token 問題 | 檢查 `CLAUDE_CODE_OAUTH_TOKEN` |
+| `success` 但無評論 | 未指示發表評論 | 修改 prompt |
+
+---
+
 ## 常見問題
 
 ### Q: 為什麼 Draft PR 沒有觸發 code review？
@@ -230,6 +355,38 @@ A: Claude 會在 PR 中以 comment 的形式提供評分報告，包含：
 - 綜合評分
 - 合併建議
 - Blocking Issues、Suggestions、Highlights
+
+### Q: Workflow 執行成功但沒有 PR 評論？
+
+A: 可能有以下原因：
+
+1. **權限不足**：檢查 `pull-requests` 權限是否為 `write`
+2. **工具未授權**：檢查是否有 `--allowedTools Bash`
+3. **Prompt 未指示**：確保 prompt 中有明確指示使用 `gh pr comment` 發表評論
+
+查看日誌確認：
+```bash
+gh run view <run-id> --log 2>&1 | grep "permission_denials"
+```
+
+### Q: 出現 "Workflow validation failed" 錯誤？
+
+A: Claude Code Action 要求 PR 分支和 main 分支的 workflow 檔案必須相同。解決方式：
+
+1. 先將 workflow 變更合併/cherry-pick 到 main 分支
+2. 推送 main 分支
+3. 重新觸發 PR（關閉再開啟，或推送新 commit）
+
+### Q: 如何授權 Claude 執行特定工具？
+
+A: 使用 `claude_args` 參數：
+
+```yaml
+claude_args: |
+  --allowedTools Bash,Read,Write,Edit,Glob,Grep
+```
+
+可用工具列表：`Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebFetch`, `WebSearch` 等。
 
 ---
 
