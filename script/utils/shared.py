@@ -454,22 +454,95 @@ def copy_sources_to_custom_skills() -> None:
                     shutil.copy2(cmd_file, dst_commands_claude / cmd_file.name)
 
 
-def _copy_with_log(src: Path, dst: Path, resource_type: str, target_name: str) -> None:
-    """複製目錄並輸出帶路徑的日誌。"""
+def _copy_with_log(
+    src: Path,
+    dst: Path,
+    resource_type: str,
+    target_name: str,
+    tracker: "ManifestTracker | None" = None,
+    skip_names: set[str] | None = None,
+) -> None:
+    """複製目錄並輸出帶路徑的日誌。
+
+    Args:
+        src: 來源目錄
+        dst: 目標目錄
+        resource_type: 資源類型 (skills, commands, agents, workflows)
+        target_name: 目標平台名稱
+        tracker: ManifestTracker 實例（用於記錄已複製的檔案）
+        skip_names: 要跳過的資源名稱集合（用於衝突跳過）
+    """
     if not src.exists():
         return
+
     console.print(f"  [green]{resource_type}[/green] → [cyan]{target_name}[/cyan]")
     console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
     dst.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(src, dst, dirs_exist_ok=True)
+
+    # 如果有 tracker，需要逐一記錄
+    if tracker is not None:
+        record_method = {
+            "skills": tracker.record_skill,
+            "commands": tracker.record_command,
+            "agents": tracker.record_agent,
+            "workflows": tracker.record_workflow,
+        }.get(resource_type)
+
+        if resource_type == "skills":
+            # Skills 是目錄結構
+            for item in src.iterdir():
+                if item.is_dir() and not item.name.startswith("."):
+                    if skip_names and item.name in skip_names:
+                        console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")
+                        continue
+                    dst_item = dst / item.name
+                    shutil.copytree(item, dst_item, dirs_exist_ok=True)
+                    if record_method:
+                        record_method(item.name, item)
+        else:
+            # Commands, Agents, Workflows 是 .md 檔案
+            for item in src.iterdir():
+                if item.is_file() and item.suffix == ".md":
+                    name = item.stem
+                    if skip_names and name in skip_names:
+                        console.print(f"    [yellow]跳過（衝突）: {name}[/yellow]")
+                        continue
+                    dst_item = dst / item.name
+                    shutil.copy2(item, dst_item)
+                    if record_method:
+                        record_method(name, item)
+    else:
+        # 無 tracker，直接複製整個目錄
+        shutil.copytree(src, dst, dirs_exist_ok=True)
 
 
-def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
+def copy_custom_skills_to_targets(
+    sync_project: bool = True,
+    force: bool = False,
+    skip_conflicts: bool = False,
+    backup: bool = False,
+) -> None:
     """Stage 3: 將 custom-skills 分發到各工具目錄。
 
     Args:
         sync_project: 是否同步到專案目錄（預設為 True）
+        force: 強制覆蓋所有衝突
+        skip_conflicts: 跳過有衝突的檔案
+        backup: 備份衝突檔案後覆蓋
     """
+    from .manifest import (
+        ManifestTracker,
+        read_manifest,
+        write_manifest,
+        detect_conflicts,
+        display_conflicts,
+        prompt_conflict_action,
+        find_orphans,
+        cleanup_orphans,
+        backup_file,
+        get_project_version,
+    )
+
     console.print("[bold cyan]Stage 3: 分發到各工具目錄...[/bold cyan]")
 
     # 來源路徑
@@ -482,41 +555,146 @@ def copy_custom_skills_to_targets(sync_project: bool = True) -> None:
     src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
     src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
 
-    # 1. Claude Code
-    dst_claude_skills = COPY_TARGETS["claude"]["skills"]
-    dst_claude_commands = COPY_TARGETS["claude"]["commands"]
-    dst_claude_agents = COPY_TARGETS["claude"]["agents"]
-    dst_claude_workflows = COPY_TARGETS["claude"]["workflows"]
-    _copy_with_log(src_skills, dst_claude_skills, "skills", "Claude Code")
-    _copy_with_log(src_cmd_claude, dst_claude_commands, "commands", "Claude Code")
-    _copy_with_log(src_agents_claude, dst_claude_agents, "agents", "Claude Code")
-    _copy_with_log(src_cmd_workflows, dst_claude_workflows, "workflows", "Claude Code")
+    # 定義各平台的分發配置
+    platform_configs = {
+        "claude": {
+            "name": "Claude Code",
+            "resources": [
+                ("skills", src_skills, COPY_TARGETS["claude"]["skills"]),
+                ("commands", src_cmd_claude, COPY_TARGETS["claude"]["commands"]),
+                ("agents", src_agents_claude, COPY_TARGETS["claude"]["agents"]),
+                ("workflows", src_cmd_workflows, COPY_TARGETS["claude"]["workflows"]),
+            ],
+        },
+        "antigravity": {
+            "name": "Antigravity",
+            "resources": [
+                ("skills", src_skills, COPY_TARGETS["antigravity"]["skills"]),
+                ("workflows", src_cmd_antigravity, COPY_TARGETS["antigravity"]["workflows"]),
+            ],
+        },
+        "opencode": {
+            "name": "OpenCode",
+            "resources": [
+                ("skills", src_skills, COPY_TARGETS["opencode"]["skills"]),
+                ("commands", src_cmd_opencode, COPY_TARGETS["opencode"]["commands"]),
+                ("agents", src_agents_opencode, COPY_TARGETS["opencode"]["agents"]),
+            ],
+        },
+        "codex": {
+            "name": "Codex",
+            "resources": [
+                ("skills", src_skills, COPY_TARGETS["codex"]["skills"]),
+            ],
+        },
+        "gemini": {
+            "name": "Gemini CLI",
+            "resources": [
+                ("skills", src_skills, COPY_TARGETS["gemini"]["skills"]),
+                ("commands", src_cmd_gemini, COPY_TARGETS["gemini"]["commands"]),
+            ],
+        },
+    }
 
-    # 2. Antigravity
-    dst_antigravity_skills = COPY_TARGETS["antigravity"]["skills"]
-    dst_antigravity_workflows = COPY_TARGETS["antigravity"]["workflows"]
-    _copy_with_log(src_skills, dst_antigravity_skills, "skills", "Antigravity")
-    _copy_with_log(src_cmd_antigravity, dst_antigravity_workflows, "workflows", "Antigravity")
+    version = get_project_version()
 
-    # 3. OpenCode
-    dst_opencode_skills = COPY_TARGETS["opencode"]["skills"]
-    dst_opencode_commands = COPY_TARGETS["opencode"]["commands"]
-    dst_opencode_agents = COPY_TARGETS["opencode"]["agents"]
-    _copy_with_log(src_skills, dst_opencode_skills, "skills", "OpenCode")
-    _copy_with_log(src_cmd_opencode, dst_opencode_commands, "commands", "OpenCode")
-    _copy_with_log(src_agents_opencode, dst_opencode_agents, "agents", "OpenCode")
+    # 對每個平台執行分發
+    for target, config in platform_configs.items():
+        target_name = config["name"]
 
-    # 4. Codex
-    dst_codex_skills = COPY_TARGETS["codex"]["skills"]
-    _copy_with_log(src_skills, dst_codex_skills, "skills", "Codex")
+        # 1. 讀取舊 manifest
+        old_manifest = read_manifest(target)
 
-    # 5. Gemini CLI
-    dst_gemini_skills = COPY_TARGETS["gemini"]["skills"]
-    dst_gemini_commands = COPY_TARGETS["gemini"]["commands"]
-    _copy_with_log(src_skills, dst_gemini_skills, "skills", "Gemini CLI")
-    _copy_with_log(src_cmd_gemini, dst_gemini_commands, "commands", "Gemini CLI")
+        # 2. 建立 tracker 並預先掃描要分發的檔案
+        tracker = ManifestTracker(target=target)
 
-    # 6. 專案目錄同步
+        # 先掃描所有要分發的檔案以建立 tracker（用於衝突檢測）
+        # 資源類型到方法名的映射
+        record_method_map = {
+            "skills": tracker.record_skill,
+            "commands": tracker.record_command,
+            "agents": tracker.record_agent,
+            "workflows": tracker.record_workflow,
+        }
+
+        for resource_type, src, dst in config["resources"]:
+            if not src.exists():
+                continue
+            record_method = record_method_map.get(resource_type)
+            if resource_type == "skills":
+                for item in src.iterdir():
+                    if item.is_dir() and not item.name.startswith("."):
+                        if record_method:
+                            record_method(item.name, item)
+            else:
+                for item in src.iterdir():
+                    if item.is_file() and item.suffix == ".md":
+                        if record_method:
+                            record_method(item.stem, item)
+
+        # 3. 檢測衝突
+        conflicts = detect_conflicts(target, old_manifest, tracker)
+        skip_names: set[str] = set()
+
+        if conflicts:
+            # 決定衝突處理方式
+            if force:
+                action = "force"
+            elif skip_conflicts:
+                action = "skip"
+            elif backup:
+                action = "backup"
+            else:
+                # 互動式詢問
+                display_conflicts(conflicts)
+                action = prompt_conflict_action()
+
+            if action == "abort":
+                console.print("[yellow]已取消分發[/yellow]")
+                return
+            elif action == "skip":
+                skip_names = {c.name for c in conflicts}
+                console.print(f"[yellow]跳過 {len(skip_names)} 個衝突檔案[/yellow]")
+            elif action == "backup":
+                console.print("[cyan]備份衝突檔案...[/cyan]")
+                for conflict in conflicts:
+                    backup_file(target, conflict.resource_type, conflict.name)
+
+        # 4. 重新建立 tracker（因為可能有跳過的檔案）
+        tracker = ManifestTracker(target=target)
+
+        # 5. 執行複製並記錄
+        for resource_type, src, dst in config["resources"]:
+            _copy_with_log(
+                src, dst, resource_type, target_name,
+                tracker=tracker,
+                skip_names=skip_names if resource_type in ["skills", "commands", "agents", "workflows"] else None,
+            )
+
+        # 6. 產生新 manifest
+        new_manifest = tracker.to_manifest(version)
+
+        # 7. 處理跳過的衝突檔案
+        # 跳過的檔案應保留在 manifest 中（保留舊 hash），這樣下次分發仍可檢測衝突
+        if skip_names and old_manifest:
+            old_files = old_manifest.get("files", {})
+            for resource_type in ["skills", "commands", "agents", "workflows"]:
+                for name in skip_names:
+                    if name in old_files.get(resource_type, {}):
+                        # 保留舊的 hash 到新 manifest
+                        if resource_type not in new_manifest["files"]:
+                            new_manifest["files"][resource_type] = {}
+                        new_manifest["files"][resource_type][name] = old_files[resource_type][name]
+
+        # 8. 清理孤兒檔案
+        # 注意：跳過的衝突檔案不應被視為孤兒（因為已在步驟 7 中加回 manifest）
+        orphans = find_orphans(old_manifest, new_manifest)
+        cleanup_orphans(target, orphans)
+
+        # 9. 寫入新 manifest
+        write_manifest(target, new_manifest)
+
+    # 專案目錄同步（不使用 manifest 追蹤）
     if sync_project:
         _sync_to_project_directory(src_skills)
 
@@ -587,7 +765,12 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         shutil.copytree(src_agents_all, dst_project_agents, dirs_exist_ok=True)
 
 
-def copy_skills(sync_project: bool = True) -> None:
+def copy_skills(
+    sync_project: bool = True,
+    force: bool = False,
+    skip_conflicts: bool = False,
+    backup: bool = False,
+) -> None:
     """將 ~/.config/custom-skills 分發到各工具目錄。
 
     流程說明：
@@ -600,9 +783,17 @@ def copy_skills(sync_project: bool = True) -> None:
 
     Args:
         sync_project: 是否同步到專案目錄（預設為 True，僅對開發目錄有效）
+        force: 強制覆蓋所有衝突
+        skip_conflicts: 跳過有衝突的檔案
+        backup: 備份衝突檔案後覆蓋
     """
     # Stage 3: 分發到目標目錄
-    copy_custom_skills_to_targets(sync_project=sync_project)
+    copy_custom_skills_to_targets(
+        sync_project=sync_project,
+        force=force,
+        skip_conflicts=skip_conflicts,
+        backup=backup,
+    )
 
 
 def integrate_to_dev_project(dev_project_root: Path) -> None:

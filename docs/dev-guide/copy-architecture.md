@@ -56,7 +56,7 @@ upstream/
 └── superpowers/
 ```
 
-使用 `/upstream-sync` skill 進行上游同步分析與審核。
+使用 `/custom-skills-upstream-sync` skill 進行上游同步分析與審核。
 
 ---
 

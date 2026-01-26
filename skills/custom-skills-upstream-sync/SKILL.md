@@ -1,5 +1,5 @@
 ---
-name: upstream-sync
+name: custom-skills-upstream-sync
 description: |
   Sync upstream third-party repositories and generate diff reports for review.
   Use when: checking for upstream updates, syncing third-party resources, reviewing changes before merging.
@@ -15,16 +15,16 @@ description: |
 
 ```bash
 # 分析所有上游 repo，生成報告
-python skills/upstream-sync/scripts/analyze_upstream.py
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py
 
 # 只分析特定 repo
-python skills/upstream-sync/scripts/analyze_upstream.py --source superpowers
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --source superpowers
 
 # 分析並更新同步狀態
-python skills/upstream-sync/scripts/analyze_upstream.py --update-sync
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --update-sync
 
 # 評估新的本地 repo（全量分析）
-python skills/upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/some-new-repo
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/some-new-repo
 ```
 
 ## 功能
@@ -159,7 +159,7 @@ upstream/
 ai-dev update --skip-npm
 
 # 2. 分析變更
-python skills/upstream-sync/scripts/analyze_upstream.py
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py
 
 # 3. AI 分析報告
 /upstream-compare
@@ -172,7 +172,7 @@ python skills/upstream-sync/scripts/analyze_upstream.py
 git clone https://github.com/someone/awesome-skills ~/.config/awesome-skills
 
 # 2. 執行評估
-python skills/upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/awesome-skills
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/awesome-skills
 
 # 3. AI 分析評估報告
 /upstream-compare --new-repo eval-awesome-skills-*.yaml
@@ -184,7 +184,7 @@ python skills/upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/awe
 
 ```bash
 # 1. 分析特定 repo
-python skills/upstream-sync/scripts/analyze_upstream.py --source superpowers
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --source superpowers
 
 # 2. 使用 /upstream-compare 生成 AI 分析報告
 
@@ -192,7 +192,7 @@ python skills/upstream-sync/scripts/analyze_upstream.py --source superpowers
 /openspec:proposal integrate-superpowers-skills
 
 # 4. 完成後更新同步狀態
-python skills/upstream-sync/scripts/analyze_upstream.py --update-sync
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --update-sync
 ```
 
 ## 相關指令

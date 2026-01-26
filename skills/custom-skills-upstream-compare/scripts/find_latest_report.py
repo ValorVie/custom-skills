@@ -2,7 +2,7 @@
 """
 Find Latest Upstream Report
 
-輔助工具：找到最新的 upstream-sync 報告並輸出路徑。
+輔助工具：找到最新的 custom-skills-upstream-sync 報告並輸出路徑。
 """
 
 import sys
@@ -40,8 +40,8 @@ def main():
     if latest:
         print(latest)
     else:
-        print("No report found. Run upstream-sync first:", file=sys.stderr)
-        print("  python skills/upstream-sync/scripts/analyze_upstream.py", file=sys.stderr)
+        print("No report found. Run custom-skills-upstream-sync first:", file=sys.stderr)
+        print("  python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py", file=sys.stderr)
         sys.exit(1)
 
 

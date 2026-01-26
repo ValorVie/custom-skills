@@ -107,7 +107,7 @@ sources/ecc/
 | `/build-fix` | 迭代修復建置錯誤 |
 | `/e2e` | 產生並執行 E2E 測試 |
 | `/learn` | 從會話萃取模式 |
-| `/test-coverage` | 分析測試覆蓋率 |
+| `/coverage --generate` | 分析測試覆蓋率並生成測試（原 /test-coverage 已整合） |
 | `/eval` | Eval-driven development 工作流程 |
 
 ## MCP 配置

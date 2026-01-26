@@ -239,7 +239,7 @@ def generate_diff_report(updates: dict, project_root: Path) -> Path:
 
     lines.append("\n## Next Steps\n")
     lines.append("1. Review changes above")
-    lines.append("2. Run `/upstream-sync --assess` for integration assessment")
+    lines.append("2. Run `/custom-skills-upstream-sync --assess` for integration assessment")
     lines.append("3. Use `/upstream-compare` for deep quality analysis")
 
     with open(report_file, "w", encoding="utf-8") as f:

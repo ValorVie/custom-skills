@@ -512,6 +512,27 @@ do you have superpowers?
 # 安裝 Ralph Loop (選用，用於批次任務)
 /plugin install ralph-loop@anthropics
 
+# 安裝 custom-skills ecc-hooks 插件
+/plugin marketplace add https://github.com/ValorVie/custom-skills.git
+/plugin install ecc-hooks@custom-skills
+
+# 安裝更多插件（選用）
+/plugin marketplace add wshobson/agents
+# 1. 瀏覽可用插件 (共 72 個分類)
+/plugin list
+
+# 2. 安裝特定插件 (例如: Python 開發)
+/plugin install python-development
+# 這會自動載入 3 個代理 + 5 個技能
+
+# 3. 安裝 K8s 相關功能
+/plugin install kubernetes-operations
+# 這會載入 K8s 專家代理 + 4 個技能
+
+# 4. 驗證安裝
+/agents  # 查看已載入的代理
+
+
 # 驗證安裝
 /help
 ```
@@ -1319,7 +1340,7 @@ v0.6.0 新增 Everything Claude Code 資源整合，提供進階的 Claude Code 
 | **Hooks** | Python 跨平台 hooks（memory-persistence, strategic-compact） |
 | **Skills** | continuous-learning, eval-harness, security-review, tdd-workflow |
 | **Agents** | build-error-resolver, e2e-runner, doc-updater, security-reviewer |
-| **Commands** | /checkpoint, /build-fix, /e2e, /learn, /test-coverage, /eval |
+| **Commands** | /checkpoint, /build-fix, /e2e, /learn, /coverage, /eval |
 
 詳見 `sources/ecc/README.md`。
 
@@ -1367,7 +1388,7 @@ ai-dev standards sync
 
 ```shell
 # 使用 Skills 進行上游審核
-/upstream-sync      # 生成結構化分析報告
+/custom-skills-upstream-sync      # 生成結構化分析報告
 /upstream-compare   # AI 生成整合建議
 ```
 

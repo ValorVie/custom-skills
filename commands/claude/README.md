@@ -26,7 +26,7 @@ Commands for development workflow automation.
 | Command | Description | 說明 |
 |---------|-------------|------|
 | [`/commit`](./commit.md) | Generate conventional commit messages | 產生 commit message |
-| [`/git-commit`](./git-commit.md) | Full git workflow (sync, commit, push, PR) | 完整 Git 工作流 |
+| [`/custom-skills-git-commit`](./custom-skills-git-commit.md) | Full git workflow (sync, commit, push, PR) | 完整 Git 工作流 |
 | [`/review`](./review.md) | Perform systematic code review | 執行程式碼審查 |
 | [`/release`](./release.md) | Guide through release process | 引導發布流程 |
 | [`/changelog`](./changelog.md) | Update CHANGELOG.md | 更新 CHANGELOG |
@@ -42,7 +42,7 @@ Commands for development workflow automation.
 | [`/derive-tdd`](./derive-tdd.md) | Derive TDD test skeletons from spec | 從規格推演 TDD 骨架 |
 | [`/derive-atdd`](./derive-atdd.md) | (Optional) Derive ATDD acceptance tests | （可選）推演 ATDD 測試 |
 | [`/derive-all`](./derive-all.md) | Derive all test structures from spec | 從規格推演完整測試結構 |
-| [`/upstream-sync`](./upstream-sync.md) | Sync and analyze upstream repos | 上游同步與分析 |
+| [`/custom-skills-upstream-sync`](./custom-skills-upstream-sync.md) | Sync and analyze upstream repos | 上游同步與分析 |
 
 ### Methodology | 方法論
 
@@ -88,7 +88,7 @@ Commands from Everything Claude Code integration.
 | [`/build-fix`](./build-fix.md) | Iteratively fix build errors | 迭代修復建置錯誤 |
 | [`/e2e`](./e2e.md) | Generate and run E2E tests | 產生並執行 E2E 測試 |
 | [`/learn`](./learn.md) | Extract patterns from session | 從會話萃取模式 |
-| [`/test-coverage`](./test-coverage.md) | Analyze test coverage gaps | 分析測試覆蓋率 |
+| `/coverage --generate` | Analyze coverage and generate tests | 分析覆蓋率並生成測試 |
 | [`/eval`](./eval.md) | Eval-driven development workflow | Eval 驅動開發流程 |
 
 ## Commands vs Skills | 命令與技能

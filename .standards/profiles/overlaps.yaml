@@ -21,7 +21,7 @@ shared:
   description: "所有 Profile 共用的資源（不受切換影響）"
   skills:
     - custom-skills-dev
-    - git-commit-custom
+    - custom-skills-git-commit
     - custom-skills-doc-updater
     - custom-skills-upstream-compare
     - custom-skills-upstream-sync
@@ -29,7 +29,7 @@ shared:
     # - anti-hallucination.ai.yaml
     # - ai-instruction-standards.ai.yaml
   commands:
-    - git-commit
+    - custom-skills-git-commit
   agents:
     # 所有體系共用的 agents（已合併）
     # - reviewer

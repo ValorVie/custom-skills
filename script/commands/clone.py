@@ -56,6 +56,24 @@ def clone(
         "--sync-project/--no-sync-project",
         help="是否同步到專案目錄（預設：是）。開發者可用此選項整合外部來源到開發目錄。",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="強制覆蓋所有衝突檔案（不提示）。",
+    ),
+    skip_conflicts: bool = typer.Option(
+        False,
+        "--skip-conflicts",
+        "-s",
+        help="跳過有衝突的檔案，僅分發無衝突的檔案。",
+    ),
+    backup: bool = typer.Option(
+        False,
+        "--backup",
+        "-b",
+        help="備份衝突檔案後再覆蓋。",
+    ),
 ):
     """分發 Skills 到各工具目錄。
 
@@ -103,6 +121,11 @@ def clone(
         raise typer.Exit(code=1)
 
     # 執行分發（sync_project=False 因為專案同步已在上面處理）
-    copy_skills(sync_project=False)
+    copy_skills(
+        sync_project=False,
+        force=force,
+        skip_conflicts=skip_conflicts,
+        backup=backup,
+    )
 
     console.print("[bold green]分發完成！[/bold green]")
