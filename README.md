@@ -463,7 +463,7 @@ ECC 提供進階的 Claude Code 工作流程工具：
 - **Hooks**: Python 跨平台 hooks（memory-persistence, strategic-compact）
 - **Skills**: continuous-learning, eval-harness, security-review, tdd-workflow
 - **Agents**: build-error-resolver, e2e-runner, doc-updater, security-reviewer
-- **Commands**: /checkpoint, /build-fix, /e2e, /learn, /test-coverage, /eval
+- **Commands**: /checkpoint, /build-fix, /e2e, /learn, /coverage, /eval
 
 詳見 `sources/ecc/README.md`。
 
@@ -511,7 +511,7 @@ ai-dev standards sync
 
 ```bash
 # 使用 Skills 進行上游審核
-/upstream-sync      # 生成結構化分析報告
+/custom-skills-upstream-sync      # 生成結構化分析報告
 /upstream-compare   # AI 生成整合建議
 ```
 

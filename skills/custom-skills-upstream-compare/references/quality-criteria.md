@@ -4,7 +4,7 @@
 
 ### 建議等級評分標準
 
-upstream-sync 使用以下評分機制決定 `recommendation` 等級：
+custom-skills-upstream-sync 使用以下評分機制決定 `recommendation` 等級：
 
 ```python
 score = 0

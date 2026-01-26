@@ -58,7 +58,7 @@ repos:
 # 上游整合分析報告
 
 **分析日期**: YYYY-MM-DD
-**報告來源**: upstream-sync 結構化報告
+**報告來源**: custom-skills-upstream-sync 結構化報告
 
 ---
 
@@ -174,12 +174,12 @@ repos:
 /openspec:proposal upstream-integration-[repo-name]
 
 # 完成整合後更新同步狀態
-python skills/upstream-sync/scripts/analyze_upstream.py --update-sync
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --update-sync
 ```
 
 ---
 
-*此報告由 upstream-compare skill 生成，基於 upstream-sync 結構化數據*
+*此報告由 upstream-compare skill 生成，基於 custom-skills-upstream-sync 結構化數據*
 ```
 
 ## Analysis Guidelines

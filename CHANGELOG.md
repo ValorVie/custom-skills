@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **專案專屬工具前綴統一** (**BREAKING CHANGE**)
+  - Skills 重命名：
+    - `git-commit-custom` → `custom-skills-git-commit`
+    - `tool-overlap-analyzer` → `custom-skills-tool-overlap-analyzer`
+    - `upstream-sync` (name 欄位) → `custom-skills-upstream-sync`
+  - Commands 重命名：
+    - `/git-commit` → `/custom-skills-git-commit`
+    - `/upstream-sync` → `/custom-skills-upstream-sync`
+  - **遷移指引**：
+    - `/git-commit` → `/custom-skills-git-commit`
+    - `/upstream-sync` → `/custom-skills-upstream-sync`
+
+- **`/coverage` 命令整合**
+  - 新增 `--generate` / `-g` 參數，用於生成缺失的測試檔案
+  - 預設模式（無參數）僅分析覆蓋率並提供建議
+  - 生成模式（`--generate`）會分析並生成測試骨架
+
+- **`tool-overlap-analyzer` Skill 更新**
+  - 新增 Step 3.5: Cross-Reference Analysis（合併/移除工具前檢查引用）
+
+### Removed
+
+- **`/test-coverage` 命令移除** (**BREAKING CHANGE**)
+  - 功能已整合至 `/coverage --generate`
+  - **遷移指引**：使用者請改用 `/coverage --generate` 取代 `/test-coverage`
+
 ### Added
 
 - **OpenSpec 實驗性工作流 (OPSX)**

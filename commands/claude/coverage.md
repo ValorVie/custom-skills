@@ -1,7 +1,7 @@
 ---
-description: Analyze test coverage and provide recommendations
-allowed-tools: Read, Grep, Glob, Bash(npm run test:coverage:*), Bash(npx:*)
-argument-hint: "[file or module to analyze | 要分析的檔案或模組]"
+description: Analyze test coverage and provide recommendations. Use --generate to create missing tests.
+allowed-tools: Read, Grep, Glob, Bash(npm run test:coverage:*), Bash(npx:*), Write, Edit
+argument-hint: "[file or module to analyze | 要分析的檔案或模組] [--generate | -g]"
 ---
 
 # Test Coverage Assistant | 測試覆蓋率助手
@@ -49,9 +49,35 @@ Analyze test coverage across multiple dimensions and provide actionable recommen
 
 ## Usage | 使用方式
 
-- `/coverage` - Run full coverage analysis
+- `/coverage` - Run coverage analysis (default mode)
 - `/coverage src/auth` - Analyze specific module
 - `/coverage --recommend` - Get test recommendations
+- `/coverage --generate` or `/coverage -g` - Analyze and generate missing tests
+
+## Generate Mode | 生成模式
+
+When `--generate` or `-g` flag is provided:
+
+當使用 `--generate` 或 `-g` 參數時：
+
+1. Run tests with coverage: `npm test --coverage` or `pnpm test --coverage`
+2. Analyze coverage report (coverage/coverage-summary.json)
+3. Identify files below 80% coverage threshold
+4. For each under-covered file:
+   - Analyze untested code paths
+   - Generate unit tests for functions
+   - Generate integration tests for APIs
+   - Generate E2E tests for critical flows
+5. Verify new tests pass
+6. Show before/after coverage metrics
+7. Ensure project reaches 80%+ overall coverage
+
+### Focus Areas | 聚焦點
+
+- Happy path scenarios
+- Error handling
+- Edge cases (null, undefined, empty)
+- Boundary conditions
 
 ## Reference | 參考
 

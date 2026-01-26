@@ -1,21 +1,21 @@
 ---
 name: upstream-compare
 description: |
-  Generate AI-powered analysis reports from upstream-sync structured data.
+  Generate AI-powered analysis reports from custom-skills-upstream-sync structured data.
   Use when: reviewing upstream changes, generating integration recommendations, preparing merge decisions, evaluating new repos.
   Triggers: "compare upstream", "analyze upstream report", "upstream compare", "generate recommendations", "upstream analysis", "上游比較", "分析上游報告".
 ---
 
 # Upstream Compare | 上游比較
 
-讀取 upstream-sync 生成的結構化報告，使用 AI 生成自然語言分析與整合建議。
+讀取 custom-skills-upstream-sync 生成的結構化報告，使用 AI 生成自然語言分析與整合建議。
 支援分析已註冊 repo 的更新，或評估全新 repo 的整合價值。
 
 ## Quick Start
 
 ```bash
-# 前置作業：先執行 upstream-sync 生成報告
-python skills/upstream-sync/scripts/analyze_upstream.py
+# 前置作業：先執行 custom-skills-upstream-sync 生成報告
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py
 
 # 然後讓 AI 分析報告
 /upstream-compare
@@ -33,7 +33,7 @@ python skills/upstream-sync/scripts/analyze_upstream.py
 │                    Upstream Compare Workflow                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. [前置] upstream-sync                                         │
+│  1. [前置] custom-skills-upstream-sync                                         │
 │     └── 生成 upstream/reports/structured/analysis-*.yaml        │
 │                          ↓                                       │
 │  2. AI 讀取結構化報告                                            │
@@ -60,7 +60,7 @@ python skills/upstream-sync/scripts/analyze_upstream.py
 │                    New Repo Evaluation Workflow                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. [前置] upstream-sync --new-repo /path/to/repo               │
+│  1. [前置] custom-skills-upstream-sync --new-repo /path/to/repo               │
 │     └── 生成 upstream/reports/new-repos/eval-*.yaml             │
 │                          ↓                                       │
 │  2. AI 讀取評估報告                                              │
@@ -485,8 +485,8 @@ risks:
 
 ## Related Commands
 
-- `/upstream-sync` - 生成結構化分析報告（前置步驟）
-- `/upstream-sync --new-repo` - 評估新的本地 repo
+- `/custom-skills-upstream-sync` - 生成結構化分析報告（前置步驟）
+- `/custom-skills-upstream-sync --new-repo` - 評估新的本地 repo
 - `/openspec:proposal` - 建立整合提案
 - `ai-dev update` - 拉取上游最新內容
 - `ai-dev clone` - 分發 skills 到各工具目錄
