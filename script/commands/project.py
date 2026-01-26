@@ -31,15 +31,19 @@ def _remove_readonly(path: Path) -> None:
     """移除檔案或目錄的唯讀屬性（遞迴處理目錄）。"""
     path = Path(path)
     if path.is_file():
-        os.chmod(path, stat.S_IWUSR | stat.S_IRUSR)
+        os.chmod(path, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)  # 644
     elif path.is_dir():
         for item in path.rglob("*"):
             try:
-                os.chmod(item, stat.S_IWUSR | stat.S_IRUSR)
+                if item.is_dir():
+                    # 目錄需要 execute 權限才能進入和刪除內容
+                    os.chmod(item, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)  # 755
+                else:
+                    os.chmod(item, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)  # 644
             except (OSError, PermissionError):
                 pass
         try:
-            os.chmod(path, stat.S_IWUSR | stat.S_IRUSR)
+            os.chmod(path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)  # 755
         except (OSError, PermissionError):
             pass
 
