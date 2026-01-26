@@ -2,8 +2,8 @@
 
 > **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/release-standards/release-workflow.md)
 
-**Version**: 2.0.0
-**Last Updated**: 2026-01-14
+**Version**: 2.2.0
+**Last Updated**: 2026-01-26
 **Applicability**: All software projects using semantic versioning
 
 ---
@@ -70,31 +70,28 @@ This document provides a universal release workflow guide applicable to any soft
 
 ## Standard Release Workflow
 
-### Step 1: Pre-release Checks
+> **Workflow Philosophy**: Version first, then validate. Update version before testing to ensure validation runs against the exact release version.
+
+### Step 1: Prepare Release Branch
 
 ```bash
 # Ensure you're on the main branch and up to date
 git checkout main
 git pull origin main
 
-# Run tests
-npm test  # or your project's test command
-
-# Run linting
-npm run lint  # or your project's lint command
-
-# Check git status
-git status  # Should be clean
+# Check git status (should be clean)
+git status
 ```
 
 ### Step 2: Update Version
 
 ```bash
 # For npm projects
-npm version X.Y.Z        # Stable
-npm version X.Y.Z-beta.N # Beta
+npm version X.Y.Z --no-git-tag-version        # Stable
+npm version X.Y.Z-beta.N --no-git-tag-version # Beta
 
 # For other projects, update version file manually
+# Update all project-specific version files (see CLAUDE.md)
 ```
 
 ### Step 3: Update CHANGELOG
@@ -102,8 +99,6 @@ npm version X.Y.Z-beta.N # Beta
 Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) format:
 
 ```markdown
-## [Unreleased]
-
 ## [X.Y.Z] - YYYY-MM-DD
 
 ### Added
@@ -116,7 +111,39 @@ Update `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) 
 - Bug fix descriptions
 ```
 
-### Step 4: Commit and Tag
+For beta releases, add a warning:
+
+```markdown
+## [X.Y.Z-beta.N] - YYYY-MM-DD
+
+> ⚠️ **Beta Release**: For testing. Install with `npm install <package>@beta`
+```
+
+### Step 4: Run All Tests
+
+```bash
+# Run automated tests
+npm test  # or your project's test command
+
+# Run linting
+npm run lint  # or your project's lint command
+
+# Run pre-release checks (if available)
+./scripts/pre-release-check.sh  # or .\scripts\pre-release-check.ps1
+```
+
+### Step 5: Manual Verification
+
+Before proceeding, manually verify:
+
+- [ ] **Build verification**: Application builds successfully
+- [ ] **Smoke test**: Core functionality works as expected
+- [ ] **Version display**: Version number is displayed correctly
+- [ ] **For beta**: Known issues documented in CHANGELOG
+
+> ⚠️ **Stop here if any verification fails.** Fix issues before proceeding.
+
+### Step 6: Commit and Tag
 
 ```bash
 # Commit changes
@@ -128,7 +155,7 @@ git tag vX.Y.Z
 git push origin main --tags
 ```
 
-### Step 5: Create Release
+### Step 7: Create Release
 
 Create a GitHub/GitLab release:
 - Tag: `vX.Y.Z`
@@ -136,7 +163,7 @@ Create a GitHub/GitLab release:
 - Mark as pre-release if beta/alpha/rc
 - Add release notes from CHANGELOG
 
-### Step 6: Verify Publication
+### Step 8: Verify Publication
 
 ```bash
 # For npm packages
@@ -144,6 +171,9 @@ npm view <package-name> dist-tags
 
 # Test installation
 npm install -g <package-name>@<version>
+
+# Verify version
+<command> --version  # Should show X.Y.Z
 ```
 
 ---
@@ -252,18 +282,21 @@ npm version patch
 
 ## Pre-release Checklist
 
-### Universal Checks
+### Universal Checks (All Releases)
 
+- [ ] On correct branch (main for stable)
+- [ ] Git working directory clean
+- [ ] Version updated in all required files
+- [ ] CHANGELOG updated with release notes
 - [ ] All tests passing
 - [ ] Linting passing
-- [ ] Git working directory clean
-- [ ] CHANGELOG updated
-- [ ] On correct branch (main for stable)
+- [ ] Build successful
+- [ ] Core functionality works (smoke test)
 
 ### Before Beta Release
 
 - [ ] Universal checks completed
-- [ ] Known issues documented
+- [ ] Known issues documented in CHANGELOG
 
 ### Before Stable Release
 
@@ -327,6 +360,8 @@ When helping with releases:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.2.0 | 2026-01-26 | Simplify to universal Beta→Stable workflow; Alpha→Beta→Stable moved to project-specific |
+| 2.1.0 | 2026-01-26 | Adopt "version first" workflow: update version → test → verify → release |
 | 2.0.0 | 2026-01-14 | Refactor to universal guide, move project-specific content to CLAUDE.md |
 | 1.0.0 | 2026-01-02 | Initial release workflow guide |
 

@@ -1,5 +1,6 @@
 ---
 name: code-review-assistant
+scope: universal
 description: |
   Systematic code review checklist and pre-commit quality gates for PRs.
   Use when: reviewing pull requests, checking code quality, before committing code.
@@ -15,6 +16,8 @@ description: |
 **Applicability**: Claude Code Skills
 
 ---
+
+> **Core Standard**: This skill implements [Code Review Checklist](../../../core/code-review-checklist.md). For comprehensive methodology documentation, refer to the core standard.
 
 ## Purpose
 
@@ -199,9 +202,9 @@ BLOCKING, IMPORTANT, SUGGESTION, QUESTION, NOTE
 
 ## Related Standards
 
-- [Code Review Checklist](../../core/code-review-checklist.md)
-- [Checkin Standards](../../core/checkin-standards.md)
-- [Testing Standards](../../core/testing-standards.md)
+- [Code Review Checklist](../../../core/code-review-checklist.md) - Core code review standard
+- [Checkin Standards](../../../core/checkin-standards.md) - Pre-commit quality gates
+- [Testing Standards](../../../core/testing-standards.md) - Testing requirements
 
 ---
 

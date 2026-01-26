@@ -1,5 +1,6 @@
 ---
 name: changelog-guide
+scope: partial
 description: |
   Write and maintain CHANGELOG.md following Keep a Changelog format.
   Use when: creating changelog entries, preparing releases, documenting changes.
@@ -15,6 +16,8 @@ description: |
 **Applicability**: Claude Code Skills
 
 ---
+
+> **Core Standard**: This skill implements [Changelog Standards](../../../core/changelog-standards.md). For comprehensive methodology documentation, refer to the core standard.
 
 ## Purpose
 

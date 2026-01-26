@@ -1,5 +1,6 @@
 ---
 name: logging-guide
+scope: universal
 description: |
   Implement structured logging with proper log levels and sensitive data handling.
   Use when: adding logging, debugging, setting up observability.
@@ -15,6 +16,8 @@ description: |
 **Applicability**: Claude Code Skills
 
 ---
+
+> **Core Standard**: This skill implements [Logging Standards](../../../core/logging-standards.md). For comprehensive methodology documentation, refer to the core standard.
 
 ## Purpose
 

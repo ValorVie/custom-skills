@@ -1,0 +1,1680 @@
+generated_at: '2026-01-26T13:43:25.285589'
+summary:
+  total_repos: 5
+  repos_with_updates: 5
+  recommendations:
+    High: 5
+    Medium: 0
+    Low: 0
+    Skip: 0
+repos:
+  obsidian-skills:
+    local_path: /Users/arlen/.config/obsidian-skills
+    last_synced_commit: (none)
+    current_commit: 4540df83fc68a68bef27e83ae79bc4f1b4d2ea7c
+    recommendation: High
+    reasoning: '2 個新功能、2 個修復、3 個 skill 變更、新增 7 個檔案、新框架: Claude Plugin System。建議優先整合。'
+    summary:
+      total_commits: 16
+      by_type:
+        other: 7
+        refactor: 4
+        fix: 2
+        docs: 1
+        feat: 2
+      by_category:
+        other: 3
+        docs: 1
+        skills: 3
+      files_added: 7
+      files_modified: 0
+      files_deleted: 0
+      total_insertions: 1979
+      total_deletions: 14
+      novel_structures:
+        new_directories: []
+        notable_patterns:
+        - pattern: .claude-plugin/
+          description: Claude Plugin 架構
+          example_path: .claude-plugin/marketplace.json
+        - pattern: marketplace.json
+          description: Marketplace 配置
+          example_path: .claude-plugin/marketplace.json
+        - pattern: plugin.json
+          description: Plugin 配置
+          example_path: .claude-plugin/plugin.json
+        new_file_types: []
+        framework_indicators:
+        - framework: Claude Plugin System
+          description: 支援 Claude Code Plugin 架構，可作為獨立插件發布
+          files:
+          - .claude-plugin/marketplace.json
+          - .claude-plugin/plugin.json
+    commits:
+    - hash: ec8f9e2
+      subject: Align skills with Agent Skills spec and Codex
+      author: Shreyas
+      date: 2026-01-11 09:37:41 +0000
+      type: other
+      files_count: 4
+    - hash: 284fd3c
+      subject: Update README.md
+      author: Steph Ango
+      date: 2026-01-10 13:26:56 -0800
+      type: refactor
+      files_count: 1
+    - hash: 34293aa
+      subject: clarify that Maps is a community plugin, not core
+      author: SublimePeace
+      date: 2026-01-09 20:34:28 +0100
+      type: other
+      files_count: 1
+    - hash: 60aacf6
+      subject: Fix Claude Code skill discovery by standardizing skills/ layout
+      author: 李争欣
+      date: 2026-01-09 11:14:50 +0800
+      type: fix
+      files_count: 3
+    - hash: 139a821
+      subject: Fix type error
+      author: Ethereal49
+      date: 2026-01-08 00:29:32 +0800
+      type: fix
+      files_count: 1
+    - hash: f2ed85f
+      subject: 'docs: replace backticked ! to avoid Claude Code bash permission error'
+      author: Ethereal49
+      date: 2026-01-08 00:21:02 +0800
+      type: docs
+      files_count: 1
+    - hash: 2302b8e
+      subject: plugin info
+      author: Steph Ango
+      date: 2026-01-06 20:20:46 -0800
+      type: other
+      files_count: 2
+    - hash: 12297f3
+      subject: add yaml descriptions
+      author: Steph Ango
+      date: 2026-01-06 10:29:00 -0800
+      type: feat
+      files_count: 3
+    - hash: 976efe0
+      subject: Update README.md
+      author: Steph Ango
+      date: 2026-01-06 08:32:52 -0800
+      type: refactor
+      files_count: 1
+    - hash: ac503ac
+      subject: Update README.md
+      author: Steph Ango
+      date: 2026-01-06 08:31:27 -0800
+      type: refactor
+      files_count: 1
+    - hash: 6aa1051
+      subject: license
+      author: Steph Ango
+      date: 2026-01-06 08:29:25 -0800
+      type: other
+      files_count: 1
+    - hash: c4ab1cd
+      subject: Update SKILL.md
+      author: Steph Ango
+      date: 2026-01-06 08:23:43 -0800
+      type: refactor
+      files_count: 1
+    - hash: dc3bf1d
+      subject: Create README.md
+      author: Steph Ango
+      date: 2026-01-06 08:20:39 -0800
+      type: feat
+      files_count: 1
+    - hash: 42ea617
+      subject: JSON Canvas
+      author: Steph Ango
+      date: 2026-01-06 08:17:28 -0800
+      type: other
+      files_count: 1
+    - hash: 866c4b9
+      subject: Obsidian Markdown
+      author: Steph Ango
+      date: 2026-01-02 13:59:11 -0800
+      type: other
+      files_count: 1
+    - hash: '2673787'
+      subject: Bases
+      author: Steph Ango
+      date: 2026-01-02 13:54:00 -0800
+      type: other
+      files_count: 1
+    file_changes:
+    - path: .claude-plugin/marketplace.json
+      status: A
+      category: other
+    - path: .claude-plugin/plugin.json
+      status: A
+      category: other
+    - path: LICENSE
+      status: A
+      category: other
+    - path: README.md
+      status: A
+      category: docs
+    - path: skills/json-canvas/SKILL.md
+      status: A
+      category: skills
+    - path: skills/obsidian-bases/SKILL.md
+      status: A
+      category: skills
+    - path: skills/obsidian-markdown/SKILL.md
+      status: A
+      category: skills
+  anthropic-skills:
+    local_path: /Users/arlen/.config/anthropic-skills
+    last_synced_commit: (none)
+    current_commit: 69c0b1a0674149f27b61b2635f935524b6add202
+    recommendation: High
+    reasoning: '9 個新功能、1 個修復、276 個 skill 變更、新增 282 個檔案、新框架: Claude Plugin System,
+      MCP Integration, Test Framework、新結構: spec, template。建議優先整合。'
+    summary:
+      total_commits: 17
+      by_type:
+        feat: 9
+        fix: 1
+        other: 4
+        refactor: 2
+        docs: 1
+      by_category:
+        other: 2
+        docs: 4
+        skills: 276
+      files_added: 282
+      files_modified: 0
+      files_deleted: 0
+      total_insertions: 74383
+      total_deletions: 7177
+      novel_structures:
+        new_directories:
+        - name: spec
+          example_files:
+          - spec/agent-skills-spec.md
+        - name: template
+          example_files:
+          - template/SKILL.md
+        notable_patterns:
+        - pattern: .claude-plugin/
+          description: Claude Plugin 架構
+          example_path: .claude-plugin/marketplace.json
+        - pattern: marketplace.json
+          description: Marketplace 配置
+          example_path: .claude-plugin/marketplace.json
+        - pattern: templates/
+          description: 範本目錄
+          example_path: skills/algorithmic-art/templates/generator_template.js
+        - pattern: examples/
+          description: 範例目錄
+          example_path: skills/internal-comms/examples/3p-updates.md
+        - pattern: references/
+          description: 參考資料目錄
+          example_path: skills/skill-creator/references/output-patterns.md
+        new_file_types:
+        - .gitignore
+        - .html
+        - .ttf
+        - .xsd
+        - .xml
+        - .pdf
+        - .gz
+        framework_indicators:
+        - framework: Claude Plugin System
+          description: 支援 Claude Code Plugin 架構，可作為獨立插件發布
+          files:
+          - .claude-plugin/marketplace.json
+        - framework: MCP Integration
+          description: 包含 MCP (Model Context Protocol) 配置
+          files:
+          - skills/mcp-builder/LICENSE.txt
+          - skills/mcp-builder/SKILL.md
+          - skills/mcp-builder/reference/evaluation.md
+          - skills/mcp-builder/reference/mcp_best_practices.md
+          - skills/mcp-builder/reference/node_mcp_server.md
+        - framework: Test Framework
+          description: 包含測試結構
+          files:
+          - skills/pdf/scripts/check_bounding_boxes_test.py
+    commits:
+    - hash: 69c0b1a
+      subject: Add link to Agent Skills specification website (#160)
+      author: Keith Lazuka
+      date: 2025-12-20 13:09:44 -0500
+      type: feat
+      files_count: 5
+    - hash: be229a5
+      subject: Fix links in agent skills specification (#159)
+      author: Camaris
+      date: 2025-12-20 16:37:23 +0100
+      type: fix
+      files_count: 1
+    - hash: f232228
+      subject: Split agent-skills-spec into separate authoring and client integration
+        guides (#148)
+      author: Keith Lazuka
+      date: 2025-12-16 12:57:00 -0500
+      type: other
+      files_count: 4
+    - hash: '0075614'
+      subject: Add doc-coauthoring skill and update example skills (#134)
+      author: Keith Lazuka
+      date: 2025-12-04 12:01:46 -0500
+      type: feat
+      files_count: 20
+    - hash: ef74077
+      subject: Move example skills into dedicated folder and create minimal top-level
+        folder structure (#129)
+      author: ant-andi
+      date: 2025-12-01 13:05:36 -0500
+      type: feat
+      files_count: 296
+    - hash: 0f77e50
+      subject: Update example skills and rename 'artifacts-builder' (#112)
+      author: Keith Lazuka
+      date: 2025-11-17 16:34:29 -0500
+      type: refactor
+      files_count: 20
+    - hash: e5c6015
+      subject: Add 'frontend-design' example skill (#98)
+      author: Keith Lazuka
+      date: 2025-11-12 12:58:13 -0500
+      type: feat
+      files_count: 3
+    - hash: c74d647
+      subject: Clarify Claude Code installation in README.md (#20)
+      author: Mahesh Murag
+      date: 2025-10-18 12:39:45 -0400
+      type: docs
+      files_count: 1
+    - hash: 0877bae
+      subject: Updates to README.md (#9)
+      author: Mahesh Murag
+      date: 2025-10-16 15:15:19 -0400
+      type: refactor
+      files_count: 1
+    - hash: b118d29
+      subject: Add Claude Claude instructions to the readme (#8)
+      author: Keith Lazuka
+      date: 2025-10-16 12:57:23 -0400
+      type: feat
+      files_count: 1
+    - hash: 4d1e3f3
+      subject: Add Claude Code Marketplace (#5)
+      author: Keith Lazuka
+      date: 2025-10-16 12:11:41 -0400
+      type: feat
+      files_count: 1
+    - hash: 9b61003
+      subject: Small tweak to blog link (#7)
+      author: Matt Piccolella
+      date: 2025-10-16 09:08:28 -0700
+      type: other
+      files_count: 1
+    - hash: 10e0fbe
+      subject: Add initial Agent Skills Spec (#2)
+      author: Keith Lazuka
+      date: 2025-10-16 11:32:56 -0400
+      type: feat
+      files_count: 1
+    - hash: ec84104
+      subject: Add 3rd Party notices (#4)
+      author: Keith Lazuka
+      date: 2025-10-16 11:32:27 -0400
+      type: feat
+      files_count: 1
+    - hash: 67ada86
+      subject: Adding more details to README (#3)
+      author: Matt Piccolella
+      date: 2025-10-16 08:22:54 -0700
+      type: feat
+      files_count: 1
+    - hash: 83291af
+      subject: Reorganize the example skills (#1)
+      author: Keith Lazuka
+      date: 2025-10-16 10:02:06 -0400
+      type: other
+      files_count: 288
+    - hash: 37292f3
+      subject: init repo
+      author: Keith Lazuka
+      date: 2025-10-15 17:07:32 -0400
+      type: other
+      files_count: 290
+    file_changes:
+    - path: .claude-plugin/marketplace.json
+      status: A
+      category: other
+    - path: .gitignore
+      status: A
+      category: other
+    - path: README.md
+      status: A
+      category: docs
+    - path: THIRD_PARTY_NOTICES.md
+      status: A
+      category: docs
+    - path: skills/algorithmic-art/LICENSE.txt
+      status: A
+      category: skills
+    - path: skills/algorithmic-art/SKILL.md
+      status: A
+      category: skills
+    - path: skills/algorithmic-art/templates/generator_template.js
+      status: A
+      category: skills
+    - path: skills/algorithmic-art/templates/viewer.html
+      status: A
+      category: skills
+    - path: skills/brand-guidelines/LICENSE.txt
+      status: A
+      category: skills
+    - path: skills/brand-guidelines/SKILL.md
+      status: A
+      category: skills
+    - path: skills/canvas-design/LICENSE.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/SKILL.md
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/ArsenalSC-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/ArsenalSC-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/BigShoulders-Bold.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/BigShoulders-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/BigShoulders-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/Boldonse-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/Boldonse-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/BricolageGrotesque-Bold.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/BricolageGrotesque-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/BricolageGrotesque-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/CrimsonPro-Bold.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/CrimsonPro-Italic.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/CrimsonPro-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/CrimsonPro-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/DMMono-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/DMMono-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/EricaOne-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/EricaOne-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/GeistMono-Bold.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/GeistMono-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/GeistMono-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/Gloock-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/Gloock-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/IBMPlexMono-Bold.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/IBMPlexMono-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/IBMPlexMono-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/IBMPlexSerif-Bold.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/IBMPlexSerif-BoldItalic.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/IBMPlexSerif-Italic.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/IBMPlexSerif-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/InstrumentSans-Bold.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/InstrumentSans-BoldItalic.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/InstrumentSans-Italic.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/InstrumentSans-OFL.txt
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/InstrumentSans-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/InstrumentSerif-Italic.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/InstrumentSerif-Regular.ttf
+      status: A
+      category: skills
+    - path: skills/canvas-design/canvas-fonts/Italiana-OFL.txt
+      status: A
+      category: skills
+  superpowers:
+    local_path: /Users/arlen/.config/superpowers
+    last_synced_commit: (none)
+    current_commit: 469a6d81ebb8b827e284d4afb090c6c622d97747
+    recommendation: High
+    reasoning: '61 個新功能、47 個修復、35 個 skill 變更、1 個 agent 變更、3 個 command 變更、新增 105 個檔案、新框架:
+      Claude Plugin System, OpenCode Support, Codex Support, Hook System, Test Framework。建議優先整合。'
+    summary:
+      total_commits: 237
+      by_type:
+        chore: 6
+        fix: 47
+        feat: 61
+        docs: 20
+        other: 63
+        refactor: 35
+        test: 5
+      by_category:
+        other: 31
+        docs: 32
+        agents: 1
+        commands: 3
+        hooks: 3
+        skills: 35
+      files_added: 105
+      files_modified: 0
+      files_deleted: 0
+      total_insertions: 34399
+      total_deletions: 18773
+      novel_structures:
+        new_directories: []
+        notable_patterns:
+        - pattern: .claude-plugin/
+          description: Claude Plugin 架構
+          example_path: .claude-plugin/marketplace.json
+        - pattern: marketplace.json
+          description: Marketplace 配置
+          example_path: .claude-plugin/marketplace.json
+        - pattern: plugin.json
+          description: Plugin 配置
+          example_path: .claude-plugin/plugin.json
+        - pattern: .codex/
+          description: Codex 配置
+          example_path: .codex/INSTALL.md
+        - pattern: .opencode/
+          description: OpenCode 配置
+          example_path: .opencode/INSTALL.md
+        - pattern: plugins/
+          description: Plugin 目錄
+          example_path: .opencode/plugins/superpowers.js
+        - pattern: hooks.json
+          description: Hooks 配置檔
+          example_path: hooks/hooks.json
+        - pattern: run-hook.cmd
+          description: Windows Hook 腳本
+          example_path: hooks/run-hook.cmd
+        - pattern: session-start.sh
+          description: Session 啟動腳本
+          example_path: hooks/session-start.sh
+        - pattern: lib/
+          description: 共用函式庫
+          example_path: lib/skills-core.js
+        - pattern: examples/
+          description: 範例目錄
+          example_path: skills/writing-skills/examples/CLAUDE_MD_TESTING.md
+        - pattern: tests/
+          description: 測試目錄
+          example_path: tests/claude-code/README.md
+        - pattern: prompts/
+          description: Prompt 目錄
+          example_path: tests/explicit-skill-requests/prompts/action-oriented.txt
+        new_file_types:
+        - .codex/superpowers-codex
+        - .gitattributes
+        - .gitignore
+        - .dot
+        framework_indicators:
+        - framework: Claude Plugin System
+          description: 支援 Claude Code Plugin 架構，可作為獨立插件發布
+          files:
+          - .claude-plugin/marketplace.json
+          - .claude-plugin/plugin.json
+        - framework: OpenCode Support
+          description: 支援 OpenCode 整合
+          files:
+          - .opencode/INSTALL.md
+          - .opencode/plugins/superpowers.js
+        - framework: Codex Support
+          description: 支援 Codex CLI 整合
+          files:
+          - .codex/INSTALL.md
+          - .codex/superpowers-bootstrap.md
+          - .codex/superpowers-codex
+        - framework: Hook System
+          description: 包含自動化 Hook 機制
+          files:
+          - hooks/hooks.json
+          - hooks/run-hook.cmd
+          - hooks/session-start.sh
+        - framework: Test Framework
+          description: 包含測試結構
+          files:
+          - tests/claude-code/README.md
+          - tests/claude-code/analyze-token-usage.py
+          - tests/claude-code/run-skill-tests.sh
+          - tests/claude-code/test-helpers.sh
+          - tests/claude-code/test-subagent-driven-development-integration.sh
+    commits:
+    - hash: 4b6cef9
+      subject: 'chore: bump version to 4.1.1'
+      author: Jesse Vincent
+      date: 2026-01-23 20:08:47 +0000
+      type: chore
+      files_count: 2
+    - hash: 03087b1
+      subject: 'fix(opencode): standardize on plugins/ directory per official docs'
+      author: Jesse Vincent
+      date: 2026-01-23 18:31:45 +0000
+      type: fix
+      files_count: 5
+    - hash: 493ac18
+      subject: 'fix(opencode): update docs for native skills, fix symlink instructions'
+      author: Jesse Vincent
+      date: 2026-01-23 17:33:23 +0000
+      type: fix
+      files_count: 2
+    - hash: 35d4fbc
+      subject: 'chore: bump plugin version to 4.1.0'
+      author: Jesse Vincent
+      date: 2026-01-23 04:10:23 +0000
+      type: chore
+      files_count: 1
+    - hash: 19c70af
+      subject: 'chore: release v4.1.0'
+      author: Jesse Vincent
+      date: 2026-01-23 04:07:35 +0000
+      type: chore
+      files_count: 1
+    - hash: 36fcd57
+      subject: 'fix: Windows hook execution for Claude Code 2.1.x (#331)'
+      author: Jesse Vincent
+      date: 2026-01-22 13:29:41 -0800
+      type: fix
+      files_count: 4
+    - hash: 3964d18
+      subject: 'feat(opencode): use native skills and fix agent reset bug (#226) (#330)'
+      author: Jesse Vincent
+      date: 2026-01-22 13:29:30 -0800
+      type: feat
+      files_count: 3
+    - hash: a01a135
+      subject: 'fix: respect OPENCODE_CONFIG_DIR for personal skills lookup (#297)'
+      author: oribi
+      date: 2026-01-19 23:54:50 +0200
+      type: fix
+      files_count: 1
+    - hash: ac471e6
+      subject: fix use_skill agent context (#290)
+      author: Vinicius da Motta
+      date: 2026-01-18 22:02:48 -0300
+      type: fix
+      files_count: 1
+    - hash: a08f088
+      subject: 'docs: fix documentation accuracy issues in skills (#157)'
+      author: Joshua Shanks
+      date: 2026-01-14 14:21:22 -0800
+      type: docs
+      files_count: 1
+    - hash: f6d50c7
+      subject: Bump version to 4.0.3
+      author: Jesse Vincent
+      date: 2025-12-26 22:53:58 -0600
+      type: other
+      files_count: 3
+    - hash: 3dac35e
+      subject: Strengthen using-superpowers for explicit skill requests
+      author: Jesse Vincent
+      date: 2025-12-26 22:41:22 -0600
+      type: other
+      files_count: 17
+    - hash: 131c1f1
+      subject: 'Release v4.0.2: Make slash commands user-only'
+      author: Jesse Vincent
+      date: 2025-12-23 23:03:31 -0800
+      type: other
+      files_count: 2
+    - hash: 9baedaa
+      subject: Make slash commands user-only with disable-model-invocation
+      author: Jesse Vincent
+      date: 2025-12-23 23:00:39 -0800
+      type: other
+      files_count: 4
+    - hash: 66a2dbd
+      subject: Add automation-over-documentation guidance to writing-skills
+      author: Jesse Vincent
+      date: 2025-12-23 21:49:04 -0800
+      type: feat
+      files_count: 2
+    - hash: 1455ac0
+      subject: Add GitHub thread reply guidance to receiving-code-review
+      author: Jesse Vincent
+      date: 2025-12-23 14:00:01 -0800
+      type: feat
+      files_count: 2
+    - hash: e64ad67
+      subject: 'fix: inherit agent model (#144)'
+      author: egornomic
+      date: 2025-12-24 06:46:15 +0100
+      type: fix
+      files_count: 1
+    - hash: c037dcb
+      subject: 'fix: use git check-ignore for worktree gitignore verification (#160)'
+      author: Mike Harrison
+      date: 2025-12-23 14:26:33 -0500
+      type: fix
+      files_count: 1
+    - hash: a7a8c08
+      subject: Clarify that Skill tool loads skill content directly
+      author: Jesse Vincent
+      date: 2025-12-22 14:27:35 -0800
+      type: other
+      files_count: 7
+    - hash: 80643c2
+      subject: Update README for v4.0.0 skill consolidations and two-stage review
+      author: Jesse Vincent
+      date: 2025-12-17 18:07:40 -0800
+      type: refactor
+      files_count: 1
+    file_changes:
+    - path: .claude-plugin/marketplace.json
+      status: A
+      category: other
+    - path: .claude-plugin/plugin.json
+      status: A
+      category: other
+    - path: .codex/INSTALL.md
+      status: A
+      category: docs
+    - path: .codex/superpowers-bootstrap.md
+      status: A
+      category: docs
+    - path: .codex/superpowers-codex
+      status: A
+      category: other
+    - path: .gitattributes
+      status: A
+      category: other
+    - path: .github/FUNDING.yml
+      status: A
+      category: other
+    - path: .gitignore
+      status: A
+      category: other
+    - path: .opencode/INSTALL.md
+      status: A
+      category: docs
+    - path: .opencode/plugins/superpowers.js
+      status: A
+      category: other
+    - path: LICENSE
+      status: A
+      category: other
+    - path: README.md
+      status: A
+      category: docs
+    - path: RELEASE-NOTES.md
+      status: A
+      category: docs
+    - path: agents/code-reviewer.md
+      status: A
+      category: agents
+    - path: commands/brainstorm.md
+      status: A
+      category: commands
+    - path: commands/execute-plan.md
+      status: A
+      category: commands
+    - path: commands/write-plan.md
+      status: A
+      category: commands
+    - path: docs/README.codex.md
+      status: A
+      category: docs
+    - path: docs/README.opencode.md
+      status: A
+      category: docs
+    - path: docs/plans/2025-11-22-opencode-support-design.md
+      status: A
+      category: docs
+    - path: docs/plans/2025-11-22-opencode-support-implementation.md
+      status: A
+      category: docs
+    - path: docs/plans/2025-11-28-skills-improvements-from-user-feedback.md
+      status: A
+      category: docs
+    - path: docs/testing.md
+      status: A
+      category: docs
+    - path: docs/windows/polyglot-hooks.md
+      status: A
+      category: docs
+    - path: hooks/hooks.json
+      status: A
+      category: hooks
+    - path: hooks/run-hook.cmd
+      status: A
+      category: hooks
+    - path: hooks/session-start.sh
+      status: A
+      category: hooks
+    - path: lib/skills-core.js
+      status: A
+      category: other
+    - path: skills/brainstorming/SKILL.md
+      status: A
+      category: skills
+    - path: skills/dispatching-parallel-agents/SKILL.md
+      status: A
+      category: skills
+    - path: skills/executing-plans/SKILL.md
+      status: A
+      category: skills
+    - path: skills/finishing-a-development-branch/SKILL.md
+      status: A
+      category: skills
+    - path: skills/receiving-code-review/SKILL.md
+      status: A
+      category: skills
+    - path: skills/requesting-code-review/SKILL.md
+      status: A
+      category: skills
+    - path: skills/requesting-code-review/code-reviewer.md
+      status: A
+      category: skills
+    - path: skills/subagent-driven-development/SKILL.md
+      status: A
+      category: skills
+    - path: skills/subagent-driven-development/code-quality-reviewer-prompt.md
+      status: A
+      category: skills
+    - path: skills/subagent-driven-development/implementer-prompt.md
+      status: A
+      category: skills
+    - path: skills/subagent-driven-development/spec-reviewer-prompt.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/CREATION-LOG.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/SKILL.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/condition-based-waiting-example.ts
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/condition-based-waiting.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/defense-in-depth.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/find-polluter.sh
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/root-cause-tracing.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/test-academic.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/test-pressure-1.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/test-pressure-2.md
+      status: A
+      category: skills
+    - path: skills/systematic-debugging/test-pressure-3.md
+      status: A
+      category: skills
+  universal-dev-standards:
+    local_path: /Users/arlen/.config/universal-dev-standards
+    last_synced_commit: (none)
+    current_commit: 44cc53b6273fb428f5275932b5deb3572fe271b2
+    recommendation: High
+    reasoning: '100 個新功能、49 個修復、225 個 skill 變更、16 個 command 變更、新增 875 個檔案、新框架: Claude
+      Plugin System, Test Framework、新結構: adoption, ai, cli 等 10 個。建議優先整合。'
+    summary:
+      total_commits: 340
+      by_type:
+        feat: 100
+        docs: 85
+        refactor: 6
+        chore: 86
+        fix: 49
+        test: 12
+        other: 2
+      by_category:
+        docs: 316
+        other: 316
+        workflows: 2
+        commands: 16
+        skills: 225
+      files_added: 875
+      files_modified: 0
+      files_deleted: 0
+      total_insertions: 283660
+      total_deletions: 23593
+      novel_structures:
+        new_directories:
+        - name: adoption
+          example_files:
+          - adoption/ADOPTION-GUIDE.md
+          - adoption/DAILY-WORKFLOW-GUIDE.md
+          - adoption/STATIC-DYNAMIC-GUIDE.md
+          - adoption/checklists/enterprise.md
+          - adoption/checklists/minimal.md
+        - name: ai
+          example_files:
+          - ai/FORMAT-GUIDE.md
+          - ai/MAINTENANCE.md
+          - ai/options/changelog/auto-generated.ai.yaml
+          - ai/options/changelog/keep-a-changelog.ai.yaml
+          - ai/options/code-review/automated-review.ai.yaml
+        - name: cli
+          example_files:
+          - cli/.eslintrc.json
+          - cli/.gitignore
+          - cli/.husky/pre-commit
+          - cli/LICENSE
+          - cli/README.md
+        - name: core
+          example_files:
+          - core/acceptance-test-driven-development.md
+          - core/ai-friendly-architecture.md
+          - core/ai-instruction-standards.md
+          - core/anti-hallucination.md
+          - core/behavior-driven-development.md
+        - name: extensions
+          example_files:
+          - extensions/frameworks/fat-free-patterns.md
+          - extensions/languages/csharp-style.md
+          - extensions/languages/php-style.md
+          - extensions/languages/php/fat-free-patterns.md
+          - extensions/languages/php/php-style.md
+        - name: integrations
+          example_files:
+          - integrations/REGISTRY.json
+          - integrations/cline/.clinerules
+          - integrations/codex/AGENTS.md
+          - integrations/codex/README.md
+          - integrations/codex/config.toml.example
+        - name: locales
+          example_files:
+          - locales/README.md
+          - locales/zh-CN/CHANGELOG.md
+          - locales/zh-CN/CLAUDE.md
+          - locales/zh-CN/MAINTENANCE.md
+          - locales/zh-CN/README.md
+        - name: methodologies
+          example_files:
+          - methodologies/atdd.methodology.yaml
+          - methodologies/bdd.methodology.yaml
+          - methodologies/integrated-flow.methodology.yaml
+          - methodologies/methodology-schema.json
+          - methodologies/sdd.methodology.yaml
+        - name: options
+          example_files:
+          - options/changelog/auto-generated.md
+          - options/changelog/keep-a-changelog.md
+          - options/code-review/automated-review.md
+          - options/code-review/pair-programming.md
+          - options/code-review/pr-review.md
+        - name: templates
+          example_files:
+          - templates/.ai-context.yaml.template
+          - templates/CLAUDE.md.template
+          - templates/methodology-template.yaml
+          - templates/migration-template.md
+          - templates/requirement-checklist.md
+        notable_patterns:
+        - pattern: .claude-plugin/
+          description: Claude Plugin 架構
+          example_path: .claude-plugin/README.md
+        - pattern: marketplace.json
+          description: Marketplace 配置
+          example_path: .claude-plugin/marketplace.json
+        - pattern: plugin.json
+          description: Plugin 配置
+          example_path: .claude-plugin/plugin.json
+        - pattern: prompts/
+          description: Prompt 目錄
+          example_path: cli/src/prompts/init.js
+        - pattern: tests/
+          description: 測試目錄
+          example_path: cli/tests/AI-AGENT-QUICK-GUIDE.md
+        - pattern: templates/
+          description: 範本目錄
+          example_path: locales/zh-CN/templates/reverse-spec-template.md
+        new_file_types:
+        - .editorconfig
+        - .gitattributes
+        - .gitignore
+        - .husky/pre-commit
+        - .mjs
+        - .gitkeep
+        - .clinerules
+        - .example
+        - .cursorrules
+        - .windsurfrules
+        - .tpl
+        - .template
+        - .feature
+        framework_indicators:
+        - framework: Claude Plugin System
+          description: 支援 Claude Code Plugin 架構，可作為獨立插件發布
+          files:
+          - .claude-plugin/README.md
+          - .claude-plugin/marketplace.json
+          - .claude-plugin/plugin.json
+        - framework: Test Framework
+          description: 包含測試結構
+          files:
+          - cli/tests/AI-AGENT-QUICK-GUIDE.md
+          - cli/tests/E2E-TEST-CASES.md
+          - cli/tests/README.md
+          - cli/tests/commands/ai-context.test.js
+          - cli/tests/commands/check.test.js
+    commits:
+    - hash: 44cc53b
+      subject: 'feat(core): add scope universality markers to all standards and skills'
+      author: Albert Hsu
+      date: 2026-01-26 11:07:48 +0800
+      type: feat
+      files_count: 57
+    - hash: 544ab7c
+      subject: 'docs(release): simplify release workflow to universal Beta→Stable
+        pattern'
+      author: Albert Hsu
+      date: 2026-01-26 09:44:31 +0800
+      type: docs
+      files_count: 3
+    - hash: 5ec7b1b
+      subject: 'docs(release): add Alpha→Beta→Stable three-phase workflow'
+      author: Albert Hsu
+      date: 2026-01-26 09:38:16 +0800
+      type: docs
+      files_count: 2
+    - hash: 47b838d
+      subject: 'docs(release): adopt version-first workflow pattern'
+      author: Albert Hsu
+      date: 2026-01-26 09:34:09 +0800
+      type: docs
+      files_count: 2
+    - hash: f6cb817
+      subject: 'feat(skills): add usage documentation generator system'
+      author: Albert Hsu
+      date: 2026-01-26 09:28:10 +0800
+      type: feat
+      files_count: 15
+    - hash: 3db329a
+      subject: 'feat(skills): add ai-friendly-architecture and ai-instruction-standards
+        skills'
+      author: Albert Hsu
+      date: 2026-01-26 00:22:10 +0800
+      type: feat
+      files_count: 11
+    - hash: 51aac8d
+      subject: 'feat(integrations): add cross-AI Agent sync checking system'
+      author: Albert Hsu
+      date: 2026-01-26 00:20:18 +0800
+      type: feat
+      files_count: 8
+    - hash: 1f23d42
+      subject: 'feat(workflows): extend release workflow with enterprise-grade features'
+      author: Albert Hsu
+      date: 2026-01-25 22:35:51 +0800
+      type: feat
+      files_count: 1
+    - hash: 240d5de
+      subject: 'feat(cli): add workflow execution engine with state persistence'
+      author: Albert Hsu
+      date: 2026-01-25 20:47:30 +0800
+      type: feat
+      files_count: 6
+    - hash: 5162c0c
+      subject: 'docs(specs): sync agents-workflows-system with actual workflows'
+      author: Albert Hsu
+      date: 2026-01-25 20:05:21 +0800
+      type: docs
+      files_count: 1
+    - hash: f606b00
+      subject: 'feat(specs): add SDD specifications with BDD/TDD derivation'
+      author: Albert Hsu
+      date: 2026-01-25 12:35:04 +0800
+      type: feat
+      files_count: 31
+    - hash: 08e86ff
+      subject: 'docs(skills): simplify /derive-all and add command family overview'
+      author: Albert Hsu
+      date: 2026-01-25 11:50:29 +0800
+      type: docs
+      files_count: 5
+    - hash: 1bde08b
+      subject: 'docs(skills): refactor methodology system to two independent systems'
+      author: Albert Hsu
+      date: 2026-01-25 01:57:05 +0800
+      type: docs
+      files_count: 3
+    - hash: 76c7f2f
+      subject: 'docs(core): resolve standards inconsistencies and improve clarity'
+      author: Albert Hsu
+      date: 2026-01-24 23:58:22 +0800
+      type: docs
+      files_count: 35
+    - hash: 6e627b2
+      subject: 'docs(core): add specification documentation standards'
+      author: Albert Hsu
+      date: 2026-01-24 22:34:47 +0800
+      type: docs
+      files_count: 5
+    - hash: 09b33db
+      subject: 'refactor(docs): consolidate specs directories into docs/specs/'
+      author: Albert Hsu
+      date: 2026-01-24 22:34:19 +0800
+      type: refactor
+      files_count: 6
+    - hash: 4e1ef2a
+      subject: 'chore(release): prepare v4.2.0'
+      author: Albert Hsu
+      date: 2026-01-24 22:06:54 +0800
+      type: chore
+      files_count: 6
+    - hash: 89852c0
+      subject: 'docs(specs): finalize all 31 CLI specifications as Stable for v4.2.0'
+      author: Albert Hsu
+      date: 2026-01-24 22:06:29 +0800
+      type: docs
+      files_count: 31
+    - hash: ea3ed67
+      subject: 'feat(cli): update AI agent paths to match official vendor docs'
+      author: Albert Hsu
+      date: 2026-01-24 21:41:10 +0800
+      type: feat
+      files_count: 6
+    - hash: 453688a
+      subject: 'chore(i18n): sync translations for refactoring standards v1.1.0'
+      author: Albert Hsu
+      date: 2026-01-24 07:53:08 +0800
+      type: chore
+      files_count: 6
+    file_changes:
+    - path: .claude-plugin/README.md
+      status: A
+      category: docs
+    - path: .claude-plugin/marketplace.json
+      status: A
+      category: other
+    - path: .claude-plugin/plugin.json
+      status: A
+      category: other
+    - path: .editorconfig
+      status: A
+      category: other
+    - path: .gitattributes
+      status: A
+      category: other
+    - path: .github/ISSUE_TEMPLATE/bug_report.md
+      status: A
+      category: docs
+    - path: .github/ISSUE_TEMPLATE/feature_request.md
+      status: A
+      category: docs
+    - path: .github/PULL_REQUEST_TEMPLATE.md
+      status: A
+      category: docs
+    - path: .github/RELEASE_v3.2.0.md
+      status: A
+      category: docs
+    - path: .github/RELEASE_v3.2.1-beta.1.md
+      status: A
+      category: docs
+    - path: .github/workflows/ci.yml
+      status: A
+      category: workflows
+    - path: .github/workflows/publish.yml
+      status: A
+      category: workflows
+    - path: .gitignore
+      status: A
+      category: other
+    - path: .standards/ai-instruction-standards.ai.yaml
+      status: A
+      category: other
+    - path: .standards/checkin-standards.ai.yaml
+      status: A
+      category: other
+    - path: .standards/manifest.json
+      status: A
+      category: other
+    - path: .standards/refactoring-standards.ai.yaml
+      status: A
+      category: other
+    - path: .usage-docs.yaml
+      status: A
+      category: other
+    - path: CHANGELOG.md
+      status: A
+      category: docs
+    - path: CLAUDE.md
+      status: A
+      category: docs
+    - path: CONTRIBUTING.md
+      status: A
+      category: docs
+    - path: LICENSE
+      status: A
+      category: other
+    - path: MAINTENANCE.md
+      status: A
+      category: docs
+    - path: README.md
+      status: A
+      category: docs
+    - path: STANDARDS-MAPPING.md
+      status: A
+      category: docs
+    - path: adoption/ADOPTION-GUIDE.md
+      status: A
+      category: docs
+    - path: adoption/DAILY-WORKFLOW-GUIDE.md
+      status: A
+      category: docs
+    - path: adoption/STATIC-DYNAMIC-GUIDE.md
+      status: A
+      category: docs
+    - path: adoption/checklists/enterprise.md
+      status: A
+      category: docs
+    - path: adoption/checklists/minimal.md
+      status: A
+      category: docs
+    - path: adoption/checklists/recommended.md
+      status: A
+      category: docs
+    - path: adoption/standards-registry.json
+      status: A
+      category: other
+    - path: ai/FORMAT-GUIDE.md
+      status: A
+      category: docs
+    - path: ai/MAINTENANCE.md
+      status: A
+      category: docs
+    - path: ai/options/changelog/auto-generated.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/changelog/keep-a-changelog.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/code-review/automated-review.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/code-review/pair-programming.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/code-review/pr-review.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/commit-message/bilingual.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/commit-message/english.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/commit-message/traditional-chinese.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/documentation/api-docs.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/documentation/markdown-docs.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/documentation/wiki-style.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/git-workflow/gitflow.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/git-workflow/github-flow.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/git-workflow/merge-commit.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/git-workflow/rebase-ff.ai.yaml
+      status: A
+      category: other
+    - path: ai/options/git-workflow/squash-merge.ai.yaml
+      status: A
+      category: other
+  everything-claude-code:
+    local_path: /Users/arlen/.config/everything-claude-code
+    last_synced_commit: (none)
+    current_commit: 56ff5d444bfeed3bd939113415851c8fe1c0fe6d
+    recommendation: High
+    reasoning: '12 個新功能、16 個修復、27 個 skill 變更、10 個 agent 變更、15 個 command 變更、新增 90 個檔案、新框架:
+      Claude Plugin System, OpenCode Support, Hook System, MCP Integration, Test Framework、新結構:
+      examples, mcp-configs, plugins。建議優先整合。'
+    summary:
+      total_commits: 37
+      by_type:
+        fix: 16
+        feat: 12
+        other: 2
+        style: 1
+        docs: 2
+        refactor: 4
+      by_category:
+        other: 15
+        docs: 5
+        agents: 10
+        commands: 15
+        contexts: 3
+        hooks: 7
+        rules: 8
+        skills: 27
+      files_added: 90
+      files_modified: 0
+      files_deleted: 0
+      total_insertions: 16665
+      total_deletions: 372
+      novel_structures:
+        new_directories:
+        - name: examples
+          example_files:
+          - examples/CLAUDE.md
+          - examples/sessions/2026-01-17-debugging-memory.tmp
+          - examples/sessions/2026-01-19-refactor-api.tmp
+          - examples/sessions/2026-01-20-feature-auth.tmp
+          - examples/statusline.json
+        - name: mcp-configs
+          example_files:
+          - mcp-configs/mcp-servers.json
+        - name: plugins
+          example_files:
+          - plugins/README.md
+        notable_patterns:
+        - pattern: .claude-plugin/
+          description: Claude Plugin 架構
+          example_path: .claude-plugin/marketplace.json
+        - pattern: marketplace.json
+          description: Marketplace 配置
+          example_path: .claude-plugin/marketplace.json
+        - pattern: plugin.json
+          description: Plugin 配置
+          example_path: .claude-plugin/plugin.json
+        - pattern: examples/
+          description: 範例目錄
+          example_path: examples/CLAUDE.md
+        - pattern: hooks.json
+          description: Hooks 配置檔
+          example_path: hooks/hooks.json
+        - pattern: mcp-configs/
+          description: MCP 配置目錄
+          example_path: mcp-configs/mcp-servers.json
+        - pattern: plugins/
+          description: Plugin 目錄
+          example_path: plugins/README.md
+        - pattern: lib/
+          description: 共用函式庫
+          example_path: scripts/lib/package-manager.js
+        - pattern: tests/
+          description: 測試目錄
+          example_path: tests/hooks/hooks.test.js
+        new_file_types:
+        - .gitignore
+        - .tmp
+        framework_indicators:
+        - framework: Claude Plugin System
+          description: 支援 Claude Code Plugin 架構，可作為獨立插件發布
+          files:
+          - .claude-plugin/marketplace.json
+          - .claude-plugin/plugin.json
+        - framework: OpenCode Support
+          description: 支援 OpenCode 整合
+          files:
+          - plugins/README.md
+        - framework: Hook System
+          description: 包含自動化 Hook 機制
+          files:
+          - hooks/hooks.json
+          - scripts/hooks/evaluate-session.js
+          - scripts/hooks/pre-compact.js
+          - scripts/hooks/session-end.js
+          - scripts/hooks/session-start.js
+        - framework: MCP Integration
+          description: 包含 MCP (Model Context Protocol) 配置
+          files:
+          - mcp-configs/mcp-servers.json
+        - framework: Test Framework
+          description: 包含測試結構
+          files:
+          - tests/hooks/hooks.test.js
+          - tests/lib/package-manager.test.js
+          - tests/lib/utils.test.js
+          - tests/run-all.js
+    commits:
+    - hash: 56ff5d4
+      subject: 'fix: use correct unscoped agent-browser package name (#77)'
+      author: Jeff Scott Ward
+      date: 2026-01-25 22:04:47 -0500
+      type: fix
+      files_count: 1
+    - hash: 5c63fa9
+      subject: 'feat: v1.1.0 release - session ID tracking, async hooks, new skills'
+      author: Affaan Mustafa
+      date: 2026-01-25 18:21:27 -0800
+      type: feat
+      files_count: 19
+    - hash: 5670fcd
+      subject: Fix plugin manifest validation errors (#75)
+      author: Jeff Scott Ward
+      date: 2026-01-25 20:38:25 -0500
+      type: fix
+      files_count: 12
+    - hash: 1c9fa0b
+      subject: Add hooks.md to documentation index (#40)
+      author: voovvaa
+      date: 2026-01-26 02:46:04 +0300
+      type: feat
+      files_count: 1
+    - hash: 2bfd2fb
+      subject: 'feat: add cloud infrastructure security skill (#44)'
+      author: Panger Lkr
+      date: 2026-01-26 05:15:24 +0530
+      type: feat
+      files_count: 1
+    - hash: fae9716
+      subject: 'feat(agents): add database-reviewer agent with Supabase patterns (#48)'
+      author: soilmass
+      date: 2026-01-25 16:44:54 -0700
+      type: feat
+      files_count: 2
+    - hash: a2087a8
+      subject: 'fix: remove unnecessary .sh hooks (#41)'
+      author: voovvaa
+      date: 2026-01-26 02:44:52 +0300
+      type: fix
+      files_count: 4
+    - hash: b9b7831
+      subject: 'fix: multiple community-reported issues'
+      author: Affaan Mustafa
+      date: 2026-01-25 15:43:48 -0800
+      type: fix
+      files_count: 4
+    - hash: 660e0d3
+      subject: 'fix: security and documentation fixes'
+      author: Affaan Mustafa
+      date: 2026-01-24 01:36:02 -0800
+      type: fix
+      files_count: 3
+    - hash: a7bc5f2
+      subject: 'revert: remove hooks declaration - auto-loaded by convention'
+      author: Affaan Mustafa
+      date: 2026-01-23 22:27:21 -0800
+      type: other
+      files_count: 1
+    - hash: 22ad036
+      subject: 'fix: add hooks declaration to plugin.json for proper hook loading'
+      author: Affaan Mustafa
+      date: 2026-01-23 20:47:22 -0800
+      type: fix
+      files_count: 1
+    - hash: '5230892'
+      subject: 'fix: remove version fields from marketplace.json'
+      author: gzb1128
+      date: 2026-01-23 15:14:23 +0800
+      type: fix
+      files_count: 1
+    - hash: 970f8bf
+      subject: 'feat: cross-platform support with Node.js scripts'
+      author: zerx-lab
+      date: 2026-01-23 15:08:07 +0800
+      type: feat
+      files_count: 16
+    - hash: 4ec7a6b
+      subject: 'fix: remove version field to enable automatic plugin updates'
+      author: gzb1128
+      date: 2026-01-23 14:31:20 +0800
+      type: fix
+      files_count: 1
+    - hash: 0d438dd
+      subject: 'style: side-by-side guide layout matching profile README'
+      author: Affaan Mustafa
+      date: 2026-01-22 22:29:06 -0800
+      type: style
+      files_count: 1
+    - hash: 7f4f622
+      subject: 'feat: add star history chart and minimal badge bar'
+      author: Affaan Mustafa
+      date: 2026-01-22 22:19:01 -0800
+      type: feat
+      files_count: 1
+    - hash: c3f1594
+      subject: 'fix: move session-end hooks from Stop to SessionEnd'
+      author: Affaan Mustafa
+      date: 2026-01-22 21:06:23 -0800
+      type: fix
+      files_count: 1
+    - hash: 19345df
+      subject: 'fix: remove duplicate hooks field from plugin.json'
+      author: Affaan Mustafa
+      date: 2026-01-22 16:45:07 -0800
+      type: fix
+      files_count: 1
+    - hash: 73bda1a
+      subject: 'fix: use ${CLAUDE_PLUGIN_ROOT} for hook script paths'
+      author: Affaan Mustafa
+      date: 2026-01-22 16:42:04 -0800
+      type: fix
+      files_count: 1
+    - hash: ecfbbd3
+      subject: 'fix: use relative path ''./'' for plugin source instead of GitHub
+        object'
+      author: Affaan Mustafa
+      date: 2026-01-22 15:02:48 -0800
+      type: fix
+      files_count: 1
+    file_changes:
+    - path: .claude-plugin/marketplace.json
+      status: A
+      category: other
+    - path: .claude-plugin/plugin.json
+      status: A
+      category: other
+    - path: .claude/package-manager.json
+      status: A
+      category: other
+    - path: .gitignore
+      status: A
+      category: other
+    - path: CONTRIBUTING.md
+      status: A
+      category: docs
+    - path: README.md
+      status: A
+      category: docs
+    - path: agents/architect.md
+      status: A
+      category: agents
+    - path: agents/build-error-resolver.md
+      status: A
+      category: agents
+    - path: agents/code-reviewer.md
+      status: A
+      category: agents
+    - path: agents/database-reviewer.md
+      status: A
+      category: agents
+    - path: agents/doc-updater.md
+      status: A
+      category: agents
+    - path: agents/e2e-runner.md
+      status: A
+      category: agents
+    - path: agents/planner.md
+      status: A
+      category: agents
+    - path: agents/refactor-cleaner.md
+      status: A
+      category: agents
+    - path: agents/security-reviewer.md
+      status: A
+      category: agents
+    - path: agents/tdd-guide.md
+      status: A
+      category: agents
+    - path: commands/build-fix.md
+      status: A
+      category: commands
+    - path: commands/checkpoint.md
+      status: A
+      category: commands
+    - path: commands/code-review.md
+      status: A
+      category: commands
+    - path: commands/e2e.md
+      status: A
+      category: commands
+    - path: commands/eval.md
+      status: A
+      category: commands
+    - path: commands/learn.md
+      status: A
+      category: commands
+    - path: commands/orchestrate.md
+      status: A
+      category: commands
+    - path: commands/plan.md
+      status: A
+      category: commands
+    - path: commands/refactor-clean.md
+      status: A
+      category: commands
+    - path: commands/setup-pm.md
+      status: A
+      category: commands
+    - path: commands/tdd.md
+      status: A
+      category: commands
+    - path: commands/test-coverage.md
+      status: A
+      category: commands
+    - path: commands/update-codemaps.md
+      status: A
+      category: commands
+    - path: commands/update-docs.md
+      status: A
+      category: commands
+    - path: commands/verify.md
+      status: A
+      category: commands
+    - path: contexts/dev.md
+      status: A
+      category: contexts
+    - path: contexts/research.md
+      status: A
+      category: contexts
+    - path: contexts/review.md
+      status: A
+      category: contexts
+    - path: examples/CLAUDE.md
+      status: A
+      category: docs
+    - path: examples/sessions/2026-01-17-debugging-memory.tmp
+      status: A
+      category: other
+    - path: examples/sessions/2026-01-19-refactor-api.tmp
+      status: A
+      category: other
+    - path: examples/sessions/2026-01-20-feature-auth.tmp
+      status: A
+      category: other
+    - path: examples/statusline.json
+      status: A
+      category: other
+    - path: examples/user-CLAUDE.md
+      status: A
+      category: docs
+    - path: hooks/hooks.json
+      status: A
+      category: hooks
+    - path: mcp-configs/mcp-servers.json
+      status: A
+      category: other
+    - path: plugins/README.md
+      status: A
+      category: docs
+    - path: rules/agents.md
+      status: A
+      category: rules
+    - path: rules/coding-style.md
+      status: A
+      category: rules
+    - path: rules/git-workflow.md
+      status: A
+      category: rules
+    - path: rules/hooks.md
+      status: A
+      category: rules
+    - path: rules/patterns.md
+      status: A
+      category: rules
+    - path: rules/performance.md
+      status: A
+      category: rules
+    - path: rules/security.md
+      status: A
+      category: rules
