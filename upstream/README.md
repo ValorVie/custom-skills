@@ -41,11 +41,11 @@ superpowers:
 
 ### reports/structured/
 
-存放 `upstream-sync` 生成的已註冊 repo 分析報告（YAML 格式）。
+存放 `custom-skills-upstream-sync` 生成的已註冊 repo 分析報告（YAML 格式）。
 
 ### reports/new-repos/
 
-存放 `upstream-sync --new-repo` 生成的新 repo 評估報告。
+存放 `custom-skills-upstream-sync --new-repo` 生成的新 repo 評估報告。
 
 ## 使用流程
 
@@ -59,7 +59,7 @@ superpowers:
 │  1. ai-dev update                                            │
 │     └── 拉取所有上游 repo 到 ~/.config/                      │
 │                        ↓                                     │
-│  2. /upstream-sync                                           │
+│  2. /custom-skills-upstream-sync                                           │
 │     ├── 分析 commit 差異                                     │
 │     └── 生成 reports/structured/analysis-*.yaml             │
 │                        ↓                                     │
@@ -89,7 +89,7 @@ superpowers:
 │  1. git clone <repo> ~/.config/<name>                        │
 │     └── Clone 新 repo 到本地                                 │
 │                        ↓                                     │
-│  2. /upstream-sync --new-repo ~/.config/<name>               │
+│  2. /custom-skills-upstream-sync --new-repo ~/.config/<name>               │
 │     ├── 全量分析 repo 內容                                   │
 │     └── 生成 reports/new-repos/eval-*.yaml                  │
 │                        ↓                                     │
@@ -111,16 +111,16 @@ superpowers:
 ai-dev update
 
 # 分析已註冊上游變更
-python skills/upstream-sync/scripts/analyze_upstream.py
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py
 
 # 分析特定 repo
-python skills/upstream-sync/scripts/analyze_upstream.py --source superpowers
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --source superpowers
 
 # 評估新的本地 repo
-python skills/upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/awesome-skills
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/awesome-skills
 
 # 更新同步狀態
-python skills/upstream-sync/scripts/analyze_upstream.py --update-sync
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --update-sync
 
 # AI 分析報告
 /upstream-compare
@@ -134,7 +134,7 @@ ai-dev clone
 
 ## 相關 Skills
 
-- `/upstream-sync` - 生成結構化分析報告（支援 --new-repo）
+- `/custom-skills-upstream-sync` - 生成結構化分析報告（支援 --new-repo）
 - `/upstream-compare` - AI 生成自然語言建議（支援 --new-repo）
 
 ## 格式說明
