@@ -116,7 +116,86 @@ echo "📊 共有 $COMMIT_COUNT 個提交將納入 PR"
 
 ---
 
-## 4. 提交整理
+## 4. 檢查現有 PR
+
+> **⚠️ 重要**：此步驟必須在提交整理（squash）之前執行！
+> 若分支已有 OPEN 狀態的 PR，squash 會覆蓋該 PR 的所有提交。
+> 必須先確認使用者意圖後才能繼續。
+
+### 4.1 查詢現有 PR
+
+```bash
+EXISTING_PR=$(gh pr view --json number,url,state,title 2>/dev/null)
+
+if [ -n "$EXISTING_PR" ]; then
+    PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+    PR_URL=$(echo "$EXISTING_PR" | jq -r '.url')
+    PR_STATE=$(echo "$EXISTING_PR" | jq -r '.state')
+    PR_TITLE=$(echo "$EXISTING_PR" | jq -r '.title')
+
+    echo "📝 此分支已有 PR #$PR_NUMBER"
+    echo "   標題：$PR_TITLE"
+    echo "   狀態：$PR_STATE"
+    echo "   $PR_URL"
+fi
+```
+
+### 4.2 狀態判斷邏輯
+
+| PR 狀態 | 處理方式 |
+|---------|----------|
+| `MERGED` | 直接建立新 PR（舊 PR 已合併完成） |
+| `CLOSED` | 直接建立新 PR（舊 PR 已關閉） |
+| `OPEN` | **必須詢問使用者**，確認後才能繼續 |
+| 無 PR | 直接建立新 PR |
+
+### 4.3 若 PR 為 OPEN 狀態
+
+**必須詢問使用者**，提供以下選項：
+
+1. **更新此 PR**：繼續執行 squash 和推送，PR 內容會自動更新
+2. **建立新 PR**：需先建立新分支，再建立獨立的 PR
+3. **中止操作**：取消本次操作，不做任何變更
+
+```markdown
+⚠️ 此分支已有進行中的 PR #$PR_NUMBER
+   標題：$PR_TITLE
+
+本次變更分析結果：
+   標題：$NEW_PR_TITLE
+
+請選擇：
+1. 更新此 PR（將執行 squash 並推送）
+2. 建立新分支並建立新 PR
+3. 中止操作
+```
+
+**判斷提示**：
+- 若現有 PR 標題與本次變更**相關**（如都是同一功能的迭代）→ 建議選擇 1
+- 若現有 PR 標題與本次變更**無關**（如完全不同的功能）→ 建議選擇 2
+
+### 4.4 若選擇「建立新 PR」
+
+```bash
+# 1. 詢問新分支名稱
+NEW_BRANCH="feature/xxx"  # 由使用者指定
+
+# 2. 建立並切換到新分支（從當前 HEAD）
+git checkout -b $NEW_BRANCH
+
+# 3. 繼續執行後續流程（squash、推送、建立 PR）
+```
+
+### 4.5 若選擇「中止操作」
+
+```bash
+echo "❌ 操作已中止"
+exit 0
+```
+
+---
+
+## 5. 提交整理
 
 ### 若未使用 `--no-squash`（預設行為）
 
@@ -142,7 +221,7 @@ echo "✅ 已將 $COMMIT_COUNT 個提交整合為 1 個"
 
 ---
 
-## 5. 推送
+## 6. 推送
 
 ```bash
 # 檢查是否需要 force push（因為整合提交會改寫歷史）
@@ -173,25 +252,19 @@ fi
 
 ---
 
-## 6. 建立 PR
+## 7. 建立/更新 PR
 
-### 6.1 檢查是否已有 PR
+### 若步驟 4 選擇「更新此 PR」
+
+推送已完成，PR 內容會自動更新。可選擇是否更新 PR 標題和描述：
 
 ```bash
-EXISTING_PR=$(gh pr view --json number,url 2>/dev/null)
-
-if [ -n "$EXISTING_PR" ]; then
-    PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
-    PR_URL=$(echo "$EXISTING_PR" | jq -r '.url')
-    echo "📝 此分支已有 PR #$PR_NUMBER"
-    echo "   $PR_URL"
-    echo ""
-    echo "是否要更新此 PR？（推送已完成，PR 會自動更新）"
-    # 詢問使用者是否繼續
-fi
+# 詢問是否更新 PR 標題和描述
+# 若使用者確認，執行：
+gh pr edit $PR_NUMBER --title "$PR_TITLE" --body "$PR_BODY"
 ```
 
-### 6.2 建立新 PR
+### 若需建立新 PR
 
 ```bash
 # 決定是否為草稿
@@ -216,14 +289,16 @@ PR_URL=$(gh pr create \
 
 ---
 
-## 7. 完成
+## 8. 完成
 
 顯示結果（不自動開啟瀏覽器）：
 
 ```bash
 echo ""
 echo "════════════════════════════════════════════════════════"
-if [ "$DIRECT" = true ]; then
+if [ "$UPDATED_EXISTING_PR" = true ]; then
+    echo "✅ PR #$PR_NUMBER 已更新"
+elif [ "$DIRECT" = true ]; then
     echo "✅ 正式 PR 已建立"
 else
     echo "✅ 草稿 PR 已建立"

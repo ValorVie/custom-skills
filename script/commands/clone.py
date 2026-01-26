@@ -1,9 +1,52 @@
 import typer
+from pathlib import Path
 from rich.console import Console
-from ..utils.shared import copy_skills
+from ..utils.shared import (
+    copy_skills,
+    integrate_to_dev_project,
+    get_custom_skills_dir,
+    shorten_path,
+)
+from ..utils.paths import get_project_root
 
 app = typer.Typer()
 console = Console()
+
+
+def _is_custom_skills_project(project_root: Path) -> bool:
+    """檢查是否在 custom-skills 專案目錄中。
+
+    透過檢查 pyproject.toml 中的 name = "ai-dev" 來判斷。
+    """
+    pyproject_path = project_root / "pyproject.toml"
+    if not pyproject_path.exists():
+        return False
+
+    try:
+        content = pyproject_path.read_text(encoding="utf-8")
+        return 'name = "ai-dev"' in content
+    except Exception:
+        return False
+
+
+def _is_dev_project_directory() -> tuple[bool, Path | None]:
+    """檢查當前目錄是否為開發專案目錄（非 ~/.config/custom-skills）。
+
+    Returns:
+        tuple[bool, Path | None]: (是否為開發目錄, 專案根目錄)
+    """
+    project_root = get_project_root()
+    custom_skills_dir = get_custom_skills_dir()
+
+    # 檢查是否為 custom-skills 專案
+    if not _is_custom_skills_project(project_root):
+        return False, None
+
+    # 確保不是 ~/.config/custom-skills 本身
+    if project_root.resolve() == custom_skills_dir.resolve():
+        return False, None
+
+    return True, project_root
 
 
 @app.command()
@@ -11,7 +54,7 @@ def clone(
     sync_project: bool = typer.Option(
         True,
         "--sync-project/--no-sync-project",
-        help="是否同步到專案目錄（預設：是）",
+        help="是否同步到專案目錄（預設：是）。開發者可用此選項整合外部來源到開發目錄。",
     ),
 ):
     """分發 Skills 到各工具目錄。
@@ -23,12 +66,43 @@ def clone(
     - Codex (~/.codex/)
     - Antigravity (~/.gemini/antigravity/)
 
-    流程：
-    1. Stage 2: 整合外部來源（UDS, Obsidian, Anthropic）到 custom-skills
-    2. Stage 3: 分發 custom-skills 到各工具目錄
+    流程說明：
+    - ~/.config/custom-skills 的內容由 git repo 控制
+    - 此指令只負責分發，不會整合外部來源到 ~/.config/custom-skills
 
-    使用 --no-sync-project 可跳過同步到當前專案目錄。
+    開發者模式：
+    - 在開發目錄執行時，使用 --sync-project 可整合外部來源到開發目錄
+    - 使用 --no-sync-project 可跳過整合
     """
-    console.print("[bold blue]開始分發 Skills...[/bold blue]")
-    copy_skills(sync_project=sync_project)
+    is_dev_dir, dev_project_root = _is_dev_project_directory()
+
+    # 開發者模式：整合外部來源到開發目錄
+    if is_dev_dir and sync_project and dev_project_root:
+        console.print("[bold blue]開發者模式：整合外部來源到開發目錄[/bold blue]")
+        integrate_to_dev_project(dev_project_root)
+        console.print()
+
+    # 提示開發者可使用 --sync-project
+    if is_dev_dir and not sync_project:
+        console.print(
+            f"[dim]提示：使用 --sync-project 可整合外部來源到開發目錄 "
+            f"({shorten_path(dev_project_root)})[/dim]"
+        )
+        console.print()
+
+    # 分發 Skills（從 ~/.config/custom-skills 分發到各工具目錄）
+    console.print("[bold blue]分發 Skills 到各工具目錄...[/bold blue]")
+
+    # 檢查來源目錄是否存在
+    custom_skills_dir = get_custom_skills_dir()
+    if not custom_skills_dir.exists():
+        console.print(
+            f"[bold red]錯誤：來源目錄不存在 ({shorten_path(custom_skills_dir)})[/bold red]"
+        )
+        console.print("[dim]請先執行 ai-dev install 或 ai-dev update[/dim]")
+        raise typer.Exit(code=1)
+
+    # 執行分發（sync_project=False 因為專案同步已在上面處理）
+    copy_skills(sync_project=False)
+
     console.print("[bold green]分發完成！[/bold green]")

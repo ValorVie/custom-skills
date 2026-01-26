@@ -1,8 +1,5 @@
-# clone-command Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change simplify-upstream-architecture. Update Purpose after archive.
-## Requirements
 ### Requirement: Clone Command (分發指令)
 
 CLI MUST (必須) 提供 `clone` 子命令，將 `~/.config/custom-skills` 內容分發到各工具目錄。
@@ -62,4 +59,3 @@ CLI MUST (必須) 提供 `clone` 子命令，將 `~/.config/custom-skills` 內�
 則應該：
 1. 顯示錯誤訊息指出來源目錄不存在
 2. 建議先執行 `ai-dev install` 或 `ai-dev update`
-

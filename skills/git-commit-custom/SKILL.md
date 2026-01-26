@@ -70,10 +70,17 @@ ELSE (開發分支):
    ├─ 前置檢查（分支、gh CLI）
    ├─ 範圍判定
    ├─ 讀取並執行 `pr-analyze.md` — 變更分析與摘要生成
+   ├─ ⚠️ 檢查現有 PR（必須在 squash 前執行）
+   │   ├─ 若 MERGED/CLOSED → 繼續建立新 PR
+   │   └─ 若 OPEN → 詢問使用者：更新現有 PR / 建立新分支+新 PR / 中止
    ├─ 提交整理（除非 --no-squash）
    ├─ 推送
    └─ 建立 PR（預設草稿，--direct 為正式）
 ```
+
+> **⚠️ 重要**：PR 檢查必須在 squash 之前執行。
+> 若分支已有 OPEN 的 PR，squash 會覆蓋該 PR 的所有提交。
+> 未經使用者確認就執行 squash 可能導致不可逆的問題。
 
 ### --direct 模式路由
 
