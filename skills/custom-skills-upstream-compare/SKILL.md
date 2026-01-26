@@ -423,15 +423,35 @@ novel_structures:
 
 ## Output Formats
 
-### 1. 自然語言報告
+### 1. 分析報告檔案（必須）
 
-直接在對話中輸出，包含：
+**AI 必須將分析報告儲存至檔案：**
+
+```
+upstream/reports/analysis/compare-YYYY-MM-DD.md
+```
+
+報告檔案包含：
 - 執行摘要
-- 詳細分析
-- 整合建議
-- 實作步驟
+- 各 repo 詳細分析
+- 新框架採用建議
+- 整合路線圖
+- 下一步行動
 
-### 2. OpenSpec Proposal
+**執行步驟：**
+1. 讀取結構化報告（`upstream/reports/structured/analysis-*.yaml`）
+2. 分析內容並生成 Markdown 報告
+3. **使用 Write 工具儲存報告檔案**
+4. 在對話中輸出摘要並告知報告位置
+
+### 2. 對話摘要
+
+在對話中輸出精簡摘要，包含：
+- 關鍵發現
+- 優先行動項目
+- 報告檔案位置連結
+
+### 3. OpenSpec Proposal（可選）
 
 若決定整合，生成提案：
 

@@ -2,6 +2,10 @@
 
 Custom slash commands for Universal Development Standards.
 
+> **Workflow Guide**: For a comprehensive overview of how methodology commands work together, see **[Command Family Overview](./COMMAND-FAMILY-OVERVIEW.md)**.
+>
+> **工作流程指南**：關於方法論指令如何協同運作的完整說明，請參閱 **[指令家族總覽](./COMMAND-FAMILY-OVERVIEW.md)**。
+
 ## Available Commands | 可用命令
 
 ### Standards Management | 標準管理
@@ -36,7 +40,7 @@ Commands for development workflow automation.
 | [`/reverse-tdd`](./reverse-tdd.md) | Analyze BDD-TDD coverage | BDD-TDD 覆蓋率分析 |
 | [`/derive-bdd`](./derive-bdd.md) | Derive BDD scenarios from approved spec | 從規格推演 BDD 場景 |
 | [`/derive-tdd`](./derive-tdd.md) | Derive TDD test skeletons from spec | 從規格推演 TDD 骨架 |
-| [`/derive-atdd`](./derive-atdd.md) | Derive ATDD acceptance tests from spec | 從規格推演 ATDD 測試 |
+| [`/derive-atdd`](./derive-atdd.md) | (Optional) Derive ATDD acceptance tests | （可選）推演 ATDD 測試 |
 | [`/derive-all`](./derive-all.md) | Derive all test structures from spec | 從規格推演完整測試結構 |
 | [`/upstream-sync`](./upstream-sync.md) | Sync and analyze upstream repos | 上游同步與分析 |
 
@@ -50,6 +54,29 @@ Commands for development methodology workflows.
 | [`/tdd`](./tdd.md) | Test-Driven Development workflow | TDD 開發流程 |
 | [`/bdd`](./bdd.md) | Behavior-Driven Development workflow | BDD 開發流程 |
 | [`/atdd`](./atdd.md) | Acceptance Test-Driven Development workflow | ATDD 驗收流程 |
+
+### OpenSpec Experimental (OPSX) | OpenSpec 實驗性工作流
+
+Commands for the experimental OpenSpec artifact-based workflow.
+
+| Command | Description | 說明 |
+|---------|-------------|------|
+| [`/opsx:explore`](./../opsx/explore.md) | Think through ideas and clarify requirements | 探索與釐清需求 |
+| [`/opsx:new`](./../opsx/new.md) | Start a new change with proposal | 建立新變更 |
+| [`/opsx:continue`](./../opsx/continue.md) | Continue working on a change | 繼續變更工作 |
+| [`/opsx:ff`](./../opsx/ff.md) | Fast-forward through artifact creation | 快速建立 artifacts |
+| [`/opsx:apply`](./../opsx/apply.md) | Implement tasks from a change | 實作變更任務 |
+| [`/opsx:verify`](./../opsx/verify.md) | Verify implementation matches artifacts | 驗證實作 |
+| [`/opsx:sync`](./../opsx/sync.md) | Sync delta specs to main specs | 同步 delta specs |
+| [`/opsx:archive`](./../opsx/archive.md) | Archive a completed change | 歸檔變更 |
+| [`/opsx:bulk-archive`](./../opsx/bulk-archive.md) | Archive multiple changes at once | 批次歸檔 |
+| [`/opsx:onboard`](./../opsx/onboard.md) | Guided onboarding walkthrough | 引導式教學 |
+
+### Documentation | 文件
+
+| Command | Description | 說明 |
+|---------|-------------|------|
+| [`/generate-docs`](./generate-docs.md) | Generate usage documentation | 產生使用文件 |
 
 ### ECC Commands | ECC 指令
 

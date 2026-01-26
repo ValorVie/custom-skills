@@ -44,6 +44,15 @@ TBD - created by archiving change simplify-upstream-architecture. Update Purpose
 
 `upstream-compare` MUST (必須) 專注於深度品質比較與分析報告生成。
 
+#### Scenario: 報告檔案輸出
+
+給定執行 `/upstream-compare` 時
+則必須：
+1. 讀取結構化報告（`upstream/reports/structured/analysis-*.yaml`）
+2. 分析內容並生成 Markdown 報告
+3. **使用 Write 工具儲存報告至 `upstream/reports/analysis/compare-YYYY-MM-DD.md`**
+4. 在對話中輸出精簡摘要並告知報告檔案位置
+
 #### Scenario: 品質比較
 
 給定執行 `/upstream-compare` 時

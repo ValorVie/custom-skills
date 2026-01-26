@@ -1,5 +1,6 @@
 ---
 name: release-standards
+scope: universal
 description: |
   Semantic versioning and changelog formatting for software releases.
   Use when: preparing releases, updating version numbers, writing changelogs.
@@ -15,6 +16,8 @@ description: |
 **Applicability**: Claude Code Skills
 
 ---
+
+> **Core Standard**: This skill implements [Versioning](../../../core/versioning.md). For comprehensive methodology documentation, refer to the core standard.
 
 ## Purpose
 
@@ -169,9 +172,9 @@ This project follows **Keep a Changelog** format.
 
 ## Related Standards
 
-- [Versioning](../../core/versioning.md)
-- [Changelog Standards](../../core/changelog-standards.md)
-- [Git Workflow](../../core/git-workflow.md)
+- [Versioning](../../../core/versioning.md) - Core semantic versioning standard
+- [Changelog Standards](../../../core/changelog-standards.md) - Keep a Changelog format
+- [Git Workflow](../../../core/git-workflow.md) - Git tagging and release branches
 
 ---
 
