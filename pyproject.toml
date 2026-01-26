@@ -1,6 +1,6 @@
 [project]
 name = "ai-dev"
-version = "1.0.0"
+version = "1.0.1"
 description = "AI Development Environment Setup CLI - 統一管理 Skills、Commands 與 Agent 配置"
 readme = "README.md"
 requires-python = ">=3.13"

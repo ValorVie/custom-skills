@@ -1,5 +1,6 @@
 ---
 name: git-workflow-guide
+scope: universal
 description: |
   Guide Git branching strategies, branch naming, and merge operations.
   Use when: creating branches, merging, pull requests, Git workflow questions.
@@ -15,6 +16,8 @@ description: |
 **Applicability**: Claude Code Skills
 
 ---
+
+> **Core Standard**: This skill implements [Git Workflow](../../../core/git-workflow.md). For comprehensive methodology documentation, refer to the core standard.
 
 ## Purpose
 
@@ -205,9 +208,9 @@ Example: `feature/oauth-login`, `fix/memory-leak`
 
 ## Related Standards
 
-- [Git Workflow](../../core/git-workflow.md)
-- [Commit Message Guide](../../core/commit-message-guide.md)
-- [Checkin Standards](../../core/checkin-standards.md)
+- [Git Workflow](../../../core/git-workflow.md) - Core Git workflow standard
+- [Commit Message Guide](../../../core/commit-message-guide.md) - Commit message conventions
+- [Checkin Standards](../../../core/checkin-standards.md) - Pre-commit quality gates
 
 ---
 
