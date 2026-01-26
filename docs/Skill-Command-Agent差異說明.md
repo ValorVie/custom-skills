@@ -5,7 +5,7 @@ tags:
   - antigravity
   - dev-stack
 date created: 2026-01-14T16:30:00+08:00
-date modified: 2026-01-24T19:00:00+08:00
+date modified: 2026-01-26T12:00:00+08:00
 description: 說明 AI 開發工具中 Skill、Command、Agent 的差異與使用時機
 ---
 
@@ -410,6 +410,7 @@ project/.claude/.agent/
 | `reviewer` | reviewer | 程式碼審查與品質評估 |
 | `doc-writer` | specialist | 文件與技術寫作 |
 | `spec-analyst` | specialist | 規格分析與需求萃取 |
+| `database-reviewer` | specialist | PostgreSQL 專家與 Supabase patterns |
 
 ### ECC Agents（進階工作流）
 
