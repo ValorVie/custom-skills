@@ -75,7 +75,7 @@ For details, see [references/release-workflow.md](references/release-workflow.md
 
 1. Add source to `upstream/sources.yaml`
 2. Clone to `~/.config/`
-3. Run `/upstream-sync` to analyze
+3. Run `/custom-skills-upstream-sync` to analyze
 4. Create integration proposal via `/openspec:proposal`
 5. Place resources in `sources/<name>/`
 

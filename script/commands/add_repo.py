@@ -154,7 +154,7 @@ def add_to_sources_yaml(
             f.write("# 上游來源註冊表 - 記錄所有第三方 repo 的來源資訊\n")
             f.write("#\n")
             f.write("# 用途：\n")
-            f.write("# - upstream-sync 分析上游 commit 差異\n")
+            f.write("# - custom-skills-upstream-sync 分析上游 commit 差異\n")
             f.write("# - 記錄 repo 位置與分支資訊\n")
             f.write("#\n")
             f.write("# 注意：\n")
@@ -182,7 +182,7 @@ def add_repo(
     此指令會：
     1. Clone repo 到 ~/.config/<repo-name>/
     2. 將 repo 資訊加入 upstream/sources.yaml
-    3. [可選] 執行 upstream-sync 分析
+    3. [可選] 執行 custom-skills-upstream-sync 分析
 
     範例：
         ai-dev add-repo owner/repo
@@ -243,7 +243,7 @@ def add_repo(
     console.print("[bold green]✓ 完成！[/bold green]")
     console.print()
     console.print("[dim]下一步：[/dim]")
-    console.print(f"[dim]  1. 分析 repo: python skills/upstream-sync/scripts/analyze_upstream.py --new-repo {target_dir}[/dim]")
+    console.print(f"[dim]  1. 分析 repo: python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo {target_dir}[/dim]")
     console.print(f"[dim]  2. AI 評估: /upstream-compare --new-repo[/dim]")
 
     # 可選：執行分析
@@ -251,7 +251,7 @@ def add_repo(
         console.print()
         console.print("[cyan]正在執行分析...[/cyan]")
         # 找到分析腳本
-        script_path = sources_path.parent.parent / "skills" / "upstream-sync" / "scripts" / "analyze_upstream.py"
+        script_path = sources_path.parent.parent / "skills" / "custom-skills-upstream-sync" / "scripts" / "analyze_upstream.py"
         if script_path.exists():
             subprocess.run(
                 ["python", str(script_path), "--new-repo", str(target_dir)],
