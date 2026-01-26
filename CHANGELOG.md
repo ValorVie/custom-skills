@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **OpenSpec 實驗性工作流 (OPSX)**
+  - 新增 10 個 OpenSpec Skills：
+    - `openspec-explore`: 探索與釐清需求
+    - `openspec-new-change`: 建立新變更
+    - `openspec-continue-change`: 繼續變更工作
+    - `openspec-ff-change`: 快速建立所有 artifacts
+    - `openspec-apply-change`: 實作變更
+    - `openspec-verify-change`: 驗證實作
+    - `openspec-sync-specs`: 同步 delta specs 至 main specs
+    - `openspec-archive-change`: 歸檔變更
+    - `openspec-bulk-archive-change`: 批次歸檔
+    - `openspec-onboard`: 引導式教學
+  - 新增對應的 opsx commands（10 個）
+  - 支援所有平台：Claude Code、Gemini、GitHub Copilot、OpenCode
+
+- **上游整合**
+  - 新增 `database-reviewer` agent（PostgreSQL 專家，整合 Supabase patterns）
+  - 新增 `cloud-infrastructure-security` skill（雲端安全檢查清單）
+
+- **新增 Skills**
+  - `ai-friendly-architecture`: AI 友好架構設計
+  - `ai-instruction-standards`: AI 指令檔案標準
+  - `docs-generator`: 文件生成器
+
+- **文件**
+  - 新增 `commands/claude/COMMAND-FAMILY-OVERVIEW.md` 指令家族總覽
+  - 新增 `commands/claude/generate-docs.md` 文件生成指令
+
+### Changed
+
+- **Skills 更新**
+  - `ai-collaboration-standards`: 更新反幻覺協議
+  - `methodology-system`: 更新整合流程
+  - `spec-driven-dev`: 更新規格驅動開發
+  - `release-standards`: 更新發布流程
+  - `forward-derivation`: 更新正向推導
+  - `test-coverage-assistant`: 更新測試覆蓋評估
+  - `custom-skills-upstream-compare`: 新增報告檔案輸出規範
+
+### Removed
+
+- **舊 OpenSpec Commands**
+  - 移除 `/openspec:apply`、`/openspec:archive`、`/openspec:proposal`
+  - 已由新的 opsx 系列指令取代
+
 ---
 
 ## [0.9.7] - 2026-01-25

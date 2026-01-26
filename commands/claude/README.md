@@ -54,6 +54,30 @@ Commands for development methodology workflows.
 | [`/tdd`](./tdd.md) | Test-Driven Development workflow | TDD 開發流程 |
 | [`/bdd`](./bdd.md) | Behavior-Driven Development workflow | BDD 開發流程 |
 | [`/atdd`](./atdd.md) | Acceptance Test-Driven Development workflow | ATDD 驗收流程 |
+
+### OpenSpec Experimental (OPSX) | OpenSpec 實驗性工作流
+
+Commands for the experimental OpenSpec artifact-based workflow.
+
+| Command | Description | 說明 |
+|---------|-------------|------|
+| [`/opsx:explore`](./../opsx/explore.md) | Think through ideas and clarify requirements | 探索與釐清需求 |
+| [`/opsx:new`](./../opsx/new.md) | Start a new change with proposal | 建立新變更 |
+| [`/opsx:continue`](./../opsx/continue.md) | Continue working on a change | 繼續變更工作 |
+| [`/opsx:ff`](./../opsx/ff.md) | Fast-forward through artifact creation | 快速建立 artifacts |
+| [`/opsx:apply`](./../opsx/apply.md) | Implement tasks from a change | 實作變更任務 |
+| [`/opsx:verify`](./../opsx/verify.md) | Verify implementation matches artifacts | 驗證實作 |
+| [`/opsx:sync`](./../opsx/sync.md) | Sync delta specs to main specs | 同步 delta specs |
+| [`/opsx:archive`](./../opsx/archive.md) | Archive a completed change | 歸檔變更 |
+| [`/opsx:bulk-archive`](./../opsx/bulk-archive.md) | Archive multiple changes at once | 批次歸檔 |
+| [`/opsx:onboard`](./../opsx/onboard.md) | Guided onboarding walkthrough | 引導式教學 |
+
+### Documentation | 文件
+
+| Command | Description | 說明 |
+|---------|-------------|------|
+| [`/generate-docs`](./generate-docs.md) | Generate usage documentation | 產生使用文件 |
+
 ### ECC Commands | ECC 指令
 
 Commands from Everything Claude Code integration.
