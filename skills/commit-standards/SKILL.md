@@ -1,5 +1,6 @@
 ---
 name: commit-standards
+scope: universal
 description: |
   Format commit messages following conventional commits standard.
   Use when: writing commit messages, git commit, reviewing commit history.
@@ -15,6 +16,8 @@ description: |
 **Applicability**: Claude Code Skills
 
 ---
+
+> **Core Standard**: This skill implements [Commit Message Guide](../../../core/commit-message-guide.md). For comprehensive methodology documentation, refer to the core standard.
 
 ## Purpose
 

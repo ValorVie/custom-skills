@@ -143,3 +143,37 @@ ai-dev clone
 |------|------|------|
 | `claude-code-native` | 純 Markdown | superpowers, obsidian-skills, anthropic-skills |
 | `uds` | YAML frontmatter + Markdown | universal-dev-standards |
+
+---
+
+## 整合決定記錄
+
+### 2026-01-26 整合
+
+**來源報告：** `reports/analysis/compare-2026-01-26.md`
+
+#### 已整合項目
+
+| 來源 | 項目 | 類型 | 說明 |
+|------|------|------|------|
+| everything-claude-code | database-reviewer | Agent | PostgreSQL 專家，Supabase patterns |
+| everything-claude-code | cloud-infrastructure-security | Skill | 雲端安全檢查清單 |
+
+#### 暫不整合項目
+
+| 來源 | 項目 | 原因 |
+|------|------|------|
+| everything-claude-code | orchestrate command | 現有 commands 已足夠 |
+| everything-claude-code | setup-pm command | 現有 commands 已足夠 |
+| superpowers | OpenCode support | 需求不明確 |
+| superpowers | Codex support | 需求不明確 |
+
+#### 新框架決定
+
+| 框架 | 決定 | 說明 |
+|------|------|------|
+| Claude Plugin System | ✅ 維持 | 已有支援 |
+| OpenCode Support | ⏸️ 暫緩 | 需求不明確，按需再評估 |
+| Codex Support | ⏸️ 暫緩 | 需求不明確，按需再評估 |
+| Hook System | 📖 參考 | 現有機制足夠 |
+| MCP Integration | 📖 參考 | 按需整合 |
