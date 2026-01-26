@@ -1,0 +1,13 @@
+# 這是最頂層的設定檔，告訴編輯器停止往上層目錄尋找
+root = true
+
+# 針對所有檔案類型的設定
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# (選用建議) 這裡可以順便規範縮排，通常建議設定如下：
+indent_style = space
+indent_size = 4
