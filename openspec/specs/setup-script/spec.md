@@ -99,7 +99,10 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 
 ### Requirement: Three-Stage Copy Flow (三階段複製流程)
 
-腳本 MUST (必須) 使用三階段複製流程來管理資源分發。
+腳本 MUST (必須) 使用簡化的分發流程來管理資源分發。
+
+> **變更說明**：移除 Stage 2（整合到 custom-skills），`~/.config/custom-skills` 內容完全由 git repo 控制。
+> Stage 2 的整合功能已移至開發者模式，透過 `ai-dev clone --sync-project` 在開發目錄執行。
 
 #### Scenario: Stage 1 - Clone 外部套件
 
@@ -110,26 +113,26 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 - universal-dev-standards → `~/.config/universal-dev-standards/`
 - obsidian-skills → `~/.config/obsidian-skills/`
 - anthropic-skills → `~/.config/anthropic-skills/`
-
-#### Scenario: Stage 2 - 整合到 custom-skills
-
-給定已 clone 的外部儲存庫
-當執行 `ai-dev install` 或 `ai-dev update` 時
-則應該將 skills 整合到 `~/.config/custom-skills/skills/`：
-- 從 UDS 複製 skills
-- 從 obsidian-skills 複製 skills
-- 從 anthropic-skills 複製 skill-creator
+- everything-claude-code → `~/.config/everything-claude-code/`
+- custom-skills → `~/.config/custom-skills/`
 
 #### Scenario: Stage 3 - 分發到目標目錄
 
-給定已整合的 `~/.config/custom-skills/`
-當執行 `ai-dev install` 或 `ai-dev update` 時
+給定 `~/.config/custom-skills/` 由 git repo 控制
+當執行 `ai-dev clone` 時
 則應該複製到所有目標目錄：
-- Claude Code: `~/.claude/skills`, `~/.claude/commands`
-- Antigravity: `~/.gemini/antigravity/skills`, `~/.gemini/antigravity/global_workflows`
-- OpenCode: `~/.config/opencode/skills`, `~/.config/opencode/commands`, `~/.config/opencode/agent`
+- Claude Code: `~/.claude/skills`, `~/.claude/commands`, `~/.claude/agents`, `~/.claude/workflows`
+- Antigravity: `~/.gemini/antigravity/global_skills`, `~/.gemini/antigravity/global_workflows`
+- OpenCode: `~/.config/opencode/skills`, `~/.config/opencode/commands`, `~/.config/opencode/agents`
 - Codex: `~/.codex/skills`
 - Gemini CLI: `~/.gemini/skills`, `~/.gemini/commands`
+
+#### Scenario: 不再自動執行 Stage 2 整合
+
+給定使用者執行 `ai-dev clone`
+當分發流程執行時
+則不應該自動將外部來源（UDS, Obsidian, Anthropic）整合到 `~/.config/custom-skills`
+且 `~/.config/custom-skills` 的內容應由 git repo 控制
 
 ### Requirement: OpenCode Full Support (OpenCode 完整支援)
 

@@ -19,3 +19,9 @@ logs
 backups
 disabled
 .env
+
+HEARTBEAT.md
+SOUL.md
+IDENTITY.md
+USER.md
+TOOLS.md

@@ -311,14 +311,27 @@ def copy_tree_if_exists(src: Path, dst: Path, msg: str):
 
 
 # ============================================================
-# 三階段複製邏輯
+# 分發與整合邏輯
+# ============================================================
+#
+# 流程說明：
+# - Stage 1: Clone/Pull 外部套件（由 install/update 指令處理）
+# - Stage 3: 分發 ~/.config/custom-skills 到各工具目錄（由 copy_skills 處理）
+#
+# 注意：Stage 2（整合外部來源到 custom-skills）已移除。
+# ~/.config/custom-skills 的內容現由 git repo 控制。
+#
+# 開發者如需整合外部來源，請使用 integrate_to_dev_project()，
+# 該函式會將外部來源整合到開發目錄（非 ~/.config/custom-skills）。
 # ============================================================
 
 
 def copy_sources_to_custom_skills() -> None:
-    """Stage 2: 將外部來源整合到 custom-skills 目錄。
+    """[已棄用] 將外部來源整合到 custom-skills 目錄。
 
-    直接從 ~/.config/<repo>/ 讀取外部來源。
+    注意：此函式已不再被 copy_skills() 呼叫。
+    ~/.config/custom-skills 的內容現由 git repo 控制。
+    開發者應使用 integrate_to_dev_project() 來整合外部來源到開發目錄。
 
     整合來源：
     - UDS (skills, agents, workflows, commands)
@@ -575,21 +588,155 @@ def _sync_to_project_directory(src_skills: Path) -> None:
 
 
 def copy_skills(sync_project: bool = True) -> None:
-    """複製 Skills 從來源到目標目錄（三階段流程）。
+    """將 ~/.config/custom-skills 分發到各工具目錄。
 
-    三階段流程：
-    1. Stage 1: Clone/Pull 外部套件（由 install/update 指令處理）
-    2. Stage 2: 從 ~/.config/<repo>/ 整合到 custom-skills
-    3. Stage 3: 分發到各工具目錄
+    流程說明：
+    - Stage 1: Clone/Pull 外部套件（由 install/update 指令處理）
+    - Stage 3: 分發 ~/.config/custom-skills 到各工具目錄
+
+    注意：不再執行 Stage 2（整合外部來源到 custom-skills）。
+    ~/.config/custom-skills 的內容由 git repo 控制。
+    開發者如需整合外部來源，請使用 integrate_to_dev_project()。
 
     Args:
-        sync_project: 是否同步到專案目錄（預設為 True）
+        sync_project: 是否同步到專案目錄（預設為 True，僅對開發目錄有效）
     """
-    # Stage 2: 整合外部來源
-    copy_sources_to_custom_skills()
-
     # Stage 3: 分發到目標目錄
     copy_custom_skills_to_targets(sync_project=sync_project)
+
+
+def integrate_to_dev_project(dev_project_root: Path) -> None:
+    """將外部來源整合到開發目錄。
+
+    此函式供開發者使用，將 ~/.config/<repos> 的外部來源
+    整合到指定的開發目錄（非 ~/.config/custom-skills）。
+
+    整合來源：
+    - UDS (skills, agents, workflows, commands)
+    - Obsidian skills
+    - Anthropic skill-creator
+    - ECC (skills, agents, commands) - 從專案內的 sources/ecc
+
+    Args:
+        dev_project_root: 開發專案的根目錄
+    """
+    console.print("[bold cyan]整合外部來源到開發目錄...[/bold cyan]")
+    console.print(f"  目標：{shorten_path(dev_project_root)}")
+
+    dst_skills = dev_project_root / "skills"
+    dst_skills.mkdir(parents=True, exist_ok=True)
+
+    # ============================================================
+    # UDS 來源 - 主要整合來源
+    # ============================================================
+    src_uds = get_uds_dir() / "skills" / "claude-code"
+    if src_uds.exists():
+        console.print(f"  [dim]{shorten_path(src_uds)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_skills)}[/dim]")
+        # 複製時排除 agents 和 workflows（這些有專門的目的地）
+        for item in src_uds.iterdir():
+            if item.name in ("agents", "workflows", "commands"):
+                continue  # 這些會單獨處理
+            dst_item = dst_skills / item.name
+            if item.is_dir():
+                shutil.copytree(item, dst_item, dirs_exist_ok=True)
+            else:
+                shutil.copy2(item, dst_item)
+        clean_unwanted_files(dst_skills)
+
+    # UDS agents → dev/agents/claude 和 dev/agents/opencode
+    src_uds_agents = get_uds_dir() / "skills" / "claude-code" / "agents"
+    if src_uds_agents.exists():
+        # 複製到 claude
+        dst_agents_claude = dev_project_root / "agents" / "claude"
+        console.print(f"  [dim]{shorten_path(src_uds_agents)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_agents_claude)}[/dim]")
+        dst_agents_claude.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_agents, dst_agents_claude, dirs_exist_ok=True)
+
+        # 同時複製到 opencode
+        dst_agents_opencode = dev_project_root / "agents" / "opencode"
+        console.print(f"    → [dim]{shorten_path(dst_agents_opencode)}[/dim]")
+        dst_agents_opencode.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_agents, dst_agents_opencode, dirs_exist_ok=True)
+
+    # UDS workflows → dev/commands/workflows
+    src_uds_workflows = get_uds_dir() / "skills" / "claude-code" / "workflows"
+    dst_workflows = dev_project_root / "commands" / "workflows"
+    if src_uds_workflows.exists():
+        console.print(f"  [dim]{shorten_path(src_uds_workflows)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_workflows)}[/dim]")
+        dst_workflows.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_workflows, dst_workflows, dirs_exist_ok=True)
+
+    # UDS commands → dev/commands/claude（如果存在）
+    src_uds_commands = get_uds_dir() / "skills" / "claude-code" / "commands"
+    dst_commands = dev_project_root / "commands" / "claude"
+    if src_uds_commands.exists():
+        console.print(f"  [dim]{shorten_path(src_uds_commands)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_commands)}[/dim]")
+        dst_commands.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src_uds_commands, dst_commands, dirs_exist_ok=True)
+
+    # ============================================================
+    # Obsidian skills
+    # ============================================================
+    src_obsidian = get_obsidian_skills_dir() / "skills"
+    if src_obsidian.exists():
+        console.print(f"  [dim]{shorten_path(src_obsidian)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_skills)}[/dim]")
+        shutil.copytree(src_obsidian, dst_skills, dirs_exist_ok=True)
+
+    # ============================================================
+    # Anthropic skill-creator
+    # ============================================================
+    src_anthropic = get_anthropic_skills_dir() / "skills" / "skill-creator"
+    if src_anthropic.exists():
+        dst_skill_creator = dst_skills / "skill-creator"
+        console.print(f"  [dim]{shorten_path(src_anthropic)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_skill_creator)}[/dim]")
+        shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
+
+    # ============================================================
+    # ECC (everything-claude-code) 資源 - 從專案內的 sources/ecc
+    # ============================================================
+    src_ecc = dev_project_root / "sources" / "ecc"
+    if src_ecc.exists():
+        console.print("[bold cyan]  整合 ECC 資源...[/bold cyan]")
+
+        # ECC skills → dev/skills
+        src_ecc_skills = src_ecc / "skills"
+        if src_ecc_skills.exists():
+            console.print(f"  [dim]{shorten_path(src_ecc_skills)}[/dim]")
+            console.print(f"    → [dim]{shorten_path(dst_skills)}[/dim]")
+            for skill_dir in src_ecc_skills.iterdir():
+                if skill_dir.is_dir():
+                    dst_skill = dst_skills / skill_dir.name
+                    shutil.copytree(skill_dir, dst_skill, dirs_exist_ok=True)
+
+        # ECC agents → dev/agents/claude
+        src_ecc_agents = src_ecc / "agents"
+        if src_ecc_agents.exists():
+            dst_agents_claude = dev_project_root / "agents" / "claude"
+            console.print(f"  [dim]{shorten_path(src_ecc_agents)}[/dim]")
+            console.print(f"    → [dim]{shorten_path(dst_agents_claude)}[/dim]")
+            dst_agents_claude.mkdir(parents=True, exist_ok=True)
+            for agent_file in src_ecc_agents.iterdir():
+                if agent_file.is_file() and agent_file.suffix == ".md":
+                    shutil.copy2(agent_file, dst_agents_claude / agent_file.name)
+
+        # ECC commands → dev/commands/claude
+        src_ecc_commands = src_ecc / "commands"
+        if src_ecc_commands.exists():
+            dst_commands_claude = dev_project_root / "commands" / "claude"
+            console.print(f"  [dim]{shorten_path(src_ecc_commands)}[/dim]")
+            console.print(f"    → [dim]{shorten_path(dst_commands_claude)}[/dim]")
+            dst_commands_claude.mkdir(parents=True, exist_ok=True)
+            for cmd_file in src_ecc_commands.iterdir():
+                if cmd_file.is_file() and cmd_file.suffix == ".md":
+                    shutil.copy2(cmd_file, dst_commands_claude / cmd_file.name)
+
+    console.print("[green]✓ 外部來源整合完成[/green]")
 
 
 # ============================================================
