@@ -19,8 +19,9 @@ function findTsConfigDir(filePath, deps = {}) {
   if (!filePath) return null;
 
   let dir = path.dirname(filePath);
+  const { root } = path.parse(dir);
 
-  while (dir !== '/') {
+  while (dir !== root) {
     if (_fs.existsSync(path.join(dir, 'tsconfig.json'))) {
       return dir;
     }
@@ -52,7 +53,8 @@ function checkTypeScript(filePath, deps = {}) {
     _execSync('npx tsc --noEmit 2>&1', {
       cwd: tsConfigDir,
       encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 60000
     });
     return { hasErrors: false, errors: [] };
   } catch (e) {

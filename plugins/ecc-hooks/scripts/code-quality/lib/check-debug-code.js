@@ -51,7 +51,7 @@ function getModifiedFiles(deps = {}) {
 }
 
 /**
- * Check JS/TS file for console.log
+ * Check JS/TS file for console.log (excluding comments)
  * @param {string} filePath - Path to the file
  * @param {object} [deps] - Injectable dependencies
  * @returns {boolean}
@@ -59,7 +59,43 @@ function getModifiedFiles(deps = {}) {
 function hasJsDebugCode(filePath, deps = {}) {
   const _fs = deps.fs || fs;
   const content = _fs.readFileSync(filePath, 'utf8');
-  return /console\.log/.test(content);
+  const lines = content.split('\n');
+  let inBlockComment = false;
+
+  return lines.some((line) => {
+    // Track block comment state
+    if (inBlockComment) {
+      if (line.includes('*/')) {
+        inBlockComment = false;
+        // Check remaining content after block comment ends
+        const afterComment = line.substring(line.indexOf('*/') + 2);
+        if (/^\s*\/\//.test(afterComment)) return false;
+        return /console\.log/.test(afterComment);
+      }
+      return false;
+    }
+
+    // Check for block comment start
+    if (line.includes('/*') && !line.includes('*/')) {
+      inBlockComment = true;
+      // Check content before block comment
+      const beforeComment = line.substring(0, line.indexOf('/*'));
+      if (/^\s*\/\//.test(line)) return false;
+      return /console\.log/.test(beforeComment);
+    }
+
+    // Skip single-line comments
+    const trimmed = line.trim();
+    if (trimmed.startsWith('//')) return false;
+
+    // Handle inline block comments /* ... */ on same line
+    const withoutBlockComments = line.replace(/\/\*.*?\*\//g, '');
+
+    // Skip if line is mostly a comment
+    if (/^\s*\/\//.test(withoutBlockComments)) return false;
+
+    return /console\.log/.test(withoutBlockComments);
+  });
 }
 
 /**
@@ -76,6 +112,7 @@ function hasPhpDebugCode(filePath, deps = {}) {
 
 /**
  * Check Python file for debug code (excluding comments)
+ * Supports detection of import aliases like `from pdb import set_trace`
  * @param {string} filePath - Path to the file
  * @param {object} [deps] - Injectable dependencies
  * @returns {boolean}
@@ -85,14 +122,58 @@ function hasPythonDebugCode(filePath, deps = {}) {
   const content = _fs.readFileSync(filePath, 'utf8');
   const lines = content.split('\n');
 
+  // Track imported debug functions
+  const importedDebugFuncs = new Set();
+
+  // Debug import patterns
+  const debugImportPatterns = [
+    /from\s+pdb\s+import\s+(.+)/,
+    /from\s+ipdb\s+import\s+(.+)/,
+    /from\s+pudb\s+import\s+(.+)/,
+    /from\s+icecream\s+import\s+(.+)/,
+    /from\s+pprint\s+import\s+(.+)/,
+    /from\s+rich\s+import\s+print/
+  ];
+
   return lines.some((line) => {
+    // Skip comments
     if (/^\s*#/.test(line)) return false;
-    return (
+
+    // Check for debug imports and track them
+    for (const pattern of debugImportPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        // Parse imported names (handle 'as' aliases and multiple imports)
+        const imports = match[1].split(',').map((s) => {
+          const parts = s.trim().split(/\s+as\s+/);
+          return parts[parts.length - 1].trim();
+        });
+        imports.forEach((name) => importedDebugFuncs.add(name));
+        return true; // Import of debug tool is itself a warning
+      }
+    }
+
+    // Check for standard debug patterns
+    if (
       /\b(print|pprint)\s*\(/.test(line) ||
       /\bbreakpoint\s*\(/.test(line) ||
       /\bpdb\./.test(line) ||
+      /\bipdb\./.test(line) ||
+      /\bpudb\./.test(line) ||
       /\bic\s*\(/.test(line)
-    );
+    ) {
+      return true;
+    }
+
+    // Check for imported debug function calls
+    for (const func of importedDebugFuncs) {
+      const pattern = new RegExp(`\\b${func}\\s*\\(`);
+      if (pattern.test(line)) {
+        return true;
+      }
+    }
+
+    return false;
   });
 }
 

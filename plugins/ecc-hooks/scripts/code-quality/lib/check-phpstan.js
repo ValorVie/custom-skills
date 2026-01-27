@@ -19,8 +19,9 @@ function findPhpStanRoot(filePath, deps = {}) {
   if (!filePath) return null;
 
   let dir = path.dirname(filePath);
+  const { root } = path.parse(dir);
 
-  while (dir !== '/') {
+  while (dir !== root) {
     if (_fs.existsSync(path.join(dir, 'vendor/bin/phpstan'))) {
       return dir;
     }
@@ -54,7 +55,8 @@ function runPhpStan(filePath, deps = {}) {
       {
         cwd: root,
         encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 60000
       }
     );
     return { hasErrors: false, errors: [] };

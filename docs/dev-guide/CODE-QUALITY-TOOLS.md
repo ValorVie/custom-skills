@@ -2,6 +2,29 @@
 
 ecc-hooks 的 PostToolUse hooks 會在編輯檔案後自動執行程式碼品質檢查。這些工具為**可選安裝**，若未安裝則 hooks 會靜默跳過。
 
+## 工具分類總覽
+
+| 語言 | 工具 | 類型 | 說明 |
+|------|------|------|------|
+| **JS/TS** | Prettier | 🟢 建議 | 自動格式化，無此工具會降低程式碼一致性 |
+| | TypeScript | 🟢 建議 | 型別檢查，需 `tsconfig.json` |
+| **PHP** | Laravel Pint | 🟢 建議 | Laravel 專案推薦的格式化工具 |
+| | PHP-CS-Fixer | 🟡 可選 | Pint 的替代方案 |
+| | PHPStan | 🟢 建議 | 靜態分析，提早發現型別錯誤 |
+| | PHPUnit | 🟡 可選 | 測試框架，非 hooks 必需 |
+| **Python** | Ruff | 🟢 建議 | 格式化 + Linting，速度快 |
+| | Black | 🟡 可選 | Ruff 的替代方案 |
+| | mypy | 🟢 建議 | 型別檢查，需配置檔 |
+| | pytest | 🟡 可選 | 測試框架，非 hooks 必需 |
+
+**圖例**：
+- 🟢 **建議**：強烈建議安裝，能顯著提升程式碼品質
+- 🟡 **可選**：有替代方案或非核心功能
+
+> **Note**: 所有工具都是可選的。若未安裝，hooks 會靜默跳過，不會產生錯誤。
+
+---
+
 ## JavaScript / TypeScript
 
 ### Prettier（格式化）
