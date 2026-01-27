@@ -8,7 +8,22 @@
       "Bash(python -m openspec:*)",
       "Bash(echo:*)",
       "Bash(python openspec/cli.py:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(openspec list:*)",
+      "Bash(openspec status:*)",
+      "Bash(find:*)",
+      "Bash(if git rev-parse --verify main)",
+      "Bash(then echo \"main\")",
+      "Bash(elif git rev-parse --verify master)",
+      "Bash(then echo \"master\")",
+      "Bash(else echo \"none\")",
+      "Bash(fi)",
+      "Bash(git rev-parse:*)",
+      "Bash(git remote get-url:*)",
+      "Bash(git rev-list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)"
     ]
   }
 }
