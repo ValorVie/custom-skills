@@ -1,6 +1,7 @@
 # Node
 node_modules/
 dist/
+plugins/ecc-hooks/jest.config.js
 
 # Python
 .venv
@@ -20,6 +21,11 @@ logs
 backups
 disabled
 .env
+
+# tests
+plugins/ecc-hooks/coverage
+plugins/ecc-hooks/tests
+plugins/ecc-hooks/scripts/code-quality
 
 HEARTBEAT.md
 SOUL.md
