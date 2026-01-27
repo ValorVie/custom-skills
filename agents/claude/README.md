@@ -2,8 +2,8 @@
 
 > **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/agents/README.md)
 
-**Version**: 1.2.0
-**Last Updated**: 2026-01-26
+**Version**: 1.1.0
+**Last Updated**: 2026-01-21
 **Status**: Stable
 
 ---
@@ -164,7 +164,6 @@ context-strategy:
 | [reviewer](./reviewer.md) | reviewer | Code review and quality assessment |
 | [doc-writer](./doc-writer.md) | specialist | Documentation and technical writing |
 | [spec-analyst](./spec-analyst.md) | specialist | Specification analysis and requirement extraction |
-| [database-reviewer](./database-reviewer.md) | specialist | PostgreSQL expert with Supabase patterns |
 
 ## Usage
 
@@ -294,7 +293,6 @@ See [workflows/README.md](../workflows/README.md) for workflow documentation.
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.2.0 | 2026-01-26 | Added database-reviewer agent (PostgreSQL + Supabase patterns) |
 | 1.1.0 | 2026-01-21 | Added RLM-inspired context-strategy configuration |
 | 1.0.0 | 2026-01-20 | Initial release |
 

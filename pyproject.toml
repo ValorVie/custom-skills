@@ -1,6 +1,6 @@
 [project]
 name = "ai-dev"
-version = "1.0.2"
+version = "1.0.4"
 description = "AI Development Environment Setup CLI - 統一管理 Skills、Commands 與 Agent 配置"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -26,4 +26,11 @@ include = ["script*"]
 "*" = ["*.tcss"]
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

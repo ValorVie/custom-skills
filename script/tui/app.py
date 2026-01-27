@@ -64,6 +64,17 @@ TYPE_OPTIONS_BY_TARGET = {
     "gemini": [("Skills", "skills"), ("Commands", "commands")],
 }
 
+# 來源篩選選項
+SOURCE_FILTER_OPTIONS = [
+    ("All", "all"),
+    ("universal-dev-standards", "universal-dev-standards"),
+    ("custom-skills", "custom-skills"),
+    ("obsidian-skills", "obsidian-skills"),
+    ("anthropic-skills", "anthropic-skills"),
+    ("everything-claude-code", "everything-claude-code"),
+    ("user", "user"),
+]
+
 
 def sanitize_widget_id(name: str) -> str:
     """將資源名稱轉換為有效的 Textual widget ID。
@@ -252,6 +263,7 @@ class SkillManagerApp(App):
         super().__init__()
         self.current_target = "claude"
         self.current_type = "skills"
+        self.current_source = "all"
         self.toggle_config = load_toggle_config()
 
     def compose(self) -> ComposeResult:
@@ -280,6 +292,13 @@ class SkillManagerApp(App):
                 TYPE_OPTIONS_BY_TARGET["claude"],
                 value="skills",
                 id="type-select",
+                allow_blank=False,
+            )
+            yield Label("Source:")
+            yield Select(
+                SOURCE_FILTER_OPTIONS,
+                value="all",
+                id="source-select",
                 allow_blank=False,
             )
             yield Checkbox(
@@ -341,6 +360,10 @@ class SkillManagerApp(App):
 
         elif event.select.id == "type-select":
             self.current_type = str(event.value)
+            self.refresh_resource_list()
+
+        elif event.select.id == "source-select":
+            self.current_source = str(event.value)
             self.refresh_resource_list()
 
         elif event.select.id == "profile-select":
@@ -427,6 +450,11 @@ class SkillManagerApp(App):
         for item in type_resources:
             name = item["name"]
             source = item["source"]
+
+            # 來源篩選
+            if self.current_source != "all" and source != self.current_source:
+                continue
+
             # 使用 disabled 欄位判斷是否啟用（disabled=True 表示停用）
             enabled = not item.get("disabled", False)
             container.mount(

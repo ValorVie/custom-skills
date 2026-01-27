@@ -274,6 +274,75 @@ Concept clarification. Update when:
 - New entity types added
 - Behavior patterns change
 
+### dev-guide/DEVELOPMENT-WORKFLOW.md
+
+OpenSpec 開發工作流程指南。結構：
+
+```markdown
+# 開發工作流程指南
+
+## 快速參考（熟練開發者）
+[Command reference table]
+
+### 完整 TDD 流程
+[Flow diagram]
+
+### 常用命令速查
+[CLI commands]
+
+## 完整開發流程
+
+### Phase 0: 對話探索
+### Phase 1: 調研目標
+### Phase 2: 建立提案
+### Phase 3: 建立規格
+### Phase 4: 實作
+### Phase 5: 測試
+### Phase 6: 驗證
+### Phase 7: 歸檔
+
+## 附錄
+[FAQ, command overview, CLI commands, directory structure]
+```
+
+Update when:
+- OpenSpec workflow changes
+- New opsx commands added
+- TDD/testing workflow changes
+
+### dev-guide/GIT-WORKFLOW.md
+
+Git 分支與 PR 流程指南。結構：
+
+```markdown
+# Git 工作流程指南
+
+## 快速參考
+[Flow diagram and step table]
+
+## 完整流程說明
+
+### Step 1: 建立開發分支
+### Step 2: 開發
+### Step 3: 同步主線
+### Step 4: 建立 PR
+### Step 5: 確認 PR
+### Step 6: Code Review
+### Step 7: 合併 PR
+### Step 8: 清理分支
+
+## 常見問題
+[FAQ]
+
+## 相關命令
+[Command table]
+```
+
+Update when:
+- Git workflow changes
+- PR process changes
+- Branch naming conventions change
+
 ---
 
 ## Common Patterns

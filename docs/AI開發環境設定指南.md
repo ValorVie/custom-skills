@@ -516,6 +516,9 @@ do you have superpowers?
 /plugin marketplace add https://github.com/ValorVie/custom-skills.git
 /plugin install ecc-hooks@custom-skills
 
+# 安裝 PHP LSP
+/plugin install php-lsp
+
 # 安裝更多插件（選用）
 /plugin marketplace add wshobson/agents
 # 1. 瀏覽可用插件 (共 72 個分類)
