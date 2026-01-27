@@ -236,3 +236,104 @@ uv add --dev ruff mypy pytest pytest-cov
 # 使用 pip
 pip install ruff mypy pytest pytest-cov
 ```
+
+---
+
+## 疑難排解
+
+### 工具未被偵測
+
+**症狀**：編輯檔案後未自動執行格式化或檢查
+
+**通用排查步驟**：
+
+1. 確認已在專案目錄中執行
+2. 檢查 Claude Code 輸出視窗是否有錯誤訊息
+3. 確認工具已正確安裝（見下方各語言範例）
+
+### JavaScript / TypeScript
+
+**Prettier 未格式化**：
+
+```bash
+# 確認安裝
+npx prettier --version
+
+# 測試執行
+npx prettier --check src/
+```
+
+**TypeScript 未檢查**：
+
+```bash
+# 確認 tsconfig.json 存在
+ls tsconfig.json
+
+# 確認安裝
+npx tsc --version
+
+# 測試執行
+npx tsc --noEmit
+```
+
+### PHP
+
+**Pint/PHP-CS-Fixer 未格式化**：
+
+```bash
+# 確認安裝（擇一）
+./vendor/bin/pint --version
+./vendor/bin/php-cs-fixer --version
+
+# 測試執行
+./vendor/bin/pint --test
+```
+
+**PHPStan 未執行**：
+
+```bash
+# 確認安裝
+./vendor/bin/phpstan --version
+
+# 確認配置檔存在
+ls phpstan.neon phpstan.neon.dist 2>/dev/null
+
+# 測試執行
+./vendor/bin/phpstan analyse src/
+```
+
+### Python
+
+**Ruff/Black 未格式化**：
+
+```bash
+# 確認安裝
+ruff --version
+black --version
+
+# 測試執行
+ruff check src/
+ruff format --check src/
+```
+
+**mypy 未執行**：
+
+```bash
+# 確認安裝
+mypy --version
+
+# 確認配置檔存在
+ls mypy.ini pyproject.toml 2>/dev/null
+
+# 測試執行
+mypy src/
+```
+
+### 常見錯誤訊息
+
+| 錯誤訊息 | 可能原因 | 解決方式 |
+|---------|---------|---------|
+| `command not found` | 工具未安裝或不在 PATH 中 | 重新安裝或使用 npx/vendor/bin 路徑執行 |
+| `No files matched` | Glob 模式不符合檔案 | 檢查配置檔中的 paths/include 設定 |
+| `Configuration file not found` | 缺少必要配置檔 | 依上方指南建立配置檔 |
+| `Permission denied` | 腳本無執行權限 | 執行 `chmod +x <script>` |
