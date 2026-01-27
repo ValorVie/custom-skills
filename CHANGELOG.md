@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ECC Hooks Plugin 測試框架**
+  - 新增 Jest 測試框架與測試配置
+  - 重構 Code Quality Hooks 為 CLI + lib 模式
+  - 實現依賴注入設計，支援完整 mock 測試
+  - 109 個測試，覆蓋率 95.25%
+  - 支援 JS/TS、PHP、Python 的格式化與靜態分析
+
 - **語言無關測試工作流 Commands**
   - `/custom-skills-python-test`: 執行 Python 測試並分析結果（原 `/custom-skills-test`）
   - `/custom-skills-python-coverage`: 執行 Python 覆蓋率分析（原 `/custom-skills-coverage`）
