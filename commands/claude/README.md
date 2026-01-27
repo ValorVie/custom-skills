@@ -91,6 +91,32 @@ Commands from Everything Claude Code integration.
 | `/coverage --generate` | Analyze coverage and generate tests | 分析覆蓋率並生成測試 |
 | [`/eval`](./eval.md) | Eval-driven development workflow | Eval 驅動開發流程 |
 
+### Custom Skills Project | 專案專屬指令
+
+Commands specific to the custom-skills project development workflow.
+
+#### Python Testing | Python 測試
+
+| Command | Description | 說明 |
+|---------|-------------|------|
+| [`/custom-skills-python-test`](./custom-skills-python-test.md) | Run pytest and analyze results | 執行 Python 測試並分析結果 |
+| [`/custom-skills-python-coverage`](./custom-skills-python-coverage.md) | Run pytest coverage analysis | 執行 Python 覆蓋率分析 |
+| [`/custom-skills-python-derive-tests`](./custom-skills-python-derive-tests.md) | Generate pytest tests from specs | 從 specs 生成 pytest 測試 |
+
+#### PHP Testing | PHP 測試
+
+| Command | Description | 說明 |
+|---------|-------------|------|
+| [`/custom-skills-php-test`](./custom-skills-php-test.md) | Run PHPUnit and analyze results | 執行 PHPUnit 測試並分析結果 |
+| [`/custom-skills-php-coverage`](./custom-skills-php-coverage.md) | Run PHPUnit coverage analysis | 執行 PHPUnit 覆蓋率分析 |
+| [`/custom-skills-php-derive-tests`](./custom-skills-php-derive-tests.md) | Generate PHPUnit tests from specs | 從 specs 生成 PHPUnit 測試 |
+
+#### Reports | 報告
+
+| Command | Description | 說明 |
+|---------|-------------|------|
+| [`/custom-skills-report`](./custom-skills-report.md) | Generate test report for review | 生成測試報告供人工審閱 |
+
 ## Commands vs Skills | 命令與技能
 
 | Aspect | Commands | Skills |

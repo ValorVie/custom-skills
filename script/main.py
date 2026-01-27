@@ -8,6 +8,9 @@ from .commands.status import status
 from .commands.list import list_resources
 from .commands.toggle import toggle
 from .commands.add_repo import add_repo
+from .commands.test import test
+from .commands.coverage import coverage
+from .commands.derive_tests import derive_tests
 from .commands import project
 from .commands import standards
 from .commands import hooks
@@ -53,6 +56,9 @@ app.command()(status)
 app.command(name="list")(list_resources)
 app.command()(toggle)
 app.command(name="add-repo")(add_repo)
+app.command()(test)
+app.command()(coverage)
+app.command(name="derive-tests")(derive_tests)
 app.add_typer(project.app, name="project")
 app.add_typer(standards.app, name="standards")
 app.add_typer(hooks.app, name="hooks")
