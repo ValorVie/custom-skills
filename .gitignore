@@ -21,6 +21,9 @@ backups
 disabled
 .env
 
+# Test coverage output
+plugins/ecc-hooks/coverage
+
 HEARTBEAT.md
 SOUL.md
 IDENTITY.md

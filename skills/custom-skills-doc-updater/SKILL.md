@@ -1,224 +1,374 @@
 ---
-name: doc-updater
+name: custom-skills-doc-updater
 description: |
   Maintain and update custom-skills project documentation for consistency and accuracy.
   Use when: (1) code changes affect documented features, (2) adding new skills/commands/agents,
   (3) version releases, (4) structural changes to the project, (5) user asks to update docs,
   (6) changelog needs updating.
   Triggers: "update docs", "sync documentation", "update README", "update changelog",
-  "documentation audit", "doc sync", "更新文檔", "同步文件", "文檔檢查".
+  "documentation audit", "doc sync", "更新文檔", "同步文件", "文檔檢查", "/doc-updater".
 ---
 
 # Documentation Updater
 
-Update and maintain custom-skills project documentation to ensure consistency across all files.
+智能化文件更新工作流程，確保程式碼變更與文件同步。
 
 ---
 
-## Workflow
+## Workflow Overview
 
-### Step 1: Identify Changes
-
-```bash
-git diff --name-only HEAD~1     # Recent changes
-git log --oneline -5            # Recent commits
+```
+Phase 1: 變更收集 → Phase 2: 變更分類 → Phase 3: 文件探索 → Phase 4: 影響分析 → Phase 5: 文件更新 → Phase 6: 驗證
 ```
 
-### Step 2: Determine Affected Documents
+---
 
-根據變更類型，使用下方的**變更類型對照表**確定需要更新的文件。
+## Phase 1: 變更收集
 
-### Step 3: Read Each Target Document
+### Step 1.1: 確認分析範圍
 
-**必須先讀取每個需要更新的文件**，確認：
-- 目前內容是否已涵蓋變更
-- 需要更新的具體位置
-- 格式是否符合規範
+**若使用者未指定範圍，使用 AskUserQuestion 詢問：**
 
-### Step 4: Update Documents
+```
+問題：您希望分析多少個最近的 commits？
+選項：
+- 最近 1 個 commit（預設）
+- 最近 5 個 commits
+- 最近 10 個 commits
+- 自訂範圍（輸入 commit hash 或分支比較）
+```
 
-遵循 [references/doc-formats.md](references/doc-formats.md) 的格式規範。
+### Step 1.2: 收集變更資料
 
-### Step 5: Verify Consistency
+根據使用者選擇執行：
 
-- [ ] 版本號一致
-- [ ] 功能列表一致
-- [ ] 連結有效
-- [ ] 表格已更新
+```bash
+# 查看最近 N 個 commits
+git log --oneline -N
+
+# 查看變更的檔案
+git diff --name-only HEAD~N
+
+# 查看詳細變更摘要
+git log --stat HEAD~N..HEAD
+```
+
+**替代方案（比較分支）：**
+```bash
+git diff --name-only main...HEAD
+git log --oneline main...HEAD
+```
+
+### Step 1.3: 整理變更清單
+
+輸出格式：
+```markdown
+## 變更摘要
+
+**分析範圍**: HEAD~5..HEAD (5 commits)
+
+### 變更的檔案
+- plugins/ecc-hooks/README.md
+- plugins/ecc-hooks/hooks/hooks.json
+- openspec/changes/xxx/tasks.md
+- ...
+
+### Commit 摘要
+- abc1234: feat: 新增 PHP hooks 支援
+- def5678: fix: 修正格式化問題
+```
 
 ---
 
-## 變更類型對照表
+## Phase 2: 變更分類
 
-### 新增 Skill
+### Step 2.1: 自動識別變更類型
 
-| 文件 | 更新內容 |
-|------|----------|
-| `CHANGELOG.md` | 新增項目到 `[Unreleased]` 或對應版本 |
-| `skills/README.md` | 如有總覽表，新增 skill 列表 |
+根據變更的檔案路徑和內容，識別變更類型：
 
-### 新增 Agent
+| 檔案路徑模式 | 變更類型 |
+|-------------|---------|
+| `skills/**/*.md` | Skill 變更 |
+| `agents/**/*.md` | Agent 變更 |
+| `commands/**/*.md` | Command 變更 |
+| `plugins/**/*` | Plugin 變更 |
+| `script/**/*.py` | CLI 功能變更 |
+| `pyproject.toml` (version) | 版本發布 |
+| `openspec/specs/**/*` | Spec 變更 |
+| `upstream/**/*` | 上游整合 |
+| `sources/**/*` | 資源整合 |
+| `docs/**/*` | 文件變更（可能需要交叉更新） |
+| `.standards/**/*` | 標準規範變更 |
 
-| 文件 | 更新內容 |
-|------|----------|
-| `CHANGELOG.md` | 新增項目 |
-| `agents/claude/README.md` | 新增到 Built-in Agents 表格 |
-| `docs/Skill-Command-Agent差異說明.md` | 新增到「附錄：內建 Agents 清單」 |
+### Step 2.2: 提取關鍵字
 
-### 新增 Command
+從變更中提取關鍵字用於後續文件搜尋：
 
-| 文件 | 更新內容 |
-|------|----------|
-| `CHANGELOG.md` | 新增項目 |
-| `commands/claude/README.md` | 新增到對應類別的表格 |
+1. **從檔案名稱提取**：`ecc-hooks` → 搜尋關鍵字
+2. **從 commit message 提取**：`新增 PHP hooks` → `PHP`, `hooks`
+3. **從新增/修改的內容提取**：function names, class names, feature names
 
-### 新增 Command 系列（如 opsx 系列）
-
-| 文件 | 更新內容 |
-|------|----------|
-| `CHANGELOG.md` | 新增整個系列的說明 |
-| `commands/claude/README.md` | 新增類別區塊和表格 |
-| `docs/Skill-Command-Agent差異說明.md` | 如有新概念，更新說明 |
-
-### 上游整合
-
-| 文件 | 更新內容 |
-|------|----------|
-| `CHANGELOG.md` | 新增整合項目 |
-| `upstream/README.md` | 更新「整合決定記錄」區塊 |
-| 相關模組 README | 如 `agents/claude/README.md`、`skills/README.md` |
-
-### CLI 功能變更
-
-| 文件 | 更新內容 |
-|------|----------|
-| `README.md` | 更新指令說明、參數表格 |
-| `CHANGELOG.md` | 新增變更項目 |
-
-### 版本發布
-
-| 文件 | 更新內容 |
-|------|----------|
-| `pyproject.toml` | 更新 version 欄位 |
-| `CHANGELOG.md` | 將 `[Unreleased]` 改為版本號並加日期 |
-| `README.md` | 確認功能說明反映當前版本 |
-
-### 工作流程變更
-
-| 文件 | 更新內容 |
-|------|----------|
-| `docs/dev-guide/DEVELOPMENT-WORKFLOW.md` | 更新開發流程、opsx 命令 |
-| `docs/dev-guide/GIT-WORKFLOW.md` | 更新 Git 流程、PR 流程 |
-| `CHANGELOG.md` | 記錄工作流程變更 |
-
-### 架構變更
-
-| 文件 | 更新內容 |
-|------|----------|
-| `openspec/project.md` | 更新專案結構、慣例 |
-| `docs/dev-guide/*.md` | 更新開發指南 |
-| `CHANGELOG.md` | 記錄架構變更 |
-
----
-
-## 文件總覽
-
-### Priority 1: 核心文件（必檢）
-
-| 文件 | 用途 | 更新時機 |
-|------|------|----------|
-| `README.md` | 專案總覽、安裝、CLI 使用 | CLI 變更、新功能、版本發布 |
-| `CHANGELOG.md` | 版本歷史 | 每次發布、重大變更 |
-| `openspec/project.md` | 專案上下文、慣例 | 架構變更、技術棧更新 |
-
-### Priority 2: 功能文件
-
-| 文件 | 用途 | 更新時機 |
-|------|------|----------|
-| `docs/AI開發環境設定指南.md` | 使用者設定指南 | 安裝流程變更 |
-| `docs/AI輔助開發的本質原理.md` | 設計理念 | 概念性變更 |
-| `docs/Skill-Command-Agent差異說明.md` | 概念說明 | **新增 Agent 時必須更新** |
-| `docs/dev-guide/DEVELOPMENT-WORKFLOW.md` | OpenSpec 開發工作流程 | 工作流程變更、新增 opsx 命令 |
-| `docs/dev-guide/GIT-WORKFLOW.md` | Git 分支與 PR 流程 | Git 工作流程變更 |
-
-### Priority 3: 模組 README
-
-| 目錄 | README 用途 | 更新時機 |
-|------|-------------|----------|
-| `sources/ecc/` | ECC 資源整合狀態 | ECC 整合變更 |
-| `upstream/` | 上游追蹤系統 | 上游整合決定 |
-| `commands/claude/` | 可用 slash commands | **新增 Command 時必須更新** |
-| `agents/claude/` | Agent 規格 | **新增 Agent 時必須更新** |
-| `skills/` | Skills 總覽 | 新增 Skill 時視情況更新 |
-
----
-
-## 常見遺漏提醒
-
-### 新增 Agent 時
-
-容易遺漏的文件：
-1. ⚠️ `docs/Skill-Command-Agent差異說明.md` - 「附錄：內建 Agents 清單」區塊
-2. ⚠️ `agents/claude/README.md` - Built-in Agents 表格和版本歷史
-
-### 新增 Command 系列時
-
-容易遺漏的文件：
-1. ⚠️ `commands/claude/README.md` - 需要新增完整的類別區塊
-2. ⚠️ 如有新概念，需更新 `docs/Skill-Command-Agent差異說明.md`
-
-### 上游整合時
-
-容易遺漏的文件：
-1. ⚠️ `upstream/README.md` - 「整合決定記錄」區塊
-2. ⚠️ 相關模組的 README（如新增 agent 需更新 agents/claude/README.md）
-
----
-
-## 格式規範
-
-### CHANGELOG 格式
+### Step 2.3: 輸出分類結果
 
 ```markdown
-## [X.Y.Z] - YYYY-MM-DD
+## 變更分類
+
+| 類型 | 數量 | 關鍵項目 |
+|------|------|----------|
+| Plugin 變更 | 3 | ecc-hooks |
+| CLI 變更 | 1 | derive-tests |
+| Spec 變更 | 2 | hook-testing, code-quality-hooks |
+
+**提取的關鍵字**: `ecc-hooks`, `PHP`, `hooks`, `code-quality`, `testing`
+```
+
+---
+
+## Phase 3: 文件探索
+
+### Step 3.1: 優先檢查核心文件
+
+**必檢文件（依優先順序）：**
+
+1. `CHANGELOG.md` - 版本歷史（幾乎所有變更都需要）
+2. `README.md` - 專案總覽
+3. `openspec/project.md` - 專案上下文
+4. `docs/**/*.md` - 文件資料夾
+
+### Step 3.2: 使用關鍵字搜尋相關文件
+
+對每個提取的關鍵字，搜尋專案中的相關文件：
+
+```bash
+# 搜尋檔案名稱包含關鍵字
+find . -name "*keyword*" -type f
+
+# 搜尋檔案內容包含關鍵字
+grep -rl "keyword" --include="*.md" .
+
+# 搜尋 README 文件
+find . -name "README.md" -type f
+```
+
+**使用 Grep 工具搜尋：**
+- 搜尋 `ecc-hooks` 在所有 `.md` 文件中的出現
+- 搜尋 `PHP` 在文件中的相關說明
+- 搜尋功能名稱在哪些文件有記錄
+
+### Step 3.3: 建立文件關聯圖
+
+```markdown
+## 文件關聯分析
+
+### 關鍵字: `ecc-hooks`
+找到相關文件：
+- `README.md` (Line 599-627: Claude Code Plugin 區塊)
+- `plugins/ecc-hooks/README.md` (主要文件)
+- `docs/AI開發環境設定指南.md` (Line 514-541: Plugin 安裝說明)
+- `CHANGELOG.md` (Line 136-138: 0.9.7 版本記錄)
+
+### 關鍵字: `PHP`
+找到相關文件：
+- `docs/dev-guide/CODE-QUALITY-TOOLS.md` (PHP 工具安裝)
+- `plugins/ecc-hooks/README.md` (PHP formatting hooks)
+```
+
+---
+
+## Phase 4: 影響分析
+
+### Step 4.1: 對照變更類型與文件
+
+使用以下對照表確定需要更新的文件：
+
+#### Plugin 變更
+| 文件 | 更新內容 | 必要性 |
+|------|----------|--------|
+| `CHANGELOG.md` | 新增/修改項目 | **必要** |
+| `plugins/<name>/README.md` | 功能說明、安裝方式 | **必要** |
+| `README.md` | 若涉及使用方式變更 | 視情況 |
+| `docs/AI開發環境設定指南.md` | 若涉及安裝流程 | 視情況 |
+
+#### Skill 變更
+| 文件 | 更新內容 | 必要性 |
+|------|----------|--------|
+| `CHANGELOG.md` | 新增項目 | **必要** |
+| `skills/README.md` | 如有 skill 清單 | 視情況 |
+
+#### Agent 變更
+| 文件 | 更新內容 | 必要性 |
+|------|----------|--------|
+| `CHANGELOG.md` | 新增項目 | **必要** |
+| `agents/claude/README.md` | Agent 清單表格 | **必要** |
+| `docs/Skill-Command-Agent差異說明.md` | 「附錄：內建 Agents 清單」 | **必要** |
+
+#### Command 變更
+| 文件 | 更新內容 | 必要性 |
+|------|----------|--------|
+| `CHANGELOG.md` | 新增項目 | **必要** |
+| `commands/claude/README.md` | Command 清單表格 | **必要** |
+
+#### CLI 功能變更
+| 文件 | 更新內容 | 必要性 |
+|------|----------|--------|
+| `CHANGELOG.md` | 新增/修改項目 | **必要** |
+| `README.md` | 指令說明、參數表格 | **必要** |
+
+#### 版本發布
+| 文件 | 更新內容 | 必要性 |
+|------|----------|--------|
+| `pyproject.toml` | version 欄位 | **必要** |
+| `CHANGELOG.md` | 日期、版本號 | **必要** |
+| `README.md` | 確認功能說明 | 視情況 |
+
+### Step 4.2: 版本一致性檢查
+
+檢查以下位置的版本號是否一致：
+- `pyproject.toml` → `version`
+- `plugins/<name>/plugin.json` → `version`
+- `plugins/<name>/package.json` → `version`（如有）
+
+### Step 4.3: 生成影響報告
+
+```markdown
+## 影響分析報告
+
+### 需要更新的文件
+
+| 文件 | 原因 | 優先級 | 狀態 |
+|------|------|--------|------|
+| `CHANGELOG.md` | 新增 ecc-hooks 測試框架 | P1 | ⬜ 待更新 |
+| `plugins/ecc-hooks/package.json` | 版本同步 (1.0.0 → 1.1.0) | P1 | ⬜ 待更新 |
+| `README.md` | 功能無變更 | - | ✅ 無需更新 |
+| `docs/dev-guide/CODE-QUALITY-TOOLS.md` | 功能無變更 | - | ✅ 無需更新 |
+
+### 版本一致性
+- `pyproject.toml`: 1.0.4
+- `plugins/ecc-hooks/plugin.json`: 1.1.0
+- `plugins/ecc-hooks/package.json`: 1.0.0 ⚠️ **不一致**
+```
+
+---
+
+## Phase 5: 文件更新
+
+### Step 5.1: 依優先級更新文件
+
+1. **P1 - 必要更新**：先處理 CHANGELOG.md 和版本同步
+2. **P2 - 重要更新**：功能文件、README
+3. **P3 - 可選更新**：參考文件、次要文件
+
+### Step 5.2: 更新前必須讀取
+
+**重要**：更新任何文件前，必須先使用 Read 工具讀取該文件，確認：
+- 目前內容
+- 需要插入/修改的位置
+- 格式規範
+
+### Step 5.3: 遵循格式規範
+
+#### CHANGELOG 格式
+```markdown
+## [Unreleased]
 
 ### Added
-- **Feature Category**
+- **功能類別**
   - 詳細描述
+  - 子項目說明
 
 ### Changed
-- **Category (Breaking Change)**
+- **Breaking Change 類別**
   - 變更描述
-
-### Removed
-- 移除項目描述
+  - 遷移指引
 
 ### Fixed
 - 修復描述
+
+### Removed
+- 移除項目描述
 ```
 
-### 表格格式（雙語）
-
-```markdown
-| Command | Description | 說明 |
-|---------|-------------|------|
-| [`/cmd`](./cmd.md) | English desc | 中文說明 |
-```
-
-### 版本歷史格式
-
+#### 版本歷史表格格式
 ```markdown
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.2.0 | 2026-01-26 | Added new-feature |
-| 1.1.0 | 2026-01-21 | Previous change |
+| 1.1.0 | 2026-01-28 | Added feature X |
 ```
 
 ---
 
-## 語言規範
+## Phase 6: 驗證
+
+### Step 6.1: 驗證清單
+
+完成更新後，逐項確認：
+
+```markdown
+## 更新驗證清單
+
+### 文件更新狀態
+- [x] `CHANGELOG.md` - 已新增 ecc-hooks 測試框架記錄
+- [x] `plugins/ecc-hooks/package.json` - 版本同步至 1.1.0
+- [ ] `README.md` - 無需更新
+
+### 版本一致性（更新後）
+| 位置 | 版本 | 狀態 |
+|------|------|------|
+| `pyproject.toml` | 1.0.4 | ✓ |
+| `plugins/ecc-hooks/plugin.json` | 1.1.0 | ✓ |
+| `plugins/ecc-hooks/package.json` | 1.1.0 | ✓ |
+
+### 交叉引用
+- [x] 功能列表在各文件中一致
+- [x] 連結有效
+- [x] 表格已更新
+```
+
+### Step 6.2: 輸出最終摘要
+
+```markdown
+## 文件更新摘要
+
+**分析範圍**: HEAD~5..HEAD
+
+### 已更新
+| 文件 | 更新內容 |
+|------|----------|
+| `CHANGELOG.md` | 新增 ECC Hooks Plugin 測試框架記錄 |
+| `plugins/ecc-hooks/package.json` | 版本同步至 1.1.0 |
+
+### 無需更新
+| 文件 | 原因 |
+|------|------|
+| `README.md` | 主要功能無變更 |
+| `docs/*` | 與此次變更無關 |
+
+### 版本一致性
+✓ 所有版本號已同步
+```
+
+---
+
+## 快速參考
+
+### 常見遺漏提醒
+
+#### 新增 Agent 時
+- ⚠️ `docs/Skill-Command-Agent差異說明.md` - 「附錄：內建 Agents 清單」
+- ⚠️ `agents/claude/README.md` - Built-in Agents 表格
+
+#### 新增 Command 系列時
+- ⚠️ `commands/claude/README.md` - 需要新增完整的類別區塊
+
+#### 上游整合時
+- ⚠️ `upstream/README.md` - 「整合決定記錄」區塊
+
+#### Plugin 變更時
+- ⚠️ 版本號同步（plugin.json 與 package.json）
+
+### 語言規範
 
 所有文件使用**繁體中文**，保留英文技術術語：
 - Skill, Command, Agent, Hook, Plugin
@@ -227,43 +377,13 @@ git log --oneline -5            # Recent commits
 
 ---
 
-## 檢查清單
+## 參數說明
 
-執行文件更新前，確認以下事項：
+skill 可接受以下參數：
 
-### 新增 Skill
-- [ ] `CHANGELOG.md` 已更新
-
-### 新增 Agent
-- [ ] `CHANGELOG.md` 已更新
-- [ ] `agents/claude/README.md` 已更新（表格 + 版本歷史）
-- [ ] `docs/Skill-Command-Agent差異說明.md` 已更新（Agent 清單）
-
-### 新增 Command
-- [ ] `CHANGELOG.md` 已更新
-- [ ] `commands/claude/README.md` 已更新
-
-### 新增 Command 系列
-- [ ] `CHANGELOG.md` 已更新
-- [ ] `commands/claude/README.md` 已新增類別區塊
-
-### 上游整合
-- [ ] `CHANGELOG.md` 已更新
-- [ ] `upstream/README.md` 已更新（整合決定記錄）
-- [ ] 相關模組 README 已更新
-
-### 工作流程變更
-- [ ] `docs/dev-guide/DEVELOPMENT-WORKFLOW.md` 已更新（如涉及開發流程）
-- [ ] `docs/dev-guide/GIT-WORKFLOW.md` 已更新（如涉及 Git 流程）
-- [ ] `CHANGELOG.md` 已更新
-
-### 版本發布
-- [ ] `pyproject.toml` 版本號已更新
-- [ ] `CHANGELOG.md` 日期已填寫
-- [ ] `README.md` 功能說明正確
-
----
-
-## References
-
-詳細格式規範請參考 [references/doc-formats.md](references/doc-formats.md)。
+| 參數 | 說明 | 範例 |
+|------|------|------|
+| 無參數 | 詢問分析範圍 | `/doc-updater` |
+| `N` | 分析最近 N 個 commits | `/doc-updater 5` |
+| `--since <ref>` | 從指定 ref 開始分析 | `/doc-updater --since v1.0.0` |
+| `--check` | 僅檢查，不執行更新 | `/doc-updater --check` |

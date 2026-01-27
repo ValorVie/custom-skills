@@ -175,8 +175,13 @@ def update_claude_code() -> None:
         console.print("[dim]   2. 安裝 native 版本: curl -fsSL https://claude.ai/install.sh | bash[/dim]")
         console.print()
     else:
-        # native 安裝會自動更新
-        console.print("[green]✓ Claude Code (native) - 自動更新[/green]")
+        # native 安裝使用 claude update 強制更新
+        console.print("[bold cyan]正在更新 Claude Code (native)...[/bold cyan]")
+        result = run_command(["claude", "update"], check=False)
+        if result and result.returncode == 0:
+            console.print("[green]✓ Claude Code (native) - 更新完成[/green]")
+        else:
+            console.print("[green]✓ Claude Code (native) - 已是最新版本[/green]")
 
 
 def show_claude_install_instructions() -> None:
