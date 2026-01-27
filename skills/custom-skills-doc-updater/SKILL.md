@@ -103,6 +103,14 @@ git log --oneline -5            # Recent commits
 | `CHANGELOG.md` | 將 `[Unreleased]` 改為版本號並加日期 |
 | `README.md` | 確認功能說明反映當前版本 |
 
+### 工作流程變更
+
+| 文件 | 更新內容 |
+|------|----------|
+| `docs/dev-guide/DEVELOPMENT-WORKFLOW.md` | 更新開發流程、opsx 命令 |
+| `docs/dev-guide/GIT-WORKFLOW.md` | 更新 Git 流程、PR 流程 |
+| `CHANGELOG.md` | 記錄工作流程變更 |
+
 ### 架構變更
 
 | 文件 | 更新內容 |
@@ -130,6 +138,8 @@ git log --oneline -5            # Recent commits
 | `docs/AI開發環境設定指南.md` | 使用者設定指南 | 安裝流程變更 |
 | `docs/AI輔助開發的本質原理.md` | 設計理念 | 概念性變更 |
 | `docs/Skill-Command-Agent差異說明.md` | 概念說明 | **新增 Agent 時必須更新** |
+| `docs/dev-guide/DEVELOPMENT-WORKFLOW.md` | OpenSpec 開發工作流程 | 工作流程變更、新增 opsx 命令 |
+| `docs/dev-guide/GIT-WORKFLOW.md` | Git 分支與 PR 流程 | Git 工作流程變更 |
 
 ### Priority 3: 模組 README
 
@@ -241,6 +251,11 @@ git log --oneline -5            # Recent commits
 - [ ] `CHANGELOG.md` 已更新
 - [ ] `upstream/README.md` 已更新（整合決定記錄）
 - [ ] 相關模組 README 已更新
+
+### 工作流程變更
+- [ ] `docs/dev-guide/DEVELOPMENT-WORKFLOW.md` 已更新（如涉及開發流程）
+- [ ] `docs/dev-guide/GIT-WORKFLOW.md` 已更新（如涉及 Git 流程）
+- [ ] `CHANGELOG.md` 已更新
 
 ### 版本發布
 - [ ] `pyproject.toml` 版本號已更新

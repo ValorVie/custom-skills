@@ -38,6 +38,10 @@ Screen {
     margin-right: 2;
 }
 
+#filter-bar #source-select {
+    width: 30;
+}
+
 /* Resource List */
 #resource-list {
     width: 100%;
