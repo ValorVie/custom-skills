@@ -19,8 +19,9 @@ function findMypyConfigDir(filePath, deps = {}) {
   if (!filePath) return null;
 
   let dir = path.dirname(filePath);
+  const { root } = path.parse(dir);
 
-  while (dir !== '/') {
+  while (dir !== root) {
     if (
       _fs.existsSync(path.join(dir, 'pyproject.toml')) ||
       _fs.existsSync(path.join(dir, 'mypy.ini'))
@@ -55,7 +56,8 @@ function runMypy(filePath, deps = {}) {
     _execSync(`mypy --no-error-summary ${JSON.stringify(filePath)}`, {
       cwd: configDir,
       encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 60000
     });
     return { hasErrors: false, errors: [] };
   } catch (e) {

@@ -1,7 +1,14 @@
 # hook-system Specification
 
 ## Purpose
-TBD - created by archiving change integrate-ecc-full-expansion. Update Purpose after archive.
+
+Hook System 為 Claude Code 提供事件驅動的擴展機制，實現以下核心價值：
+
+1. **記憶持久化**：跨 Session 保存對話上下文與專案狀態，提升 AI 助手的連貫性
+2. **自動化品質檢查**：在編輯檔案後自動執行格式化、靜態分析與 debug 程式碼偵測
+3. **策略性資源管理**：透過 Compact 建議機制優化 context 使用效率
+4. **跨平台相容**：支援 Windows、macOS 和 Linux，使用 Python 與 Node.js 雙語言實作
+5. **可擴展架構**：基於 hooks.json 配置的模組化設計，便於新增自訂 Hooks
 ## Requirements
 ### Requirement: Claude Code Hook 支援
 
