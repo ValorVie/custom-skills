@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **語言無關測試工作流 Commands**
+  - `/custom-skills-python-test`: 執行 Python 測試並分析結果（原 `/custom-skills-test`）
+  - `/custom-skills-python-coverage`: 執行 Python 覆蓋率分析（原 `/custom-skills-coverage`）
+  - `/custom-skills-python-derive-tests`: 從 OpenSpec specs 生成 pytest 測試
+  - `/custom-skills-php-test`: 執行 PHPUnit 測試並分析結果
+  - `/custom-skills-php-coverage`: 執行 PHPUnit 覆蓋率分析
+  - `/custom-skills-php-derive-tests`: 從 OpenSpec specs 生成 PHPUnit 測試
+  - `/custom-skills-report`: 生成測試報告供人工審閱（結構化資料 + AI 分析）
+
+- **開發指南文件**
+  - 新增 `docs/dev-guide/DEVELOPMENT-WORKFLOW.md`：OpenSpec 開發工作流程
+  - 新增 `docs/dev-guide/GIT-WORKFLOW.md`：Git 分支與 PR 流程
+
+- **CLI 新增 `derive-tests` 指令**
+  - 讀取 OpenSpec specs 內容供 AI 生成測試
+
+- **OpenSpec Main Specs 同步**
+  - 同步 coverage, metadata-detection, test-execution, test-generation specs 至 `openspec/specs/`
+
 ### Changed
+
+- **Commands 重命名**
+  - `/custom-skills-test` → `/custom-skills-python-test`
+  - `/custom-skills-coverage` → `/custom-skills-python-coverage`
 
 - **專案專屬工具前綴統一** (**BREAKING CHANGE**)
   - Skills 重命名：

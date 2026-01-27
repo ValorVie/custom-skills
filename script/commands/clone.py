@@ -8,6 +8,7 @@ from ..utils.shared import (
     shorten_path,
 )
 from ..utils.paths import get_project_root
+from ..utils.git_helpers import detect_metadata_changes, handle_metadata_changes
 
 app = typer.Typer()
 console = Console()
@@ -129,3 +130,9 @@ def clone(
     )
 
     console.print("[bold green]分發完成！[/bold green]")
+
+    # 檢測非內容異動（僅在開發目錄）
+    if is_dev_dir and dev_project_root:
+        changes = detect_metadata_changes(dev_project_root)
+        if changes.has_changes:
+            handle_metadata_changes(changes, dev_project_root, console)

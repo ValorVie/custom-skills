@@ -65,10 +65,19 @@ uv tool upgrade ai-dev
 ```bash
 git clone https://github.com/ValorVie/custom-skills.git
 cd custom-skills
+
+# 一般安裝（需要更新 pyproject.toml 的 version 欄位後重新安裝才能套用程式碼變更）
 uv tool install . --force
+
+# Editable 安裝（推薦開發使用，程式碼變更立即生效）
+uv tool install -e . --force
 ```
 
-> **注意**：`uv` 會根據版本號判斷是否需要重新安裝。如果修改了程式碼但版本號未變更，可能會使用快取。請先更新 `pyproject.toml` 中的 `version` 欄位後再執行安裝。
+> **關於 `-e` (editable) 模式**：
+> - **一般安裝**：把源碼複製到安裝目錄，修改源碼後需要重新安裝才會生效
+> - **Editable 安裝**：建立指向專案目錄的連結，修改源碼後**立即生效**，不需重新安裝
+>
+> 開發期間建議使用 `-e` 模式，或直接用 `uv run ai-dev <command>` 從專案目錄執行。
 
 ## 使用方式
 
@@ -424,6 +433,7 @@ npx skills add vercel-labs/agent-skills
 | `ai-dev toggle` | 啟用/停用特定資源 |
 | `ai-dev tui` | 啟動互動式終端介面 |
 | `ai-dev standards` | 管理標準體系 profiles |
+| `ai-dev derive-tests` | 讀取 OpenSpec specs 供 AI 生成測試 |
 | `ai-dev hooks` | 管理 Claude Code Hooks（計劃中） |
 
 ## 開發
@@ -442,6 +452,41 @@ uv tool install . --force
 
 # 建置套件
 uv build
+```
+
+### 更新套件版本
+
+安全更新 `uv.lock` 中的套件：
+
+```bash
+# 查看可更新的套件（不實際更新）
+uv lock --dry-run --upgrade
+
+# 更新所有套件到最新相容版本（依照 pyproject.toml 的限制）
+uv lock --upgrade
+
+# 只更新特定套件
+uv lock --upgrade-package textual
+
+# 同步安裝（確保環境與 lock 檔一致）
+uv sync
+
+# 測試是否正常運作
+uv run ai-dev tui
+```
+
+> **還原方式**：如果更新後有問題，可以用 `git checkout uv.lock && uv sync` 還原。
+
+### 清除快取
+
+如果遇到版本不一致或奇怪的快取問題：
+
+```bash
+# 清除 uv 快取
+uv cache clean
+
+# 重新同步（強制重新安裝）
+uv sync --reinstall
 ```
 
 ## 資源來源
