@@ -1,10 +1,3 @@
-<!--
-Upstream: everything-claude-code
-Source URL: https://github.com/anthropics/everything-claude-code
-Synced Date: 2026-01-24
-License: MIT
--->
-
 ---
 name: security-reviewer
 description: Security vulnerability detection and remediation specialist. Use PROACTIVELY after writing code that handles user input, authentication, API endpoints, or sensitive data. Flags secrets, SSRF, injection, unsafe crypto, and OWASP Top 10 vulnerabilities.
