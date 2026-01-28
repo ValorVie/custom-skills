@@ -508,6 +508,9 @@ def _copy_with_log(
             # Commands, Agents, Workflows 是 .md 檔案
             for item in src.iterdir():
                 if item.is_file() and item.suffix == ".md":
+                    # 跳過 README.md（避免被解析為 agent）
+                    if item.name.lower() == "readme.md":
+                        continue
                     name = item.stem
                     if skip_names and name in skip_names:
                         console.print(f"    [yellow]跳過（衝突）: {name}[/yellow]")
