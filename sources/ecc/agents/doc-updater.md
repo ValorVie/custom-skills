@@ -1,10 +1,3 @@
-<!--
-Upstream: everything-claude-code
-Source URL: https://github.com/anthropics/everything-claude-code
-Synced Date: 2026-01-24
-License: MIT
--->
-
 ---
 name: doc-updater
 description: Documentation and codemap specialist. Use PROACTIVELY for updating codemaps and documentation. Runs /update-codemaps and /update-docs, generates docs/CODEMAPS/*, updates READMEs and guides.

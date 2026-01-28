@@ -1,10 +1,3 @@
-<!--
-Upstream: everything-claude-code
-Source URL: https://github.com/anthropics/everything-claude-code
-Synced Date: 2026-01-24
-License: MIT
--->
-
 ---
 name: build-error-resolver
 description: Build and TypeScript error resolution specialist. Use PROACTIVELY when build fails or type errors occur. Fixes build/type errors only with minimal diffs, no architectural edits. Focuses on getting the build green quickly.
