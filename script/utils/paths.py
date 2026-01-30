@@ -38,6 +38,11 @@ def get_opencode_config_dir() -> Path:
     return get_config_dir() / "opencode"
 
 
+def get_opencode_plugin_dir() -> Path:
+    """回傳 OpenCode plugin 目錄路徑。"""
+    return get_opencode_config_dir() / "plugin"
+
+
 def get_codex_config_dir() -> Path:
     """回傳 OpenAI Codex CLI 的配置目錄路徑。"""
     return get_home_dir() / ".codex"

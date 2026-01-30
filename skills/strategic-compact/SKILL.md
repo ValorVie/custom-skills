@@ -1,10 +1,3 @@
-<!--
-Upstream: everything-claude-code
-Source URL: https://github.com/anthropics/everything-claude-code
-Synced Date: 2026-01-24
-License: MIT
--->
-
 ---
 name: strategic-compact
 description: Suggests manual context compaction at logical intervals to preserve context through task phases rather than arbitrary auto-compaction.

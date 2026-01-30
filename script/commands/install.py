@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import typer
 from rich.console import Console
 from ..utils.system import run_command, check_command_exists
@@ -26,6 +28,38 @@ from ..utils.shared import (
 
 app = typer.Typer()
 console = Console()
+
+
+def _is_completion_installed(shell: str) -> bool:
+    """檢查指定 shell 的自動補全是否已安裝。"""
+    home = Path.home()
+    checks = {
+        "bash": home / ".bash_completions" / "ai-dev.sh",
+        "zsh": home / ".zfunc" / "_ai-dev",
+        "fish": home / ".config" / "fish" / "completions" / "ai-dev.fish",
+    }
+    if shell in checks:
+        return checks[shell].exists()
+    # PowerShell / pwsh：檢查 profile 中是否已包含 completion 註冊
+    if shell in ("powershell", "pwsh"):
+        import subprocess as _sp
+
+        try:
+            result = _sp.run(
+                [shell, "-NoProfile", "-Command", "echo", "$profile"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                profile_path = Path(result.stdout.strip())
+                if profile_path.exists():
+                    content = profile_path.read_text(encoding="utf-8", errors="ignore")
+                    return "ai-dev" in content
+        except Exception:
+            pass
+        return False
+    return False
 
 
 @app.command()
@@ -116,6 +150,30 @@ def install(
             else:
                 console.print(f"{path} 已存在，跳過 Clone。")
 
+    # 4.5 Clone custom repos
+    if not skip_repos:
+        from ..utils.custom_repos import load_custom_repos
+
+        custom_repos = load_custom_repos().get("repos", {})
+        if custom_repos:
+            console.print("[green]正在 Clone 自訂儲存庫...[/green]")
+            for repo_name, repo_info in custom_repos.items():
+                local_path = Path(
+                    repo_info.get("local_path", "").replace("~", str(Path.home()))
+                )
+                if (local_path / ".git").exists():
+                    console.print(f"{local_path} 已存在，跳過 Clone。")
+                else:
+                    url = repo_info.get("url", "")
+                    console.print(f"正在 Clone {url} 到 {local_path}...")
+                    result = run_command(
+                        ["git", "clone", url, str(local_path)], check=False
+                    )
+                    if result and result.returncode != 0:
+                        console.print(
+                            f"[yellow]⚠ Clone {repo_name} 失敗，跳過[/yellow]"
+                        )
+
     # 5. 複製 Skills 與設定（Stage 2 + Stage 3）
     if skip_skills:
         console.print("[yellow]跳過複製 Skills[/yellow]")
@@ -134,6 +192,34 @@ def install(
 
     # 7. 顯示 npx skills 提示
     show_skills_npm_hint()
+
+    # 8. 安裝 Shell Completion
+    console.print()
+    console.print("[green]正在設定 Shell 自動補全...[/green]")
+    try:
+        from typer._completion_shared import (
+            install as _install_completion,
+            _get_shell_name,
+        )
+
+        shell_name = _get_shell_name()
+        if shell_name is None:
+            console.print(
+                "[yellow]無法偵測 Shell 類型，請手動執行：ai-dev --install-completion[/yellow]"
+            )
+        elif _is_completion_installed(shell_name):
+            console.print(
+                f"[dim]{shell_name} 自動補全已安裝，跳過[/dim]"
+            )
+        else:
+            shell, path = _install_completion(prog_name="ai-dev")
+            console.print(
+                f"[green]{shell} 自動補全已安裝：{path}（重啟 terminal 後生效）[/green]"
+            )
+    except Exception:
+        console.print(
+            "[yellow]Shell 自動補全安裝失敗，請手動執行：ai-dev --install-completion[/yellow]"
+        )
 
     console.print()
     console.print("[bold green]安裝完成！[/bold green]")

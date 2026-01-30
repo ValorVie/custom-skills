@@ -43,7 +43,7 @@ describe('check-typescript (unit tests)', () => {
 
       const result = checkTypeScript('/project/src/file.ts', {
         fs: mockFs,
-        execSync: mockExecSync
+        execFileSync: mockExecSync
       });
 
       expect(result.hasErrors).toBe(false);
@@ -62,7 +62,7 @@ describe('check-typescript (unit tests)', () => {
 
       const result = checkTypeScript('/project/src/file.ts', {
         fs: mockFs,
-        execSync: mockExecSync
+        execFileSync: mockExecSync
       });
 
       expect(result.hasErrors).toBe(true);

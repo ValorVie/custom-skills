@@ -53,7 +53,7 @@ describe('check-mypy (unit tests)', () => {
 
       const result = runMypy('/project/src/file.py', {
         fs: mockFs,
-        execSync: mockExecSync
+        execFileSync: mockExecSync
       });
 
       expect(result.hasErrors).toBe(false);
@@ -72,7 +72,7 @@ describe('check-mypy (unit tests)', () => {
 
       const result = runMypy('/project/src/file.py', {
         fs: mockFs,
-        execSync: mockExecSync
+        execFileSync: mockExecSync
       });
 
       expect(result.hasErrors).toBe(true);
