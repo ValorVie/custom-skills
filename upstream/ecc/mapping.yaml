@@ -47,6 +47,11 @@ skills:
     target: sources/ecc/skills/tdd-workflow/
     files:
       - SKILL.md
+  coding-standards/:
+    source: skills/coding-standards/
+    target: sources/ecc/skills/coding-standards/
+    files:
+      - SKILL.md
 
 # Agents
 agents:

@@ -237,6 +237,36 @@ def update(
                     check=False,
                 )
 
+        # 更新 custom repos
+        from ..utils.custom_repos import load_custom_repos
+
+        custom_repos = load_custom_repos().get("repos", {})
+        for repo_name, repo_info in custom_repos.items():
+            local_path = Path(
+                repo_info.get("local_path", "").replace("~", str(Path.home()))
+            )
+            if not local_path.exists() or not (local_path / ".git").exists():
+                console.print(
+                    f"[yellow]⚠ Custom repo 目錄不存在，跳過: {repo_name}[/yellow]"
+                )
+                continue
+            branch = repo_info.get("branch", "main")
+            console.print(f"正在更新 {local_path} ({branch})...")
+            run_command(
+                ["git", "fetch", "--all"], cwd=str(local_path), check=False
+            )
+            has_updates = check_for_updates(local_path, branch)
+            if has_updates:
+                updated_repos.append(repo_name)
+            if has_local_changes(local_path):
+                backup_dirty_files(local_path, backup_root)
+            remote_ref = f"origin/{branch}"
+            run_command(
+                ["git", "reset", "--hard", remote_ref],
+                cwd=str(local_path),
+                check=False,
+            )
+
         # 顯示更新摘要
         if updated_repos:
             console.print()

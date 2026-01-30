@@ -16,13 +16,13 @@ expertise:
   - e2e-testing
   - coverage-analysis
 
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash(npm:test, npm:run, pytest, jest, vitest, go:test)
-  - Write
-  - Edit
+tools:
+  read: true
+  glob: true
+  grep: true
+  bash: true
+  write: true
+  edit: true
 
 skills:
   - tdd-assistant

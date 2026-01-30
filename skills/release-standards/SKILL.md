@@ -11,8 +11,8 @@ description: |
 
 > **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/release-standards/SKILL.md)
 
-**Version**: 1.1.0
-**Last Updated**: 2026-01-02
+**Version**: 1.1.1
+**Last Updated**: 2026-01-30
 **Applicability**: Claude Code Skills
 
 ---

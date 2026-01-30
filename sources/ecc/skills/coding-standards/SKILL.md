@@ -1,10 +1,3 @@
-<!--
-Upstream: everything-claude-code
-Source URL: https://github.com/anthropics/everything-claude-code
-Synced Date: 2026-01-25
-License: MIT
--->
-
 ---
 name: coding-standards
 description: Universal coding standards, best practices, and patterns for TypeScript, JavaScript, React, and Node.js development.
