@@ -95,6 +95,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Project Template 反向同步修正**
+  - 修正反向同步目標：從 `get_project_template_dir()`（`~/.config`）改為 `project_root / "project-template"`（repo 內）
+  - 新增 `EXCLUDE_FROM_TEMPLATE` 排除機制：`settings.local.json` 不再被複製進模板
+  - 排除機制同時套用於正向和反向同步的 `shutil.copytree`
+  - 移除 repo 中已存在的 `project-template/.claude/settings.local.json`
+
 - **ECC Hooks Shell Injection 修正**
   - `format-js.js`: 從 `execSync` 改為 `execFileSync`，避免 shell injection
   - `format-php.js`: 從 `execSync` 改為 `execFileSync`，避免 shell injection
