@@ -26,6 +26,14 @@ console = Console()
 # 需要合併而非覆蓋的檔案（保留目標設定並加入來源新增的內容）
 MERGE_FILES = {".gitattributes", ".gitignore"}
 
+# 複製到 project-template 時要排除的檔案名稱（個人設定，不屬於共享範本）
+EXCLUDE_FROM_TEMPLATE = {"settings.local.json"}
+
+
+def _template_ignore(directory: str, contents: list[str]) -> set[str]:
+    """返回 shutil.copytree 的 ignore 回調，排除不屬於共享範本的檔案。"""
+    return {name for name in contents if name in EXCLUDE_FROM_TEMPLATE}
+
 
 def _remove_readonly(path: Path) -> None:
     """移除檔案或目錄的唯讀屬性（遞迴處理目錄）。"""
@@ -234,9 +242,13 @@ def _sync_to_project_template(project_root: Path, template_dir: Path) -> None:
             if src.is_dir():
                 if dst.exists():
                     _safe_rmtree(dst)
-                shutil.copytree(src, dst)
+                shutil.copytree(src, dst, ignore=_template_ignore)
                 console.print(f"  [green]✓[/green] {item_name}/ → project-template/")
             else:
+                if src.name in EXCLUDE_FROM_TEMPLATE:
+                    console.print(f"  [yellow]排除[/yellow] {item_name}（不屬於共享範本）")
+                    skipped_count += 1
+                    continue
                 shutil.copy2(src, dst)
                 console.print(f"  [green]✓[/green] {item_name} → project-template/")
             copied_count += 1
@@ -289,8 +301,10 @@ def init(
         raise typer.Exit(code=1)
 
     # 特殊處理：在 custom-skills 專案中使用 --force 時反向同步
+    # 反向同步目標固定為 repo 內的 project-template/，不使用 get_project_template_dir()
     if force and _is_custom_skills_project(target_dir):
-        _sync_to_project_template(target_dir, template_dir)
+        local_template_dir = target_dir / "project-template"
+        _sync_to_project_template(target_dir, local_template_dir)
         return
 
     # 檢查是否已初始化
@@ -340,7 +354,7 @@ def init(
             if src.is_dir():
                 if dst.exists():
                     _safe_rmtree(dst)
-                shutil.copytree(src, dst)
+                shutil.copytree(src, dst, ignore=_template_ignore)
                 console.print(f"  [green]✓[/green] {item.name}/")
             else:
                 shutil.copy2(src, dst)

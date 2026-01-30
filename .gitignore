@@ -25,6 +25,9 @@ disabled
 # Test coverage output
 plugins/ecc-hooks/coverage
 
+
+# Personal settings
+.claude/settings.local.json
 HEARTBEAT.md
 SOUL.md
 IDENTITY.md
