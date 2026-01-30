@@ -532,6 +532,10 @@ do you have superpowers?
 /plugin install kubernetes-operations
 # 這會載入 K8s 專家代理 + 4 個技能
 
+# 安裝更多插件（選用）
+/plugin marketplace add anthropics/claude-code
+/plugin install frontend-design@claude-code-plugins
+
 # 4. 驗證安裝
 /agents  # 查看已載入的代理
 
