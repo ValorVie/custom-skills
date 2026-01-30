@@ -2,8 +2,8 @@
 
 > **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/workflows/README.md)
 
-**Version**: 1.1.0
-**Last Updated**: 2026-01-21
+**Version**: 1.1.1
+**Last Updated**: 2026-01-30
 **Status**: Experimental
 
 ---
@@ -291,6 +291,7 @@ steps:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.1 | 2026-01-30 | Version sync |
 | 1.1.0 | 2026-01-21 | Added RLM context configuration, parallel-agents step type, large-codebase-analysis workflow |
 | 1.0.0 | 2026-01-20 | Initial release |
 

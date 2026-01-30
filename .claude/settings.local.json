@@ -23,7 +23,11 @@
       "Bash(git rev-list:*)",
       "Bash(gh pr view:*)",
       "Bash(git reset:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(node:*)",
+      "Bash(if [ -d \"/Users/arlen/Documents/syncthing/backup/server/Code/custom-skills/openspec/changes/archive/2026-01-30-ecc-hooks-security-fix\" ])",
+      "Bash(then echo \"EXISTS\")",
+      "Bash(else echo \"OK\")"
     ]
   }
 }

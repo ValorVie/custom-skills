@@ -10,7 +10,7 @@ describe('format-python (unit tests)', () => {
     test('should format with Ruff', () => {
       const mockExecSync = jest.fn();
 
-      const result = formatPythonFile('/path/to/file.py', { execSync: mockExecSync });
+      const result = formatPythonFile('/path/to/file.py', { execFileSync: mockExecSync });
 
       expect(result.success).toBe(true);
       expect(result.formatter).toBe('Ruff');
@@ -24,7 +24,7 @@ describe('format-python (unit tests)', () => {
         return '';
       });
 
-      const result = formatPythonFile('/path/to/file.py', { execSync: mockExecSync });
+      const result = formatPythonFile('/path/to/file.py', { execFileSync: mockExecSync });
 
       expect(result.success).toBe(true);
       expect(result.formatter).toBe('Black');
@@ -35,7 +35,7 @@ describe('format-python (unit tests)', () => {
         throw new Error('not found');
       });
 
-      const result = formatPythonFile('/path/to/file.py', { execSync: mockExecSync });
+      const result = formatPythonFile('/path/to/file.py', { execFileSync: mockExecSync });
 
       expect(result.success).toBe(false);
       expect(result.formatter).toBeNull();
@@ -54,7 +54,7 @@ describe('format-python (unit tests)', () => {
 
       const result = processHook(
         { tool_input: { file_path: '/file.py' } },
-        { execSync: mockExecSync }
+        { execFileSync: mockExecSync }
       );
 
       expect(result.success).toBe(true);

@@ -15,13 +15,13 @@ expertise:
   - reverse-engineering
   - domain-modeling
 
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Write
-  - Edit
-  - Bash(git:log, git:diff)
+tools:
+  read: true
+  glob: true
+  grep: true
+  write: true
+  edit: true
+  bash: true
 
 skills:
   - spec-driven-dev

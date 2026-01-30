@@ -43,7 +43,7 @@ describe('check-phpstan (unit tests)', () => {
 
       const result = runPhpStan('/project/app/User.php', {
         fs: mockFs,
-        execSync: mockExecSync
+        execFileSync: mockExecSync
       });
 
       expect(result.hasErrors).toBe(false);
@@ -62,7 +62,7 @@ describe('check-phpstan (unit tests)', () => {
 
       const result = runPhpStan('/project/app/User.php', {
         fs: mockFs,
-        execSync: mockExecSync
+        execFileSync: mockExecSync
       });
 
       expect(result.hasErrors).toBe(true);

@@ -15,16 +15,13 @@ expertise:
   - scalability
   - microservices
 
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash(git:*)
-  - WebFetch
-  - WebSearch
-disallowed-tools:
-  - Write
-  - Edit
+tools:
+  read: true
+  glob: true
+  grep: true
+  bash: true
+  write: false
+  edit: false
 
 skills:
   - spec-driven-dev
