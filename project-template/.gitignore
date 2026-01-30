@@ -5,6 +5,7 @@ dist/
 # Python
 .venv
 __pycache__
+.pytest_cache/
 
 # macOS
 .DS_Store
@@ -21,8 +22,15 @@ backups
 disabled
 .env
 
+# Test coverage output
+plugins/ecc-hooks/coverage
+
+
+# Personal settings
+.claude/settings.local.json
 HEARTBEAT.md
 SOUL.md
 IDENTITY.md
 USER.md
 TOOLS.md
+BOOTSTRAP.md
