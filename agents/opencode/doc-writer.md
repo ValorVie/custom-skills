@@ -15,13 +15,13 @@ expertise:
   - changelog-writing
   - architecture-docs
 
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Write
-  - Edit
-  - Bash(git:log, git:diff)
+tools:
+  read: true
+  glob: true
+  grep: true
+  write: true
+  edit: true
+  bash: true
 
 skills:
   - documentation-guide

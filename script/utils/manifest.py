@@ -6,15 +6,20 @@ import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
-
 import yaml
 from rich.console import Console
 
 console = Console()
 
 # 類型定義
-ResourceType = Literal["skills", "commands", "agents", "workflows"]
+from .shared import TargetType, ResourceType
+
+RESOURCE_TYPES: tuple[ResourceType, ...] = (
+    "skills",
+    "commands",
+    "agents",
+    "workflows",
+)
 
 
 # ============================================================
@@ -44,6 +49,8 @@ def compute_dir_hash(path: Path) -> str:
     遍歷目錄內所有檔案，計算每個檔案的 hash，
     按檔案相對路徑排序後組合成總 hash。
 
+    排除不應影響分發內容的快取目錄與編譯產物。
+
     Args:
         path: 目錄路徑
 
@@ -59,6 +66,10 @@ def compute_dir_hash(path: Path) -> str:
 
     for file_path in files:
         if file_path.is_file():
+            if "__pycache__" in file_path.parts:
+                continue
+            if file_path.suffix in {".pyc", ".pyo"}:
+                continue
             # 將相對路徑加入 hash 計算（確保檔案結構變化也會影響 hash）
             rel_path = str(file_path.relative_to(path))
             sha256.update(rel_path.encode("utf-8"))
@@ -80,6 +91,8 @@ class FileRecord:
 
     name: str
     hash: str
+    source: str = "custom-skills"
+    source_path: Path | None = None
 
 
 @dataclass
@@ -90,6 +103,8 @@ class ConflictInfo:
     resource_type: ResourceType
     old_hash: str
     current_hash: str
+    source_path: Path | None = None
+    target_path: Path | None = None
 
 
 @dataclass
@@ -102,25 +117,41 @@ class ManifestTracker:
     agents: dict[str, FileRecord] = field(default_factory=dict)
     workflows: dict[str, FileRecord] = field(default_factory=dict)
 
-    def record_skill(self, name: str, source_path: Path) -> None:
+    def record_skill(
+        self, name: str, source_path: Path, source: str = "custom-skills"
+    ) -> None:
         """記錄已複製的 skill。"""
         hash_value = compute_dir_hash(source_path)
-        self.skills[name] = FileRecord(name=name, hash=hash_value)
+        self.skills[name] = FileRecord(
+            name=name, hash=hash_value, source=source, source_path=source_path
+        )
 
-    def record_command(self, name: str, source_path: Path) -> None:
+    def record_command(
+        self, name: str, source_path: Path, source: str = "custom-skills"
+    ) -> None:
         """記錄已複製的 command。"""
         hash_value = compute_file_hash(source_path)
-        self.commands[name] = FileRecord(name=name, hash=hash_value)
+        self.commands[name] = FileRecord(
+            name=name, hash=hash_value, source=source, source_path=source_path
+        )
 
-    def record_agent(self, name: str, source_path: Path) -> None:
+    def record_agent(
+        self, name: str, source_path: Path, source: str = "custom-skills"
+    ) -> None:
         """記錄已複製的 agent。"""
         hash_value = compute_file_hash(source_path)
-        self.agents[name] = FileRecord(name=name, hash=hash_value)
+        self.agents[name] = FileRecord(
+            name=name, hash=hash_value, source=source, source_path=source_path
+        )
 
-    def record_workflow(self, name: str, source_path: Path) -> None:
+    def record_workflow(
+        self, name: str, source_path: Path, source: str = "custom-skills"
+    ) -> None:
         """記錄已複製的 workflow。"""
         hash_value = compute_file_hash(source_path)
-        self.workflows[name] = FileRecord(name=name, hash=hash_value)
+        self.workflows[name] = FileRecord(
+            name=name, hash=hash_value, source=source, source_path=source_path
+        )
 
     def to_manifest(self, version: str) -> dict:
         """轉換為 manifest 字典格式。"""
@@ -131,19 +162,19 @@ class ManifestTracker:
             "target": self.target,
             "files": {
                 "skills": {
-                    name: {"hash": record.hash}
+                    name: {"hash": record.hash, "source": record.source}
                     for name, record in self.skills.items()
                 },
                 "commands": {
-                    name: {"hash": record.hash}
+                    name: {"hash": record.hash, "source": record.source}
                     for name, record in self.commands.items()
                 },
                 "agents": {
-                    name: {"hash": record.hash}
+                    name: {"hash": record.hash, "source": record.source}
                     for name, record in self.agents.items()
                 },
                 "workflows": {
-                    name: {"hash": record.hash}
+                    name: {"hash": record.hash, "source": record.source}
                     for name, record in self.workflows.items()
                 },
             },
@@ -160,7 +191,7 @@ def get_manifest_dir() -> Path:
     return Path.home() / ".config" / "ai-dev" / "manifests"
 
 
-def get_manifest_path(target: str) -> Path:
+def get_manifest_path(target: TargetType) -> Path:
     """返回指定平台的 manifest 路徑。
 
     Args:
@@ -172,7 +203,7 @@ def get_manifest_path(target: str) -> Path:
     return get_manifest_dir() / f"{target}.yaml"
 
 
-def read_manifest(target: str) -> dict | None:
+def read_manifest(target: TargetType) -> dict | None:
     """讀取 manifest 檔案。
 
     Args:
@@ -199,11 +230,13 @@ def read_manifest(target: str) -> dict | None:
         console.print(f"[yellow]警告：manifest 檔案損壞 ({e})，將視為首次分發[/yellow]")
         return None
     except Exception as e:
-        console.print(f"[yellow]警告：讀取 manifest 失敗 ({e})，將視為首次分發[/yellow]")
+        console.print(
+            f"[yellow]警告：讀取 manifest 失敗 ({e})，將視為首次分發[/yellow]"
+        )
         return None
 
 
-def write_manifest(target: str, manifest: dict) -> None:
+def write_manifest(target: TargetType, manifest: dict) -> None:
     """寫入 manifest 檔案。
 
     Args:
@@ -216,7 +249,9 @@ def write_manifest(target: str, manifest: dict) -> None:
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(manifest_path, "w", encoding="utf-8") as f:
-        yaml.dump(manifest, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        yaml.dump(
+            manifest, f, allow_unicode=True, default_flow_style=False, sort_keys=False
+        )
 
 
 # ============================================================
@@ -224,7 +259,9 @@ def write_manifest(target: str, manifest: dict) -> None:
 # ============================================================
 
 
-def _get_target_resource_path(target: str, resource_type: ResourceType, name: str) -> Path | None:
+def _get_target_resource_path(
+    target: TargetType, resource_type: ResourceType, name: str
+) -> Path | None:
     """取得目標檔案/目錄的路徑。"""
     # 延遲導入避免循環依賴
     from .shared import get_target_path
@@ -240,7 +277,7 @@ def _get_target_resource_path(target: str, resource_type: ResourceType, name: st
 
 
 def detect_conflicts(
-    target: str,
+    target: TargetType,
     old_manifest: dict | None,
     new_tracker: ManifestTracker,
 ) -> list[ConflictInfo]:
@@ -264,7 +301,7 @@ def detect_conflicts(
     old_files = old_manifest.get("files", {})
 
     # 檢查各資源類型
-    for resource_type in ["skills", "commands", "agents", "workflows"]:
+    for resource_type in RESOURCE_TYPES:
         old_records = old_files.get(resource_type, {})
         new_records = getattr(new_tracker, resource_type, {})
 
@@ -288,12 +325,17 @@ def detect_conflicts(
 
             # 比對
             if current_hash != old_hash:
+                # 從 tracker 取得來源路徑
+                file_record = new_records.get(name)
+                src_path = file_record.source_path if file_record else None
                 conflicts.append(
                     ConflictInfo(
                         name=name,
                         resource_type=resource_type,
                         old_hash=old_hash,
                         current_hash=current_hash,
+                        source_path=src_path,
+                        target_path=target_path,
                     )
                 )
 
@@ -321,22 +363,26 @@ def display_conflicts(conflicts: list[ConflictInfo]) -> None:
     console.print()
 
 
-def prompt_conflict_action() -> str:
+def prompt_conflict_action(conflicts: list[ConflictInfo] | None = None) -> str:
     """互動式詢問用戶衝突處理方式。
 
+    Args:
+        conflicts: 衝突清單（用於查看差異功能）
+
     Returns:
-        str: "force", "skip", "backup", 或 "abort"
+        str: "force", "skip", "backup", "diff", 或 "abort"
     """
     console.print("[bold]請選擇處理方式：[/bold]")
     console.print("  [cyan]1[/cyan]. 強制覆蓋所有衝突檔案")
     console.print("  [cyan]2[/cyan]. 跳過衝突檔案")
     console.print("  [cyan]3[/cyan]. 備份後覆蓋")
-    console.print("  [cyan]4[/cyan]. 取消分發")
+    console.print("  [cyan]4[/cyan]. 查看差異")
+    console.print("  [cyan]5[/cyan]. 取消分發")
     console.print()
 
     while True:
         try:
-            choice = input("請輸入選項 (1-4): ").strip()
+            choice = input("請輸入選項 (1-5): ").strip()
             if choice == "1":
                 return "force"
             elif choice == "2":
@@ -344,11 +390,56 @@ def prompt_conflict_action() -> str:
             elif choice == "3":
                 return "backup"
             elif choice == "4":
+                return "diff"
+            elif choice == "5":
                 return "abort"
             else:
-                console.print("[red]無效選項，請輸入 1-4[/red]")
+                console.print("[red]無效選項，請輸入 1-5[/red]")
         except (EOFError, KeyboardInterrupt):
             return "abort"
+
+
+def show_conflict_diff(conflicts: list[ConflictInfo]) -> None:
+    """顯示衝突檔案的來源與目標差異。
+
+    Args:
+        conflicts: 衝突清單
+    """
+    import subprocess
+
+    for conflict in conflicts:
+        console.print()
+        console.print(
+            f"[bold cyan]=== {conflict.resource_type}/{conflict.name} 差異 ===[/bold cyan]"
+        )
+
+        if conflict.source_path is None or conflict.target_path is None:
+            console.print("[yellow]  無法取得路徑，跳過此項差異[/yellow]")
+            continue
+
+        if not conflict.source_path.exists() or not conflict.target_path.exists():
+            console.print("[yellow]  來源或目標路徑不存在，跳過此項差異[/yellow]")
+            continue
+
+        # Skills 為目錄，使用遞迴 diff；其餘為單檔
+        if conflict.resource_type == "skills":
+            cmd = ["diff", "-ruN", str(conflict.source_path), str(conflict.target_path)]
+        else:
+            cmd = ["diff", "-u", str(conflict.source_path), str(conflict.target_path)]
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            # diff 回傳 1 表示有差異（正常），回傳 2 表示錯誤
+            if result.stdout:
+                console.print(result.stdout)
+            elif result.returncode == 0:
+                console.print("[dim]  無差異[/dim]")
+            elif result.stderr:
+                console.print(f"[red]  {result.stderr.strip()}[/red]")
+        except FileNotFoundError:
+            console.print("[yellow]  diff 工具未安裝，無法顯示差異[/yellow]")
+
+    console.print()
 
 
 # ============================================================
@@ -356,7 +447,7 @@ def prompt_conflict_action() -> str:
 # ============================================================
 
 
-def get_backup_dir(target: str) -> Path:
+def get_backup_dir(target: TargetType) -> Path:
     """返回備份目錄路徑。
 
     Args:
@@ -368,7 +459,11 @@ def get_backup_dir(target: str) -> Path:
     return Path.home() / ".config" / "ai-dev" / "backups" / target
 
 
-def backup_file(target: str, resource_type: ResourceType, name: str) -> Path | None:
+def backup_file(
+    target: TargetType,
+    resource_type: ResourceType,
+    name: str,
+) -> Path | None:
     """備份單個檔案/目錄。
 
     Args:
@@ -410,7 +505,10 @@ def backup_file(target: str, resource_type: ResourceType, name: str) -> Path | N
 # ============================================================
 
 
-def find_orphans(old_manifest: dict | None, new_manifest: dict) -> dict[str, list[str]]:
+def find_orphans(
+    old_manifest: dict | None,
+    new_manifest: dict,
+) -> dict[ResourceType, list[str]]:
     """比對新舊 manifest，識別孤兒檔案。
 
     孤兒檔案：存在於舊 manifest 但不存在於新 manifest 的檔案。
@@ -424,13 +522,13 @@ def find_orphans(old_manifest: dict | None, new_manifest: dict) -> dict[str, lis
     """
     if old_manifest is None:
         # 無舊 manifest，不產生孤兒清單
-        return {"skills": [], "commands": [], "agents": [], "workflows": []}
+        return {key: [] for key in RESOURCE_TYPES}
 
     old_files = old_manifest.get("files", {})
     new_files = new_manifest.get("files", {})
 
-    orphans = {}
-    for resource_type in ["skills", "commands", "agents", "workflows"]:
+    orphans: dict[ResourceType, list[str]] = {}
+    for resource_type in RESOURCE_TYPES:
         old_names = set(old_files.get(resource_type, {}).keys())
         new_names = set(new_files.get(resource_type, {}).keys())
         orphans[resource_type] = sorted(old_names - new_names)
@@ -438,7 +536,7 @@ def find_orphans(old_manifest: dict | None, new_manifest: dict) -> dict[str, lis
     return orphans
 
 
-def cleanup_orphans(target: str, orphans: dict[str, list[str]]) -> None:
+def cleanup_orphans(target: TargetType, orphans: dict[ResourceType, list[str]]) -> None:
     """清理孤兒檔案。
 
     Args:

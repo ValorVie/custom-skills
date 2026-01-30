@@ -15,7 +15,7 @@ describe('check-debug-code (unit tests)', () => {
     test('should return true in git repo', () => {
       const mockExecSync = jest.fn();
 
-      const result = isGitRepo({ execSync: mockExecSync });
+      const result = isGitRepo({ execFileSync: mockExecSync });
 
       expect(result).toBe(true);
     });
@@ -25,7 +25,7 @@ describe('check-debug-code (unit tests)', () => {
         throw new Error('not a git repo');
       });
 
-      const result = isGitRepo({ execSync: mockExecSync });
+      const result = isGitRepo({ execFileSync: mockExecSync });
 
       expect(result).toBe(false);
     });
@@ -36,7 +36,7 @@ describe('check-debug-code (unit tests)', () => {
       const mockFs = { existsSync: () => true };
       const mockExecSync = jest.fn(() => 'file1.js\nfile2.php\n');
 
-      const files = getModifiedFiles({ fs: mockFs, execSync: mockExecSync });
+      const files = getModifiedFiles({ fs: mockFs, execFileSync: mockExecSync });
 
       expect(files).toEqual(['file1.js', 'file2.php']);
     });
@@ -45,7 +45,7 @@ describe('check-debug-code (unit tests)', () => {
       const mockFs = { existsSync: (f) => f === 'file1.js' };
       const mockExecSync = jest.fn(() => 'file1.js\nfile2.php\n');
 
-      const files = getModifiedFiles({ fs: mockFs, execSync: mockExecSync });
+      const files = getModifiedFiles({ fs: mockFs, execFileSync: mockExecSync });
 
       expect(files).toEqual(['file1.js']);
     });
@@ -55,7 +55,7 @@ describe('check-debug-code (unit tests)', () => {
         throw new Error('git error');
       });
 
-      const files = getModifiedFiles({ execSync: mockExecSync });
+      const files = getModifiedFiles({ execFileSync: mockExecSync });
 
       expect(files).toEqual([]);
     });
@@ -193,12 +193,13 @@ describe('check-debug-code (unit tests)', () => {
         existsSync: () => true,
         readFileSync: () => 'console.log("debug");'
       };
-      const mockExecSync = jest.fn((cmd) => {
-        if (cmd.includes('rev-parse')) return '';
-        return 'file.js\n';
+      const mockExecFileSync = jest.fn((cmd, args) => {
+        if (args && args.includes('rev-parse')) return '';
+        if (args && args.includes('diff')) return 'file.js\n';
+        return '';
       });
 
-      const warnings = checkAllFiles({ fs: mockFs, execSync: mockExecSync });
+      const warnings = checkAllFiles({ fs: mockFs, execFileSync: mockExecFileSync });
 
       expect(warnings.length).toBeGreaterThan(0);
       expect(warnings[0]).toContain('console.log');
@@ -209,7 +210,7 @@ describe('check-debug-code (unit tests)', () => {
         throw new Error('not a git repo');
       });
 
-      const warnings = checkAllFiles({ execSync: mockExecSync });
+      const warnings = checkAllFiles({ execFileSync: mockExecSync });
 
       expect(warnings).toHaveLength(0);
     });
@@ -221,7 +222,7 @@ describe('check-debug-code (unit tests)', () => {
         throw new Error('not a git repo');
       });
 
-      const result = processHook({}, { execSync: mockExecSync });
+      const result = processHook({}, { execFileSync: mockExecSync });
 
       expect(result.warnings).toBeDefined();
     });

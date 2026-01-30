@@ -105,10 +105,11 @@ ai-dev install
 2. 檢查 Claude Code CLI 是否已安裝（若無則顯示安裝指引）。
 3. 安裝全域 NPM 工具 (`openspec`, `gemini-cli`, `skills` 等)。
 4. Clone 必要的設定儲存庫到 `~/.config/` （Stage 1）。
-5. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
-6. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
-7. 顯示已安裝的 Skills 清單與重複名稱警告。
-8. 顯示 `npx skills` 可用指令提示。
+5. Clone 已設定的自訂 repo（若有）。
+6. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
+7. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
+8. 顯示已安裝的 Skills 清單與重複名稱警告。
+9. 顯示 `npx skills` 可用指令提示。
 
 > **注意**：Claude Code 需要使用 native 安裝方式，不再透過 NPM 安裝。
 
@@ -142,6 +143,7 @@ ai-dev update
 1. 更新 Claude Code（若已安裝）。
 2. 更新全域 NPM 工具。
 3. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
+4. 更新已設定的自訂 repo。
 
 > **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
 
@@ -204,6 +206,26 @@ ai-dev project update --only openspec
 | 參數 | 說明 |
 |------|------|
 | `--only`, `-o` | 只更新特定工具：`openspec`, `uds` |
+
+### 自訂 Repo 管理
+
+新增或更新自訂 repo（用於納入公司/團隊的專屬 Skills、Commands、Agents 等資源）：
+
+```bash
+# 新增自訂 repo
+ai-dev add-custom-repo owner/repo
+
+# 指定名稱與分支
+ai-dev add-custom-repo owner/repo --name my-custom-name --branch develop
+
+# 自動補齊缺少的目錄結構
+ai-dev add-custom-repo owner/repo --fix
+
+# 更新所有自訂 repo
+ai-dev update-custom-repo
+```
+
+自訂 repo 會記錄於 `~/.config/ai-dev/repos.yaml`。
 
 ### 狀態檢查 (Status)
 
@@ -435,6 +457,8 @@ npx skills add vercel-labs/agent-skills
 | `ai-dev standards` | 管理標準體系 profiles |
 | `ai-dev derive-tests` | 讀取 OpenSpec specs 供 AI 生成測試 |
 | `ai-dev hooks` | 管理 Claude Code Hooks（計劃中） |
+| `ai-dev add-custom-repo` | 新增自訂 repo |
+| `ai-dev update-custom-repo` | 更新自訂 repo |
 
 ## 開發
 

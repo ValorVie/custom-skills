@@ -19,6 +19,7 @@ from .paths import (
     get_claude_workflows_dir,
     get_antigravity_config_dir,
     get_opencode_config_dir,
+    get_opencode_plugin_dir,
     get_codex_config_dir,
     get_gemini_cli_config_dir,
     get_superpowers_dir,
@@ -102,6 +103,7 @@ COPY_TARGETS = {
         "skills": get_opencode_config_dir() / "skills",
         "commands": get_opencode_config_dir() / "commands",
         "agents": get_opencode_config_dir() / "agents",
+        "plugins": get_opencode_plugin_dir() / "ecc-hooks",
     },
     "codex": {
         "skills": get_codex_config_dir() / "skills",
@@ -466,6 +468,7 @@ def _copy_with_log(
     target_name: str,
     tracker: "ManifestTracker | None" = None,
     skip_names: set[str] | None = None,
+    source: str = "custom-skills",
 ) -> None:
     """複製目錄並輸出帶路徑的日誌。
 
@@ -476,6 +479,7 @@ def _copy_with_log(
         target_name: 目標平台名稱
         tracker: ManifestTracker 實例（用於記錄已複製的檔案）
         skip_names: 要跳過的資源名稱集合（用於衝突跳過）
+        source: 資源來源名稱（用於 manifest 追蹤）
     """
     if not src.exists():
         return
@@ -503,7 +507,7 @@ def _copy_with_log(
                     dst_item = dst / item.name
                     shutil.copytree(item, dst_item, dirs_exist_ok=True)
                     if record_method:
-                        record_method(item.name, item)
+                        record_method(item.name, item, source=source)
         else:
             # Commands, Agents, Workflows 是 .md 檔案
             for item in src.iterdir():
@@ -518,7 +522,7 @@ def _copy_with_log(
                     dst_item = dst / item.name
                     shutil.copy2(item, dst_item)
                     if record_method:
-                        record_method(name, item)
+                        record_method(name, item, source=source)
     else:
         # 無 tracker，直接複製整個目錄
         shutil.copytree(src, dst, dirs_exist_ok=True)
@@ -545,6 +549,7 @@ def copy_custom_skills_to_targets(
         detect_conflicts,
         display_conflicts,
         prompt_conflict_action,
+        show_conflict_diff,
         find_orphans,
         cleanup_orphans,
         backup_file,
@@ -562,6 +567,7 @@ def copy_custom_skills_to_targets(
     src_cmd_workflows = get_custom_skills_dir() / "commands" / "workflows"
     src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
     src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
+    src_plugins_opencode = get_custom_skills_dir() / "plugins" / "ecc-hooks-opencode"
 
     # 定義各平台的分發配置
     platform_configs = {
@@ -587,6 +593,7 @@ def copy_custom_skills_to_targets(
                 ("skills", src_skills, COPY_TARGETS["opencode"]["skills"]),
                 ("commands", src_cmd_opencode, COPY_TARGETS["opencode"]["commands"]),
                 ("agents", src_agents_opencode, COPY_TARGETS["opencode"]["agents"]),
+                ("plugins", src_plugins_opencode, COPY_TARGETS["opencode"]["plugins"]),
             ],
         },
         "codex": {
@@ -633,12 +640,15 @@ def copy_custom_skills_to_targets(
                 for item in src.iterdir():
                     if item.is_dir() and not item.name.startswith("."):
                         if record_method:
-                            record_method(item.name, item)
+                            record_method(item.name, item, source="custom-skills")
             else:
                 for item in src.iterdir():
                     if item.is_file() and item.suffix == ".md":
                         if record_method:
-                            record_method(item.stem, item)
+                            record_method(item.stem, item, source="custom-skills")
+
+        # 預掃描 custom repos 的資源
+        _prescan_custom_repos(target, record_method_map)
 
         # 3. 檢測衝突
         conflicts = detect_conflicts(target, old_manifest, tracker)
@@ -653,9 +663,13 @@ def copy_custom_skills_to_targets(
             elif backup:
                 action = "backup"
             else:
-                # 互動式詢問
+                # 互動式詢問（支援查看差異後重新選擇）
                 display_conflicts(conflicts)
-                action = prompt_conflict_action()
+                action = prompt_conflict_action(conflicts)
+                while action == "diff":
+                    show_conflict_diff(conflicts)
+                    display_conflicts(conflicts)
+                    action = prompt_conflict_action(conflicts)
 
             if action == "abort":
                 console.print("[yellow]已取消分發[/yellow]")
@@ -677,7 +691,11 @@ def copy_custom_skills_to_targets(
                 src, dst, resource_type, target_name,
                 tracker=tracker,
                 skip_names=skip_names if resource_type in ["skills", "commands", "agents", "workflows"] else None,
+                source="custom-skills",
             )
+
+        # 5.5 分發 custom repos 的資源
+        _distribute_custom_repos(target, target_name, tracker, skip_names)
 
         # 6. 產生新 manifest
         new_manifest = tracker.to_manifest(version)
@@ -705,6 +723,119 @@ def copy_custom_skills_to_targets(
     # 專案目錄同步（不使用 manifest 追蹤）
     if sync_project:
         _sync_to_project_directory(src_skills)
+
+
+def _prescan_custom_repos(
+    target: str,
+    record_method_map: dict,
+) -> None:
+    """預掃描 custom repos 的資源（用於衝突檢測）。"""
+    from .custom_repos import load_custom_repos
+
+    custom_repos = load_custom_repos().get("repos", {})
+    for repo_name, repo_info in custom_repos.items():
+        local_path = Path(repo_info.get("local_path", "").replace("~", str(Path.home())))
+        if not local_path.exists():
+            continue
+        _scan_repo_resources(local_path, target, record_method_map, source=repo_name)
+
+
+def _scan_repo_resources(
+    repo_dir: Path,
+    target: str,
+    record_method_map: dict,
+    source: str,
+) -> None:
+    """掃描單一 repo 的資源並記錄到 tracker。"""
+    # Skills（所有平台共用）
+    skills_dir = repo_dir / "skills"
+    if skills_dir.exists():
+        record = record_method_map.get("skills")
+        if record:
+            for item in skills_dir.iterdir():
+                if item.is_dir() and not item.name.startswith("."):
+                    record(item.name, item, source=source)
+
+    # Commands（按平台子目錄）
+    _scan_platform_resources(repo_dir / "commands", target, "commands", record_method_map, source)
+
+    # Agents（按平台子目錄）
+    _scan_platform_resources(repo_dir / "agents", target, "agents", record_method_map, source)
+
+
+def _scan_platform_resources(
+    base_dir: Path,
+    target: str,
+    resource_type: str,
+    record_method_map: dict,
+    source: str,
+) -> None:
+    """掃描按平台子目錄組織的資源。"""
+    platform_dir = base_dir / target
+    if not platform_dir.exists():
+        return
+
+    record = record_method_map.get(resource_type)
+    if not record:
+        return
+
+    for item in platform_dir.iterdir():
+        if item.is_file() and item.suffix == ".md":
+            if item.name.lower() == "readme.md":
+                continue
+            record(item.stem, item, source=source)
+
+
+def _distribute_custom_repos(
+    target: str,
+    target_name: str,
+    tracker: "ManifestTracker",
+    skip_names: set[str],
+) -> None:
+    """分發 custom repos 的資源到指定平台。"""
+    from .custom_repos import load_custom_repos
+
+    custom_repos = load_custom_repos().get("repos", {})
+    if not custom_repos:
+        return
+
+    for repo_name, repo_info in custom_repos.items():
+        local_path = Path(repo_info.get("local_path", "").replace("~", str(Path.home())))
+        if not local_path.exists():
+            console.print(f"  [yellow]⚠ Custom repo 目錄不存在，跳過: {repo_name} ({local_path})[/yellow]")
+            continue
+
+        console.print(f"  [bold cyan]分發 custom repo: {repo_name}[/bold cyan]")
+
+        # Skills（所有平台共用）
+        skills_src = local_path / "skills"
+        if skills_src.exists():
+            skills_dst = COPY_TARGETS.get(target, {}).get("skills")
+            if skills_dst:
+                _copy_with_log(
+                    skills_src, skills_dst, "skills", target_name,
+                    tracker=tracker, skip_names=skip_names, source=repo_name,
+                )
+
+        # Commands（按平台子目錄）
+        cmd_src = local_path / "commands" / target
+        if cmd_src.exists():
+            cmd_dst = COPY_TARGETS.get(target, {}).get("commands")
+            if cmd_dst:
+                _copy_with_log(
+                    cmd_src, cmd_dst, "commands", target_name,
+                    tracker=tracker, skip_names=skip_names, source=repo_name,
+                )
+
+        # Agents（按平台子目錄）
+        agents_src = local_path / "agents" / target
+        if agents_src.exists():
+            agents_dst = COPY_TARGETS.get(target, {}).get("agents")
+            if agents_dst:
+                _copy_with_log(
+                    agents_src, agents_dst, "agents", target_name,
+                    tracker=tracker, skip_names=skip_names, source=repo_name,
+                )
 
 
 def _is_custom_skills_project(project_root: Path) -> bool:
@@ -1292,6 +1423,7 @@ DEFAULT_TOGGLE_CONFIG = {
         "skills": {"enabled": True, "disabled": []},
         "commands": {"enabled": True, "disabled": []},
         "agents": {"enabled": True, "disabled": []},
+        "plugins": {"enabled": True, "disabled": []},
     },
     "codex": {
         "skills": {"enabled": True, "disabled": []},

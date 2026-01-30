@@ -10,7 +10,7 @@ describe('format-js (unit tests)', () => {
     test('should format file successfully', () => {
       const mockExecSync = jest.fn();
 
-      const result = formatWithPrettier('/path/to/file.js', { execSync: mockExecSync });
+      const result = formatWithPrettier('/path/to/file.js', { execFileSync: mockExecSync });
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('Formatted with Prettier');
@@ -21,7 +21,7 @@ describe('format-js (unit tests)', () => {
         throw new Error('npx: prettier not found');
       });
 
-      const result = formatWithPrettier('/path/to/file.js', { execSync: mockExecSync });
+      const result = formatWithPrettier('/path/to/file.js', { execFileSync: mockExecSync });
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('');
@@ -40,7 +40,7 @@ describe('format-js (unit tests)', () => {
 
       const result = processHook(
         { tool_input: { file_path: '/file.js' } },
-        { execSync: mockExecSync }
+        { execFileSync: mockExecSync }
       );
 
       expect(result.success).toBe(true);

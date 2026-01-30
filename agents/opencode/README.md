@@ -2,8 +2,8 @@
 
 > **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/agents/README.md)
 
-**Version**: 1.1.0
-**Last Updated**: 2026-01-21
+**Version**: 1.1.1
+**Last Updated**: 2026-01-30
 **Status**: Stable
 
 ---
@@ -164,6 +164,11 @@ context-strategy:
 | [reviewer](./reviewer.md) | reviewer | Code review and quality assessment |
 | [doc-writer](./doc-writer.md) | specialist | Documentation and technical writing |
 | [spec-analyst](./spec-analyst.md) | specialist | Specification analysis and requirement extraction |
+| [database-reviewer](./database-reviewer.md) | specialist | PostgreSQL database optimization and security |
+| [build-error-resolver](./build-error-resolver.md) | specialist | Build and TypeScript error resolution |
+| [e2e-runner](./e2e-runner.md) | specialist | End-to-end testing with Playwright |
+| [doc-updater](./doc-updater.md) | specialist | Documentation maintenance and updates |
+| [security-reviewer](./security-reviewer.md) | specialist | Security vulnerability detection and remediation |
 
 ## Usage
 
@@ -293,6 +298,7 @@ See [workflows/README.md](../workflows/README.md) for workflow documentation.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.1 | 2026-01-30 | Added 5 new agents (build-error-resolver, database-reviewer, doc-updater, e2e-runner, security-reviewer) |
 | 1.1.0 | 2026-01-21 | Added RLM-inspired context-strategy configuration |
 | 1.0.0 | 2026-01-20 | Initial release |
 

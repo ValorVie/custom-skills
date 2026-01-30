@@ -14,15 +14,13 @@ expertise:
   - performance-review
   - maintainability
 
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash(git:diff, git:log, git:show, gh:pr)
-  - WebFetch
-disallowed-tools:
-  - Write
-  - Edit
+tools:
+  read: true
+  glob: true
+  grep: true
+  bash: true
+  write: false
+  edit: false
 
 skills:
   - code-review-assistant

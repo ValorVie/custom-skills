@@ -36,7 +36,7 @@ describe('format-php (unit tests)', () => {
 
       const result = formatPhpFile('/project/app/User.php', {
         fs: mockFs,
-        execSync: mockExecSync
+        execFileSync: mockExecSync
       });
 
       expect(result.success).toBe(true);

@@ -109,6 +109,21 @@ Hook System 為 Claude Code 提供事件驅動的擴展機制，實現以下核�
 - **AND** 建議在完成 milestone 後壓縮
 - **AND** 建議在 context 轉換前壓縮
 
+#### Scenario: Session ID Fallback
+
+- **WHEN** 取得 Session ID 用於計數器檔案
+- **THEN** 優先使用 `CLAUDE_SESSION_ID` 環境變數
+- **AND** 若不存在則使用 `getProjectName()` 函式取得專案名稱
+- **AND** 專案名稱優先取自 git repository 名稱
+- **AND** 若非 git 專案則使用目前目錄名稱
+- **AND** 若以上皆失敗則使用 `'default'`
+
+#### Scenario: 禁止的 Fallback 方式
+
+- **WHEN** 實作 session ID fallback
+- **THEN** 禁止使用 `PPID` 作為 fallback（不穩定）
+- **AND** 禁止使用隨機值（無法跨 session 追蹤）
+
 ### Requirement: Hook 跨平台相容
 
 所有 Hook 腳本 SHALL 相容 Windows、macOS 和 Linux。
@@ -166,7 +181,7 @@ Hook 系統 SHALL 提供狀態儲存機制。
 
 ### Requirement: Node.js Hook 實作
 
-PostToolUse 程式碼品質 Hooks SHALL 使用 Node.js 獨立腳本實作。
+PostToolUse 程式碼品質 Hooks SHALL 使用 Node.js 獨立腳本實作，並遵循安全的命令執行方式。
 
 #### Scenario: 獨立腳本格式（取代 One-liner）
 
@@ -196,6 +211,32 @@ PostToolUse 程式碼品質 Hooks SHALL 使用 Node.js 獨立腳本實作。
 - **AND** 包含 `check-mypy.js`（mypy 型別檢查）
 - **AND** 包含 `warn-python-debug.js`（Python debug 警告）
 - **AND** 包含 `check-debug-code.js`（Stop hook 多語言檢查）
+
+#### Scenario: 安全命令執行
+
+- **WHEN** 腳本需執行外部命令（如 prettier, pint, ruff, mypy, phpstan, tsc, git）
+- **THEN** 使用 `execFileSync` 取代 `execSync`
+- **AND** 命令參數以陣列傳遞，不使用字串串接
+- **AND** 不依賴 shell 解析命令
+- **AND** 範例：`execFileSync('npx', ['prettier', '--write', filePath], options)`
+- **AND** 範例：`execFileSync('mypy', ['--no-error-summary', filePath], options)`
+- **AND** 範例：`execFileSync(phpstanPath, ['analyse', '--error-format=raw', filePath], options)`
+- **AND** 範例：`execFileSync('git', ['rev-parse', '--git-dir'], options)`
+
+#### Scenario: 禁止的命令執行模式
+
+- **WHEN** 實作命令執行
+- **THEN** 禁止使用 `execSync` 搭配字串模板
+- **AND** 禁止使用 shell 字串串接（如 `command + " " + arg`）
+- **AND** 禁止依賴 `JSON.stringify` 作為唯一的安全措施
+- **AND** 禁止在 `execFileSync` 中使用 `shell: true` 選項
+
+#### Scenario: 依賴注入介面
+
+- **WHEN** 腳本支援測試用依賴注入
+- **THEN** 使用 `deps.execFileSync` 作為注入點
+- **AND** 預設值為 `require('child_process').execFileSync`
+- **AND** 禁止使用 `deps.execSync` 作為注入名稱
 
 ### Requirement: 腳本標準介面
 
@@ -262,4 +303,20 @@ hooks.json SHALL 更新為引用獨立腳本。
 - **THEN** 支援 `*` 匹配所有
 - **AND** 支援 `tool == "Bash"` 工具匹配
 - **AND** 支援 `tool_input.file_path matches "*.ts"` 路徑匹配
+
+### Requirement: 雙 Plugin 同步
+
+ecc-hooks 系統 SHALL 同時維護 Claude Code 與 OpenCode 兩個版本的 scripts。
+
+#### Scenario: Scripts 內容一致性
+
+- **WHEN** 修改 `plugins/ecc-hooks/scripts/code-quality/lib/*.js`
+- **THEN** 同步修改 `plugins/ecc-hooks-opencode/scripts/code-quality/lib/*.js`
+- **AND** 兩者內容保持完全一致
+
+#### Scenario: 驗證同步
+
+- **WHEN** 完成修改後
+- **THEN** 使用 `diff` 命令驗證兩個目錄的 lib 檔案一致
+- **AND** 測試兩個版本的 hooks 皆能正常運作
 

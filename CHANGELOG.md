@@ -9,12 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenCode 平台完整支援**
+  - 新增 41 個 OpenCode Commands（完整鏡像 Claude Code 指令家族）
+  - 新增 `commands/opencode/README.md` 與 `COMMAND-FAMILY-OVERVIEW.md`
+  - 新增 10 個 OpenCode Agents：
+    - `build-error-resolver`, `code-architect`, `database-reviewer`
+    - `doc-updater`, `doc-writer`, `e2e-runner`
+    - `reviewer`, `security-reviewer`, `spec-analyst`, `test-specialist`
+  - 新增 `ecc-hooks-opencode` Plugin（OpenCode 版 ECC Hooks）
+  - 移除舊的 `code-simplifier-opencode` agent
+
 - **ECC Hooks Plugin 測試框架**
   - 新增 Jest 測試框架與測試配置
   - 重構 Code Quality Hooks 為 CLI + lib 模式
   - 實現依賴注入設計，支援完整 mock 測試
   - 109 個測試，覆蓋率 95.25%
   - 支援 JS/TS、PHP、Python 的格式化與靜態分析
+
+- **自訂 Repo 管理**
+  - 新增 `ai-dev add-custom-repo` 指令以加入自訂 repo
+  - 新增 `ai-dev update-custom-repo` 指令以更新自訂 repo
+  - `install` 會 clone 已設定的自訂 repo
+  - `update` 會更新已設定的自訂 repo
 
 - **語言無關測試工作流 Commands**
   - `/custom-skills-python-test`: 執行 Python 測試並分析結果（原 `/custom-skills-test`）
@@ -28,12 +44,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **開發指南文件**
   - 新增 `docs/dev-guide/DEVELOPMENT-WORKFLOW.md`：OpenSpec 開發工作流程
   - 新增 `docs/dev-guide/GIT-WORKFLOW.md`：Git 分支與 PR 流程
+  - 新增 `docs/dev-guide/SKILLS-CLI.md`：Skills CLI 工具開發指南
 
 - **CLI 新增 `derive-tests` 指令**
   - 讀取 OpenSpec specs 內容供 AI 生成測試
 
 - **OpenSpec Main Specs 同步**
   - 同步 coverage, metadata-detection, test-execution, test-generation specs 至 `openspec/specs/`
+  - 同步 cli-distribution, clone-command, conflict-diff-view, custom-repo-cli, custom-repo-management, opencode-commands, opencode-plugin, setup-script, shell-completion specs 至 `openspec/specs/`
+
+- **Commands 新增**
+  - `/test-coverage`（claude）：測試覆蓋率分析
+  - `/custom-skills-git-commit`（antigravity）：新增 PR 模式說明
 
 ### Changed
 
@@ -60,6 +82,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`tool-overlap-analyzer` Skill 更新**
   - 新增 Step 3.5: Cross-Reference Analysis（合併/移除工具前檢查引用）
+
+- **Skills globs 清理**
+  - 移除 6 個 Skills 中多餘的 `globs` 設定（coding-standards, continuous-learning, eval-harness, security-review, strategic-compact, tdd-workflow）
+
+- **CLI manifest 重構**
+  - `manifest.py` 改進路徑處理與錯誤處理邏輯
+
+- **Upstream mapping 更新**
+  - 新增 ecc mapping 項目（5 個 agents）
+  - 更新 anthropic-skills、obsidian-skills、superpowers、uds mapping
+
+### Fixed
+
+- **ECC Hooks Shell Injection 修正**
+  - `format-js.js`: 從 `execSync` 改為 `execFileSync`，避免 shell injection
+  - `format-php.js`: 從 `execSync` 改為 `execFileSync`，避免 shell injection
+  - `format-python.js`: 從 `execSync` 改為 `execFileSync`，避免 shell injection
+  - 同步修正 `ecc-hooks` 與 `ecc-hooks-opencode` 兩個 plugin
+  - 更新對應測試以匹配新的 API
+
+- **ECC Hooks utils.py 增強**
+  - 新增 `get_project_name()` 函式
+  - `suggest-compact.py` 改進匯入路徑處理
 
 ### Removed
 
