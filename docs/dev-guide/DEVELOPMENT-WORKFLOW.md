@@ -8,7 +8,7 @@
 
 | 階段 | 命令 | 說明 |
 |------|------|------|
-| 探索想法 | 直接對話 | 與 AI 討論想法、釐清方向 |
+| 探索想法 | 直接對話或使用 `/superpowers:brainstorm` | 與 AI 討論想法、釐清方向 |
 | 調研目標 | `/opsx:explore` | 探索程式碼、理解現狀 |
 | 建立提案 | `/opsx:new <name>` | 建立 change 和 proposal |
 | 建立規格 | `/opsx:continue` | 依序建立 design、specs、tasks |

@@ -132,7 +132,7 @@ git log --oneline main...HEAD
 
 1. `CHANGELOG.md` - 版本歷史（幾乎所有變更都需要）
 2. `README.md` - 專案總覽
-3. `openspec/project.md` - 專案上下文
+3. `openspec/config.yaml` - 專案上下文（舊版為 `openspec/project.md`，若存在也應檢查）
 4. `docs/**/*.md` - 文件資料夾
 
 ### Step 3.2: 使用關鍵字搜尋相關文件

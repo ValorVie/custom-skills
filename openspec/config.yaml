@@ -1,0 +1,44 @@
+schema: spec-driven
+
+context: |
+  Product: custom-skills - AI 輔助開發的 Skills、Commands 與 Agent 配置管理專案
+  Purpose: 統一開發規範、跨工具一致性、知識管理、可複用工作流
+  Nature: 配置即程式碼（Configuration as Code）
+  Tech stack: Markdown, YAML, JSON, Git
+  Language: 繁體中文（技術術語保留英文）
+  AI Tools: Claude Code, Antigravity, OpenCode, Codex, Gemini CLI, OpenSpec
+
+  Architecture: 分層配置管理
+    custom-skills/ (統一來源)
+    ├─ skills/       → 可複用的 AI 行為規範（自動觸發）
+    ├─ commands/     → 手動觸發的指令（claude/, antigravity/, opencode/, gemini/）
+    ├─ agents/       → 專業化的 AI 子代理（claude/, opencode/）
+    ├─ sources/      → 上游資源整合
+    ├─ upstream/     → 上游追蹤系統
+    ├─ third-party/  → 第三方專案參考資訊
+    ├─ .standards/   → 專案層級的開發標準（universal-dev-standards 生成）
+    ├─ docs/         → 概念性文件與使用指南
+    ├─ openspec/     → OpenSpec 規格驅動開發配置
+    └─ project-template/ → 專案初始化模板
+
+  Conventions:
+    - 繁體中文優先，技術術語保留英文
+    - Skills: kebab-case 命名
+    - 文件: 語意化命名
+    - 單一 Skill 檔案不超過 1000 行
+    - 重大變更需保留遷移指南並記錄於 CHANGELOG.md
+
+  Git workflow:
+    - main: 穩定版本
+    - feature/描述, fix/描述, experiment/描述
+    - Conventional Commits（繁體中文）
+
+  Dependencies:
+    - Node.js >= 20.19.0, Git >= 2.x
+    - upstream: universal-dev-standards, everything-claude-code, superpowers, anthropic-skills, obsidian-skills
+
+specs: []
+
+archived: []
+
+active: []
