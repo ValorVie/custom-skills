@@ -742,7 +742,7 @@ openspec init
 初始化完成後，請 AI 協助填寫專案資訊：
 
 ```
-請閱讀 openspec/project.md，並協助我填寫關於我的專案、技術堆疊 (tech stack) 和開發規範 (conventions) 的細節。
+請閱讀 openspec/config.yaml，並協助我填寫關於我的專案、技術堆疊 (tech stack) 和開發規範 (conventions) 的細節。
 ```
 
 ### 步驟 3：初始化 Claude Code (選用)

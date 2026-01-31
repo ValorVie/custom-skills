@@ -13,13 +13,13 @@
 | 建立提案 | `/opsx:new <name>` | 建立 change 和 proposal |
 | 建立規格 | `/opsx:continue` | 依序建立 design、specs、tasks |
 | 實作 | `/opsx:apply` | 執行 tasks 中的任務 |
+| 驗證 | `/opsx:verify` | 驗證實作符合規格 |
 | 生成測試 | `/custom-skills-{lang}-derive-tests` | 從 specs 生成測試程式碼 |
 | 執行測試 | `/custom-skills-{lang}-test` | 執行測試並分析結果 |
 | 覆蓋率 | `/custom-skills-{lang}-coverage` | 檢查測試覆蓋率 |
 | 手動測試 | `請根據 specs 和實作程式碼，生成手動整合測試清單` | 無法自動化時建立手動測試清單 |
 | 生成報告 | `/custom-skills-report` | 生成測試報告供人工審閱 |
 | 回溯更新 | `請比對目前實作與 specs 的差異，更新 artifacts` | 將實作偏差同步回 specs/design |
-| 驗證 | `/opsx:verify` | 驗證實作符合規格 |
 | 歸檔 | `/opsx:archive` | 歸檔 change 到主規格 |
 
 > **語言標識 `{lang}`**: `python` 或 `php`
