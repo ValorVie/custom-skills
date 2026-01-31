@@ -8,7 +8,7 @@ tools:
   bash: true
   grep: true
   glob: true
-model: opus
+model: zai-coding-plan/glm-4.7
 ---
 
 # E2E Test Runner
