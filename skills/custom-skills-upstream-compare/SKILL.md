@@ -396,6 +396,23 @@ novel_structures:
 | **Review** | 包含 hooks 或參考文件、有趣的配置模式 | 可參考部分內容 |
 | **Skip** | 無可整合內容、無新架構 | 不適合整合 |
 
+## Install Method Awareness（重要）
+
+分析報告時，**必須先查看 `upstream/sources.yaml` 中每個 repo 的 `install_method`**，
+避免建議錯誤的同步方式：
+
+| install_method | 正確的同步動作 | 常見誤判 |
+|---------------|--------------|---------|
+| `plugin` | `claude plugin update <plugin_id>` + 重啟 | 不需手動複製檔案，報告顯示 High 不代表要手動操作 |
+| `ai-dev` | `ai-dev clone` 已自動同步 | diff 可能已為零，僅需更新 last-sync.yaml |
+| `standards` | diff `.standards/` 與上游，合併變更 | 需注意本地可能有超前版本或自訂修改 |
+| `manual` | 手動比對差異，選擇性採用 | 本專案自訂版本可能比上游更完整（如 ecc-hooks） |
+
+**分析報告撰寫時必須：**
+1. 在每個 repo 分析段落標註其 `install_method`
+2. 整合建議中說明正確的同步命令
+3. 對 `manual` 類型，先比較本地 vs 上游功能完整度再建議
+
 ## Analysis Priorities
 
 整合評估時優先考慮：
