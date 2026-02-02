@@ -401,7 +401,7 @@ def main():
     parser.add_argument("--check", action="store_true", help="Check for updates only")
     parser.add_argument("--diff", action="store_true", help="Generate diff report")
     parser.add_argument("--assess", action="store_true", help="Generate integration assessment")
-    parser.add_argument("--source", type=str, help="Check specific source only")
+    parser.add_argument("--source", type=str, action="append", help="Check specific source only (can be specified multiple times)")
     args = parser.parse_args()
 
     project_root = get_project_root()
@@ -411,10 +411,11 @@ def main():
 
     # Filter to specific source if requested
     if args.source:
-        if args.source not in sources.get("sources", {}):
-            print(f"Error: Source '{args.source}' not found")
+        missing = [s for s in args.source if s not in sources.get("sources", {})]
+        if missing:
+            print(f"Error: Source not found: {', '.join(missing)}")
             sys.exit(1)
-        sources["sources"] = {args.source: sources["sources"][args.source]}
+        sources["sources"] = {k: v for k, v in sources["sources"].items() if k in args.source}
 
     updates = {}
 

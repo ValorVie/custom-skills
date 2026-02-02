@@ -2,8 +2,8 @@ anthropic-skills:
   commit: 69c0b1a0674149f27b61b2635f935524b6add202
   synced_at: '2026-01-26T13:43:25.308856'
 everything-claude-code:
-  commit: 56ff5d444bfeed3bd939113415851c8fe1c0fe6d
-  synced_at: '2026-01-26T13:43:25.308859'
+  commit: e7cb4428432a3362812da893fb841ba49244605f
+  synced_at: '2026-02-03T01:43:28.958162'
 obsidian-skills:
   commit: 34c2cda8b29eaeec6793e342b8b56e96ac29f15c
   synced_at: '2026-02-02T10:30:00.000000'
@@ -11,5 +11,5 @@ superpowers:
   commit: 06b92f36820f38175b2ed6ff3f8df45157d54731
   synced_at: '2026-02-02T10:45:00.000000'
 universal-dev-standards:
-  commit: a6412d72d2f93adba029d932118f04c6a9e9d618
-  synced_at: '2026-02-02T11:00:00.000000'
+  commit: 9e4403c6f4f579ec9b92f40bac629fae8ab18a34
+  synced_at: '2026-02-03T01:40:45.421277'

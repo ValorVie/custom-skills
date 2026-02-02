@@ -20,6 +20,9 @@ python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py
 # 只分析特定 repo
 python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --source superpowers
 
+# 同時分析多個 repo
+python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --source superpowers --source anthropic-skills
+
 # 分析並更新同步狀態
 python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --update-sync
 

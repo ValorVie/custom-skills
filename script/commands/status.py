@@ -1,14 +1,11 @@
 import typer
 import shutil
 import subprocess
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
-from ..utils.paths import (
-    get_custom_skills_dir,
-    get_superpowers_dir,
-    get_uds_dir,
-    get_opencode_config_dir,
-)
+from ..utils.shared import REPOS
+from ..utils.paths import get_project_root
 
 app = typer.Typer()
 console = Console()
@@ -88,23 +85,129 @@ def status():
 
     # 檢查設定儲存庫
     repo_table = Table(title="設定儲存庫")
-    repo_table.add_column("路徑", style="cyan")
-    repo_table.add_column("狀態", style="green")
+    repo_table.add_column("名稱", style="cyan")
+    repo_table.add_column("本地狀態", style="green")
 
-    repos = {
-        "Custom Skills": get_custom_skills_dir(),
-        "Superpowers": get_superpowers_dir(),
-        "Universal Dev Standards": get_uds_dir(),
-        "OpenCode Superpowers": get_opencode_config_dir() / "superpowers",
+    # REPOS key → 顯示名稱對應（與 update 輸出和 sources.yaml 一致）
+    repo_display_names = {
+        "custom_skills": "custom-skills",
+        "superpowers": "superpowers",
+        "uds": "universal-dev-standards",
+        "obsidian_skills": "obsidian-skills",
+        "anthropic_skills": "anthropic-skills",
+        "everything_claude_code": "everything-claude-code",
     }
 
-    for name, path in repos.items():
-        status_text = "未找到"
-        if path.exists():
-            if (path / ".git").exists():
-                status_text = "Git 儲存庫 (正常)"
+    for repo_key, (_, path_fn) in REPOS.items():
+        display_name = repo_display_names.get(repo_key, repo_key.replace("_", "-"))
+        path = path_fn()
+        if not path.exists():
+            repo_table.add_row(display_name, "[red]未安裝[/red]")
+            continue
+        if not (path / ".git").exists():
+            repo_table.add_row(display_name, "目錄存在 (非 Git)")
+            continue
+        # 比對本地 HEAD vs origin HEAD
+        try:
+            local_head = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=str(path), text=True, stderr=subprocess.DEVNULL,
+            ).strip()
+            remote_head = subprocess.check_output(
+                ["git", "rev-parse", "origin/main"],
+                cwd=str(path), text=True, stderr=subprocess.DEVNULL,
+            ).strip()
+            if local_head == remote_head:
+                repo_table.add_row(display_name, "[green]✓ 最新[/green]")
             else:
-                status_text = "目錄存在 (非 Git)"
-        repo_table.add_row(name, status_text)
+                repo_table.add_row(display_name, "[yellow]↑ 有可用更新[/yellow]")
+        except Exception:
+            repo_table.add_row(display_name, "Git 儲存庫 (正常)")
 
     console.print(repo_table)
+    console.print()
+
+    # 上游同步狀態
+    last_sync_path = get_project_root() / "upstream" / "last-sync.yaml"
+    sources_path = get_project_root() / "upstream" / "sources.yaml"
+    if last_sync_path.exists():
+        import yaml
+
+        try:
+            with open(last_sync_path, "r", encoding="utf-8") as f:
+                last_sync = yaml.safe_load(f) or {}
+        except Exception:
+            last_sync = {}
+
+        # 從 sources.yaml 讀取 local_path 對應
+        sources_map: dict[str, Path] = {}
+        if sources_path.exists():
+            try:
+                with open(sources_path, "r", encoding="utf-8") as f:
+                    sources_data = yaml.safe_load(f) or {}
+                for name, info in sources_data.get("sources", {}).items():
+                    local_path = info.get("local_path", "")
+                    if local_path:
+                        sources_map[name] = Path(
+                            local_path.replace("~", str(Path.home()))
+                        )
+            except Exception:
+                pass
+
+        if last_sync and sources_map:
+            sync_table = Table(title="上游同步狀態")
+            sync_table.add_column("名稱", style="cyan")
+            sync_table.add_column("同步於", style="dim")
+            sync_table.add_column("狀態", style="green")
+
+            for name in sorted(last_sync.keys()):
+                entry = last_sync[name]
+                sync_commit = entry.get("commit", "")
+                synced_at = entry.get("synced_at", "")
+
+                # 格式化日期為 MM-DD
+                date_display = ""
+                if synced_at:
+                    try:
+                        date_display = synced_at[5:10]  # YYYY-MM-DD → MM-DD
+                    except (IndexError, TypeError):
+                        date_display = str(synced_at)[:10]
+
+                repo_path = sources_map.get(name)
+                if not repo_path or not repo_path.exists():
+                    sync_table.add_row(name, date_display, "[red]未安裝[/red]")
+                    continue
+
+                if not sync_commit:
+                    sync_table.add_row(name, date_display, "[dim]? 無 commit 記錄[/dim]")
+                    continue
+
+                try:
+                    current_head = subprocess.check_output(
+                        ["git", "rev-parse", "HEAD"],
+                        cwd=str(repo_path), text=True, stderr=subprocess.DEVNULL,
+                    ).strip()
+
+                    if current_head == sync_commit:
+                        sync_table.add_row(name, date_display, "[green]✓ 同步[/green]")
+                    else:
+                        # 計算落後 commit 數
+                        try:
+                            count_output = subprocess.check_output(
+                                ["git", "rev-list", "--count", f"{sync_commit}..HEAD"],
+                                cwd=str(repo_path), text=True, stderr=subprocess.DEVNULL,
+                            ).strip()
+                            behind_count = int(count_output)
+                            sync_table.add_row(
+                                name, date_display,
+                                f"[yellow]⚠ 落後 {behind_count} 個 commit[/yellow]",
+                            )
+                        except Exception:
+                            sync_table.add_row(
+                                name, date_display,
+                                "[yellow]⚠ 落後[/yellow]",
+                            )
+                except Exception:
+                    sync_table.add_row(name, date_display, "[dim]? 無法比對[/dim]")
+
+            console.print(sync_table)

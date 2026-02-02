@@ -1169,7 +1169,7 @@ def generate_new_repo_report(analysis: RepoAnalysis, project_root: Path, generat
 
 def main():
     parser = argparse.ArgumentParser(description="分析上游 repository 變更")
-    parser.add_argument("--source", type=str, help="只分析特定 source")
+    parser.add_argument("--source", type=str, action="append", help="只分析特定 source（可多次指定）")
     parser.add_argument("--update-sync", action="store_true", help="更新 last-sync.yaml")
     parser.add_argument("--new-repo", type=str, metavar="PATH", help="分析新的本地 repo（評估是否適合整合）")
     parser.add_argument("--detect-overlaps", action="store_true", help="偵測重疊並加入報告")
@@ -1234,10 +1234,11 @@ def main():
 
     # 篩選特定 source
     if args.source:
-        if args.source not in sources["sources"]:
-            print(f"錯誤: Source '{args.source}' 不存在")
+        missing = [s for s in args.source if s not in sources["sources"]]
+        if missing:
+            print(f"錯誤: Source 不存在: {', '.join(missing)}")
             sys.exit(1)
-        sources["sources"] = {args.source: sources["sources"][args.source]}
+        sources["sources"] = {k: v for k, v in sources["sources"].items() if k in args.source}
 
     print(f"\n分析 {len(sources['sources'])} 個 repository...\n")
 
