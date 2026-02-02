@@ -8,6 +8,12 @@
 # 注意：
 # - ai-dev update 會拉取這些 repo 到 ~/.config/
 # - ai-dev clone 會從 ~/.config/ 整合內容到各工具目錄
+#
+# install_method 說明（影響同步方式）：
+# - plugin:    透過 Claude Code Plugin 安裝，用 `claude plugin update` 更新
+# - ai-dev:    透過 ai-dev clone 複製到本專案 skills/，檔案可能已自動同步
+# - standards: 透過 ai-dev clone 同步到 .standards/，需手動 diff 合併
+# - manual:    需手動比對與複製
 
 sources:
   obsidian-skills:
@@ -15,23 +21,29 @@ sources:
     branch: main
     local_path: ~/.config/obsidian-skills/
     format: claude-code-native
+    install_method: ai-dev          # ai-dev clone 同步到 skills/
   anthropic-skills:
     repo: anthropics/skills
     branch: main
     local_path: ~/.config/anthropic-skills/
     format: claude-code-native
+    install_method: ai-dev          # ai-dev clone 同步到 skills/
   superpowers:
     repo: obra/superpowers
     branch: main
     local_path: ~/.config/superpowers/
     format: claude-code-native
+    install_method: plugin          # Claude Code Plugin: superpowers@superpowers-marketplace
+    plugin_id: superpowers@superpowers-marketplace
   universal-dev-standards:
     repo: AsiaOstrich/universal-dev-standards
     branch: main
     local_path: ~/.config/universal-dev-standards/
     format: uds
+    install_method: standards       # ai-dev clone 同步到 .standards/，需 diff 合併
   everything-claude-code:
     repo: affaan-m/everything-claude-code
     branch: main
     local_path: ~/.config/everything-claude-code/
     format: claude-code-native
+    install_method: manual          # hooks 已自訂整合到 plugins/ecc-hooks，需手動比對

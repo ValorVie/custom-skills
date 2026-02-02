@@ -15,6 +15,7 @@ build
 dist
 *.egg-info
 .coverage
+.ruff_cache
 
 # 專案專用
 logs

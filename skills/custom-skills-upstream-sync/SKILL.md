@@ -202,6 +202,52 @@ python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --update-s
 - `/upstream-compare` - 使用 AI 分析結構化報告，生成自然語言建議
 - `/openspec:proposal` - 建立整合提案
 
+## 安裝方式與同步策略
+
+每個上游 repo 在 `upstream/sources.yaml` 中定義了 `install_method`，決定正確的同步方式：
+
+| install_method | 同步動作 | 範例來源 |
+|---------------|---------|---------|
+| `plugin` | 執行 `claude plugin update <plugin_id>` | superpowers |
+| `ai-dev` | `ai-dev clone` 已自動同步檔案到 `skills/` | obsidian-skills, anthropic-skills |
+| `standards` | `ai-dev clone` 同步到 `.standards/`，需 diff 合併 | universal-dev-standards |
+| `manual` | 本專案有自訂版本，需手動比對差異 | everything-claude-code |
+
+### 同步判斷流程
+
+```
+分析報告顯示有更新
+        │
+        ▼
+  檢查 install_method
+        │
+   ┌────┼─────┬──────────┐
+   ▼    ▼     ▼          ▼
+plugin ai-dev standards manual
+   │    │     │          │
+   │    │     │          ▼
+   │    │     │    手動 diff 比對
+   │    │     │    決定是否採用
+   │    │     ▼
+   │    │   diff .standards/ 與上游
+   │    │   合併變更內容
+   │    ▼
+   │  確認 ai-dev clone 已同步
+   │  若已一致，僅更新 last-sync
+   ▼
+ claude plugin update <id>
+ 重啟 Claude Code 生效
+        │
+        ▼
+  更新 last-sync.yaml
+```
+
+### 常見誤判
+
+- **plugin 類型報告 High** → 不需手動複製檔案，只需 `claude plugin update`
+- **ai-dev 類型報告有變更** → 先確認 `ai-dev clone` 是否已同步，可能 diff 已為零
+- **manual 類型** → 本專案有深度自訂（如 ecc-hooks），上游簡化版可能不如本地版完整
+
 ## 配置
 
 上游 repo 定義在 `upstream/sources.yaml`：
@@ -213,4 +259,6 @@ sources:
     branch: main
     local_path: ~/.config/superpowers/
     format: claude-code-native
+    install_method: plugin
+    plugin_id: superpowers@superpowers-marketplace
 ```

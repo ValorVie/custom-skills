@@ -68,11 +68,25 @@ After approval:
 2. 更新 `upstream/<source>/last-sync.yaml`
 3. 提交變更
 
+## Install Methods | 安裝方式
+
+每個上游 repo 有不同的安裝方式，**影響同步策略**：
+
+| Method | 同步方式 | 適用來源 |
+|--------|---------|---------|
+| `plugin` | `claude plugin update <id>` | superpowers |
+| `ai-dev` | `ai-dev clone` 自動同步到 `skills/` | obsidian-skills, anthropic-skills |
+| `standards` | `ai-dev clone` 同步到 `.standards/`，需 diff 合併 | universal-dev-standards |
+| `manual` | 手動比對與複製 | everything-claude-code |
+
+**重要**：分析報告建議 High/Medium 不代表一定要手動複製檔案。
+先檢查 `install_method`，用正確方式更新後，再確認 diff 是否為零。
+
 ## Sources Configuration | 來源配置
 
-See `upstream/sources.yaml` for configured sources.
+See `upstream/sources.yaml` for configured sources (includes `install_method` field).
 
-查看 `upstream/sources.yaml` 了解已配置的來源。
+查看 `upstream/sources.yaml` 了解已配置的來源（含 `install_method` 欄位）。
 
 ## Example | 範例
 
