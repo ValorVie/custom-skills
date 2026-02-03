@@ -40,6 +40,11 @@ def get_sessions_dir() -> Path:
     return get_claude_dir() / 'sessions'
 
 
+def get_aliases_path() -> Path:
+    """Get the session aliases file path."""
+    return get_claude_dir() / 'session-aliases.json'
+
+
 def get_learned_skills_dir() -> Path:
     """Get the learned skills directory."""
     return get_claude_dir() / 'skills' / 'learned'

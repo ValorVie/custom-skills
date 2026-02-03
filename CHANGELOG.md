@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Session 歷史管理**
+  - 新增 `/sessions` 指令（`commands/claude/sessions.md`）
+  - 支援列表、載入、查詢、統計 session 歷史
+  - 支援 session 別名建立、刪除、列表（儲存至 `~/.claude/session-aliases.json`）
+  - SessionStart hook 啟動時顯示可用別名
+  - 新增 JS lib：`session-manager.js`、`session-aliases.js`、`utils.js`（`plugins/ecc-hooks/scripts/lib/`）
+  - 來源：上游 everything-claude-code commit `d85b1ae`
+
 - **OpenCode 平台完整支援**
   - 新增 41 個 OpenCode Commands（完整鏡像 Claude Code 指令家族）
   - 新增 `commands/opencode/README.md` 與 `COMMAND-FAMILY-OVERVIEW.md`

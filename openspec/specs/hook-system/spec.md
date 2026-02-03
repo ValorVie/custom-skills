@@ -50,6 +50,9 @@ Hook System 為 Claude Code 提供事件驅動的擴展機制，實現以下核�
 - **AND** 載入先前 Session 的 context
 - **AND** 偵測專案的 package manager（npm/yarn/pnpm/bun）
 - **AND** 將 context 輸出供 Claude 讀取
+- **AND** 透過 subprocess 呼叫 Node.js 讀取 session 別名
+- **AND** 若有可用別名則顯示最近 5 個別名（名稱與 session 路徑）
+- **AND** 若 Node.js 不可用或別名讀取失敗則靜默跳過，不影響現有功能
 
 #### Scenario: Session End Hook
 

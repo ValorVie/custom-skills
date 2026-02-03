@@ -5,9 +5,11 @@ Everything Claude Code - Memory Persistence, Strategic Compact & Code Quality Ho
 ## Features
 
 ### Memory & Session Management
-- **SessionStart**: Load previous context and detect package manager on new session
+- **SessionStart**: Load previous context, detect package manager, and display session aliases on new session
 - **SessionEnd**: Persist session state and evaluate for extractable patterns
 - **PreCompact**: Save state before context compaction
+- **Session Management**: `/sessions` command for listing, loading, and querying session history
+- **Session Aliases**: Create memorable aliases for sessions (`/sessions alias <id> <name>`)
 
 ### Development Workflow
 - **PreToolUse**:
