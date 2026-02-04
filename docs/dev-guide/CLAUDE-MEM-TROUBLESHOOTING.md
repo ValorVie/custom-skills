@@ -29,8 +29,9 @@ Claude Code Session
 ```bash
 # Linux/WSL
 ss -tlnp | grep 37777
-# 或
-netstat -tlnp 2>/dev/null | grep 37777
+
+# macOS（macOS 沒有 ss，使用 lsof）
+lsof -iTCP:37777 -sTCP:LISTEN
 
 # Windows (PowerShell)
 Get-NetTCPConnection -LocalPort 37777 -ErrorAction SilentlyContinue
@@ -42,7 +43,13 @@ netstat -ano | findstr "37777"
 ### 1.2 檢查 bun 是否安裝
 
 ```bash
+# Linux/WSL/macOS
 which bun && bun --version
+
+# macOS 安裝 bun（如果未安裝）
+brew install oven-sh/bun/bun
+# 或
+curl -fsSL https://bun.sh/install | bash
 ```
 
 若未安裝，參考 https://bun.sh 安裝。
@@ -50,7 +57,7 @@ which bun && bun --version
 ### 1.3 確認插件路徑
 
 ```bash
-# 插件快取路徑（版本號可能不同）
+# Linux/WSL/macOS：插件快取路徑（版本號可能不同）
 PLUGIN_DIR="$HOME/.claude/plugins/cache/thedotmack/claude-mem"
 ls "$PLUGIN_DIR"/
 
@@ -61,7 +68,11 @@ ls "$PLUGIN_DIR"/
 ### 1.4 檢查設定檔
 
 ```bash
+# Linux/WSL/macOS
 cat ~/.claude-mem/settings.json
+
+# macOS 也可以用 open 快速編輯
+open ~/.claude-mem/settings.json
 ```
 
 關鍵欄位：
@@ -111,7 +122,14 @@ tail -f ~/.claude-mem/logs/claude-mem-$(date +%Y-%m-%d).log
 grep '\[ERROR\]' ~/.claude-mem/logs/claude-mem-$(date +%Y-%m-%d).log
 ```
 
-### 2.5 常見日誌模式解讀
+### 2.5 macOS Console.app 查看日誌
+
+```bash
+# 用 macOS 內建的 Console.app 開啟日誌（方便 GUI 篩選）
+open -a Console ~/.claude-mem/logs/claude-mem-$(date +%Y-%m-%d).log
+```
+
+### 2.6 常見日誌模式解讀
 
 | 日誌訊息 | 含義 | 處理方式 |
 |----------|------|----------|
@@ -130,8 +148,11 @@ grep '\[ERROR\]' ~/.claude-mem/logs/claude-mem-$(date +%Y-%m-%d).log
 ### 3.1 手動啟動 Worker
 
 ```bash
-# 找到最新版本的插件目錄
+# 找到最新版本的插件目錄（Linux/WSL）
 PLUGIN_DIR=$(ls -d ~/.claude/plugins/cache/thedotmack/claude-mem/*/ | sort -V | tail -1)
+
+# macOS 的 sort 不支援 -V，使用替代方案：
+PLUGIN_DIR=$(ls -d ~/.claude/plugins/cache/thedotmack/claude-mem/*/ | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
 
 # 啟動 Worker（前台模式，用於除錯）
 cd "$PLUGIN_DIR/scripts"
@@ -143,10 +164,10 @@ bun worker-wrapper.cjs
 
 ### 3.2 端口被佔用：殺掉舊進程
 
+Linux/WSL:
+
 ```bash
-# Linux/WSL: 找到佔用 37777 的進程
-lsof -i :37777
-# 或
+# 找到佔用 37777 的進程
 ss -tlnp | grep 37777
 
 # 殺掉佔用端口的進程
@@ -154,10 +175,19 @@ kill $(lsof -t -i :37777)
 
 # 確認端口已釋放（應該無輸出）
 ss -tlnp | grep 37777
+```
 
-# 重新啟動 Worker
-PLUGIN_DIR=$(ls -d ~/.claude/plugins/cache/thedotmack/claude-mem/*/ | sort -V | tail -1)
-cd "$PLUGIN_DIR/scripts" && bun worker-service.cjs start
+macOS:
+
+```bash
+# 找到佔用 37777 的進程
+lsof -iTCP:37777 -sTCP:LISTEN
+
+# 殺掉佔用端口的進程
+kill $(lsof -t -iTCP:37777)
+
+# 確認端口已釋放（應該無輸出）
+lsof -iTCP:37777 -sTCP:LISTEN
 ```
 
 Windows PowerShell:
@@ -167,6 +197,13 @@ $pid = (Get-NetTCPConnection -LocalPort 37777 -ErrorAction SilentlyContinue).Own
 if ($pid) { Stop-Process -Id $pid -Force }
 ```
 
+重新啟動 Worker:
+
+```bash
+PLUGIN_DIR=$(ls -d ~/.claude/plugins/cache/thedotmack/claude-mem/*/ | sort -V | tail -1)
+cd "$PLUGIN_DIR/scripts" && bun worker-service.cjs start
+```
+
 ### 3.3 Health Check 超時：完整重啟流程
 
 ```bash
@@ -174,11 +211,18 @@ if ($pid) { Stop-Process -Id $pid -Force }
 pkill -f "worker-service.cjs" 2>/dev/null
 pkill -f "worker-wrapper.cjs" 2>/dev/null
 
+# macOS 如果 pkill 不可用：
+# kill $(pgrep -f "worker-service.cjs") 2>/dev/null
+# kill $(pgrep -f "worker-wrapper.cjs") 2>/dev/null
+
 # 2. 等待端口釋放
 sleep 3
 
 # 3. 確認端口已釋放
+# Linux/WSL
 ss -tlnp | grep 37777
+# macOS
+lsof -iTCP:37777 -sTCP:LISTEN
 
 # 4. 重新啟動
 PLUGIN_DIR=$(ls -d ~/.claude/plugins/cache/thedotmack/claude-mem/*/ | sort -V | tail -1)
@@ -213,6 +257,9 @@ sleep 5
 vi ~/.claude-mem/settings.json
 # 將 CLAUDE_MEM_WORKER_PORT 改為其他端口，例如 "38888"
 
+# macOS 也可以用 open 編輯
+open ~/.claude-mem/settings.json
+
 # 重啟 Worker 使其生效
 pkill -f "worker-service.cjs" 2>/dev/null
 sleep 2
@@ -234,7 +281,91 @@ rm -f ~/.claude-mem/logs/*.log
 
 ---
 
-## 4. Windows 專用注意事項
+## 4. macOS 專用注意事項
+
+### macOS 防火牆提示
+
+首次啟動 Worker 時，macOS 可能彈出「是否允許連入連線」的防火牆提示。由於 Worker 只綁定 `127.0.0.1`（本機），可以選擇「拒絕」而不影響功能。選「允許」也沒有安全風險。
+
+### macOS 的 lsof 用法差異
+
+macOS 的 `lsof` 語法與 Linux 略有不同：
+
+```bash
+# macOS 查端口
+lsof -iTCP:37777 -sTCP:LISTEN
+
+# macOS 殺掉佔用端口的進程
+kill $(lsof -t -iTCP:37777)
+
+# Linux 查端口（對比）
+ss -tlnp | grep 37777
+```
+
+### macOS sort -V 不可用
+
+macOS 內建的 `sort` 不支援 `-V`（版本排序），尋找插件目錄時使用替代方案：
+
+```bash
+# 替代 sort -V
+PLUGIN_DIR=$(ls -d ~/.claude/plugins/cache/thedotmack/claude-mem/*/ | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+```
+
+### Homebrew 安裝 bun
+
+```bash
+brew install oven-sh/bun/bun
+```
+
+### macOS 開機自動啟動 Worker（可選）
+
+如果希望 Worker 隨系統啟動，可建立 LaunchAgent：
+
+```xml
+<!-- ~/Library/LaunchAgents/com.claude-mem.worker.plist -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.claude-mem.worker</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/YOUR_USERNAME/.bun/bin/bun</string>
+        <string>worker-wrapper.cjs</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USERNAME/.claude/plugins/cache/thedotmack/claude-mem/CURRENT_VERSION/scripts</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/claude-mem-worker.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/claude-mem-worker.err</string>
+</dict>
+</plist>
+```
+
+管理指令：
+
+```bash
+# 載入（需自行替換 YOUR_USERNAME 和 CURRENT_VERSION）
+launchctl load ~/Library/LaunchAgents/com.claude-mem.worker.plist
+
+# 卸載
+launchctl unload ~/Library/LaunchAgents/com.claude-mem.worker.plist
+
+# 查看狀態
+launchctl list | grep claude-mem
+```
+
+> **注意**：插件更新版本後需修改 plist 中的路徑。
+
+---
+
+## 5. Windows 專用注意事項
 
 ### 路徑對照
 
@@ -266,7 +397,7 @@ Get-Process -Name bun -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ---
 
-## 5. 快速診斷流程
+## 6. 快速診斷流程
 
 ```
 錯誤發生
@@ -287,3 +418,16 @@ Get-Process -Name bun -ErrorAction SilentlyContinue | Stop-Process -Force
         --> 查看日誌 (2.4) -> 回報 issue
             https://github.com/thedotmack/claude-mem/issues
 ```
+
+---
+
+## 7. 跨平台命令速查表
+
+| 操作 | Linux/WSL | macOS | Windows |
+|------|-----------|-------|---------|
+| 查端口 | `ss -tlnp \| grep 37777` | `lsof -iTCP:37777 -sTCP:LISTEN` | `netstat -ano \| findstr "37777"` |
+| 殺端口進程 | `kill $(lsof -t -i :37777)` | `kill $(lsof -t -iTCP:37777)` | `Stop-Process -Id (Get-NetTCPConnection -LocalPort 37777).OwningProcess` |
+| 殺所有 Worker | `pkill -f "worker-service.cjs"` | `pkill -f "worker-service.cjs"` | `Get-Process -Name bun \| Stop-Process` |
+| 找插件目錄 | `ls -d ~/.claude/plugins/cache/thedotmack/claude-mem/*/` | 同 Linux | `dir %USERPROFILE%\.claude\plugins\cache\thedotmack\claude-mem\` |
+| 查日誌 | `cat ~/.claude-mem/logs/claude-mem-$(date +%Y-%m-%d).log` | 同 Linux | `type %USERPROFILE%\.claude-mem\logs\claude-mem-YYYY-MM-DD.log` |
+| Health Check | `curl -s http://127.0.0.1:37777/health` | 同 Linux | `curl -s http://127.0.0.1:37777/health` |
