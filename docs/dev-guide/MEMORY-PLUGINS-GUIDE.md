@@ -28,12 +28,40 @@
 
 | 外掛 | SessionStart 注入內容 | 估計 token 佔用 |
 |------|----------------------|----------------|
-| ecc-hooks | 元資訊提示（「找到 N 個近期會話」、套件管理器偵測、別名清單） | ~50-100 tokens |
+| ecc-hooks | 上一次會話的結構化事實（git 變更、修改檔案、commit 記錄） | ~500-1200 tokens |
 | claude-mem | 語意摘要索引（近期會話的結構化摘要） | ~800-1000 tokens |
 
-ecc-hooks 的 SessionStart **不會**將 .tmp 檔的完整內容載入上下文。它只輸出幾行日誌提示，告訴 Claude 有哪些會話檔案可用。實際載入會話內容需要使用者透過 `/sessions load` 手動觸發。
+ecc-hooks 的 SessionStart 會自動載入最近一個 .tmp 檔的完整內容（結構化事實：git 變更摘要、修改檔案清單、commit 記錄、工作目錄狀態），並透過 stdout 注入上下文。內容有 10 KB 上限保護。
 
-因此兩套並用時的上下文開銷大約在 **900-1100 tokens**，不會有重複問題。
+兩者內容互補、不重複：ecc-hooks 提供客觀的 git 事實（「改了哪些檔案、提交了什麼」），claude-mem 提供語意摘要（「做了什麼、為什麼做」）。兩套並用時的上下文開銷大約在 **1300-2200 tokens**。
+
+### 上下文預算分析與調優觀察
+
+ecc-hooks 的 .tmp 檔有 **10 KB 上限**（`MAX_CONTEXT_BYTES`，定義於 `session-start.py`）。以下是 10 KB 在不同內容類型下的實際容量：
+
+| 內容類型 | 估計量 |
+|---------|--------|
+| 純英文字元 | ~10,000 字元 |
+| 中英混合（本專案情境） | ~5,000-6,000 字元 |
+| Markdown 行數 | ~150-250 行 |
+| Token 數（Claude 估算） | ~2,500-3,500 tokens |
+
+**實測數據（2026-02-04）：** 一次正常工作會話（修改 5 個檔案、2 次 commit、1 次 compaction）產出的 .tmp 檔約 **1.8 KB / 47 行**，遠低於 10 KB 上限。
+
+**ecc-hooks 注入內容的價值分層：**
+
+| 價值層級 | 內容 | Token 估算 |
+|---------|------|-----------|
+| 高（核心） | 專案名稱、修改檔案清單、commit 記錄 | ~500 tokens |
+| 中（補充） | diff stat、工作目錄狀態 | ~500-700 tokens |
+| 低（冗餘） | 多次 compaction 快照的重複中間狀態 | 視次數而定 |
+
+**日常觀察要點：**
+
+- 觀察 `~/.claude/sessions/*.tmp` 的實際大小，確認是否穩定在 1-3 KB 範圍
+- 如果經常觸發 compaction（快照累積），注意 .tmp 檔是否膨脹到 5 KB 以上
+- 若發現注入過多導致上下文浪費，可將 `MAX_CONTEXT_BYTES` 從 10 KB 降至 5 KB（約 ~1,500 tokens），修改位於 `plugins/ecc-hooks/scripts/memory-persistence/session-start.py`
+- 理想的兩套並用總記憶開銷目標：**2,000-2,500 tokens**（ecc-hooks ~1,500 + claude-mem ~800-1000）
 
 ### Hook 生命週期完整對照
 
@@ -41,13 +69,13 @@ ecc-hooks 的 SessionStart **不會**將 .tmp 檔的完整內容載入上下文�
 
 | Hook 事件 | 觸發時機 | ecc-hooks | claude-mem |
 |-----------|---------|-----------|------------|
-| **SessionStart** | `startup`、`clear`、`compact` | `session-start.py`：掃描近期 .tmp 檔、輸出元資訊、偵測套件管理器、顯示別名 | 4 步驟：`smart-install.js`（檢查依賴）→ `worker-service start`（啟動 HTTP 服務）→ `hook context`（注入歷史摘要）→ `hook user-message`（初始化提示） |
+| **SessionStart** | `startup`、`clear`、`compact` | `session-start.py`：載入上一次會話的結構化事實（git 變更、修改檔案、commit）並注入上下文、偵測套件管理器、顯示別名 | 4 步驟：`smart-install.js`（檢查依賴）→ `worker-service start`（啟動 HTTP 服務）→ `hook context`（注入歷史摘要）→ `hook user-message`（初始化提示） |
 | **UserPromptSubmit** | 使用者每次送出訊息 | ❌ 未使用 | 2 步驟：確保 Worker 在線 → `hook session-init`（初始化會話） |
 | **PreToolUse** | 工具執行前 | 4 個規則：阻擋 tmux 外 dev server、長時間命令提醒、git push 複審提醒、策略性壓縮建議 | ❌ 未使用 |
-| **PreCompact** | 上下文壓縮前 | `pre-compact.py`：保存當前狀態快照 | ❌ 未使用 |
+| **PreCompact** | 上下文壓縮前 | `pre-compact.py`：保存 git status + diff stat 快照到 .tmp 檔 | ❌ 未使用 |
 | **PostToolUse** | 工具執行後 | 11 個規則：PR URL 記錄、JS/TS/PHP/Python 格式化、TS/PHPStan/mypy 靜態分析、debug 程式碼警告 | 確保 Worker 在線 → `hook observation`（記錄工具使用到 SQLite，超時 120 秒） |
 | **Stop** | Claude 停止回應 | `check-debug-code.js`：掃描所有修改檔案的 debug 程式碼 | 確保 Worker 在線 → `hook summarize`（生成會話摘要，超時 120 秒） |
-| **SessionEnd** | 會話結束 | 2 步驟：`session-end.py`（持久化到 .tmp）→ `evaluate-session.py`（提取可重用模式） | ❌ 未使用 |
+| **SessionEnd** | 會話結束 | 2 步驟：`session-end.py`（記錄結構化事實：git 變更、修改檔案、commit、工作狀態）→ `evaluate-session.py`（提取可重用模式） | ❌ 未使用 |
 
 **要點：**
 
@@ -196,7 +224,7 @@ cat ~/.claude-mem/logs/worker.log
 
 ### 兩套記憶內容是否重複？
 
-**不會重複。** 經原始碼驗證，ecc-hooks 的 SessionStart 只輸出元資訊提示（約 50-100 tokens），不會載入 .tmp 檔的完整內容。claude-mem 注入的是語意摘要索引（約 800-1000 tokens）。兩者內容性質完全不同，互為補充。
+**不會重複。** ecc-hooks 注入的是結構化 git 事實（改了哪些檔案、提交了什麼），claude-mem 注入的是語意摘要索引（做了什麼、為什麼做）。兩者內容性質完全不同，互為補充。
 
 如果仍希望精簡，可以在 `~/.claude/settings.json` 停用其中一套，同時保留 ecc-hooks 的代碼品質功能：
 
@@ -274,6 +302,50 @@ claude-mem 支援 3 種提供商，透過 `~/.claude-mem/settings.json` 設定�
 | Claude SDK | 消耗 Anthropic API tokens | 最高 | 重視摘要品質 |
 | Gemini | 免費層每天 1500 次 | 良好 | 日常開發（推薦） |
 | OpenRouter | 視模型而定，有免費模型 | 視模型而定 | 需要特定模型 |
+
+---
+
+## 設計背景與架構決策
+
+### 上游 ecc-hooks 記憶持久化的原始設計
+
+ecc-hooks 的記憶持久化腳本源自上游 [everything-claude-code](https://github.com/anthropics/everything-claude-code)。經查閱上游完整 git 歷史（`f96ef1e` 初版 → `d85b1ae` 最新版，4 位貢獻者、6 次相關提交），確認記憶腳本**從未實作自動內容收集**，這是設計上的有意選擇，而非未完成的工作。
+
+上游的設計模型是「**手動日記本**」：
+
+| 環節 | 上游設計 | 使用者需要做什麼 |
+|------|---------|----------------|
+| 建立檔案 | session-end 自動建立空模板 | 不需要 |
+| 填寫內容 | 模板留有 `[Session context goes here]` 佔位符 | 在對話中請 Claude 寫入，或自己手動填 |
+| 載入舊會話 | session-start 用 stderr 提示「有 N 個舊會話」 | 看到提示後手動執行 `/sessions load` |
+| 更新時間戳 | session-end 自動更新 `Last Updated` | 不需要 |
+
+這個模型的根本問題是**依賴使用者養成習慣** — 每次結束前記得請 Claude 寫筆記、每次開始記得載入舊會話。實際上很難持續做到。
+
+### 上游設計 vs claude-mem
+
+| 面向 | 上游 ecc-hooks（原版） | claude-mem |
+|------|----------------------|------------|
+| 記錄觸發 | 手動（使用者或 Claude 在對話中寫入） | 全自動（PostToolUse + Stop） |
+| 記錄內容 | 使用者自己決定 | AI 自動提取結構化知識 |
+| 載入觸發 | 手動（看到提示後執行 `/sessions load`） | 全自動（SessionStart 注入摘要） |
+| 搜尋能力 | 無 | MCP 工具 + 向量搜尋 |
+| 跨會話連續性 | 依賴使用者記得操作 | 自動保持 |
+
+結論：上游原版的「手動日記本」模式在有 claude-mem 的情況下**幾乎沒有獨立使用價值**。
+
+### 改寫後的互補定位
+
+我們將 ecc-hooks 從「手動日記本」改寫為「**自動事實記錄器**」，定位為 claude-mem 的零成本互補層：
+
+| 面向 | ecc-hooks（改寫後） | claude-mem |
+|------|---------------------|------------|
+| 成本 | 零（純本地 git CLI） | 每次觸發 AI 呼叫 |
+| 內容性質 | 客觀事實（git 資料，不會有幻覺） | AI 語意摘要（可能遺漏或曲解） |
+| 可靠性 | 不依賴外部服務 | 依賴 Worker 服務 + AI 提供商 |
+| 功能範圍 | 記錄「改了什麼」 | 記錄「做了什麼、為什麼做」 |
+
+即使停用 claude-mem（例如為了節省成本），改寫後的 ecc-hooks 仍能提供基本的會話延續能力。兩套並用時，ecc-hooks 提供不可否認的事實基底，claude-mem 提供語意理解層。
 
 ---
 

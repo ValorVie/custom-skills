@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """
-SessionStart Hook - Load previous session context
+SessionStart Hook - Load previous context on new session
+
+Upstream: everything-claude-code
+Source URL: https://github.com/anthropics/everything-claude-code
+Synced Date: 2026-01-24
+License: MIT
 
 Cross-platform (Windows, macOS, Linux)
 
-Runs when a new Claude session starts. Loads the most recent session's
-structured facts and injects them as context, then performs package
-manager detection and alias display.
+Runs when a new Claude session starts. Checks for recent session
+files and notifies Claude of available context to load.
 """
 
 import sys
@@ -19,15 +23,11 @@ from utils import (
     get_sessions_dir,
     get_learned_skills_dir,
     find_files,
-    read_file,
     ensure_dir,
     log,
-    output,
     detect_package_manager,
     get_selection_prompt
 )
-
-MAX_CONTEXT_BYTES = 10 * 1024  # 10 KB
 
 
 def main():
@@ -38,11 +38,17 @@ def main():
     ensure_dir(sessions_dir)
     ensure_dir(learned_dir)
 
-    # Load and inject the most recent session's structured facts
-    _load_recent_session(sessions_dir)
+    # Check for recent session files (last 7 days)
+    recent_sessions = find_files(sessions_dir, '*.tmp', max_age=7)
+
+    if recent_sessions:
+        latest = recent_sessions[0]
+        log(f"[SessionStart] Found {len(recent_sessions)} recent session(s)")
+        log(f"[SessionStart] Latest: {latest['path']}")
 
     # Check for learned skills
     learned_skills = find_files(learned_dir, '*.md')
+
     if learned_skills:
         log(f"[SessionStart] {len(learned_skills)} learned skill(s) available in {learned_dir}")
 
@@ -61,47 +67,10 @@ def main():
     sys.exit(0)
 
 
-def _load_recent_session(sessions_dir: Path):
-    """Load the most recent session file and output its content."""
-    recent_sessions = find_files(sessions_dir, '*.tmp', max_age=7)
-
-    if not recent_sessions:
-        log('[SessionStart] No recent session files found')
-        return
-
-    log(f"[SessionStart] Found {len(recent_sessions)} recent session(s)")
-
-    latest = recent_sessions[0]
-    latest_path = Path(latest['path'])
-    content = read_file(latest_path)
-
-    if not content or content.strip() == '':
-        log(f'[SessionStart] Latest session file is empty: {latest_path.name}')
-        return
-
-    # Truncate if too large
-    truncated = False
-    if len(content.encode('utf-8')) > MAX_CONTEXT_BYTES:
-        content = content[:MAX_CONTEXT_BYTES]
-        truncated = True
-
-    # Extract date from filename for the boundary marker
-    session_date = latest_path.stem.replace('-session', '')
-
-    # Output to stdout (injected into Claude's context)
-    lines = [f'[上次會話摘要 - {session_date}]']
-    lines.append(content)
-    if truncated:
-        lines.append('[內容已截斷]')
-    lines.append('[/上次會話摘要]')
-
-    output('\n'.join(lines))
-    log(f'[SessionStart] Loaded session context: {latest_path.name}')
-
-
 def _show_session_aliases():
     """Display available session aliases via Node.js subprocess."""
     import subprocess
+    import os
 
     # Locate the lib directory (sibling to memory-persistence)
     lib_dir = Path(__file__).parent.parent / 'lib'
@@ -127,7 +96,7 @@ def _show_session_aliases():
                 log(f'[SessionStart] {len(aliases)} session alias(es) available:')
                 for a in aliases:
                     log(f'  {a["name"]} → {a.get("sessionPath", "")}')
-    except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError, Exception) as e:
         log(f'[SessionStart] Alias check skipped: {e}')
 
 

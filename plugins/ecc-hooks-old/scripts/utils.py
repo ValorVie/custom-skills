@@ -174,35 +174,18 @@ def append_file(file_path: Path, content: str) -> None:
         f.write(content)
 
 
-def run_git_command(args: List[str], timeout: int = 5) -> Optional[str]:
-    """
-    Run a git command and return stdout, or None on failure.
-
-    Silently handles errors (timeout, git not found, non-zero exit).
-    """
+def get_project_name() -> Optional[str]:
+    """Get the project name from git repo name or current directory name."""
     import subprocess
     try:
         result = subprocess.run(
-            ['git'] + args,
-            capture_output=True, text=True, timeout=timeout
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True, text=True, timeout=5
         )
         if result.returncode == 0:
-            return result.stdout.strip()
-        return None
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        return None
-
-
-def is_git_repo() -> bool:
-    """Check if the current directory is inside a git repository."""
-    return run_git_command(['rev-parse', '--is-inside-work-tree']) == 'true'
-
-
-def get_project_name() -> Optional[str]:
-    """Get the project name from git repo name or current directory name."""
-    toplevel = run_git_command(['rev-parse', '--show-toplevel'])
-    if toplevel:
-        return Path(toplevel).name
+            return Path(result.stdout.strip()).name
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
 
     # Fall back to current directory name
     try:
