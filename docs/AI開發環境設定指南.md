@@ -501,6 +501,10 @@ do you have superpowers?
 啟動 Claude Code 後執行：
 
 ```shell
+# 安裝 claude-mem
+/plugin marketplace add thedotmack/claude-mem
+/plugin install claude-mem
+
 # 安裝 Superpowers 插件
 /plugin marketplace add obra/superpowers-marketplace
 /plugin install superpowers@superpowers-marketplace
