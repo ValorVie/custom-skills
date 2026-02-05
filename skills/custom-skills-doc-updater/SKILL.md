@@ -169,7 +169,7 @@ find . -name "README.md" -type f
 
 ### 關鍵字: `PHP`
 找到相關文件：
-- `docs/dev-guide/CODE-QUALITY-TOOLS.md` (PHP 工具安裝)
+- `docs/dev-guide/workflow/CODE-QUALITY-TOOLS.md` (PHP 工具安裝)
 - `plugins/ecc-hooks/README.md` (PHP formatting hooks)
 ```
 
@@ -240,7 +240,7 @@ find . -name "README.md" -type f
 | `CHANGELOG.md` | 新增 ecc-hooks 測試框架 | P1 | ⬜ 待更新 |
 | `plugins/ecc-hooks/package.json` | 版本同步 (1.0.0 → 1.1.0) | P1 | ⬜ 待更新 |
 | `README.md` | 功能無變更 | - | ✅ 無需更新 |
-| `docs/dev-guide/CODE-QUALITY-TOOLS.md` | 功能無變更 | - | ✅ 無需更新 |
+| `docs/dev-guide/workflow/CODE-QUALITY-TOOLS.md` | 功能無變更 | - | ✅ 無需更新 |
 
 ### 版本一致性
 - `pyproject.toml`: 1.0.4

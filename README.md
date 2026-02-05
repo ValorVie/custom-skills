@@ -166,6 +166,38 @@ ai-dev update --skip-repos
 ai-dev update && ai-dev clone
 ```
 
+### 分發 Skills (Clone)
+
+將統一管理目錄的 Skills 分發到各 AI 工具目錄：
+
+```bash
+ai-dev clone
+```
+
+#### 可選參數
+
+| 參數 | 說明 |
+|------|------|
+| `--sync-project/--no-sync-project` | 是否同步到專案目錄（預設：是） |
+| `--force`, `-f` | 強制覆蓋所有衝突檔案（不提示） |
+| `--skip-conflicts`, `-s` | 跳過有衝突的檔案，僅分發無衝突的檔案 |
+| `--backup`, `-b` | 備份衝突檔案後再覆蓋 |
+
+**範例：**
+```bash
+# 強制覆蓋所有檔案
+ai-dev clone --force
+
+# 跳過衝突檔案
+ai-dev clone --skip-conflicts
+
+# 備份後覆蓋
+ai-dev clone --backup
+
+# 不同步到當前專案
+ai-dev clone --no-sync-project
+```
+
 ### 專案級操作 (Project)
 
 在專案目錄下初始化或更新配置：
@@ -174,9 +206,8 @@ ai-dev update && ai-dev clone
 # 初始化專案（整合 openspec init + uds init）
 ai-dev project init
 
-# 只初始化特定工具
-ai-dev project init --only openspec
-ai-dev project init --only uds
+# 初始化指定目錄
+ai-dev project init /path/to/dir
 
 # 強制重新初始化
 ai-dev project init --force
@@ -198,7 +229,7 @@ ai-dev project update --only openspec
 
 | 參數 | 說明 |
 |------|------|
-| `--only`, `-o` | 只初始化特定工具：`openspec`, `uds` |
+| `target` (位置參數) | 目標目錄（預設為當前目錄） |
 | `--force`, `-f` | 強制重新初始化（即使已存在）；在 custom-skills 專案中會反向同步到 `project-template/` |
 
 **update:**
@@ -226,6 +257,34 @@ ai-dev update-custom-repo
 ```
 
 自訂 repo 會記錄於 `~/.config/ai-dev/repos.yaml`。
+
+### 上游 Repo 管理 (Add Repo)
+
+新增上游 repo 並開始追蹤（用於 upstream sources registry）：
+
+```bash
+# 新增上游 repo
+ai-dev add-repo owner/repo
+
+# 指定名稱與分支
+ai-dev add-repo owner/repo --name my-custom-name --branch develop
+
+# 跳過 clone（僅加入 sources.yaml）
+ai-dev add-repo owner/repo --skip-clone
+
+# 加入後立即執行分析
+ai-dev add-repo owner/repo --analyze
+```
+
+#### 可選參數
+
+| 參數 | 說明 |
+|------|------|
+| `remote_path` (位置參數，必填) | 遠端 repo 路徑（例如: `owner/repo` 或完整 URL） |
+| `--name`, `-n` | 自訂名稱（預設使用 repo 名稱） |
+| `--branch`, `-b` | 追蹤的分支（預設：main） |
+| `--skip-clone` | 跳過 clone（僅加入 sources.yaml） |
+| `--analyze`, `-a` | 加入後立即執行分析 |
 
 ### 狀態檢查 (Status)
 
@@ -441,6 +500,74 @@ npx skills update             # 更新已安裝的 skills
 npx skills add vercel-labs/agent-skills
 ```
 
+### 測試 (Test)
+
+執行測試並輸出原始結果（自動偵測專案測試框架）：
+
+```bash
+# 執行所有測試
+ai-dev test
+
+# 執行指定目錄
+ai-dev test tests/
+
+# 詳細輸出
+ai-dev test -v
+
+# 失敗即停
+ai-dev test -x
+
+# 過濾測試名稱
+ai-dev test -k "test_name"
+```
+
+#### 可選參數
+
+| 參數 | 說明 |
+|------|------|
+| `path` (位置參數) | 測試路徑（檔案或目錄） |
+| `--verbose`, `-v` | 顯示詳細輸出 |
+| `--fail-fast`, `-x` | 失敗時立即停止 |
+| `-k` | 過濾測試名稱 |
+
+> **注意**：目前支援 Python (pytest)。
+
+### 覆蓋率 (Coverage)
+
+執行覆蓋率分析並輸出原始結果：
+
+```bash
+# 分析整個專案
+ai-dev coverage
+
+# 僅分析指定目錄
+ai-dev coverage --source script/
+```
+
+#### 可選參數
+
+| 參數 | 說明 |
+|------|------|
+| `path` (位置參數) | 測試路徑（檔案或目錄） |
+| `--source`, `-s` | 原始碼路徑 |
+
+> **注意**：目前僅支援 Python，需要 pytest-cov 已安裝。
+
+### Hooks 管理
+
+管理 Claude Code ECC Hooks Plugin 的安裝與狀態：
+
+```bash
+# 安裝或更新 ECC Hooks Plugin
+ai-dev hooks install
+
+# 移除 ECC Hooks Plugin
+ai-dev hooks uninstall
+
+# 檢查安裝狀態
+ai-dev hooks status
+```
+
 ## 指令總覽
 
 | 指令 | 說明 |
@@ -456,7 +583,10 @@ npx skills add vercel-labs/agent-skills
 | `ai-dev tui` | 啟動互動式終端介面 |
 | `ai-dev standards` | 管理標準體系 profiles |
 | `ai-dev derive-tests` | 讀取 OpenSpec specs 供 AI 生成測試 |
-| `ai-dev hooks` | 管理 Claude Code Hooks（計劃中） |
+| `ai-dev test` | 執行測試並輸出原始結果 |
+| `ai-dev coverage` | 執行覆蓋率分析 |
+| `ai-dev hooks` | 管理 ECC Hooks Plugin（install/uninstall/status） |
+| `ai-dev add-repo` | 新增上游 repo 並追蹤 |
 | `ai-dev add-custom-repo` | 新增自訂 repo |
 | `ai-dev update-custom-repo` | 更新自訂 repo |
 
@@ -652,9 +782,9 @@ claude plugin install ecc-hooks@custom-skills
 
 ## 未來計畫
 
-### Hooks 選用/開關機制
+### Hooks 細粒度控制
 
-提供細粒度的 hooks 控制：
+`ai-dev hooks` 已支援 install/uninstall/status。未來計畫加入更細粒度的控制：
 
 - **個別 Hook 開關**：在 TUI 中啟用/停用個別 hook
 - **事件類型篩選**：按 SessionStart、PreToolUse 等事件分組管理

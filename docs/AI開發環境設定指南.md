@@ -5,13 +5,13 @@ tags:
   - dev-stack
   - vibe-coding
 date created: 2026-01-14T16:00:00+08:00
-date modified: 2026-01-25T18:00:00+08:00
-description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設定、使用說明與設計理念
+date modified: 2026-02-05T10:00:00+08:00
+description: 公司 AI 輔助開發環境的完整設定指南，以 Claude Code 為主力工具，涵蓋新人設定、使用說明與設計理念
 ---
 
 # AI 開發環境設定指南
 
-本文件是公司開發組的 AI 輔助開發環境完整指南，適用於：
+本文件是公司開發組的 AI 輔助開發環境完整指南，以 **Claude Code** 為主力開發工具。適用於：
 - 🆕 **完全新手**：從未使用過 AI 輔助開發工具
 - 🔧 **有經驗的開發者**：已熟悉 AI 工具，需了解公司規範
 
@@ -22,11 +22,15 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 1. [為什麼需要這套 AI 開發 Stack](#為什麼需要這套-ai-開發-stack)
 2. [工具總覽與架構](#工具總覽與架構)
 3. [前置需求](#前置需求)
-4. [首次安裝設定](#首次安裝設定)
+4. [Claude Code 安裝與設定](#claude-code-安裝與設定)
 5. [每日更新維護](#每日更新維護)
 6. [新專案初始化](#新專案初始化)
-7. [工具使用說明](#工具使用說明)
-8. [故障排除](#故障排除)
+7. [Claude Code 使用說明](#claude-code-使用說明)
+8. [使用 CLI 腳本自動化管理](#使用-cli-腳本自動化管理)
+9. [故障排除](#故障排除)
+10. [附錄 A：備選 AI 開發工具](#附錄-a備選-ai-開發工具)
+11. [附錄 B：目錄結構總覽](#附錄-b目錄結構總覽)
+12. [附錄 C：ECC 整合、標準體系、上游追蹤](#附錄-cecc-整合標準體系上游追蹤)
 
 ---
 
@@ -34,7 +38,7 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 
 ### 設計理念
 
-現代 AI 輔助開發工具（如 Claude Code、Gemini CLI）功能強大，但**原生狀態下缺乏一致的開發規範**。這套 Stack 的目標是：
+Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態下缺乏一致的開發規範**。這套 Stack 以 Claude Code 為核心，搭配 Skills 與 Plugin 生態，解決以下問題：
 
 | 問題 | 解決方案 |
 |------|----------|
@@ -49,7 +53,7 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 1. **一致性**：所有開發者使用相同的 AI 行為標準
 2. **品質保證**：內建測試、審查、提交規範
 3. **知識傳承**：Skills 即文件，規範即程式碼
-4. **工具中立**：Skills 可在 Claude Code、Antigravity、OpenCode 等工具間共用
+4. **工具中立**：Skills 可在 Claude Code 及其他備選工具間共用
 
 ---
 
@@ -59,12 +63,14 @@ description: 公司 AI 輔助開發環境的完整設定指南，涵蓋新人設
 
 | 工具                 | 用途               | 特色                  |
 | ------------------ | ---------------- | ------------------- |
-| **Claude Code**    | 主力 AI 編程助手       | 最強推理能力、完整 Plugin 生態 |
+| **Claude Code** ⭐主力 | 主力 AI 編程助手       | 最強推理能力、完整 Plugin 生態 |
 | **Antigravity**    | VSCode 整合的 AI 助手 | 圖形介面、IDE 整合         |
 | **OpenCode**       | 開源 AI 編程助手       | 多模型支援、可自訂 Agent     |
 | **oh-my-opencode** | OpenCode 增強套件    | 平行代理、深度探索、免費模型整合    |
 | **Codex**          | OpenAI Codex CLI  | GPT-4 整合、程式碼生成      |
 | **Gemini CLI**     | Google AI 命令列工具  | 免費額度、程式碼審查          |
+
+> 本指南主要流程以 Claude Code 為主，其他工具的安裝與設定請參閱[附錄 A：備選 AI 開發工具](#附錄-a備選-ai-開發工具)。
 
 ### Skills 與 Plugin 架構
 
@@ -140,10 +146,13 @@ nvm use 20
 # 3. 確認 Node.js 版本 >= 20.19.0
 node --version
 
-# 4. 安裝 Git
+# 4. 安裝 bun
+curl -fsSL https://bun.sh/install | bash
+
+# 5. 安裝 Git
 brew install git
 
-# 5. 安裝 GitHub CLI (用於 PR 管理)
+# 6. 安裝 GitHub CLI (用於 PR 管理)
 brew install gh
 gh auth login
 ```
@@ -158,345 +167,71 @@ gh auth login
 node --version
 npm --version
 
-# 3. 安裝 Git
+# 3. 安裝 bun
+curl -fsSL https://bun.sh/install | bash
+
+# 4. 安裝 Git
 #    下載並安裝: https://git-scm.com/download/win
 
-# 4. 安裝 GitHub CLI
+# 5. 安裝 GitHub CLI
 winget install GitHub.cli
 gh auth login
 
-# 5. (選用) 安裝 Windows Terminal
+# 6. (選用) 安裝 Windows Terminal
 winget install Microsoft.WindowsTerminal
 ```
 
 ### 必要帳號與 API Key
 
-| 服務 | 用途 | 取得方式 |
-|------|------|----------|
-| Anthropic API | Claude Code | https://console.anthropic.com/ |
-| Google AI | Gemini CLI | https://aistudio.google.com/api-keys |
+| 服務 | 用途 | 必要性 | 取得方式 |
+|------|------|--------|----------|
+| Anthropic API | Claude Code | **必要** | https://console.anthropic.com/ |
+| Google AI | Gemini CLI（備選工具） | 選用 | https://aistudio.google.com/api-keys |
 
 ---
 
-## 首次安裝設定
+## Claude Code 安裝與設定
 
 > ⚠️ **重要**：首次設定請完整執行以下步驟，之後的更新只需執行「每日更新維護」即可。
 
-### 第一步：安裝全域 CLI 工具
+### 第一步：安裝 Claude Code
 
-#### macOS / Linux
+**macOS / Linux：**
 
 ```shell
-# AI 開發工具
-npm install -g @anthropic-ai/claude-code
-npm install -g @fission-ai/openspec@latest
-npm install -g @google/gemini-cli
-npm install -g universal-dev-standards
-npm install -g opencode-ai@latest
-
-# macOS 額外安裝 (Homebrew)
-brew install gemini-cli
+curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-#### Windows (PowerShell)
+**macOS (Homebrew)：**
+
+```shell
+brew install --cask claude-code
+```
+
+**Windows (PowerShell)：**
 
 ```powershell
-# AI 開發工具
-npm install -g @anthropic-ai/claude-code
-npm install -g @fission-ai/openspec@latest
-npm install -g @google/gemini-cli
-npm install -g universal-dev-standards
-npm install -g opencode-ai@latest
+irm https://claude.ai/install.ps1 | iex
 ```
 
-### 第一步 (續)：安裝 oh-my-opencode (選用但推薦)
+### 第二步：安裝 ai-dev 並執行自動化設定
 
-oh-my-opencode 是 OpenCode 的增強套件，提供：
-- **Sisyphus Agent**：不間斷執行直到完成任務
-- **平行代理**：同時執行多個子任務
-- **多模型整合**：整合 Claude、ChatGPT、Gemini 等模型
-- **免費模型支援**：可使用 GLM-4.7-free 等免費模型
-
-#### 前置需求：安裝 Bun
-
-**macOS / Linux**
+`ai-dev` CLI 工具會自動完成以下所有操作：安裝全域 NPM 工具、建立目錄結構、Clone Skills 來源、複製 Skills 到 Claude Code。
 
 ```shell
-curl -fsSL https://bun.sh/install | bash
+# 安裝 ai-dev（需要 uv，安裝方式見「使用 CLI 腳本自動化管理」章節）
+uv tool install git+https://github.com/ValorVie/custom-skills.git
+
+# 執行首次安裝（自動化完成目錄建立、repo clone、Skills 複製）
+ai-dev install
+
+# 驗證安裝狀態
+ai-dev status
 ```
 
-**Windows (PowerShell)**
+> 其他 AI 開發工具（OpenCode、Gemini CLI、Codex）會在 `ai-dev install` 過程中一併處理。各工具的詳細說明請參閱[附錄 A](#附錄-a備選-ai-開發工具)。
 
-```powershell
-powershell -c "irm bun.sh/install.ps1 | iex"
-```
-
-#### 安裝 oh-my-opencode
-
-```shell
-bunx oh-my-opencode install
-```
-
-安裝過程會詢問：
-1. **Do you have a Claude Pro/Max subscription?** - 選擇 Yes/No
-2. **Do you have a ChatGPT Plus/Pro subscription?** - 選擇 Yes/No
-3. **Will you integrate Google Gemini?** - 選擇 Yes/No
-
-安裝完成後，執行認證：
-
-```shell
-# 認證各個提供者
-opencode auth login  # 選擇 Anthropic → Claude Pro/Max
-opencode auth login  # 選擇 OpenAI → ChatGPT Plus/Pro
-opencode auth login  # 選擇 Google → OAuth with Antigravity
-
-opencode auth logout
-
-# 查看認證狀態
-opencode auth list
-```
-
-#### 修改 oh-my-opencode 設定（公司推薦配置）
-
-安裝完成後，請將設定檔修改為公司推薦的 Agent 配置：
-
-**macOS / Linux**
-
-```shell
-nano ~/.config/opencode/oh-my-opencode.json
-```
-
-**Windows (PowerShell)**
-
-```powershell
-notepad "$env:USERPROFILE\.config\opencode\oh-my-opencode.json"
-```
-
-**公司推薦配置**（使用 GPT-5.2-Codex + 免費 GLM-4.7）：
-
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
-  "agents": {
-    "Sisyphus": {
-      "model": "openai/gpt-5.2-codex"
-    },
-    "librarian": {
-      "model": "opencode/glm-4.7-free"
-    },
-    "explore": {
-      "model": "opencode/glm-4.7-free"
-    },
-    "frontend-ui-ux-engineer": {
-      "model": "openai/gpt-5.2-codex"
-    },
-    "document-writer": {
-      "model": "opencode/glm-4.7-free"
-    },
-    "multimodal-looker": {
-      "model": "opencode/glm-4.7-free"
-    }
-  }
-}
-```
-
-> **配置說明**：
-> - **Sisyphus** 和 **frontend-ui-ux-engineer**：使用 GPT-5.2-Codex 處理核心開發和前端任務
-> - 其他 Agent：使用免費的 GLM-4.7 處理輔助任務（搜尋、文件、探索）
-> - 此配置平衡了效能與成本
-
-### 第二步：建立目錄結構
-
-#### macOS / Linux
-
-```shell
-# 建立必要資料夾
-mkdir -p ~/.claude/skills ~/.claude/commands
-mkdir -p ~/.config/custom-skills/skills ~/.config/custom-skills/command
-mkdir -p ~/.config/superpowers
-mkdir -p ~/.config/universal-dev-standards
-mkdir -p ~/.gemini/antigravity/skills
-mkdir -p ~/.gemini/antigravity/global_workflows
-mkdir -p ~/.config/opencode/agent
-mkdir -p ~/.config/custom-skills
-```
-
-#### Windows (PowerShell)
-
-```powershell
-# 建立必要資料夾
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\commands"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\custom-skills\skills"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\superpowers"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\universal-dev-standards"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini\antigravity\skills"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\opencode\agent"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\custom-skills"
-```
-
-### 第三步：Clone Skills 來源
-
-#### macOS / Linux
-
-```shell
-cd ~/.config/custom-skills
-git clone https://github.com/ValorVie/custom-skills.git .
-
-# Clone Superpowers
-cd ~/.config/superpowers
-git clone https://github.com/obra/superpowers.git .
-
-# Clone Universal Dev Standards
-cd ~/.config/universal-dev-standards
-git clone https://github.com/AsiaOstrich/universal-dev-standards.git .
-
-cd ~/.config/
-```
-
-#### Windows (PowerShell)
-
-```powershell
-Set-Location "$env:USERPROFILE\.config\custom-skills"
-git clone https://github.com/ValorVie/custom-skills.git .
-
-# Clone Superpowers
-Set-Location "$env:USERPROFILE\.config\superpowers"
-git clone https://github.com/obra/superpowers.git .
-
-# Clone Universal Dev Standards
-Set-Location "$env:USERPROFILE\.config\universal-dev-standards"
-git clone https://github.com/AsiaOstrich/universal-dev-standards.git .
-```
-
-### 第四步：複製 Skills 到各工具
-
-#### macOS / Linux
-
-```shell
-# 複製到統一管理目錄
-cp -r ~/.config/universal-dev-standards/skills/claude-code/* ~/.config/custom-skills/skills
-
-# 清理不需要的檔案
-rm -rf ~/.config/custom-skills/skills/tdd-assistant \
-       ~/.config/custom-skills/skills/CONTRIBUTING.template.md \
-       ~/.config/custom-skills/skills/install.ps1 \
-       ~/.config/custom-skills/skills/install.sh \
-       ~/.config/custom-skills/skills/README.md
-
-# 複製到 Claude Code
-cp -r ~/.config/universal-dev-standards/skills/claude-code/* ~/.claude/skills/
-rm -rf ~/.claude/skills/tdd-assistant \
-       ~/.claude/skills/CONTRIBUTING.template.md \
-       ~/.claude/skills/install.ps1 \
-       ~/.claude/skills/install.sh \
-       ~/.claude/skills/README.md
-
-# 複製到 Antigravity
-cp -r ~/.config/custom-skills/skills/* ~/.gemini/antigravity/skills
-```
-
-##### Command
-```shell
-# Command
-cp -r ~/.config/custom-skills/command/claude/* ~/.claude/command
-cp -r ~/.config/custom-skills/command/antigravity/* ~/.gemini/antigravity/global_workflows
-```
-
-
-##### Agent
-
-```shell
-cp -r ~/.config/custom-skills/agent/opencode/* ~/.config/opencode/agent
-```
-
-##### OpenCode Superpowers
-
-安裝 OpenCode 的 Superpowers 插件：
-- 請 OpenCode 安裝 Superpowers 插件
-```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
-```
-
-- 手動安裝
-```shell
-mkdir -p ~/.config/opencode/superpowers
-git clone https://github.com/obra/superpowers.git ~/.config/opencode/superpowers
-mkdir -p ~/.config/opencode/plugin
-ln -sf ~/.config/opencode/superpowers/.opencode/plugin/superpowers.js ~/.config/opencode/plugin/superpowers.js
-```
-
-驗證安裝（在 OpenCode 中輸入）：
-```
-do you have superpowers?
-```
-
-#### Windows (PowerShell)
-
-```powershell
-# 複製到 Claude Code
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\universal-dev-standards\skills\claude-code\*" "$env:USERPROFILE\.claude\skills\"
-
-# 清理不需要的檔案
-Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\skills\tdd-assistant" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\CONTRIBUTING.template.md" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\install.ps1" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\install.sh" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\README.md" -ErrorAction SilentlyContinue
-
-
-# 複製到統一管理目錄
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\universal-dev-standards\skills\claude-code\*" "$env:USERPROFILE\.config\custom-skills\skills\"
-
-# 清理不需要的檔案
-Remove-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\skills\tdd-assistant" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\CONTRIBUTING.template.md" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\install.ps1" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\install.sh" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\README.md" -ErrorAction SilentlyContinue
-
-
-
-# 複製到 Antigravity
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\skills\*" "$env:USERPROFILE\.gemini\antigravity\skills\"
-```
-
-##### Command
-
-```powershell
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\command\claude\*" "$env:USERPROFILE\.claude\commands\"
-
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\command\antigravity\*" "$env:USERPROFILE\.gemini\antigravity\global_workflows\"
-```
-
-##### Agent
-
-```powershell
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\agent\opencode\*" "$env:USERPROFILE\.config\opencode\agent\"
-```
-
-##### OpenCode Superpowers
-
-安裝 OpenCode 的 Superpowers 插件：
-- 請 OpenCode 安裝 Superpowers 插件
-```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
-```
-- 手動安裝
-```powershell
-$O="$env:USERPROFILE\.config\opencode"
-New-Item -ItemType Directory -Force -Path "$O\plugin" | Out-Null
-git clone https://github.com/obra/superpowers.git "$O\superpowers"
-cmd /c mklink /J "$O\plugin\superpowers.js" "$O\superpowers\.opencode\plugin\superpowers.js"
-```
-
-驗證安裝（在 OpenCode 中輸入）：
-```
-do you have superpowers?
-```
-
-
-### 第五步：安裝 Claude Code Plugin
+### 第三步：安裝 Claude Code Plugin
 
 啟動 Claude Code 後執行：
 
@@ -548,11 +283,9 @@ do you have superpowers?
 /help
 ```
 
-### 第六步：設定 MCP Server
+### 第四步：設定 MCP Server
 
 MCP (Model Context Protocol) Server 可以擴充 AI 工具的能力，例如查詢最新文件、安全掃描等。
-
-#### Claude Code MCP 設定
 
 ```shell
 # 安裝 Context7 (文件查詢)
@@ -567,47 +300,6 @@ claude mcp remove <name>
 
 設定檔位置：`~/.claude.json`
 
-#### Antigravity MCP 設定
-
-Antigravity 使用獨立的設定檔管理 MCP Server。
-
-**macOS / Linux**
-
-```shell
-# 建立設定檔
-nano ~/.gemini/mcp_config.json
-```
-
-**Windows (PowerShell)**
-
-```powershell
-# 建立設定檔
-notepad "$env:USERPROFILE\.gemini\antigravity\mcp_config.json"
-```
-
-**設定檔內容範例** (`~/.gemini/mcp_config.json`)：
-
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp@latest"
-      ]
-    }
-  }
-}
-```
-
-
-
-> **注意**：Windows 使用者需將 `command` 路徑調整為 Windows 格式，例如：
-> ```json
-> "command": "C:\\Users\\username\\AppData\\Roaming\\npm\\snyk.cmd"
-> ```
-
 **常用 MCP Server 設定**：
 
 | MCP Server | 用途       | 設定範例                                                                   |
@@ -616,106 +308,27 @@ notepad "$env:USERPROFILE\.gemini\antigravity\mcp_config.json"
 | Snyk       | 安全漏洞掃描   | 見上方範例                                                                  |
 | Filesystem | 檔案系統操作   | `"command": "npx", "args": ["-y", "@anthropic/mcp-server-filesystem"]` |
 
+> Antigravity 的 MCP Server 設定請參閱[附錄 A](#附錄-a備選-ai-開發工具)。
+
 ---
 
 ## 每日更新維護
 
 > 建議每天開始工作前執行一次，確保工具與 Skills 為最新版本。
 
-### macOS / Linux
-
 ```shell
-# 更新全域工具
-npm install -g @fission-ai/openspec@latest
-npm install -g @anthropic-ai/claude-code
-npm install -g @openai/codex@latest
-npm install -g @google/gemini-cli
-npm install -g universal-dev-standards
-npm install -g opencode-ai@latest
-uds update
+# 更新所有工具與 Skills 來源
+ai-dev update
 
-# 更新 Skills 來源
-cd ~/.config/superpowers && git pull
-cd ~/.config/universal-dev-standards && git pull
-cd ~/.config/custom-skills && git pull
-cd ~/.config/opencode/superpowers && git pull
-
-# 重新複製 Skills
-cp -r ~/.config/universal-dev-standards/skills/claude-code/* ~/.claude/skills/
-rm -rf ~/.claude/skills/tdd-assistant \
-       ~/.claude/skills/CONTRIBUTING.template.md \
-       ~/.claude/skills/install.ps1 \
-       ~/.claude/skills/install.sh \
-       ~/.claude/skills/README.md
-
-# 複製到統一管理目錄
-cp -r ~/.config/universal-dev-standards/skills/claude-code/* ~/.config/custom-skills/skills
-rm -rf ~/.config/custom-skills/skills/tdd-assistant \
-       ~/.config/custom-skills/skills/CONTRIBUTING.template.md \
-       ~/.config/custom-skills/skills/install.ps1 \
-       ~/.config/custom-skills/skills/install.sh \
-       ~/.config/custom-skills/skills/README.md
-
-# 複製到 Antigravity
-cp -r ~/.config/custom-skills/skills/* ~/.gemini/antigravity/skills
-
-# 複製 Command
-cp -r ~/.config/custom-skills/command/claude/* ~/.claude/commands
-cp -r ~/.config/custom-skills/command/antigravity/* ~/.gemini/antigravity/global_workflows
-
-# 複製 Agent
-cp -r ~/.config/custom-skills/agent/opencode/* ~/.config/opencode/agent
+# 重新分發 Skills 到各工具目錄
+ai-dev clone
 ```
 
-### Windows (PowerShell)
+`ai-dev update` 會自動：更新 Claude Code、更新全域 NPM 工具、拉取所有 Skills 來源 repo 的最新變更。
 
-```powershell
-# 更新全域工具
-npm install -g @fission-ai/openspec@latest
-npm install -g @anthropic-ai/claude-code
-npm install -g @google/gemini-cli
-npm install -g universal-dev-standards
-npm install -g opencode-ai@latest
-uds update
+`ai-dev clone` 會自動：整合 Skills 到統一管理目錄、複製到 Claude Code 及其他已安裝的工具目錄。
 
-# 更新 Skills 來源
-Set-Location "$env:USERPROFILE\.config\custom-skills"; git pull
-Set-Location "$env:USERPROFILE\.config\superpowers"; git pull
-Set-Location "$env:USERPROFILE\.config\opencode\superpowers"; git pull
-Set-Location "$env:USERPROFILE\.config\universal-dev-standards"; git pull
-
-# 複製到 Claude Code
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\universal-dev-standards\skills\claude-code\*" "$env:USERPROFILE\.claude\skills\"
-
-
-# 清理不需要的檔案
-Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\skills\tdd-assistant" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\CONTRIBUTING.template.md" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\install.ps1" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\install.sh" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.claude\skills\README.md" -ErrorAction SilentlyContinue
-
-
-# 複製到統一管理目錄
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\universal-dev-standards\skills\claude-code\*" "$env:USERPROFILE\.config\custom-skills\skills\"
-
-# 清理不需要的檔案
-Remove-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\skills\tdd-assistant" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\CONTRIBUTING.template.md" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\install.ps1" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\install.sh" -ErrorAction SilentlyContinue
-Remove-Item -Force "$env:USERPROFILE\.config\custom-skills\skills\README.md" -ErrorAction SilentlyContinue
-
-# 複製到 Antigravity
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\skills\*" "$env:USERPROFILE\.gemini\antigravity\skills\"
-
-# 複製 Command
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\command\claude\*" "$env:USERPROFILE\.claude\commands\"
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\command\antigravity\*" "$env:USERPROFILE\.gemini\antigravity\global_workflows\"
-
-# 複製 Agent
-Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\agent\opencode\*" "$env:USERPROFILE\.config\opencode\agent\"
-```
+> 如需手動更新個別工具，請參閱[附錄 A](#附錄-a備選-ai-開發工具)中各工具的每日更新段落。
 
 ---
 
@@ -760,9 +373,9 @@ claude
 
 ---
 
-## 工具使用說明
+## Claude Code 使用說明
 
-### Claude Code 基礎
+### 基礎操作
 
 ```shell
 # 啟動
@@ -803,6 +416,7 @@ claude -p "檢查文件依賴項目是否正確"
 ```
 
 ### OpenSpec 工作流
+完整工作流可參考 [DEVELOPMENT-WORKFLOW](workflow/DEVELOPMENT-WORKFLOW)
 
 ```shell
 # 建立變更提案
@@ -830,232 +444,6 @@ openspec validate add-user-login
 # 設定最大迭代次數
 /ralph-loop:ralph-loop "..." --max-iterations 20 --completion-promise "完成"
 ```
-
-### OpenCode 基礎
-
-```shell
-# 啟動
-opencode
-
-# 連接 IDE（VSCode 整合）
-/connect
-
-# 認證管理
-opencode auth list      # 查看認證狀態
-opencode auth login     # 新增認證
-opencode auth logout    # 登出
-```
-
-### OpenCode + oh-my-opencode 使用
-
-安裝 oh-my-opencode 後，在提示詞中加入 `ultrawork`（或簡寫 `ulw`）即可啟用所有增強功能：
-
-```shell
-# 範例：啟用 ultrawork 模式
-請幫我重構這個模組 ultrawork
-
-# 或使用簡寫
-實作用戶登入功能 ulw
-```
-
-**ultrawork 模式功能**：
-- **平行代理**：自動將任務分配給多個 Agent 並行處理
-- **深度探索**：徹底分析程式碼庫結構
-- **不間斷執行**：持續執行直到任務完成
-- **背景任務**：長時間任務在背景執行
-
-### OpenCode Agent 設定
-
-公司推薦配置的 Agent（已在首次安裝時設定）：
-
-| Agent | 用途 | 公司推薦模型 |
-|-------|------|----------|
-| **Sisyphus** | 主力開發 Agent | gpt-5.2-codex |
-| **Librarian** | 資料查詢 | glm-4.7-free (免費) |
-| **Explore** | 程式碼探索 | glm-4.7-free (免費) |
-| **Frontend** | 前端 UI/UX | gpt-5.2-codex |
-| **Document-writer** | 文件撰寫 | glm-4.7-free (免費) |
-| **Multimodal-looker** | 多模態分析 | glm-4.7-free (免費) |
-
-**設定檔位置**：
-- macOS/Linux: `~/.config/opencode/oh-my-opencode.json`
-- Windows: `C:\Users\<username>\.config\opencode\oh-my-opencode.json`
-
-**公司推薦配置**（已在首次安裝設定）：
-
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
-  "agents": {
-    "Sisyphus": {
-      "model": "openai/gpt-5.2-codex"
-    },
-    "librarian": {
-      "model": "opencode/glm-4.7-free"
-    },
-    "explore": {
-      "model": "opencode/glm-4.7-free"
-    },
-    "frontend-ui-ux-engineer": {
-      "model": "openai/gpt-5.2-codex"
-    },
-    "document-writer": {
-      "model": "opencode/glm-4.7-free"
-    },
-    "multimodal-looker": {
-      "model": "opencode/glm-4.7-free"
-    }
-  }
-}
-```
-
-> **配置策略**：核心開發任務使用付費模型 (GPT-5.2-Codex)，輔助任務使用免費模型 (GLM-4.7-free)
-
-### OpenCode 自訂 Agent
-
-你可以建立專屬的 Agent 來處理特定任務。
-
-**建立 Agent**：
-
-```shell
-# 全域 Agent
-~/.config/opencode/agent/review.md
-
-# 專案 Agent
-.opencode/agent/review.md
-```
-
-**Agent 範例** (`review.md`)：
-
-```markdown
----
-description: Reviews code for quality and best practices
-mode: subagent
-model: anthropic/claude-sonnet-4-20250514
-temperature: 0.1
-tools:
-  write: false
-  edit: false
-  bash: false
----
-
-You are in code review mode. Focus on:
-
-- Code quality and best practices
-- Potential bugs and edge cases
-- Performance implications
-- Security considerations
-
-Provide constructive feedback without making direct changes.
-```
-
-> **注意**：OpenCode 的 Skills 和 Command 路徑沿用 Claude Code 設定（`~/.claude/skills/` 和 `~/.claude/commands/`）。
-
----
-
-## 故障排除
-
-### 常見問題
-
-#### Q: Claude Code 看不到新安裝的 Skills/Plugin
-
-**A:** 重新啟動 Claude Code。Skills 和 Plugin 是在啟動時載入的。
-
-```shell
-# 退出後重新啟動
-exit
-claude
-```
-
-#### Q: Skills 目錄找不到
-
-**A:** 確認目錄結構正確：
-
-```shell
-# macOS/Linux
-ls -la ~/.claude/skills/
-ls -la ~/.gemini/antigravity/skills/
-
-# Windows
-dir "$env:USERPROFILE\.claude\skills\"
-```
-
-#### Q: OpenSpec 指令找不到
-
-**A:** 確認 Node.js 版本 >= 20.19.0，並重新安裝：
-
-```shell
-node --version
-npm install -g @fission-ai/openspec@latest
-openspec --version
-```
-
-#### Q: MCP Server 連線失敗
-
-**A:** 檢查設定檔：
-
-```shell
-# 編輯 MCP 設定
-cat ~/.claude.json
-
-# 或移除後重新新增
-claude mcp remove context7
-claude mcp add context7 --scope user -- npx @upstash/context7-mcp
-```
-
-#### Q: Windows 上出現權限錯誤
-
-**A:** 以系統管理員身份執行 PowerShell，或檢查資料夾權限。
-
-#### Q: OpenCode 無法啟動或找不到指令
-
-**A:** 確認安裝正確：
-
-```shell
-npm install -g opencode-ai@latest
-opencode --version
-```
-
-#### Q: oh-my-opencode 安裝失敗
-
-**A:** 確認 Bun 已正確安裝：
-
-```shell
-# 檢查 Bun 版本
-bun --version
-
-# 如果沒有安裝，執行：
-# macOS/Linux
-curl -fsSL https://bun.sh/install | bash
-
-# Windows
-powershell -c "irm bun.sh/install.ps1 | iex"
-
-# 重新安裝 oh-my-opencode
-bunx oh-my-opencode install
-```
-
-#### Q: OpenCode 認證失敗
-
-**A:** 重新執行認證流程：
-
-```shell
-# 查看目前認證狀態
-opencode auth list
-
-# 登出後重新登入
-opencode auth logout
-opencode auth login
-```
-
-### 取得協助
-
-- 內部：聯繫開發組負責人
-- Claude Code 文件：https://docs.anthropic.com/en/docs/claude-code/overview
-- OpenCode 文件：https://opencode.ai/docs
-- oh-my-opencode：https://github.com/code-yeongyu/oh-my-opencode
-- OpenSpec 文件：https://github.com/Fission-AI/OpenSpec
-- Universal Dev Standards：https://github.com/AsiaOstrich/universal-dev-standards
 
 ---
 
@@ -1268,7 +656,509 @@ npx skills add vercel-labs/agent-skills
 
 ---
 
-## 附錄：目錄結構總覽
+## 故障排除
+
+### 常見問題
+
+#### Q: Claude Code 看不到新安裝的 Skills/Plugin
+
+**A:** 重新啟動 Claude Code。Skills 和 Plugin 是在啟動時載入的。
+
+```shell
+# 退出後重新啟動
+exit
+claude
+```
+
+#### Q: Skills 目錄找不到
+
+**A:** 確認目錄結構正確：
+
+```shell
+# macOS/Linux
+ls -la ~/.claude/skills/
+
+# Windows
+dir "$env:USERPROFILE\.claude\skills\"
+```
+
+#### Q: OpenSpec 指令找不到
+
+**A:** 確認 Node.js 版本 >= 20.19.0，並重新安裝：
+
+```shell
+node --version
+npm install -g @fission-ai/openspec@latest
+openspec --version
+```
+
+#### Q: MCP Server 連線失敗
+
+**A:** 檢查設定檔：
+
+```shell
+# 編輯 MCP 設定
+cat ~/.claude.json
+
+# 或移除後重新新增
+claude mcp remove context7
+claude mcp add context7 --scope user -- npx @upstash/context7-mcp
+```
+
+#### Q: Windows 上出現權限錯誤
+
+**A:** 以系統管理員身份執行 PowerShell，或檢查資料夾權限。
+
+### 取得協助
+
+- 內部：聯繫開發組負責人
+- Claude Code 文件：https://docs.anthropic.com/en/docs/claude-code/overview
+- OpenSpec 文件：https://github.com/Fission-AI/OpenSpec
+- Universal Dev Standards：https://github.com/AsiaOstrich/universal-dev-standards
+
+---
+
+## 附錄 A：備選 AI 開發工具
+
+### OpenCode + oh-my-opencode
+
+#### 安裝
+
+```shell
+# 安裝 OpenCode
+npm install -g opencode-ai@latest
+```
+
+#### 安裝 oh-my-opencode (選用但推薦)
+
+oh-my-opencode 是 OpenCode 的增強套件，提供：
+- **Sisyphus Agent**：不間斷執行直到完成任務
+- **平行代理**：同時執行多個子任務
+- **多模型整合**：整合 Claude、ChatGPT、Gemini 等模型
+- **免費模型支援**：可使用 GLM-4.7-free 等免費模型
+
+##### 前置需求：安裝 Bun
+
+**macOS / Linux**
+
+```shell
+curl -fsSL https://bun.sh/install | bash
+```
+
+**Windows (PowerShell)**
+
+```powershell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+##### 安裝 oh-my-opencode
+
+```shell
+bunx oh-my-opencode install
+```
+
+安裝過程會詢問：
+1. **Do you have a Claude Pro/Max subscription?** - 選擇 Yes/No
+2. **Do you have a ChatGPT Plus/Pro subscription?** - 選擇 Yes/No
+3. **Will you integrate Google Gemini?** - 選擇 Yes/No
+
+安裝完成後，執行認證：
+
+```shell
+# 認證各個提供者
+opencode auth login  # 選擇 Anthropic → Claude Pro/Max
+opencode auth login  # 選擇 OpenAI → ChatGPT Plus/Pro
+opencode auth login  # 選擇 Google → OAuth with Antigravity
+
+opencode auth logout
+
+# 查看認證狀態
+opencode auth list
+```
+
+#### 建立目錄結構
+
+**macOS / Linux**
+
+```shell
+mkdir -p ~/.config/opencode/agent
+```
+
+**Windows (PowerShell)**
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\opencode\agent"
+```
+
+#### 複製 Skills/Commands/Agents
+
+**macOS / Linux**
+
+```shell
+# 複製 Agent
+cp -r ~/.config/custom-skills/agent/opencode/* ~/.config/opencode/agent
+```
+
+**Windows (PowerShell)**
+
+```powershell
+# 複製 Agent
+Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\agent\opencode\*" "$env:USERPROFILE\.config\opencode\agent\"
+```
+
+#### 安裝 OpenCode Superpowers
+
+- 請 OpenCode 安裝 Superpowers 插件
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
+```
+
+- 手動安裝
+
+**macOS / Linux**
+
+```shell
+mkdir -p ~/.config/opencode/superpowers
+git clone https://github.com/obra/superpowers.git ~/.config/opencode/superpowers
+mkdir -p ~/.config/opencode/plugin
+ln -sf ~/.config/opencode/superpowers/.opencode/plugin/superpowers.js ~/.config/opencode/plugin/superpowers.js
+```
+
+**Windows (PowerShell)**
+
+```powershell
+$O="$env:USERPROFILE\.config\opencode"
+New-Item -ItemType Directory -Force -Path "$O\plugin" | Out-Null
+git clone https://github.com/obra/superpowers.git "$O\superpowers"
+cmd /c mklink /J "$O\plugin\superpowers.js" "$O\superpowers\.opencode\plugin\superpowers.js"
+```
+
+驗證安裝（在 OpenCode 中輸入）：
+```
+do you have superpowers?
+```
+
+#### 公司推薦 Agent 配置
+
+修改設定檔為公司推薦配置：
+
+**macOS / Linux**
+
+```shell
+nano ~/.config/opencode/oh-my-opencode.json
+```
+
+**Windows (PowerShell)**
+
+```powershell
+notepad "$env:USERPROFILE\.config\opencode\oh-my-opencode.json"
+```
+
+**公司推薦配置**（使用 GPT-5.2-Codex + 免費 GLM-4.7）：
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+  "agents": {
+    "Sisyphus": {
+      "model": "openai/gpt-5.2-codex"
+    },
+    "librarian": {
+      "model": "opencode/glm-4.7-free"
+    },
+    "explore": {
+      "model": "opencode/glm-4.7-free"
+    },
+    "frontend-ui-ux-engineer": {
+      "model": "openai/gpt-5.2-codex"
+    },
+    "document-writer": {
+      "model": "opencode/glm-4.7-free"
+    },
+    "multimodal-looker": {
+      "model": "opencode/glm-4.7-free"
+    }
+  }
+}
+```
+
+> **配置說明**：
+> - **Sisyphus** 和 **frontend-ui-ux-engineer**：使用 GPT-5.2-Codex 處理核心開發和前端任務
+> - 其他 Agent：使用免費的 GLM-4.7 處理輔助任務（搜尋、文件、探索）
+> - 此配置平衡了效能與成本
+
+#### 使用說明
+
+##### 基礎操作
+
+```shell
+# 啟動
+opencode
+
+# 連接 IDE（VSCode 整合）
+/connect
+
+# 認證管理
+opencode auth list      # 查看認證狀態
+opencode auth login     # 新增認證
+opencode auth logout    # 登出
+```
+
+##### ultrawork 模式
+
+安裝 oh-my-opencode 後，在提示詞中加入 `ultrawork`（或簡寫 `ulw`）即可啟用所有增強功能：
+
+```shell
+# 範例：啟用 ultrawork 模式
+請幫我重構這個模組 ultrawork
+
+# 或使用簡寫
+實作用戶登入功能 ulw
+```
+
+**ultrawork 模式功能**：
+- **平行代理**：自動將任務分配給多個 Agent 並行處理
+- **深度探索**：徹底分析程式碼庫結構
+- **不間斷執行**：持續執行直到任務完成
+- **背景任務**：長時間任務在背景執行
+
+##### Agent 設定
+
+公司推薦配置的 Agent（已在安裝時設定）：
+
+| Agent | 用途 | 公司推薦模型 |
+|-------|------|----------|
+| **Sisyphus** | 主力開發 Agent | gpt-5.2-codex |
+| **Librarian** | 資料查詢 | glm-4.7-free (免費) |
+| **Explore** | 程式碼探索 | glm-4.7-free (免費) |
+| **Frontend** | 前端 UI/UX | gpt-5.2-codex |
+| **Document-writer** | 文件撰寫 | glm-4.7-free (免費) |
+| **Multimodal-looker** | 多模態分析 | glm-4.7-free (免費) |
+
+**設定檔位置**：
+- macOS/Linux: `~/.config/opencode/oh-my-opencode.json`
+- Windows: `C:\Users\<username>\.config\opencode\oh-my-opencode.json`
+
+##### 自訂 Agent
+
+你可以建立專屬的 Agent 來處理特定任務。
+
+**建立 Agent**：
+
+```shell
+# 全域 Agent
+~/.config/opencode/agent/review.md
+
+# 專案 Agent
+.opencode/agent/review.md
+```
+
+**Agent 範例** (`review.md`)：
+
+```markdown
+---
+description: Reviews code for quality and best practices
+mode: subagent
+model: anthropic/claude-sonnet-4-20250514
+temperature: 0.1
+tools:
+  write: false
+  edit: false
+  bash: false
+---
+
+You are in code review mode. Focus on:
+
+- Code quality and best practices
+- Potential bugs and edge cases
+- Performance implications
+- Security considerations
+
+Provide constructive feedback without making direct changes.
+```
+
+> **注意**：OpenCode 的 Skills 和 Command 路徑沿用 Claude Code 設定（`~/.claude/skills/` 和 `~/.claude/commands/`）。
+
+#### 每日更新
+
+```shell
+# macOS / Linux
+npm install -g opencode-ai@latest
+cd ~/.config/opencode/superpowers && git pull
+cp -r ~/.config/custom-skills/agent/opencode/* ~/.config/opencode/agent
+```
+
+```powershell
+# Windows
+npm install -g opencode-ai@latest
+Set-Location "$env:USERPROFILE\.config\opencode\superpowers"; git pull
+Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\agent\opencode\*" "$env:USERPROFILE\.config\opencode\agent\"
+```
+
+#### 故障排除
+
+##### Q: OpenCode 無法啟動或找不到指令
+
+**A:** 確認安裝正確：
+
+```shell
+npm install -g opencode-ai@latest
+opencode --version
+```
+
+##### Q: oh-my-opencode 安裝失敗
+
+**A:** 確認 Bun 已正確安裝：
+
+```shell
+# 檢查 Bun 版本
+bun --version
+
+# 如果沒有安裝，執行：
+# macOS/Linux
+curl -fsSL https://bun.sh/install | bash
+
+# Windows
+powershell -c "irm bun.sh/install.ps1 | iex"
+
+# 重新安裝 oh-my-opencode
+bunx oh-my-opencode install
+```
+
+##### Q: OpenCode 認證失敗
+
+**A:** 重新執行認證流程：
+
+```shell
+# 查看目前認證狀態
+opencode auth list
+
+# 登出後重新登入
+opencode auth logout
+opencode auth login
+```
+
+### Antigravity
+
+#### 安裝
+
+Antigravity 是 VSCode 整合的 AI 助手，無需獨立安裝 CLI。請在 VSCode 的延伸模組市場搜尋安裝。
+
+#### 建立目錄結構
+
+**macOS / Linux**
+
+```shell
+mkdir -p ~/.gemini/antigravity/skills
+mkdir -p ~/.gemini/antigravity/global_workflows
+```
+
+**Windows (PowerShell)**
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini\antigravity\skills"
+```
+
+#### 複製 Skills/Workflows
+
+**macOS / Linux**
+
+```shell
+cp -r ~/.config/custom-skills/skills/* ~/.gemini/antigravity/skills
+cp -r ~/.config/custom-skills/command/antigravity/* ~/.gemini/antigravity/global_workflows
+```
+
+**Windows (PowerShell)**
+
+```powershell
+Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\skills\*" "$env:USERPROFILE\.gemini\antigravity\skills\"
+Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\command\antigravity\*" "$env:USERPROFILE\.gemini\antigravity\global_workflows\"
+```
+
+#### MCP Server 設定
+
+**macOS / Linux**
+
+```shell
+nano ~/.gemini/mcp_config.json
+```
+
+**Windows (PowerShell)**
+
+```powershell
+notepad "$env:USERPROFILE\.gemini\antigravity\mcp_config.json"
+```
+
+**設定檔內容範例** (`~/.gemini/mcp_config.json`)：
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    }
+  }
+}
+```
+
+> **注意**：Windows 使用者需將 `command` 路徑調整為 Windows 格式，例如：
+> ```json
+> "command": "C:\\Users\\username\\AppData\\Roaming\\npm\\snyk.cmd"
+> ```
+
+#### 每日更新
+
+```shell
+# macOS / Linux
+cp -r ~/.config/custom-skills/skills/* ~/.gemini/antigravity/skills
+cp -r ~/.config/custom-skills/command/antigravity/* ~/.gemini/antigravity/global_workflows
+```
+
+```powershell
+# Windows
+Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\skills\*" "$env:USERPROFILE\.gemini\antigravity\skills\"
+Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\command\antigravity\*" "$env:USERPROFILE\.gemini\antigravity\global_workflows\"
+```
+
+### Codex
+
+#### 安裝
+
+```shell
+npm install -g @openai/codex@latest
+```
+
+#### 複製 Skills
+
+Codex 使用 `~/.codex/skills/` 目錄。Skills 複製方式與其他工具類似。
+
+### Gemini CLI
+
+#### 安裝
+
+```shell
+# npm
+npm install -g @google/gemini-cli
+
+# macOS 額外安裝 (Homebrew)
+brew install gemini-cli
+```
+
+#### 複製 Skills/Commands
+
+Gemini CLI 使用 `~/.gemini/skills/` 和 `~/.gemini/commands/` 目錄。
+
+#### MCP Server 設定
+
+設定檔位置：`~/.gemini/settings.json`
+
+---
+
+## 附錄 B：目錄結構總覽
 
 ```
 ~/.claude/
@@ -1342,6 +1232,8 @@ project/
 
 ---
 
+## 附錄 C：ECC 整合、標準體系、上游追蹤
+
 ### ECC (Everything Claude Code) 整合
 
 v0.6.0 新增 Everything Claude Code 資源整合，提供進階的 Claude Code 工作流程工具：
@@ -1414,6 +1306,8 @@ ai-dev standards sync
 
 | 日期 | 版本 | 變更內容 |
 |------|------|----------|
+| 2026-02-05 | 2.1.0 | 安裝流程改以 `ai-dev install` 自動化為主，手動步驟精簡；每日更新改用 `ai-dev update` + `ai-dev clone` |
+| 2026-02-05 | 2.0.0 | 重構文件結構：以 Claude Code 為主線，其他工具移至備選附錄 |
 | 2026-01-25 | 1.7.0 | 新增 Profile 重疊檢測系統說明（`overlaps`, `sync`, `--dry-run` 指令） |
 | 2026-01-25 | 1.6.0 | 更新 `update` 指令說明（移除不存在的 `--sync-upstream` 參數）、修正上游同步流程說明 |
 | 2026-01-24 | 1.5.0 | 整合 ECC 資源、新增上游追蹤系統、標準體系切換、clone 與 standards 指令 |
@@ -1430,6 +1324,6 @@ ai-dev standards sync
 ## 相關文件
 
 - [Skill-Command-Agent差異說明](Skill-Command-Agent差異說明.md) - 了解三者的差異與使用時機
-- [openscode](openscode.md) - OpenCode 詳細設定與進階用法
+- [openscode](openscode) - OpenCode 詳細設定與進階用法
 - [Dev stack](Dev%20stack.md) - 原始設定腳本參考
 - [AI Tools](AI%20Tools.md) - 完整工具清單與進階設定
