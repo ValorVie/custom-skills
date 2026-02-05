@@ -91,7 +91,7 @@ Alacritty 使用 TOML 格式的配置檔。根據作業系統不同，預設路�
 | 作業系統 | 配置檔路徑 |
 |----------|-----------|
 | Linux / macOS | `~/.config/alacritty/alacritty.toml` |
-| Windows | `%APPDATA%\alacritty\alacritty.toml` |
+| Windows | `$env:APPDATA\alacritty\alacritty.toml` |
 
 若配置檔不存在，需手動建立：
 
