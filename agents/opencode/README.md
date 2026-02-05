@@ -52,7 +52,6 @@ skills:
   - testing-guide
 
 # === MODEL PREFERENCES (Claude Code only) ===
-model: claude-sonnet-4-20250514  # Preferred model
 temperature: 0.3              # Response creativity (0.0-1.0)
 
 # === CONTEXT STRATEGY (RLM-inspired) ===

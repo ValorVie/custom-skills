@@ -27,7 +27,6 @@ skills:
   - spec-driven-dev
   - project-structure-guide
 
-model: claude-sonnet-4-20250514
 temperature: 0.3
 
 # === CONTEXT STRATEGY (RLM-inspired) ===

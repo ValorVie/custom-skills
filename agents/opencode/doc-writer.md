@@ -28,7 +28,6 @@ skills:
   - changelog-guide
   - release-standards
 
-model: claude-sonnet-4-20250514
 temperature: 0.4
 
 # === CONTEXT STRATEGY (RLM-inspired) ===

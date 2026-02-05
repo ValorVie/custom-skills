@@ -27,7 +27,6 @@ skills:
   - checkin-assistant
   - testing-guide
 
-model: claude-sonnet-4-20250514
 temperature: 0.2
 
 # === CONTEXT STRATEGY (RLM-inspired) ===
