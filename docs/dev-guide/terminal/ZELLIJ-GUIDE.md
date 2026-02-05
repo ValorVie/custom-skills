@@ -6,6 +6,7 @@
 - [安裝方式](#安裝方式)
 - [基本操作](#基本操作)
 - [快捷鍵與模式](#快捷鍵與模式)
+- [macOS Alt 鍵設定](#macos-alt-鍵設定)
 - [設定檔](#設定檔)
 - [Layout 管理](#layout-管理)
 - [Session 管理](#session-管理)
@@ -180,6 +181,27 @@ Zellij 採用「模式」（mode）機制來組織快捷鍵，避免與終端應
 | `k` / `Up` | 移動焦點至上方面板 |
 | `l` / `Right` | 移動焦點至右方面板 |
 
+### 全域快捷鍵（不需進入特定模式）
+
+以下快捷鍵在所有模式下皆可使用（Locked 模式除外）：
+
+| 按鍵 | 功能 |
+|------|------|
+| `Alt+h` / `Alt+Left` | 移動焦點至左方面板（或切換至前一個分頁） |
+| `Alt+l` / `Alt+Right` | 移動焦點至右方面板（或切換至下一個分頁） |
+| `Alt+j` / `Alt+Down` | 移動焦點至下方面板 |
+| `Alt+k` / `Alt+Up` | 移動焦點至上方面板 |
+| `Alt+i` | 將當前分頁往左移動（重新排序） |
+| `Alt+o` | 將當前分頁往右移動（重新排序） |
+| `Alt+n` | 開啟新面板 |
+| `Alt+f` | 切換浮動面板 |
+| `Alt+=` / `Alt++` | 放大面板 |
+| `Alt+-` | 縮小面板 |
+| `Alt+[` | 切換至上一個 Swap Layout |
+| `Alt+]` | 切換至下一個 Swap Layout |
+
+> **macOS 注意事項**：macOS 的 Option 鍵預設會輸入特殊字元（如 `Option+I` 產生 `ˆ`），而非送出 Alt 訊號給終端。需要在終端模擬器中設定 Option 作為 Alt 使用，詳見下方[macOS Alt 鍵設定](#macos-alt-鍵設定)。
+
 ### Tab 模式（`Ctrl+t`）
 
 | 按鍵 | 功能 |
@@ -223,9 +245,67 @@ Zellij 採用「模式」（mode）機制來組織快捷鍵，避免與終端應
 | `d` | Detach（脫離當前 session） |
 | `w` | 開啟 session manager |
 
+### Move 模式（`Ctrl+h`）
+
+用於移動面板在佈局中的位置（非移動焦點，而是實際搬動面板）。
+
+| 按鍵 | 功能 |
+|------|------|
+| `h` / `Left` | 將面板往左移 |
+| `j` / `Down` | 將面板往下移 |
+| `k` / `Up` | 將面板往上移 |
+| `l` / `Right` | 將面板往右移 |
+| `n` / `Tab` | 將面板移至下一個位置 |
+| `p` | 將面板移至上一個位置 |
+
 ### Locked 模式（`Ctrl+g`）
 
 進入 Locked 模式後，Zellij 不會攔截任何按鍵（除了 `Ctrl+g` 用來解除鎖定）。當你需要使用的終端程式快捷鍵與 Zellij 衝突時，可切換至此模式。
+
+---
+
+## macOS Alt 鍵設定
+
+macOS 的 Option 鍵預設行為是輸入特殊字元，而非送出 Alt 訊號。這會導致 Zellij 的所有 `Alt` 系列快捷鍵（如 `Alt+I` 移動分頁、`Alt+H/L` 切換焦點等）無法使用。需要在終端模擬器中將 Option 映射為 Alt。
+
+### Alacritty
+
+在 Alacritty 設定檔（`~/.config/alacritty/alacritty.toml`）中加入：
+
+```toml
+[window]
+option_as_alt = "Both"
+```
+
+`"Both"` 表示左右兩個 Option 鍵都作為 Alt 使用。也可設為 `"OnlyLeft"` 或 `"OnlyRight"` 保留其中一個 Option 鍵的原始功能（用於輸入特殊字元）。
+
+### Ghostty
+
+Ghostty 預設已將 Option 作為 Alt 處理，通常無需額外設定。若有問題，在設定中確認：
+
+```
+macos-option-as-alt = true
+```
+
+### WezTerm
+
+```lua
+-- ~/.wezterm.lua
+config.send_composed_key_when_left_alt_is_pressed = false
+config.send_composed_key_when_right_alt_is_pressed = false
+```
+
+### kitty
+
+在 `~/.config/kitty/kitty.conf` 中加入：
+
+```
+macos_option_as_alt yes
+```
+
+### iTerm2
+
+前往 Preferences → Profiles → Keys，將 Left Option Key 和 Right Option Key 設為 **Esc+**。
 
 ---
 
@@ -236,6 +316,123 @@ Zellij 使用 KDL（KDL Document Language）格式作為設定檔格式。預設
 ```
 ~/.config/zellij/config.kdl
 ```
+
+### 推薦設定檔
+
+```toml
+# ~/.config/alacritty/alacritty.toml
+
+# ============================================================
+# 一般設定
+# ============================================================
+[general]
+live_config_reload = true
+
+# ============================================================
+# 視窗設定
+# ============================================================
+[window]
+dynamic_padding = true
+decorations = "Full"
+opacity = 0.95
+startup_mode = "Windowed"
+option_as_alt = "Both"
+
+[window.padding]
+x = 8
+y = 8
+
+# ============================================================
+# 字型設定
+# ============================================================
+[font]
+size = 14.0
+
+[font.normal]
+family = "Maple Mono NL NF CN"
+style = "Regular"
+
+[font.bold]
+family = "Maple Mono NL NF CN"
+style = "Bold"
+
+[font.italic]
+family = "Maple Mono NL NF CN"
+style = "Italic"
+
+[font.bold_italic]
+family = "Maple Mono NL NF CN"
+style = "Bold Italic"
+
+[font.offset]
+x = 0
+y = 2
+
+# ============================================================
+# 游標設定
+# ============================================================
+[cursor]
+unfocused_hollow = true
+
+[cursor.style]
+shape = "Block"
+blinking = "On"
+
+[cursor.vi_mode_style]
+shape = "Beam"
+blinking = "Off"
+
+# ============================================================
+# 捲動設定
+# ============================================================
+[scrolling]
+history = 10000
+multiplier = 3
+
+# ============================================================
+# 選取設定
+# ============================================================
+[selection]
+save_to_clipboard = true
+
+# ============================================================
+# 顏色主題 - Vesper（黑底白字）
+# 來源：https://github.com/raunofreiberg/vesper
+# ============================================================
+[colors.primary]
+background = "#101010"
+foreground = "#ffffff"
+
+[colors.cursor]
+text    = "#101010"
+cursor  = "#ffffff"
+
+[colors.selection]
+text       = "#101010"
+background = "#b0b0b0"
+
+[colors.normal]
+black   = "#101010"
+red     = "#f5a191"
+green   = "#90b99f"
+yellow  = "#e6b99d"
+blue    = "#aca1cf"
+magenta = "#e29eca"
+cyan    = "#ea83a5"
+white   = "#a0a0a0"
+
+[colors.bright]
+black   = "#7e7e7e"
+red     = "#ff8080"
+green   = "#99ffe4"
+yellow  = "#ffc799"
+blue    = "#b9aeda"
+magenta = "#ecaad6"
+cyan    = "#f591b2"
+white   = "#ffffff"
+```
+
+
 
 ### 產生預設設定檔
 
