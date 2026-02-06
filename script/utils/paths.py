@@ -40,7 +40,7 @@ def get_opencode_config_dir() -> Path:
 
 def get_opencode_plugin_dir() -> Path:
     """回傳 OpenCode plugin 目錄路徑。"""
-    return get_opencode_config_dir() / "plugin"
+    return get_opencode_config_dir() / "plugins"
 
 
 def get_codex_config_dir() -> Path:

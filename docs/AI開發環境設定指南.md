@@ -820,8 +820,8 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 ```shell
 mkdir -p ~/.config/opencode/superpowers
 git clone https://github.com/obra/superpowers.git ~/.config/opencode/superpowers
-mkdir -p ~/.config/opencode/plugin
-ln -sf ~/.config/opencode/superpowers/.opencode/plugin/superpowers.js ~/.config/opencode/plugin/superpowers.js
+mkdir -p ~/.config/opencode/plugins
+ln -sf ~/.config/opencode/superpowers/.opencode/plugins/superpowers.js ~/.config/opencode/plugins/superpowers.js
 ```
 
 **Windows (PowerShell)**

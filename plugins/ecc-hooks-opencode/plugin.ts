@@ -18,6 +18,7 @@ const SCRIPTS_DIR = join(import.meta.dir, "scripts");
 const CODE_QUALITY_DIR = join(SCRIPTS_DIR, "code-quality");
 const MEMORY_DIR = join(SCRIPTS_DIR, "memory-persistence");
 const COMPACT_DIR = join(SCRIPTS_DIR, "strategic-compact");
+const STOP_DEBUG_CHECK = join(CODE_QUALITY_DIR, "check-debug-code-opencode.js");
 
 // Patterns matching Claude Code hooks.json
 const DEV_SERVER_PATTERN =
@@ -44,6 +45,7 @@ export const EccHooksPlugin: Plugin = async ({ $, directory }) => {
         }
 
         if (event.type === "session.deleted") {
+          await $`node ${STOP_DEBUG_CHECK}`;
           await $`python3 ${join(MEMORY_DIR, "session-end.py")}`.quiet();
           await $`python3 ${join(MEMORY_DIR, "evaluate-session.py")}`.quiet();
         }

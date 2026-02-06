@@ -109,7 +109,7 @@ COPY_TARGETS = {
         "skills": get_opencode_config_dir() / "skills",
         "commands": get_opencode_config_dir() / "commands",
         "agents": get_opencode_config_dir() / "agents",
-        "plugins": get_opencode_plugin_dir() / "ecc-hooks",
+        "plugins": get_opencode_plugin_dir(),
     },
     "codex": {
         "skills": get_codex_config_dir() / "skills",
@@ -475,6 +475,50 @@ def copy_sources_to_custom_skills() -> None:
                     shutil.copy2(cmd_file, dst_commands_claude / cmd_file.name)
 
 
+def _ensure_opencode_plugin_entry_file(dst: Path) -> None:
+    """確保 OpenCode plugins 第一層存在明確 entry 檔。"""
+    plugin_ts = dst / "plugin.ts"
+    js_entry = dst / "ecc-hooks-opencode.js"
+
+    if not plugin_ts.exists() or js_entry.exists():
+        return
+
+    js_entry.write_text(
+        'import { EccHooksPlugin } from "./plugin.ts";\n\n'
+        "export default EccHooksPlugin;\n"
+        "export { EccHooksPlugin };\n",
+        encoding="utf-8",
+    )
+    console.print(
+        f"    [dim]建立 OpenCode plugin entry: {shorten_path(js_entry)}[/dim]"
+    )
+
+
+def _migrate_opencode_plugin_dir_if_needed() -> None:
+    """偵測並處理 OpenCode legacy plugin 路徑遷移。"""
+    legacy_dir = get_opencode_config_dir() / "plugin"
+    modern_dir = get_opencode_plugin_dir()
+
+    if not legacy_dir.exists():
+        return
+
+    modern_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    if not modern_dir.exists():
+        shutil.move(str(legacy_dir), str(modern_dir))
+        console.print(
+            "[cyan]偵測到 OpenCode legacy plugin 路徑，已遷移："
+            f"{shorten_path(legacy_dir)} → {shorten_path(modern_dir)}[/cyan]"
+        )
+        return
+
+    console.print(
+        "[yellow]偵測到 OpenCode 新舊 plugin 路徑並存："
+        f"{shorten_path(legacy_dir)} 與 {shorten_path(modern_dir)}。"
+        "將以 plugins 路徑為主要目標並保留 legacy 相容。[/yellow]"
+    )
+
+
 def _copy_with_log(
     src: Path,
     dst: Path,
@@ -522,6 +566,11 @@ def _copy_with_log(
                     shutil.copytree(item, dst_item, dirs_exist_ok=True)
                     if record_method:
                         record_method(item.name, item, source=source)
+        elif resource_type == "plugins":
+            # Plugins 可能包含任意檔案結構（ts/json/scripts），直接複製整個目錄
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+            if target_name == "OpenCode":
+                _ensure_opencode_plugin_entry_file(dst)
         else:
             # Commands, Agents, Workflows 是 .md 檔案
             for item in src.iterdir():
@@ -571,6 +620,7 @@ def copy_custom_skills_to_targets(
     )
 
     console.print("[bold cyan]Stage 3: 分發到各工具目錄...[/bold cyan]")
+    _migrate_opencode_plugin_dir_if_needed()
 
     # 來源路徑
     src_skills = get_custom_skills_dir() / "skills"

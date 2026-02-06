@@ -842,6 +842,54 @@ Oh My OpenCode 自動整合 LSP：
 }
 ```
 
+### 開關與停用策略
+
+如果你有時候想用 Oh My OpenCode、有時候想回到接近原生 OpenCode，可以用 `oh-my-opencode.json` 直接切換。
+
+設定檔位置（擇一）：
+
+- 全域：`~/.config/opencode/oh-my-opencode.json`
+- 專案：`.opencode/oh-my-opencode.json`
+
+#### 1) 關閉整套 Sisyphus 編排（推薦總開關）
+
+```json
+{
+  "sisyphus_agent": {
+    "disabled": true
+  }
+}
+```
+
+#### 2) 只停用特定 Agent
+
+```json
+{
+  "disabled_agents": ["oracle", "metis", "momus"]
+}
+```
+
+#### 3) 只停用特定 Hooks
+
+```json
+{
+  "disabled_hooks": [
+    "agent-usage-reminder",
+    "todo-continuation-enforcer"
+  ]
+}
+```
+
+#### 4) 只停用特定內建 Skills
+
+```json
+{
+  "disabled_skills": ["playwright", "git-master"]
+}
+```
+
+> 建議做法：平常開啟完整編排；遇到你想手動主導的任務，再暫時把 `sisyphus_agent.disabled` 設為 `true`。
+
 ---
 
 ## 總結

@@ -9,6 +9,7 @@
 | 文件 | 說明 |
 |------|------|
 | [CLAUDE-CODE-SECURITY.md](ai-tools/CLAUDE-CODE-SECURITY.md) | Claude Code 安全配置指南 |
+| [OPENCODE-SECURITY.md](ai-tools/OPENCODE-SECURITY.md) | OpenCode 安全配置指南 |
 | [CLAUDE-MEM-TROUBLESHOOTING.md](ai-tools/CLAUDE-MEM-TROUBLESHOOTING.md) | Claude-mem 除錯指南 |
 | [MEMORY-PLUGINS-GUIDE.md](ai-tools/MEMORY-PLUGINS-GUIDE.md) | 記憶外掛並用指南 (ecc-hooks + claude-mem) |
 | [opencode-使用指南.md](ai-tools/opencode-使用指南.md) | OpenCode TUI 使用指南 |
@@ -36,4 +37,5 @@
 |------|------|
 | [DEVELOPMENT-WORKFLOW.md](workflow/DEVELOPMENT-WORKFLOW.md) | 開發工作流程 |
 | [CODE-QUALITY-TOOLS.md](workflow/CODE-QUALITY-TOOLS.md) | 程式碼品質工具 |
+| [LSP-INSTALLATION-GUIDE.md](workflow/LSP-INSTALLATION-GUIDE.md) | PHP/Python/Rust/JS/TS LSP 安裝指南 |
 | [copy-architecture.md](workflow/copy-architecture.md) | Copy 架構說明 |

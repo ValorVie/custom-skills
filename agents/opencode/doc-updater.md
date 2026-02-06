@@ -8,7 +8,6 @@ tools:
   bash: true
   grep: true
   glob: true
-model: zai-coding-plan/glm-4.7
 ---
 
 # Documentation & Codemap Specialist
