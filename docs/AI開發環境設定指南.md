@@ -140,8 +140,8 @@ Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態�
 
 # 2. 安裝 Node.js (建議使用 nvm 管理版本)
 brew install nvm
-nvm install 20
-nvm use 20
+nvm install node
+nvm use node
 
 # 3. 確認 Node.js 版本 >= 20.19.0
 node --version
@@ -1126,10 +1126,30 @@ Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\command\antigr
 
 ### Codex
 
-#### 安裝
+#### 自動安裝（推薦）
+
+`ai-dev install` 會自動檢查並安裝 Codex CLI（需要已安裝 Bun）：
 
 ```shell
-npm install -g @openai/codex@latest
+ai-dev install
+```
+
+若 Bun 未安裝，系統會顯示安裝指引。你也可以手動安裝 Bun：
+
+```shell
+# macOS / Linux
+curl -fsSL https://bun.sh/install | bash
+
+# Windows (PowerShell)
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+#### 手動安裝
+
+如果你想手動安裝 Codex：
+
+```shell
+bun install -g @openai/codex
 ```
 
 #### 複製 Skills

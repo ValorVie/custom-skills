@@ -47,9 +47,15 @@ NPM_PACKAGES = [
     "skills",
 ]
 
+BUN_PACKAGES = [
+    "@openai/codex",
+]
+
+
 def get_ecc_dir() -> Path:
     """回傳 everything-claude-code 儲存庫的本地路徑。"""
     from .paths import get_config_dir
+
     return get_config_dir() / "everything-claude-code"
 
 
@@ -173,8 +179,12 @@ def update_claude_code() -> None:
         # 提醒切換到 native 安裝
         console.print()
         console.print("[yellow]💡 建議切換到 native 安裝方式以獲得自動更新：[/yellow]")
-        console.print("[dim]   1. 移除 npm 版本: npm uninstall -g @anthropic-ai/claude-code[/dim]")
-        console.print("[dim]   2. 安裝 native 版本: curl -fsSL https://claude.ai/install.sh | bash[/dim]")
+        console.print(
+            "[dim]   1. 移除 npm 版本: npm uninstall -g @anthropic-ai/claude-code[/dim]"
+        )
+        console.print(
+            "[dim]   2. 安裝 native 版本: curl -fsSL https://claude.ai/install.sh | bash[/dim]"
+        )
         console.print()
     else:
         # native 安裝使用 claude update 強制更新
@@ -196,7 +206,9 @@ def show_claude_install_instructions() -> None:
     console.print()
     console.print("[dim]其他安裝方式：[/dim]")
     console.print("[dim]  - Homebrew (macOS): brew install --cask claude-code[/dim]")
-    console.print("[dim]  - WinGet (Windows): winget install Anthropic.ClaudeCode[/dim]")
+    console.print(
+        "[dim]  - WinGet (Windows): winget install Anthropic.ClaudeCode[/dim]"
+    )
     console.print("[dim]  - 參考文件: https://code.claude.com/docs[/dim]")
     console.print()
 
@@ -249,6 +261,7 @@ def get_npm_package_version(package_name: str) -> str | None:
         )
         if result.returncode == 0:
             import json
+
             data = json.loads(result.stdout)
             deps = data.get("dependencies", {})
             if clean_name in deps:
@@ -266,6 +279,7 @@ def check_uds_initialized() -> bool:
         bool: True 表示已初始化（存在 .standards 目錄）
     """
     from pathlib import Path
+
     cwd = Path.cwd()
     return (cwd / ".standards").exists()
 
@@ -584,7 +598,11 @@ def copy_custom_skills_to_targets(
             "name": "Antigravity",
             "resources": [
                 ("skills", src_skills, COPY_TARGETS["antigravity"]["skills"]),
-                ("workflows", src_cmd_antigravity, COPY_TARGETS["antigravity"]["workflows"]),
+                (
+                    "workflows",
+                    src_cmd_antigravity,
+                    COPY_TARGETS["antigravity"]["workflows"],
+                ),
             ],
         },
         "opencode": {
@@ -688,9 +706,14 @@ def copy_custom_skills_to_targets(
         # 5. 執行複製並記錄
         for resource_type, src, dst in config["resources"]:
             _copy_with_log(
-                src, dst, resource_type, target_name,
+                src,
+                dst,
+                resource_type,
+                target_name,
                 tracker=tracker,
-                skip_names=skip_names if resource_type in ["skills", "commands", "agents", "workflows"] else None,
+                skip_names=skip_names
+                if resource_type in ["skills", "commands", "agents", "workflows"]
+                else None,
                 source="custom-skills",
             )
 
@@ -710,7 +733,9 @@ def copy_custom_skills_to_targets(
                         # 保留舊的 hash 到新 manifest
                         if resource_type not in new_manifest["files"]:
                             new_manifest["files"][resource_type] = {}
-                        new_manifest["files"][resource_type][name] = old_files[resource_type][name]
+                        new_manifest["files"][resource_type][name] = old_files[
+                            resource_type
+                        ][name]
 
         # 8. 清理孤兒檔案
         # 注意：跳過的衝突檔案不應被視為孤兒（因為已在步驟 7 中加回 manifest）
@@ -734,7 +759,9 @@ def _prescan_custom_repos(
 
     custom_repos = load_custom_repos().get("repos", {})
     for repo_name, repo_info in custom_repos.items():
-        local_path = Path(repo_info.get("local_path", "").replace("~", str(Path.home())))
+        local_path = Path(
+            repo_info.get("local_path", "").replace("~", str(Path.home()))
+        )
         if not local_path.exists():
             continue
         _scan_repo_resources(local_path, target, record_method_map, source=repo_name)
@@ -757,10 +784,14 @@ def _scan_repo_resources(
                     record(item.name, item, source=source)
 
     # Commands（按平台子目錄）
-    _scan_platform_resources(repo_dir / "commands", target, "commands", record_method_map, source)
+    _scan_platform_resources(
+        repo_dir / "commands", target, "commands", record_method_map, source
+    )
 
     # Agents（按平台子目錄）
-    _scan_platform_resources(repo_dir / "agents", target, "agents", record_method_map, source)
+    _scan_platform_resources(
+        repo_dir / "agents", target, "agents", record_method_map, source
+    )
 
 
 def _scan_platform_resources(
@@ -800,9 +831,13 @@ def _distribute_custom_repos(
         return
 
     for repo_name, repo_info in custom_repos.items():
-        local_path = Path(repo_info.get("local_path", "").replace("~", str(Path.home())))
+        local_path = Path(
+            repo_info.get("local_path", "").replace("~", str(Path.home()))
+        )
         if not local_path.exists():
-            console.print(f"  [yellow]⚠ Custom repo 目錄不存在，跳過: {repo_name} ({local_path})[/yellow]")
+            console.print(
+                f"  [yellow]⚠ Custom repo 目錄不存在，跳過: {repo_name} ({local_path})[/yellow]"
+            )
             continue
 
         console.print(f"  [bold cyan]分發 custom repo: {repo_name}[/bold cyan]")
@@ -813,8 +848,13 @@ def _distribute_custom_repos(
             skills_dst = COPY_TARGETS.get(target, {}).get("skills")
             if skills_dst:
                 _copy_with_log(
-                    skills_src, skills_dst, "skills", target_name,
-                    tracker=tracker, skip_names=skip_names, source=repo_name,
+                    skills_src,
+                    skills_dst,
+                    "skills",
+                    target_name,
+                    tracker=tracker,
+                    skip_names=skip_names,
+                    source=repo_name,
                 )
 
         # Commands（按平台子目錄）
@@ -823,8 +863,13 @@ def _distribute_custom_repos(
             cmd_dst = COPY_TARGETS.get(target, {}).get("commands")
             if cmd_dst:
                 _copy_with_log(
-                    cmd_src, cmd_dst, "commands", target_name,
-                    tracker=tracker, skip_names=skip_names, source=repo_name,
+                    cmd_src,
+                    cmd_dst,
+                    "commands",
+                    target_name,
+                    tracker=tracker,
+                    skip_names=skip_names,
+                    source=repo_name,
                 )
 
         # Agents（按平台子目錄）
@@ -833,8 +878,13 @@ def _distribute_custom_repos(
             agents_dst = COPY_TARGETS.get(target, {}).get("agents")
             if agents_dst:
                 _copy_with_log(
-                    agents_src, agents_dst, "agents", target_name,
-                    tracker=tracker, skip_names=skip_names, source=repo_name,
+                    agents_src,
+                    agents_dst,
+                    "agents",
+                    target_name,
+                    tracker=tracker,
+                    skip_names=skip_names,
+                    source=repo_name,
                 )
 
 
@@ -876,13 +926,17 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         )
         return
 
-    console.print(f"[bold yellow]  偵測到 custom-skills 專案：{shorten_path(project_root)}[/bold yellow]")
+    console.print(
+        f"[bold yellow]  偵測到 custom-skills 專案：{shorten_path(project_root)}[/bold yellow]"
+    )
 
     # Skills → Project
     if src_skills.exists():
         dst_project_skills = project_root / "skills"
         console.print(f"  [green]skills[/green] → [cyan]專案目錄[/cyan]")
-        console.print(f"    [dim]{shorten_path(src_skills)} → {shorten_path(dst_project_skills)}[/dim]")
+        console.print(
+            f"    [dim]{shorten_path(src_skills)} → {shorten_path(dst_project_skills)}[/dim]"
+        )
         dst_project_skills.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src_skills, dst_project_skills, dirs_exist_ok=True)
         clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
@@ -892,7 +946,9 @@ def _sync_to_project_directory(src_skills: Path) -> None:
     if src_commands.exists():
         dst_project_commands = project_root / "commands"
         console.print(f"  [green]commands[/green] → [cyan]專案目錄[/cyan]")
-        console.print(f"    [dim]{shorten_path(src_commands)} → {shorten_path(dst_project_commands)}[/dim]")
+        console.print(
+            f"    [dim]{shorten_path(src_commands)} → {shorten_path(dst_project_commands)}[/dim]"
+        )
         shutil.copytree(src_commands, dst_project_commands, dirs_exist_ok=True)
 
     # Agents → Project
@@ -900,7 +956,9 @@ def _sync_to_project_directory(src_skills: Path) -> None:
     if src_agents_all.exists():
         dst_project_agents = project_root / "agents"
         console.print(f"  [green]agents[/green] → [cyan]專案目錄[/cyan]")
-        console.print(f"    [dim]{shorten_path(src_agents_all)} → {shorten_path(dst_project_agents)}[/dim]")
+        console.print(
+            f"    [dim]{shorten_path(src_agents_all)} → {shorten_path(dst_project_agents)}[/dim]"
+        )
         shutil.copytree(src_agents_all, dst_project_agents, dirs_exist_ok=True)
 
 
@@ -1079,7 +1137,9 @@ def get_disabled_base_dir() -> Path:
     return get_custom_skills_dir() / "disabled"
 
 
-def get_disabled_path(target: TargetType, resource_type: ResourceType, name: str) -> Path:
+def get_disabled_path(
+    target: TargetType, resource_type: ResourceType, name: str
+) -> Path:
     """取得特定資源在 disabled 目錄中的路徑。
 
     Args:
@@ -1308,7 +1368,9 @@ def enable_resource(
     else:
         # disabled 中不存在，從來源重新複製
         if not quiet:
-            console.print(f"[dim]disabled 目錄中不存在 {name}，嘗試從來源重新複製...[/dim]")
+            console.print(
+                f"[dim]disabled 目錄中不存在 {name}，嘗試從來源重新複製...[/dim]"
+            )
         if not copy_single_resource(target, resource_type, name):
             if not quiet:
                 console.print(f"[red]無法找到資源 {name} 的來源[/red]")
@@ -1461,7 +1523,9 @@ def save_toggle_config(config: dict) -> None:
     """儲存 toggle 配置檔。"""
     TOGGLE_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(TOGGLE_CONFIG_PATH, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        yaml.dump(
+            config, f, allow_unicode=True, default_flow_style=False, sort_keys=False
+        )
 
 
 def is_resource_enabled(
@@ -1527,9 +1591,13 @@ def get_source_skills() -> dict[str, set[str]]:
     custom_path = get_custom_skills_dir() / "skills"
     if custom_path.exists():
         # 排除來自其他來源的
-        all_known = sources["uds"] | sources["obsidian"] | sources["anthropic"] | sources["ecc"]
+        all_known = (
+            sources["uds"] | sources["obsidian"] | sources["anthropic"] | sources["ecc"]
+        )
         sources["custom"] = {
-            d.name for d in custom_path.iterdir() if d.is_dir() and d.name not in all_known
+            d.name
+            for d in custom_path.iterdir()
+            if d.is_dir() and d.name not in all_known
         }
     else:
         sources["custom"] = set()
@@ -1582,7 +1650,8 @@ def get_source_commands() -> dict[str, set[str]]:
     if custom_cmd_claude.exists():
         # 排除 ECC 來源
         sources["custom"] = {
-            f.stem for f in custom_cmd_claude.iterdir()
+            f.stem
+            for f in custom_cmd_claude.iterdir()
             if f.is_file() and f.suffix == ".md" and f.stem not in sources["ecc"]
         }
     else:
@@ -1626,14 +1695,18 @@ def get_source_agents() -> dict[str, set[str]]:
     claude_agents_dir = get_custom_skills_dir() / "agents" / "claude"
     if claude_agents_dir.exists():
         all_agents.update(
-            f.stem for f in claude_agents_dir.iterdir() if f.is_file() and f.suffix == ".md"
+            f.stem
+            for f in claude_agents_dir.iterdir()
+            if f.is_file() and f.suffix == ".md"
         )
 
     # OpenCode agents
     opencode_agents_dir = get_custom_skills_dir() / "agents" / "opencode"
     if opencode_agents_dir.exists():
         all_agents.update(
-            f.stem for f in opencode_agents_dir.iterdir() if f.is_file() and f.suffix == ".md"
+            f.stem
+            for f in opencode_agents_dir.iterdir()
+            if f.is_file() and f.suffix == ".md"
         )
 
     # 排除 ECC 來源
@@ -1693,7 +1766,9 @@ def list_installed_resources(
 
     result = {}
 
-    targets = [target] if target else ["claude", "antigravity", "opencode", "codex", "gemini"]
+    targets = (
+        [target] if target else ["claude", "antigravity", "opencode", "codex", "gemini"]
+    )
     type_mapping = {
         "claude": ["skills", "commands", "agents", "workflows"],
         "antigravity": ["skills", "workflows"],
@@ -1719,11 +1794,13 @@ def list_installed_resources(
                         # 過濾隱藏目錄（如 .system）
                         if item.is_dir() and not item.name.startswith("."):
                             source = identify_source(item.name, skill_sources)
-                            items.append({
-                                "name": item.name,
-                                "source": source,
-                                "disabled": False,
-                            })
+                            items.append(
+                                {
+                                    "name": item.name,
+                                    "source": source,
+                                    "disabled": False,
+                                }
+                            )
                             seen_names.add(item.name)
                 # Commands, Workflows, Agents 是 .md 檔案
                 else:
@@ -1738,11 +1815,13 @@ def list_installed_resources(
                         if item.is_file() and item.suffix == ".md":
                             name = item.stem
                             source = identify_source(name, sources)
-                            items.append({
-                                "name": name,
-                                "source": source,
-                                "disabled": False,
-                            })
+                            items.append(
+                                {
+                                    "name": name,
+                                    "source": source,
+                                    "disabled": False,
+                                }
+                            )
                             seen_names.add(name)
 
             # 2. 再列出被停用的資源（disabled 目錄）
@@ -1760,11 +1839,13 @@ def list_installed_resources(
                         sources = sources_map.get(rt, {})
                         source = identify_source(name, sources)
 
-                    items.append({
-                        "name": name,
-                        "source": source,
-                        "disabled": True,
-                    })
+                    items.append(
+                        {
+                            "name": name,
+                            "source": source,
+                            "disabled": True,
+                        }
+                    )
 
             # 排序：先依啟用狀態（啟用在前），再依名稱
             items.sort(key=lambda x: (x["disabled"], x["name"]))
@@ -1963,7 +2044,9 @@ def show_ecc_hooks_status() -> None:
     console.print()
 
     if status["installed"]:
-        console.print(f"[green]✓ Installed[/green] at {shorten_path(status['plugin_path'])}")
+        console.print(
+            f"[green]✓ Installed[/green] at {shorten_path(status['plugin_path'])}"
+        )
         if status["hooks_json_path"]:
             console.print(f"  Config: {shorten_path(status['hooks_json_path'])}")
     else:

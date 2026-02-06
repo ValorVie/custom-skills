@@ -4,7 +4,10 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from rich.console import Console
-from ..utils.system import run_command
+from ..utils.system import (
+    run_command,
+    check_bun_installed,
+)
 from ..utils.paths import (
     get_custom_skills_dir,
     get_superpowers_dir,
@@ -14,7 +17,12 @@ from ..utils.paths import (
     get_anthropic_skills_dir,
     get_ecc_dir,
 )
-from ..utils.shared import NPM_PACKAGES, update_claude_code, check_uds_initialized
+from ..utils.shared import (
+    NPM_PACKAGES,
+    BUN_PACKAGES,
+    update_claude_code,
+    check_uds_initialized,
+)
 
 app = typer.Typer()
 console = Console()
@@ -143,7 +151,9 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
             backed_up += 1
 
     if backed_up > 0:
-        console.print(f"[yellow]已備份 {backed_up} 個已修改檔案到 {backup_dir}[/yellow]")
+        console.print(
+            f"[yellow]已備份 {backed_up} 個已修改檔案到 {backup_dir}[/yellow]"
+        )
         return True
     return False
 
@@ -151,6 +161,7 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
 @app.command()
 def update(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
+    skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件更新"),
     skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
 ):
     """更新工具與拉取儲存庫。
@@ -186,12 +197,23 @@ def update(
             console.print("[green]正在更新專案 Standards...[/green]")
             run_command(["uds", "update"], check=False)
         else:
-            console.print(
-                "[dim]ℹ️  當前目錄未初始化 Standards（跳過 uds update）[/dim]"
-            )
-            console.print(
-                "[dim]   如需在此專案使用，請執行: uds init[/dim]"
-            )
+            console.print("[dim]ℹ️  當前目錄未初始化 Standards（跳過 uds update）[/dim]")
+            console.print("[dim]   如需在此專案使用，請執行: uds init[/dim]")
+
+    # 2.5 更新 Bun 套件
+    if skip_bun:
+        console.print("[yellow]跳過 Bun 套件更新[/yellow]")
+    else:
+        console.print("[green]正在更新 Bun 套件...[/green]")
+        if check_bun_installed():
+            total = len(BUN_PACKAGES)
+            for i, package in enumerate(BUN_PACKAGES, 1):
+                console.print(
+                    f"[bold cyan][{i}/{total}] 正在更新 {package}...[/bold cyan]"
+                )
+                run_command(["bun", "install", "-g", package])
+        else:
+            console.print("[yellow]⚠️  Bun 未安裝，跳過 Bun 套件更新[/yellow]")
 
     # 3. 更新儲存庫
     if skip_repos:
@@ -230,7 +252,9 @@ def update(
                 if has_local_changes(repo):
                     backup_dirty_files(repo, backup_root)
                 # 強制更新：重置到當前分支對應的遠端分支
-                remote_ref = f"origin/{current_branch}" if current_branch else "origin/HEAD"
+                remote_ref = (
+                    f"origin/{current_branch}" if current_branch else "origin/HEAD"
+                )
                 run_command(
                     ["git", "reset", "--hard", remote_ref],
                     cwd=str(repo),
@@ -252,9 +276,7 @@ def update(
                 continue
             branch = repo_info.get("branch", "main")
             console.print(f"正在更新 {local_path} ({branch})...")
-            run_command(
-                ["git", "fetch", "--all"], cwd=str(local_path), check=False
-            )
+            run_command(["git", "fetch", "--all"], cwd=str(local_path), check=False)
             has_updates = check_for_updates(local_path, branch)
             if has_updates:
                 updated_repos.append(repo_name)

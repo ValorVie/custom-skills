@@ -1,8 +1,15 @@
+import subprocess
 from pathlib import Path
 
 import typer
 from rich.console import Console
-from ..utils.system import run_command, check_command_exists
+from ..utils.system import (
+    run_command,
+    check_command_exists,
+    check_bun_installed,
+    get_bun_version,
+    get_bun_package_version,
+)
 from ..utils.paths import (
     get_config_dir,
     get_custom_skills_dir,
@@ -18,6 +25,7 @@ from ..utils.paths import (
 )
 from ..utils.shared import (
     NPM_PACKAGES,
+    BUN_PACKAGES,
     REPOS,
     copy_skills,
     get_all_skill_names,
@@ -65,6 +73,7 @@ def _is_completion_installed(shell: str) -> bool:
 @app.command()
 def install(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件安裝"),
+    skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件安裝"),
     skip_repos: bool = typer.Option(
         False, "--skip-repos", help="跳過 Git 儲存庫 Clone"
     ),
@@ -79,15 +88,85 @@ def install(
     console.print("[bold blue]開始安裝...[/bold blue]")
 
     # 1. 檢查前置需求
+    console.print("[bold blue]檢查前置需求...[/bold blue]")
+
+    # 1.1 檢查 Node.js
     if not check_command_exists("node"):
-        console.print("[bold red]找不到 Node.js，請先安裝 Node.js。[/bold red]")
+        console.print("[bold red]✗ 找不到 Node.js[/bold red]")
+        console.print()
+        console.print("請先安裝 Node.js (建議版本 >= 20.19.0)：")
+        console.print()
+        console.print("[bold]macOS (使用 Homebrew)：[/bold]")
+        console.print("  brew install nvm")
+        console.print("  nvm install node")
+        console.print()
+        console.print("[bold]Windows：[/bold]")
+        console.print("  下載並安裝：https://nodejs.org/ (選擇 LTS 版本)")
+        console.print()
         raise typer.Exit(code=1)
+    else:
+        # 檢查 Node.js 版本
+        try:
+            result = subprocess.run(
+                ["node", "--version"], capture_output=True, text=True, timeout=5
+            )
+            node_version = result.stdout.strip().replace("v", "")
+            console.print(f"[green]✓[/green] Node.js {node_version}")
 
+            # 簡單版本檢查（主要檢查是否 >= 20.x）
+            major_version = int(node_version.split(".")[0])
+            if major_version < 20:
+                console.print("[yellow]⚠️  Node.js 版本建議 >= 20.19.0[/yellow]")
+                console.print("   當前版本可能無法正常使用某些功能")
+                console.print()
+        except Exception:
+            console.print("[green]✓[/green] Node.js 已安裝")
+
+    # 1.2 檢查 Git
     if not check_command_exists("git"):
-        console.print("[bold red]找不到 Git，請先安裝 Git。[/bold red]")
+        console.print("[bold red]✗ 找不到 Git[/bold red]")
+        console.print()
+        console.print("請先安裝 Git：")
+        console.print()
+        console.print("[bold]macOS (使用 Homebrew)：[/bold]")
+        console.print("  brew install git")
+        console.print()
+        console.print("[bold]Windows：[/bold]")
+        console.print("  下載並安裝：https://git-scm.com/download/win")
+        console.print()
         raise typer.Exit(code=1)
+    else:
+        console.print("[green]✓[/green] Git 已安裝")
 
-    # 1.1 檢查 Claude Code 安裝狀態（顯示詳細資訊）
+    # 1.3 檢查 GitHub CLI (gh) - 選用但推薦
+    if not check_command_exists("gh"):
+        console.print("[yellow]⚠️  未檢測到 GitHub CLI (gh)[/yellow]")
+        console.print("   建議安裝以便使用 PR 管理功能")
+        console.print()
+        console.print("[dim]安裝方式：[/dim]")
+        console.print("[dim]  macOS: brew install gh && gh auth login[/dim]")
+        console.print(
+            "[dim]  Windows: winget install GitHub.cli && gh auth login[/dim]"
+        )
+        console.print()
+    else:
+        console.print("[green]✓[/green] GitHub CLI 已安裝")
+
+    # 1.4 檢查 Bun - 選用（用於 Codex）
+    if not check_bun_installed():
+        console.print("[yellow]⚠️  未檢測到 Bun[/yellow]")
+        console.print("   建議安裝以便自動安裝 Codex CLI")
+        console.print()
+        console.print("[dim]安裝方式：[/dim]")
+        console.print("[dim]  curl -fsSL https://bun.sh/install | bash[/dim]")
+        console.print()
+    else:
+        bun_version = get_bun_version()
+        console.print(f"[green]✓[/green] Bun {bun_version}")
+
+    console.print()
+
+    # 1.5 檢查 Claude Code 安裝狀態（顯示詳細資訊）
     show_claude_status()
 
     # 2. 安裝全域 NPM 套件
@@ -105,8 +184,47 @@ def install(
                     f"[dim](已安裝 v{existing_version}，檢查更新...)[/dim]"
                 )
             else:
-                console.print(f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]")
+                console.print(
+                    f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]"
+                )
             run_command(["npm", "install", "-g", package])
+
+    # 2.5 安裝 Bun 套件
+    if skip_bun:
+        console.print("[yellow]跳過 Bun 套件安裝[/yellow]")
+    else:
+        console.print("[green]正在檢查 Bun...[/green]")
+        if not check_bun_installed():
+            console.print("[yellow]⚠️  未檢測到 Bun。[/yellow]")
+            console.print()
+            console.print("Codex CLI 需要 Bun 才能安裝。請選擇以下方式之一安裝：")
+            console.print()
+            console.print("[bold]macOS / Linux：[/bold]")
+            console.print("  curl -fsSL https://bun.sh/install | bash")
+            console.print()
+            console.print("[bold]Windows (PowerShell)：[/bold]")
+            console.print('  powershell -c "irm bun.sh/install.ps1 | iex"')
+            console.print()
+            console.print("安裝完成後，請重新執行 `ai-dev install`")
+            console.print()
+            console.print("[yellow]跳過 Codex 安裝[/yellow]")
+        else:
+            bun_version = get_bun_version()
+            console.print(f"[dim]✓ Bun 已安裝 ({bun_version})[/dim]")
+            console.print("[green]正在安裝 Bun 套件...[/green]")
+            total = len(BUN_PACKAGES)
+            for i, package in enumerate(BUN_PACKAGES, 1):
+                existing_version = get_bun_package_version(package)
+                if existing_version:
+                    console.print(
+                        f"[bold cyan][{i}/{total}][/bold cyan] {package} "
+                        f"[dim](已安裝 v{existing_version}，檢查更新...)[/dim]"
+                    )
+                else:
+                    console.print(
+                        f"[bold cyan][{i}/{total}] 正在安裝 {package}...[/bold cyan]"
+                    )
+                run_command(["bun", "install", "-g", package])
 
     # 3. 建立目錄
     console.print("[green]正在建立目錄...[/green]")
@@ -183,12 +301,16 @@ def install(
 
     # 6. 顯示已安裝的 Skills 警告
     console.print()
-    console.print("[yellow]⚠️ 已安裝的 Skills（建立自訂 skill 時請避免使用重複名稱）：[/yellow]")
+    console.print(
+        "[yellow]⚠️ 已安裝的 Skills（建立自訂 skill 時請避免使用重複名稱）：[/yellow]"
+    )
     skill_names = get_all_skill_names()
     for name in skill_names:
         console.print(f"   - {name}")
     console.print()
-    console.print("[dim]提示：使用獨特前綴（如 user-、local-、公司名-）來避免名稱衝突[/dim]")
+    console.print(
+        "[dim]提示：使用獨特前綴（如 user-、local-、公司名-）來避免名稱衝突[/dim]"
+    )
 
     # 7. 顯示 npx skills 提示
     show_skills_npm_hint()
@@ -208,9 +330,7 @@ def install(
                 "[yellow]無法偵測 Shell 類型，請手動執行：ai-dev --install-completion[/yellow]"
             )
         elif _is_completion_installed(shell_name):
-            console.print(
-                f"[dim]{shell_name} 自動補全已安裝，跳過[/dim]"
-            )
+            console.print(f"[dim]{shell_name} 自動補全已安裝，跳過[/dim]")
         else:
             shell, path = _install_completion(prog_name="ai-dev")
             console.print(

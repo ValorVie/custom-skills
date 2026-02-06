@@ -104,12 +104,13 @@ ai-dev install
 1. 檢查 Node.js 與 Git。
 2. 檢查 Claude Code CLI 是否已安裝（若無則顯示安裝指引）。
 3. 安裝全域 NPM 工具 (`openspec`, `gemini-cli`, `skills` 等)。
-4. Clone 必要的設定儲存庫到 `~/.config/` （Stage 1）。
-5. Clone 已設定的自訂 repo（若有）。
-6. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
-7. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
-8. 顯示已安裝的 Skills 清單與重複名稱警告。
-9. 顯示 `npx skills` 可用指令提示。
+4. 檢查 Bun 是否已安裝，若已安裝則自動安裝 Codex CLI。
+5. Clone 必要的設定儲存庫到 `~/.config/` （Stage 1）。
+6. Clone 已設定的自訂 repo（若有）。
+7. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
+8. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
+9. 顯示已安裝的 Skills 清單與重複名稱警告。
+10. 顯示 `npx skills` 可用指令提示。
 
 > **注意**：Claude Code 需要使用 native 安裝方式，不再透過 NPM 安裝。
 
@@ -118,6 +119,7 @@ ai-dev install
 | 參數 | 說明 |
 |------|------|
 | `--skip-npm` | 跳過 NPM 套件安裝 |
+| `--skip-bun` | 跳過 Bun 套件安裝（Codex） |
 | `--skip-repos` | 跳過 Git 儲存庫 Clone |
 | `--skip-skills` | 跳過複製 Skills |
 | `--sync-project/--no-sync-project` | 是否同步到專案目錄（預設：是） |
@@ -142,8 +144,9 @@ ai-dev update
 這會自動：
 1. 更新 Claude Code（若已安裝）。
 2. 更新全域 NPM 工具。
-3. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
-4. 更新已設定的自訂 repo。
+3. 更新 Codex CLI（若 Bun 已安裝）。
+4. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
+5. 更新已設定的自訂 repo。
 
 > **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
 
@@ -152,6 +155,7 @@ ai-dev update
 | 參數 | 說明 |
 |------|------|
 | `--skip-npm` | 跳過 NPM 套件更新（含 Claude Code） |
+| `--skip-bun` | 跳過 Bun 套件更新（Codex） |
 | `--skip-repos` | 跳過 Git 儲存庫更新 |
 
 **範例：**
