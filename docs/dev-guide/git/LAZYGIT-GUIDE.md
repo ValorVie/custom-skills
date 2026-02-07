@@ -62,6 +62,25 @@ sudo dnf copr enable dejan/lazygit
 sudo dnf install lazygit
 ```
 
+### 用 Go 安裝（適合 apt 套件過舊）
+
+```bash
+go install github.com/jesseduffield/lazygit@latest
+```
+
+若安裝後找不到指令，確認 `go/bin` 在 PATH：
+
+```bash
+export PATH="$HOME/go/bin:$PATH"
+```
+
+Windows（PowerShell）可檢查：
+
+```powershell
+# 典型路徑為 %USERPROFILE%\go\bin
+$env:Path
+```
+
 ### 驗證版本
 
 ```bash
