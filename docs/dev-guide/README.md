@@ -21,6 +21,7 @@
 | 文件 | 說明 |
 |------|------|
 | [GIT-WORKFLOW.md](git/GIT-WORKFLOW.md) | Git 工作流程指南 |
+| [LAZYGIT-GUIDE.md](git/LAZYGIT-GUIDE.md) | Lazygit 終端 Git UI 教學（安裝/設定/工作流） |
 | [GIT-REMOVE-SENSITIVE-FILES.md](git/GIT-REMOVE-SENSITIVE-FILES.md) | 從 Git 歷史移除敏感檔案 |
 | [Git Submodule 操作指南.md](git/Git%20Submodule%20操作指南.md) | Git Submodule 操作指南 |
 
@@ -29,6 +30,7 @@
 | 文件 | 說明 |
 |------|------|
 | [ALACRITTY-GUIDE.md](terminal/ALACRITTY-GUIDE.md) | Alacritty GPU 加速終端模擬器指南 |
+| [YAZI-GUIDE.md](terminal/YAZI-GUIDE.md) | Yazi 終端檔案管理器教學（安裝/設定/使用） |
 | [ZELLIJ-GUIDE.md](terminal/ZELLIJ-GUIDE.md) | Zellij 終端多工器指南 |
 
 ## 開發流程與架構 (`workflow/`)
@@ -36,6 +38,7 @@
 | 文件 | 說明 |
 |------|------|
 | [DEVELOPMENT-WORKFLOW.md](workflow/DEVELOPMENT-WORKFLOW.md) | 開發工作流程 |
+| [VIBE-CODING-DEV-STACK-FRAMEWORK.md](workflow/VIBE-CODING-DEV-STACK-FRAMEWORK.md) | Vibe Coding 開發堆疊框架與工作流 |
 | [CODE-QUALITY-TOOLS.md](workflow/CODE-QUALITY-TOOLS.md) | 程式碼品質工具 |
 | [LSP-INSTALLATION-GUIDE.md](workflow/LSP-INSTALLATION-GUIDE.md) | PHP/Python/Rust/JS/TS LSP 安裝指南 |
 | [copy-architecture.md](workflow/copy-architecture.md) | Copy 架構說明 |
