@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #322 | 9:10 PM | 🔵 | ECC-hooks-opencode plugin implements 10 event hooks with session-level state tracking | ~930 |
 | #226 | 7:06 PM | 🔵 | Custom-skills implements ecc-hooks-opencode plugin wrapping ECC scripts for OpenCode platform | ~762 |
 </claude-mem-context>

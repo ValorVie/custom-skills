@@ -107,7 +107,7 @@ export const EccHooksPlugin: Plugin = async ({ $, directory }) => {
     // ================================================================
     "tool.execute.before": async (input, output) => {
       const tool = input.tool;
-      const args = input.args as Record<string, unknown>;
+      const args = (input.args ?? {}) as Record<string, unknown>;
 
       // --- Bash command interception ---
       if (tool === "bash") {
@@ -152,7 +152,7 @@ export const EccHooksPlugin: Plugin = async ({ $, directory }) => {
     // ================================================================
     "tool.execute.after": async (input) => {
       const tool = input.tool;
-      const args = input.args as Record<string, unknown>;
+      const args = (input.args ?? {}) as Record<string, unknown>;
 
       // --- Post-edit code quality checks ---
       if (tool === "edit" || tool === "write") {
