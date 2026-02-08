@@ -2,8 +2,8 @@
   "version": "3.3.0",
   "upstream": {
     "repo": "AsiaOstrich/universal-dev-standards",
-    "version": "4.3.0-alpha.1",
-    "installed": "2026-01-29"
+    "version": "4.2.0",
+    "installed": "2026-02-08"
   },
   "level": 3,
   "format": "ai",
@@ -13,7 +13,7 @@
     "ai/standards/anti-hallucination.ai.yaml",
     "ai/standards/ai-friendly-architecture.ai.yaml",
     "ai/standards/commit-message.ai.yaml",
-    "ai/options/commit-message/english.ai.yaml",
+    "ai/options/commit-message/traditional-chinese.ai.yaml",
     "ai/standards/checkin-standards.ai.yaml",
     "ai/standards/spec-driven-development.ai.yaml",
     "ai/standards/code-review.ai.yaml",
@@ -25,6 +25,8 @@
     "ai/standards/testing.ai.yaml",
     "ai/options/testing/unit-testing.ai.yaml",
     "ai/options/testing/integration-testing.ai.yaml",
+    "ai/options/testing/system-testing.ai.yaml",
+    "ai/options/testing/e2e-testing.ai.yaml",
     "ai/standards/documentation-structure.ai.yaml",
     "ai/standards/documentation-writing-standards.ai.yaml",
     "ai/standards/ai-instruction-standards.ai.yaml",
@@ -37,44 +39,179 @@
     "ai/standards/acceptance-test-driven-development.ai.yaml",
     "ai/standards/reverse-engineering-standards.ai.yaml",
     "ai/standards/forward-derivation-standards.ai.yaml",
-    "ai/standards/ai-agreement-standards.ai.yaml",
-    "ai/standards/virtual-organization-standards.ai.yaml",
     "ai/standards/refactoring-standards.ai.yaml",
-    "ai/standards/requirement-engineering.ai.yaml",
-    "ai/standards/security-standards.ai.yaml",
-    "ai/standards/performance-standards.ai.yaml",
-    "ai/standards/accessibility-standards.ai.yaml",
     "templates/requirement-checklist.md",
     "templates/requirement-template.md",
     "templates/requirement-document-template.md"
   ],
-  "extensions": [],
+  "extensions": [
+    "extensions/locales/zh-tw.md"
+  ],
   "integrations": [
-    "GEMINI.md",
-    "CLAUDE.md"
+    ".github/copilot-instructions.md",
+    "INSTRUCTIONS.md",
+    "AGENTS.md"
   ],
   "integrationConfigs": {
-    "GEMINI.md": {
-      "tool": "geminiCli",
-      "targetPath": "GEMINI.md"
+    ".github/copilot-instructions.md": {
+      "tool": "copilot",
+      "categories": [
+        "anti-hallucination",
+        "commit-standards",
+        "code-review"
+      ],
+      "detailLevel": "standard",
+      "language": "en",
+      "contentMode": "index",
+      "installedStandards": [
+        "anti-hallucination.ai.yaml",
+        "ai-friendly-architecture.ai.yaml",
+        "commit-message.ai.yaml",
+        "traditional-chinese.ai.yaml",
+        "checkin-standards.ai.yaml",
+        "spec-driven-development.ai.yaml",
+        "code-review.ai.yaml",
+        "git-workflow.ai.yaml",
+        "github-flow.ai.yaml",
+        "squash-merge.ai.yaml",
+        "versioning.ai.yaml",
+        "changelog.ai.yaml",
+        "testing.ai.yaml",
+        "unit-testing.ai.yaml",
+        "integration-testing.ai.yaml",
+        "system-testing.ai.yaml",
+        "e2e-testing.ai.yaml",
+        "documentation-structure.ai.yaml",
+        "documentation-writing-standards.ai.yaml",
+        "ai-instruction-standards.ai.yaml",
+        "project-structure.ai.yaml",
+        "error-codes.ai.yaml",
+        "logging.ai.yaml",
+        "test-completeness-dimensions.ai.yaml",
+        "test-driven-development.ai.yaml",
+        "behavior-driven-development.ai.yaml",
+        "acceptance-test-driven-development.ai.yaml",
+        "reverse-engineering-standards.ai.yaml",
+        "forward-derivation-standards.ai.yaml",
+        "refactoring-standards.ai.yaml",
+        "requirement-checklist.md",
+        "requirement-template.md",
+        "requirement-document-template.md"
+      ],
+      "generatedAt": "2026-02-08T07:40:58.185Z"
     },
-    "CLAUDE.md": {
-      "tool": "claudeCode",
-      "targetPath": "CLAUDE.md"
+    "INSTRUCTIONS.md": {
+      "tool": "antigravity",
+      "categories": [
+        "anti-hallucination",
+        "commit-standards",
+        "code-review"
+      ],
+      "detailLevel": "standard",
+      "language": "en",
+      "contentMode": "index",
+      "installedStandards": [
+        "anti-hallucination.ai.yaml",
+        "ai-friendly-architecture.ai.yaml",
+        "commit-message.ai.yaml",
+        "traditional-chinese.ai.yaml",
+        "checkin-standards.ai.yaml",
+        "spec-driven-development.ai.yaml",
+        "code-review.ai.yaml",
+        "git-workflow.ai.yaml",
+        "github-flow.ai.yaml",
+        "squash-merge.ai.yaml",
+        "versioning.ai.yaml",
+        "changelog.ai.yaml",
+        "testing.ai.yaml",
+        "unit-testing.ai.yaml",
+        "integration-testing.ai.yaml",
+        "system-testing.ai.yaml",
+        "e2e-testing.ai.yaml",
+        "documentation-structure.ai.yaml",
+        "documentation-writing-standards.ai.yaml",
+        "ai-instruction-standards.ai.yaml",
+        "project-structure.ai.yaml",
+        "error-codes.ai.yaml",
+        "logging.ai.yaml",
+        "test-completeness-dimensions.ai.yaml",
+        "test-driven-development.ai.yaml",
+        "behavior-driven-development.ai.yaml",
+        "acceptance-test-driven-development.ai.yaml",
+        "reverse-engineering-standards.ai.yaml",
+        "forward-derivation-standards.ai.yaml",
+        "refactoring-standards.ai.yaml",
+        "requirement-checklist.md",
+        "requirement-template.md",
+        "requirement-document-template.md"
+      ],
+      "generatedAt": "2026-02-08T07:40:58.185Z"
+    },
+    "AGENTS.md": {
+      "tool": "codex",
+      "categories": [
+        "anti-hallucination",
+        "commit-standards",
+        "code-review"
+      ],
+      "detailLevel": "standard",
+      "language": "en",
+      "contentMode": "index",
+      "installedStandards": [
+        "anti-hallucination.ai.yaml",
+        "ai-friendly-architecture.ai.yaml",
+        "commit-message.ai.yaml",
+        "traditional-chinese.ai.yaml",
+        "checkin-standards.ai.yaml",
+        "spec-driven-development.ai.yaml",
+        "code-review.ai.yaml",
+        "git-workflow.ai.yaml",
+        "github-flow.ai.yaml",
+        "squash-merge.ai.yaml",
+        "versioning.ai.yaml",
+        "changelog.ai.yaml",
+        "testing.ai.yaml",
+        "unit-testing.ai.yaml",
+        "integration-testing.ai.yaml",
+        "system-testing.ai.yaml",
+        "e2e-testing.ai.yaml",
+        "documentation-structure.ai.yaml",
+        "documentation-writing-standards.ai.yaml",
+        "ai-instruction-standards.ai.yaml",
+        "project-structure.ai.yaml",
+        "error-codes.ai.yaml",
+        "logging.ai.yaml",
+        "test-completeness-dimensions.ai.yaml",
+        "test-driven-development.ai.yaml",
+        "behavior-driven-development.ai.yaml",
+        "acceptance-test-driven-development.ai.yaml",
+        "reverse-engineering-standards.ai.yaml",
+        "forward-derivation-standards.ai.yaml",
+        "refactoring-standards.ai.yaml",
+        "requirement-checklist.md",
+        "requirement-template.md",
+        "requirement-document-template.md"
+      ],
+      "generatedAt": "2026-02-08T07:40:58.185Z"
     }
   },
   "options": {
-    "display_language": "en",
     "workflow": "github-flow",
     "merge_strategy": "squash",
-    "commit_language": "english",
+    "commit_language": "traditional-chinese",
     "test_levels": [
       "unit-testing",
-      "integration-testing"
+      "integration-testing",
+      "system-testing",
+      "e2e-testing"
     ]
   },
   "aiTools": [
     "claude-code",
+    "copilot",
+    "antigravity",
+    "codex",
+    "opencode",
     "gemini-cli"
   ],
   "skills": {
@@ -99,7 +236,6 @@
       "derive-bdd",
       "derive-tdd",
       "docs",
-      "generate-docs",
       "init",
       "methodology",
       "refactor",
@@ -113,8 +249,19 @@
       "tdd",
       "update"
     ],
-    "version": "4.3.0-alpha.1",
     "installations": [
+      {
+        "agent": "claude-code",
+        "level": "project"
+      },
+      {
+        "agent": "copilot",
+        "level": "project"
+      },
+      {
+        "agent": "opencode",
+        "level": "project"
+      },
       {
         "agent": "gemini-cli",
         "level": "project"
@@ -126,329 +273,686 @@
     ".standards/anti-hallucination.ai.yaml": {
       "hash": "sha256:1a2e18d0726a329f689305b8f3813fb9896ec23286016843e8e66c660297cfe6",
       "size": 7369,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/ai-friendly-architecture.ai.yaml": {
       "hash": "sha256:43b8a7eccc5ae3026aa27d601bd0018142ffcde34130ab81175e5e28b6d2fe6a",
       "size": 5872,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/commit-message.ai.yaml": {
-      "hash": "sha256:22df410edb0bfac1e572b5a51fdaa027e1cb43e9a700c4a5b9162623dbad9ec7",
-      "size": 3178,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:28d3c07bdb15a7ef27a046e088f03bc9752e24f39d940db43fffc77134907172",
+      "size": 3640,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
-    ".standards/options/english.ai.yaml": {
-      "hash": "sha256:2c1f53cf847a8b874efa95e678a61744e25491cc491108e40ad2898dd9074ce8",
-      "size": 2204,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+    ".standards/options/traditional-chinese.ai.yaml": {
+      "hash": "sha256:d72188b4c2c8941718121138636dd9edaedc77d29a9f0da8d50ea0952d0e8a54",
+      "size": 2414,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/checkin-standards.ai.yaml": {
-      "hash": "sha256:62f02c7a035729c431989c811259a61b20c07074c9d514555f23748cf6316775",
-      "size": 4953,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:100c976741d0659f9898dec0e7a66272d6b59fc12347fc36334f6c4113198d45",
+      "size": 5349,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/spec-driven-development.ai.yaml": {
       "hash": "sha256:16e8e3bb6f086792b40cf1d9cbd9f68ccc9114d56d24555d4a6b818123dd2d4b",
       "size": 4820,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/code-review.ai.yaml": {
-      "hash": "sha256:b22458fdff2b36d65587610cc912cbe7d77820fdfecc38e34f702ed17c71267d",
-      "size": 4250,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:0a26401d32645a42367b8313868e3de466ba0833872438034ca39dee5e593cdf",
+      "size": 4663,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/git-workflow.ai.yaml": {
       "hash": "sha256:a8587127cf1e4be81a165642edb79770cec1f83a02adc2fd4f16441a47bd7b2f",
       "size": 2878,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/options/github-flow.ai.yaml": {
       "hash": "sha256:2f50bfa98b8ca76d6153de32a00a15a52c4160a67cadcad9bc106ebc72134f30",
       "size": 2286,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/options/squash-merge.ai.yaml": {
       "hash": "sha256:61861d34c9148fe1eac2927d9354bbdc9622daa3658eeafb20889d0c970cac84",
       "size": 1361,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/versioning.ai.yaml": {
-      "hash": "sha256:e6eac1a68b43c1103d72d0c164cc11d0ccc20ef57d9e665bb46e57f2e87cc22e",
-      "size": 5448,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:d53ff8d5bd083d5b0f106c50ecdd18801733f2966ccb2bfdbe20efc29fd42a4a",
+      "size": 5672,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/changelog.ai.yaml": {
-      "hash": "sha256:d69575c62edf8ab77e7abc9f11d2051cdf730be78c370330744c8518c50757b4",
-      "size": 3377,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:5e0165d3b916452694d208b43e5b87bea0e85b128959a3f057e04caa19d9fe9d",
+      "size": 3311,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/testing.ai.yaml": {
-      "hash": "sha256:aefb48b5e404ff407c2d1be913db6c71671c154a8bd3bfa225f44e9c9eea7981",
-      "size": 4696,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:5b025ea2d90e5c1c329b099d2acb03ae48915650955aa133ed373b5d6bf9ba5d",
+      "size": 4293,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/options/unit-testing.ai.yaml": {
       "hash": "sha256:f176b6dbdacacc6fbd3e43789697128a872a32e2562274d57eaf187642aeb03d",
       "size": 1955,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/options/integration-testing.ai.yaml": {
       "hash": "sha256:0461fcdf7f8cf9e7cd1e5a1d9f8329f284c2f4f151cf08fdf7c222332204f546",
       "size": 2565,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
+    },
+    ".standards/options/system-testing.ai.yaml": {
+      "hash": "sha256:7936b27ad5137ac9c9ea643c8a8ccea1f414c7bd81c7c16f32117ed9e5df35c7",
+      "size": 2364,
+      "installedAt": "2026-02-08T07:40:58.185Z"
+    },
+    ".standards/options/e2e-testing.ai.yaml": {
+      "hash": "sha256:7b62a78eb569f9a094d3331a985c18fa53e1e478efcc6b2626fdb9c21e14ba10",
+      "size": 3104,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/documentation-structure.ai.yaml": {
       "hash": "sha256:38cd6f973a56185aa00e75c198ab0752f14a65c2b21954d448e2b59d6fe51bb7",
       "size": 3554,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/documentation-writing-standards.ai.yaml": {
       "hash": "sha256:a251f8fe360624dc1a5d00c2814a272f37e4f5d2cc5f2d4e1074c10e0ab18643",
       "size": 5338,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/ai-instruction-standards.ai.yaml": {
       "hash": "sha256:169162e80cd01fe75f73a342812998d6a3fc154f3312085bdc4d602ba6981f2c",
       "size": 4270,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/project-structure.ai.yaml": {
-      "hash": "sha256:cfdf6a1a6aa89c5caffb2a11b43436b3b1eac7b55ab520f9ae1413b27fa86810",
-      "size": 3424,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:f5c8119cfb4b9a6ac95207179d94ff974bbadc72376e4a2ffa4e886e11cfe97e",
+      "size": 3536,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/error-codes.ai.yaml": {
       "hash": "sha256:e3254dbafb4ff7faf5d764173e3fa74f38c41958c88e8054efd188455b581b47",
       "size": 3542,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/logging.ai.yaml": {
       "hash": "sha256:3606762467c4d27a562ec96c2b521f92e4c8cf011b24820162152bb7b867e38b",
       "size": 2995,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/test-completeness-dimensions.ai.yaml": {
-      "hash": "sha256:f42fd543616bdca8560bae5c99adc2d7eda2085baf12dc67fd417cef75464834",
-      "size": 7748,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:6db68c70983f4c727d5a543a2a43bef5ea5aaa47930e46b29c665148ca1394b9",
+      "size": 7793,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/test-driven-development.ai.yaml": {
-      "hash": "sha256:a0ea6d16319fa4bdce3b5583c37bcf1f5d315090f75d95632956e71ee6171d3a",
-      "size": 9556,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:f09a8980cfbe669cd1dbfe684150af46f412c97ddbcad03db2bb2ed6686b655f",
+      "size": 9558,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/behavior-driven-development.ai.yaml": {
       "hash": "sha256:a094a6ee31110ef4ae5030c94a7aeb701d9433fe1c1b1d1d26e9962550489711",
       "size": 9654,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/acceptance-test-driven-development.ai.yaml": {
-      "hash": "sha256:cec237d15cb96dd9f9336ed773defea57189310d96fa1e4edab9e251b1deae34",
-      "size": 10104,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:dfdcd28c987fcd9edaaec96f6859522e2216638fb951b19b10b0633e696e2b12",
+      "size": 10106,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/reverse-engineering-standards.ai.yaml": {
       "hash": "sha256:a45cdf0704003218e4012919311615f2c8722add8ca85fbff3565f6e0445d0e9",
       "size": 9356,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/forward-derivation-standards.ai.yaml": {
-      "hash": "sha256:bfb4a33a391fa49b7a3accce27a78abf205c5b82d65c966d7c0def191b91dc1f",
-      "size": 13341,
-      "installedAt": "2026-01-29T13:44:49.189Z"
-    },
-    ".standards/ai-agreement-standards.ai.yaml": {
-      "hash": "sha256:6e5ed7f22f7267098ae1ff7dd236c7aa4bcc41a59d6bd4e58f150ac9fc25a048",
-      "size": 620,
-      "installedAt": "2026-01-29T13:44:49.189Z"
-    },
-    ".standards/virtual-organization-standards.ai.yaml": {
-      "hash": "sha256:2f634b60db4ffe62a77b374d07bd788785cada6333ce2b6332409734fe073214",
-      "size": 642,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:890f0ed60ad18dee3c925941320bf2aed68b9c6389e410d2b749553ea89107bd",
+      "size": 13349,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/refactoring-standards.ai.yaml": {
-      "hash": "sha256:9dd8d39ac4dd2ef6b421ebafb900d4f1082ace9c5790b59c501ff19799227d65",
-      "size": 15364,
-      "installedAt": "2026-01-29T13:44:49.189Z"
-    },
-    ".standards/requirement-engineering.ai.yaml": {
-      "hash": "sha256:3e0bdba2b78a9a39bf2cd77fe55b1204a8b880d1b65d404542c1e80676486367",
-      "size": 6524,
-      "installedAt": "2026-01-29T13:44:49.189Z"
-    },
-    ".standards/security-standards.ai.yaml": {
-      "hash": "sha256:04e9f0ae4a7a0769e4f900c1dee376ea0b83dbe22f4103ca6e61ffc13fc84226",
-      "size": 3562,
-      "installedAt": "2026-01-29T13:44:49.189Z"
-    },
-    ".standards/performance-standards.ai.yaml": {
-      "hash": "sha256:c1f879f2114275813f0a2fbbd034b4cda361dec840463f9e6adc370b08bb14b0",
-      "size": 4563,
-      "installedAt": "2026-01-29T13:44:49.189Z"
-    },
-    ".standards/accessibility-standards.ai.yaml": {
-      "hash": "sha256:0ee788c5b64270d80e67a11a0b99937bf45338002c839a4b58fe46aed19a9db0",
-      "size": 4310,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "hash": "sha256:5682bc00cd25319dc88d5bfb56170c35a8d1b1fe8fd9243d0093e037630542c7",
+      "size": 15369,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/requirement-checklist.md": {
       "hash": "sha256:ff7f0c6418c210cd878bfc9313f58f2f19ff895e5c26f87e14105bd9c2b7635d",
       "size": 11161,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/requirement-template.md": {
       "hash": "sha256:d1c07834d81f3b2a23bc34e414d84d1bb40a9eb6826c4234868b23856fd8e2a2",
       "size": 15112,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
     ".standards/requirement-document-template.md": {
       "hash": "sha256:2547fd4e412ae016d20536777cca309e3819b60a469ed38b5249fe7d2d343afe",
       "size": 12731,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+      "installedAt": "2026-02-08T07:40:58.185Z"
     },
-    "GEMINI.md": {
-      "hash": "sha256:0c07c8cd189b4b52406f34176eb51d6183a14eea03942e2a5a6c238633cf8a98",
-      "size": 5418,
-      "installedAt": "2026-01-29T13:44:49.189Z"
+    ".standards/zh-tw.md": {
+      "hash": "sha256:c9436876d57de8d9e2da9a932d8c283f76fa80502eee40120a5d6862c61adb16",
+      "size": 20440,
+      "installedAt": "2026-02-08T07:40:58.185Z"
+    },
+    ".github/copilot-instructions.md": {
+      "hash": "sha256:f72cf7c3d8fe78bceb885b34a54a26b8c36d99ce9f5ef722b2aeaa9ea165fea6",
+      "size": 11093,
+      "installedAt": "2026-02-08T07:40:58.185Z"
+    },
+    "INSTRUCTIONS.md": {
+      "hash": "sha256:a566d9cb3be9b55a957b21e612c9ff5a689a9f72d000dd898db83e9e86b8c1db",
+      "size": 11241,
+      "installedAt": "2026-02-08T07:40:58.185Z"
+    },
+    "AGENTS.md": {
+      "hash": "sha256:b4c471ab80c8646da8d5a3ca539dba16ff6a588af1e3d483803d493fa835c339",
+      "size": 11147,
+      "installedAt": "2026-02-08T07:40:58.185Z"
     }
   },
   "skillHashes": {},
   "commandHashes": {
+    "claude-code/atdd.md": {
+      "hash": "sha256:e86bd1eb3ca0bbc9a13f884e33da685007d3979fb3211859fc016a2c41c142c5",
+      "size": 5878,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/bdd.md": {
+      "hash": "sha256:21c84416c446e60cadce9be5ef4b2bdcf2326f3614ca19d3a62cb9141c5d2b5f",
+      "size": 5271,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/changelog.md": {
+      "hash": "sha256:002d48f7b82ec2b660f00fa53566a6c042ccd87e0448617bd77f4decf8e91d9b",
+      "size": 1652,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/check.md": {
+      "hash": "sha256:96dead417e139d59ebd28758cfe3272571973f9229abe1fa3eeceadb8ead20df",
+      "size": 6407,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/commit.md": {
+      "hash": "sha256:b0617ab91799598261dbb4f8cd6da0a3cd0dfe5164b97494a32a8c3f08fdac3b",
+      "size": 1653,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/config.md": {
+      "hash": "sha256:2c32f90b3a0e7d0b42b6b4018fc895e851293c5ea56dd2bc89af01c3a09265dc",
+      "size": 7331,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/coverage.md": {
+      "hash": "sha256:e10209dd93171d9f96782aff9554dcc550388fdc5334e26e33b3f9a2121d24d7",
+      "size": 2040,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/derive-all.md": {
+      "hash": "sha256:6fefab49f854bb173a01a3221649df1b26aa895e70d1ea1a1c4f3a48fe6383c2",
+      "size": 7454,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/derive-atdd.md": {
+      "hash": "sha256:1e4d679ff716a1bb928ed8b59bf350295d6fc8cb7ae76fd61d5fcf2e74cc3d48",
+      "size": 5084,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/derive-bdd.md": {
+      "hash": "sha256:65f08bb35375c7e982e0e50441a5ad560b0697b3db168362c2ccb9373b64d6b6",
+      "size": 4660,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/derive-tdd.md": {
+      "hash": "sha256:a3e64fd46fba8be29a7572024d2d118c17da5aa0954dc26465585a3d1ffebcf5",
+      "size": 6964,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/docs.md": {
+      "hash": "sha256:4ee5deeccf487d262f98946fe7270be15e65f26e67782fe797253b1a4a3454e4",
+      "size": 1854,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/init.md": {
+      "hash": "sha256:c4749c9d50f6bcc7c25168f771354f86c26b1648cc22ff44c849ff916a370121",
+      "size": 9978,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/methodology.md": {
+      "hash": "sha256:edec4e6551e6fc7af2e5377826cb1b4cd53aa62a96517a39681c3c8afa981dc8",
+      "size": 6874,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/refactor.md": {
+      "hash": "sha256:1f5149bdab4e98669b2a5e7a8584ddcce465f2b4119def8d60dad198185003ac",
+      "size": 6717,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/release.md": {
+      "hash": "sha256:8f8ffadbf64196ebfc680ec2174968c7bb5ba334bafeccdf6f6db4c54792ccfc",
+      "size": 1726,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/requirement.md": {
+      "hash": "sha256:be88f3418e9c9fff7e5d6c5bc2782716466ebb7087f788f69c0161d06ec2057b",
+      "size": 1849,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/reverse-bdd.md": {
+      "hash": "sha256:8b842ddee647054bf6cd370a938f5b4b94424e62871380bd448fc5a4d58fe5a0",
+      "size": 8554,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/reverse-spec.md": {
+      "hash": "sha256:322a6c903bc1f1c85faa8a5c3ca1dd8cc92b950d2456b22b5e6265e984dc1a21",
+      "size": 6313,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/reverse-tdd.md": {
+      "hash": "sha256:392fb232c34029bf3d2a69039f5903cc27d5647703751cf82ffa55d1d66c065e",
+      "size": 10352,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/review.md": {
+      "hash": "sha256:a52846973e75100da1582743790ac28ec842c13a447895227fd4aea18d40010e",
+      "size": 1796,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/spec.md": {
+      "hash": "sha256:f55527b4fd918857b2535bdb090489e8b83bfb4f7edd716e6f5a89c38d1ebd6d",
+      "size": 1761,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/tdd.md": {
+      "hash": "sha256:18af65ea803436352807f990fa7ea653b04d3e7ab1ddfec2398b0d07a8212ff1",
+      "size": 3205,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "claude-code/update.md": {
+      "hash": "sha256:063de38777afbf18e11d580c4b7185f2a0bfb1605a93960ee53d22a924297595",
+      "size": 12978,
+      "installedAt": "2026-02-08T07:40:58.170Z"
+    },
+    "copilot/atdd.md": {
+      "hash": "sha256:e86bd1eb3ca0bbc9a13f884e33da685007d3979fb3211859fc016a2c41c142c5",
+      "size": 5878,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/bdd.md": {
+      "hash": "sha256:21c84416c446e60cadce9be5ef4b2bdcf2326f3614ca19d3a62cb9141c5d2b5f",
+      "size": 5271,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/changelog.md": {
+      "hash": "sha256:002d48f7b82ec2b660f00fa53566a6c042ccd87e0448617bd77f4decf8e91d9b",
+      "size": 1652,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/check.md": {
+      "hash": "sha256:96dead417e139d59ebd28758cfe3272571973f9229abe1fa3eeceadb8ead20df",
+      "size": 6407,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/commit.md": {
+      "hash": "sha256:b0617ab91799598261dbb4f8cd6da0a3cd0dfe5164b97494a32a8c3f08fdac3b",
+      "size": 1653,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/config.md": {
+      "hash": "sha256:2c32f90b3a0e7d0b42b6b4018fc895e851293c5ea56dd2bc89af01c3a09265dc",
+      "size": 7331,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/coverage.md": {
+      "hash": "sha256:e10209dd93171d9f96782aff9554dcc550388fdc5334e26e33b3f9a2121d24d7",
+      "size": 2040,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/derive-all.md": {
+      "hash": "sha256:6fefab49f854bb173a01a3221649df1b26aa895e70d1ea1a1c4f3a48fe6383c2",
+      "size": 7454,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/derive-atdd.md": {
+      "hash": "sha256:1e4d679ff716a1bb928ed8b59bf350295d6fc8cb7ae76fd61d5fcf2e74cc3d48",
+      "size": 5084,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/derive-bdd.md": {
+      "hash": "sha256:65f08bb35375c7e982e0e50441a5ad560b0697b3db168362c2ccb9373b64d6b6",
+      "size": 4660,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/derive-tdd.md": {
+      "hash": "sha256:a3e64fd46fba8be29a7572024d2d118c17da5aa0954dc26465585a3d1ffebcf5",
+      "size": 6964,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/docs.md": {
+      "hash": "sha256:4ee5deeccf487d262f98946fe7270be15e65f26e67782fe797253b1a4a3454e4",
+      "size": 1854,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/init.md": {
+      "hash": "sha256:c4749c9d50f6bcc7c25168f771354f86c26b1648cc22ff44c849ff916a370121",
+      "size": 9978,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/methodology.md": {
+      "hash": "sha256:edec4e6551e6fc7af2e5377826cb1b4cd53aa62a96517a39681c3c8afa981dc8",
+      "size": 6874,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/refactor.md": {
+      "hash": "sha256:1f5149bdab4e98669b2a5e7a8584ddcce465f2b4119def8d60dad198185003ac",
+      "size": 6717,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/release.md": {
+      "hash": "sha256:8f8ffadbf64196ebfc680ec2174968c7bb5ba334bafeccdf6f6db4c54792ccfc",
+      "size": 1726,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/requirement.md": {
+      "hash": "sha256:be88f3418e9c9fff7e5d6c5bc2782716466ebb7087f788f69c0161d06ec2057b",
+      "size": 1849,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/reverse-bdd.md": {
+      "hash": "sha256:8b842ddee647054bf6cd370a938f5b4b94424e62871380bd448fc5a4d58fe5a0",
+      "size": 8554,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/reverse-spec.md": {
+      "hash": "sha256:322a6c903bc1f1c85faa8a5c3ca1dd8cc92b950d2456b22b5e6265e984dc1a21",
+      "size": 6313,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/reverse-tdd.md": {
+      "hash": "sha256:392fb232c34029bf3d2a69039f5903cc27d5647703751cf82ffa55d1d66c065e",
+      "size": 10352,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/review.md": {
+      "hash": "sha256:a52846973e75100da1582743790ac28ec842c13a447895227fd4aea18d40010e",
+      "size": 1796,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/spec.md": {
+      "hash": "sha256:f55527b4fd918857b2535bdb090489e8b83bfb4f7edd716e6f5a89c38d1ebd6d",
+      "size": 1761,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/tdd.md": {
+      "hash": "sha256:18af65ea803436352807f990fa7ea653b04d3e7ab1ddfec2398b0d07a8212ff1",
+      "size": 3205,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "copilot/update.md": {
+      "hash": "sha256:063de38777afbf18e11d580c4b7185f2a0bfb1605a93960ee53d22a924297595",
+      "size": 12978,
+      "installedAt": "2026-02-08T07:40:58.175Z"
+    },
+    "opencode/atdd.md": {
+      "hash": "sha256:e86bd1eb3ca0bbc9a13f884e33da685007d3979fb3211859fc016a2c41c142c5",
+      "size": 5878,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/bdd.md": {
+      "hash": "sha256:21c84416c446e60cadce9be5ef4b2bdcf2326f3614ca19d3a62cb9141c5d2b5f",
+      "size": 5271,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/changelog.md": {
+      "hash": "sha256:002d48f7b82ec2b660f00fa53566a6c042ccd87e0448617bd77f4decf8e91d9b",
+      "size": 1652,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/check.md": {
+      "hash": "sha256:96dead417e139d59ebd28758cfe3272571973f9229abe1fa3eeceadb8ead20df",
+      "size": 6407,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/commit.md": {
+      "hash": "sha256:b0617ab91799598261dbb4f8cd6da0a3cd0dfe5164b97494a32a8c3f08fdac3b",
+      "size": 1653,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/config.md": {
+      "hash": "sha256:2c32f90b3a0e7d0b42b6b4018fc895e851293c5ea56dd2bc89af01c3a09265dc",
+      "size": 7331,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/coverage.md": {
+      "hash": "sha256:e10209dd93171d9f96782aff9554dcc550388fdc5334e26e33b3f9a2121d24d7",
+      "size": 2040,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/derive-all.md": {
+      "hash": "sha256:6fefab49f854bb173a01a3221649df1b26aa895e70d1ea1a1c4f3a48fe6383c2",
+      "size": 7454,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/derive-atdd.md": {
+      "hash": "sha256:1e4d679ff716a1bb928ed8b59bf350295d6fc8cb7ae76fd61d5fcf2e74cc3d48",
+      "size": 5084,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/derive-bdd.md": {
+      "hash": "sha256:65f08bb35375c7e982e0e50441a5ad560b0697b3db168362c2ccb9373b64d6b6",
+      "size": 4660,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/derive-tdd.md": {
+      "hash": "sha256:a3e64fd46fba8be29a7572024d2d118c17da5aa0954dc26465585a3d1ffebcf5",
+      "size": 6964,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/docs.md": {
+      "hash": "sha256:4ee5deeccf487d262f98946fe7270be15e65f26e67782fe797253b1a4a3454e4",
+      "size": 1854,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/init.md": {
+      "hash": "sha256:c4749c9d50f6bcc7c25168f771354f86c26b1648cc22ff44c849ff916a370121",
+      "size": 9978,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/methodology.md": {
+      "hash": "sha256:edec4e6551e6fc7af2e5377826cb1b4cd53aa62a96517a39681c3c8afa981dc8",
+      "size": 6874,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/refactor.md": {
+      "hash": "sha256:1f5149bdab4e98669b2a5e7a8584ddcce465f2b4119def8d60dad198185003ac",
+      "size": 6717,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/release.md": {
+      "hash": "sha256:8f8ffadbf64196ebfc680ec2174968c7bb5ba334bafeccdf6f6db4c54792ccfc",
+      "size": 1726,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/requirement.md": {
+      "hash": "sha256:be88f3418e9c9fff7e5d6c5bc2782716466ebb7087f788f69c0161d06ec2057b",
+      "size": 1849,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/reverse-bdd.md": {
+      "hash": "sha256:8b842ddee647054bf6cd370a938f5b4b94424e62871380bd448fc5a4d58fe5a0",
+      "size": 8554,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/reverse-spec.md": {
+      "hash": "sha256:322a6c903bc1f1c85faa8a5c3ca1dd8cc92b950d2456b22b5e6265e984dc1a21",
+      "size": 6313,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/reverse-tdd.md": {
+      "hash": "sha256:392fb232c34029bf3d2a69039f5903cc27d5647703751cf82ffa55d1d66c065e",
+      "size": 10352,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/review.md": {
+      "hash": "sha256:a52846973e75100da1582743790ac28ec842c13a447895227fd4aea18d40010e",
+      "size": 1796,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/spec.md": {
+      "hash": "sha256:f55527b4fd918857b2535bdb090489e8b83bfb4f7edd716e6f5a89c38d1ebd6d",
+      "size": 1761,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/tdd.md": {
+      "hash": "sha256:18af65ea803436352807f990fa7ea653b04d3e7ab1ddfec2398b0d07a8212ff1",
+      "size": 3205,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
+    "opencode/update.md": {
+      "hash": "sha256:063de38777afbf18e11d580c4b7185f2a0bfb1605a93960ee53d22a924297595",
+      "size": 12978,
+      "installedAt": "2026-02-08T07:40:58.179Z"
+    },
     "gemini-cli/atdd.toml": {
       "hash": "sha256:3dbde7be409f09cdc4261c26c88756cd690b61748e80b25bf547354a8182d415",
       "size": 5783,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/bdd.toml": {
       "hash": "sha256:a8fed67006f541b9786913c45df978f8d28822970e7588bc87f54d254517a18a",
       "size": 5182,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/changelog.toml": {
       "hash": "sha256:511667d0bc458c5e3b6feed62b314fc792c71c42d65ad63f91739fc1d4c9cba8",
       "size": 1613,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/check.toml": {
       "hash": "sha256:f7b8f04583283088ec8bf6332d5c2a83a5b65b0c511290c6ca50145f00603cfd",
       "size": 6377,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/commit.toml": {
       "hash": "sha256:e49ba1165bcb7770c26bda3583656235219437d3bf3304bbd6cba6c0e2e4b1b0",
       "size": 1566,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/config.toml": {
       "hash": "sha256:5d568a4901d97063e099f4eaa638068a540c2eed81ec9f57684a27b536a1dd90",
       "size": 7294,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/coverage.toml": {
-      "hash": "sha256:5db5df24988198098f0a94bfea3ab70432a8cb6539e4227abd21ecc6adb1fcda",
-      "size": 2042,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "hash": "sha256:1c22969ca93fc22eeb8ec76f071321f15302d7f968570faaa485a98f64e41f4a",
+      "size": 1979,
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/derive-all.toml": {
-      "hash": "sha256:b672e6a4ce7d144daa91ec6f3e9db1a6b950a547e3253e6460e35d6f509d3ba5",
-      "size": 6922,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "hash": "sha256:301e17bd95ca458beec8e3f7257835955c4be88da164ea0734f0f61ca2055b60",
+      "size": 7399,
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/derive-atdd.toml": {
-      "hash": "sha256:1d4f34139ecc43a48222ba5c3bd7777734289c2caba333e900fa83cb34b78e43",
-      "size": 6097,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "hash": "sha256:59e441cc2fa13d5b21dbc9b97956b49bcbe51fa6cd97ba0cdd5d31faf7be45a2",
+      "size": 5076,
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/derive-bdd.toml": {
       "hash": "sha256:01234b06608a1fde6187fdc562bcf9a11ade88ae51820eb2efeba12293864f3f",
       "size": 4651,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/derive-tdd.toml": {
       "hash": "sha256:6b2757c5561ca87638cf7e5f1c397c213f87573eba1f7b1de6381e9c33bcf571",
       "size": 6909,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/docs.toml": {
       "hash": "sha256:b63dc02ef5cd03de878166dbae4abd431eecf64845076300bb80261f383c6a54",
       "size": 1828,
-      "installedAt": "2026-01-29T13:44:49.188Z"
-    },
-    "gemini-cli/generate-docs.toml": {
-      "hash": "sha256:af8fdc11a2e4928f31ea91dd3a5ca9aaae7e73b4859d6e30402b81fe14945be4",
-      "size": 2935,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/init.toml": {
       "hash": "sha256:58446340addf249f98d1caeac3e06b7e7012376d09b3bedbd2123952f3cbe467",
       "size": 9976,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/methodology.toml": {
-      "hash": "sha256:359f8a67846c610ebfd260068fce29ba6702740531fb85ba3b09e00cb7aaa1ae",
-      "size": 7451,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "hash": "sha256:d5445bcde9fc0fbc89976a0284f23eaca978ed2f4f689698d5649d5ca75a3d95",
+      "size": 6857,
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/refactor.toml": {
       "hash": "sha256:b63e958d86e478e535afa5fdb68ed051242b8aa77fad5b231489032e615a85e0",
       "size": 6650,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/release.toml": {
       "hash": "sha256:9e8f8510556bf51887ceea4e92511ca23374df91cc7662cd256b57ce05e8e4cc",
       "size": 1658,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/requirement.toml": {
       "hash": "sha256:8894b85108ff9af91bfa064bb8c6209182b3a2489a8e4d614735c18cb5f2a018",
       "size": 1832,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/reverse-bdd.toml": {
       "hash": "sha256:9534e793e47abb0d41509ab6122b921533b9572c8d18d3915c4f0a9cc7a6528f",
       "size": 8553,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/reverse-spec.toml": {
       "hash": "sha256:32ff98f35885d0aec2e1f9fa7c684e12c882ca8ed33aefdf2e64e02f7a959059",
       "size": 6289,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/reverse-tdd.toml": {
       "hash": "sha256:cd9443416c08b002d6f2e5100b3f51397b1245eaf6797d0f3b5ff126e0247052",
       "size": 10331,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/review.toml": {
       "hash": "sha256:107140ddf0d126cbfa5c757b462c5f4dd0c9e02373e680be7ccde70510fc9de8",
       "size": 1730,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/spec.toml": {
-      "hash": "sha256:e9e8b2f68be8e9cee6ea9da77f75f9eac19aa2df9de37868311cf3188240d9d2",
-      "size": 3617,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "hash": "sha256:829d7d62d74727011da8b89a819e960bf1ba638e8e77d1bdc87aa65abd44e95a",
+      "size": 1731,
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/tdd.toml": {
       "hash": "sha256:893d8a8d1291cefa6140bee6b409ac8a133e81967e46fd4eb9526f5ee0483f92",
       "size": 3126,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     },
     "gemini-cli/update.toml": {
       "hash": "sha256:7e3d919787997e5826d6a687bfa2ba3ee71180c5ed6d944754fac431d7888967",
       "size": 12839,
-      "installedAt": "2026-01-29T13:44:49.188Z"
+      "installedAt": "2026-02-08T07:40:58.183Z"
     }
   },
   "integrationBlockHashes": {
-    "GEMINI.md": {
-      "blockHash": "sha256:fe3dcef78a9b3b742a806d73c637bbba9aca8d1cffe45d57b8a899d7debfd561",
-      "blockSize": 2921,
-      "fullHash": "sha256:0c07c8cd189b4b52406f34176eb51d6183a14eea03942e2a5a6c238633cf8a98",
-      "fullSize": 5418,
-      "installedAt": "2026-01-29T13:44:49.181Z"
+    ".github/copilot-instructions.md": {
+      "blockHash": "sha256:fb1e5f865b221e53f969442e8b057a6b7ddd1cb8717b97b10dfa8dbf90c0bcbf",
+      "blockSize": 2527,
+      "fullHash": "sha256:f72cf7c3d8fe78bceb885b34a54a26b8c36d99ce9f5ef722b2aeaa9ea165fea6",
+      "fullSize": 11093,
+      "installedAt": "2026-02-08T07:40:58.148Z"
+    },
+    "AGENTS.md": {
+      "blockHash": "sha256:aaa06ec1cfb21e5b7be02f42d4be720f16d4aa6fb318cdf90d57c4ccc856c1d3",
+      "blockSize": 2526,
+      "fullHash": "sha256:b4c471ab80c8646da8d5a3ca539dba16ff6a588af1e3d483803d493fa835c339",
+      "fullSize": 11147,
+      "installedAt": "2026-02-08T07:40:58.151Z"
     }
   }
 }

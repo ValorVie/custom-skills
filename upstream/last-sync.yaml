@@ -2,8 +2,8 @@ anthropic-skills:
   commit: 69c0b1a0674149f27b61b2635f935524b6add202
   synced_at: '2026-01-26T13:43:25.308856'
 everything-claude-code:
-  commit: d85b1ae52e45cd12edb566aa617f93222bdcb264
-  synced_at: '2026-02-03T10:46:45.412937'
+  commit: 90ad2f3885033c981ae1ab72120cef252296aa6c
+  synced_at: '2026-02-08T19:15:00.000000'
 obsidian-skills:
   commit: 34c2cda8b29eaeec6793e342b8b56e96ac29f15c
   synced_at: '2026-02-02T10:30:00.000000'

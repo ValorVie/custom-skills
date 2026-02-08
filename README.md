@@ -784,6 +784,17 @@ claude plugin install ecc-hooks@custom-skills
 
 詳見 `plugins/ecc-hooks/README.md`。
 
+### OpenCode Plugin (ecc-hooks-opencode)
+
+OpenCode 平台的 ECC Hooks Plugin，提供：
+- **Code Quality Hooks**：JS/TS、PHP、Python 的格式化與靜態分析
+- **Memory Persistence**：Session 記憶持久化
+- **Strategic Compact**：智慧壓縮建議
+- **OpenCode 獨有事件**：file.edited、session.idle、file.watcher.updated、permission.asked、todo.updated
+- **Custom Tools**：run-tests、check-coverage、security-audit
+
+透過 `ai-dev clone` 自動分發至 `~/.config/opencode/plugins/`。
+
 ## 未來計畫
 
 ### Hooks 細粒度控制

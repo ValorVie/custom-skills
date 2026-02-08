@@ -4,6 +4,12 @@
 
 ---
 
+## 架構原則 (`principles/`)
+
+| 文件 | 說明 |
+|------|------|
+| [GOLDEN-STANDARDS.md](principles/GOLDEN-STANDARDS.md) | 軟體工程黃金標準與架構原則（涵蓋 SDLC 全面向） |
+
 ## AI 開發工具 (`ai-tools/`)
 
 | 文件 | 說明 |
@@ -13,8 +19,10 @@
 | [CLAUDE-MEM-TROUBLESHOOTING.md](ai-tools/CLAUDE-MEM-TROUBLESHOOTING.md) | Claude-mem 除錯指南 |
 | [MEMORY-PLUGINS-GUIDE.md](ai-tools/MEMORY-PLUGINS-GUIDE.md) | 記憶外掛並用指南 (ecc-hooks + claude-mem) |
 | [opencode-使用指南.md](ai-tools/opencode-使用指南.md) | OpenCode TUI 使用指南 |
+| [oh-my-opencode-guide.md](ai-tools/oh-my-opencode-guide.md) | Oh My OpenCode 指南 |
 | [OPENCODE-VS-CLAUDE-CODE.md](ai-tools/OPENCODE-VS-CLAUDE-CODE.md) | OpenCode 與 Claude Code 比較 |
 | [SKILLS-CLI.md](ai-tools/SKILLS-CLI.md) | Skills CLI 使用說明 |
+| [CODEX-GUIDE.md](ai-tools/CODEX-GUIDE.md) | Codex 安裝、設定與管理指南 |
 
 ## Git 操作 (`git/`)
 
@@ -23,6 +31,7 @@
 | [GIT-WORKFLOW.md](git/GIT-WORKFLOW.md) | Git 工作流程指南 |
 | [LAZYGIT-GUIDE.md](git/LAZYGIT-GUIDE.md) | Lazygit 終端 Git UI 教學（安裝/設定/工作流） |
 | [GIT-REMOVE-SENSITIVE-FILES.md](git/GIT-REMOVE-SENSITIVE-FILES.md) | 從 Git 歷史移除敏感檔案 |
+| [GIT-SUBMODULE-PERFORMANCE.md](git/GIT-SUBMODULE-PERFORMANCE.md) | Git Submodule 效能優化 |
 | [Git Submodule 操作指南.md](git/Git%20Submodule%20操作指南.md) | Git Submodule 操作指南 |
 
 ## 終端工具 (`terminal/`)
@@ -30,8 +39,16 @@
 | 文件 | 說明 |
 |------|------|
 | [ALACRITTY-GUIDE.md](terminal/ALACRITTY-GUIDE.md) | Alacritty GPU 加速終端模擬器指南 |
+| [WEZTERM-GUIDE.md](terminal/WEZTERM-GUIDE.md) | WezTerm 終端模擬器指南 |
 | [YAZI-GUIDE.md](terminal/YAZI-GUIDE.md) | Yazi 終端檔案管理器教學（安裝/設定/使用） |
 | [ZELLIJ-GUIDE.md](terminal/ZELLIJ-GUIDE.md) | Zellij 終端多工器指南 |
+
+## 測試 (`testing/`)
+
+| 文件 | 說明 |
+|------|------|
+| [TESTING-FLOW-ARCHITECTURE.md](testing/TESTING-FLOW-ARCHITECTURE.md) | 完整測試流程架構（測試金字塔 + CI/CD Pipeline） |
+| [MANUAL-TESTING-FRAMEWORK.md](testing/MANUAL-TESTING-FRAMEWORK.md) | 手動測試框架（文件、工具與方法論） |
 
 ## 開發流程與架構 (`workflow/`)
 

@@ -1,0 +1,676 @@
+generated_at: '2026-02-08T18:31:04.049332'
+summary:
+  total_repos: 3
+  repos_with_updates: 3
+  recommendations:
+    High: 3
+    Medium: 0
+    Low: 0
+    Skip: 0
+repos:
+  anthropic-skills:
+    local_path: /home/valor/.config/anthropic-skills
+    last_synced_commit: 69c0b1a0674149f27b61b2635f935524b6add202
+    current_commit: 1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563
+    recommendation: High
+    reasoning: '204 個 skill 變更、新增 76 個檔案、新框架: Test Framework。建議優先整合。'
+    summary:
+      total_commits: 3
+      by_type:
+        refactor: 2
+        other: 1
+      by_category:
+        skills: 204
+      files_added: 76
+      files_modified: 22
+      files_deleted: 20
+      total_insertions: 28525
+      total_deletions: 9434
+      novel_structures:
+        new_directories: []
+        notable_patterns:
+        - pattern: templates/
+          description: 範本目錄
+          example_path: skills/docx/scripts/templates/comments.xml
+        new_file_types:
+        - .xsd
+        - .xml
+        framework_indicators:
+        - framework: Test Framework
+          description: 包含測試結構
+          files:
+          - skills/pdf/scripts/check_bounding_boxes_test.py
+    commits:
+    - hash: 1ed29a0
+      subject: Update skill-creator and make scripts executable (#350)
+      author: Keith Lazuka
+      date: 2026-02-06 16:19:32 -0500
+      type: refactor
+      files_count: 9
+    - hash: a5bcdd7
+      subject: Delete legacy html2pptx.tgz dependency. (#331)
+      author: Peter Lai
+      date: 2026-02-03 18:20:33 -0800
+      type: other
+      files_count: 1
+    - hash: 4e6907a
+      subject: Update docx, xlsx, pdf, pptx skills with latest improvements (#330)
+      author: Keith Lazuka
+      date: 2026-02-03 21:09:36 -0500
+      type: refactor
+      files_count: 202
+    file_changes:
+    - path: skills/docx/SKILL.md
+      status: M
+      category: skills
+    - path: skills/docx/docx-js.md
+      status: D
+      category: skills
+    - path: skills/docx/ooxml.md
+      status: D
+      category: skills
+    - path: skills/docx/ooxml/scripts/pack.py
+      status: D
+      category: skills
+    - path: skills/docx/ooxml/scripts/unpack.py
+      status: D
+      category: skills
+    - path: skills/docx/ooxml/scripts/validate.py
+      status: D
+      category: skills
+    - path: skills/docx/ooxml/scripts/validation/docx.py
+      status: D
+      category: skills
+    - path: skills/docx/scripts/__init__.py
+      status: M
+      category: skills
+    - path: skills/docx/scripts/accept_changes.py
+      status: A
+      category: skills
+    - path: skills/docx/scripts/comment.py
+      status: A
+      category: skills
+    - path: skills/docx/scripts/document.py
+      status: D
+      category: skills
+    - path: skills/docx/scripts/office/helpers/__init__.py
+      status: A
+      category: skills
+    - path: skills/docx/scripts/office/helpers/merge_runs.py
+      status: A
+      category: skills
+    - path: skills/docx/scripts/office/helpers/simplify_redlines.py
+      status: A
+      category: skills
+    - path: skills/docx/scripts/office/pack.py
+      status: A
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-chart.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-chartDrawing.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-diagram.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-lockedCanvas.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-main.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-picture.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-spreadsheetDrawing.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/dml-wordprocessingDrawing.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/pml.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-additionalCharacteristics.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-bibliography.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-commonSimpleTypes.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-customXmlDataProperties.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-customXmlSchemaProperties.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-documentPropertiesCustom.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-documentPropertiesExtended.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-documentPropertiesVariantTypes.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-math.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/shared-relationshipReference.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/sml.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/vml-main.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/vml-officeDrawing.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/vml-presentationDrawing.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/vml-spreadsheetDrawing.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/vml-wordprocessingDrawing.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/wml.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ISO-IEC29500-4_2016/xml.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ecma/fouth-edition/opc-contentTypes.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ecma/fouth-edition/opc-coreProperties.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ecma/fouth-edition/opc-digSig.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/ecma/fouth-edition/opc-relationships.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/mce/mc.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/microsoft/wml-2010.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/microsoft/wml-2012.xsd
+      status: R
+      category: skills
+    - path: skills/docx/scripts/office/schemas/microsoft/wml-2018.xsd
+      status: R
+      category: skills
+  superpowers:
+    local_path: /home/valor/.config/superpowers
+    last_synced_commit: 06b92f36820f38175b2ed6ff3f8df45157d54731
+    current_commit: a98c5dfc9de0df5318f4980d91d24780a566ee60
+    recommendation: High
+    reasoning: '2 個新功能、8 個修復、1 個 skill 變更、新框架: Claude Plugin System, Codex Support,
+      Hook System。建議優先整合。'
+    summary:
+      total_commits: 16
+      by_type:
+        fix: 8
+        feat: 2
+        other: 4
+        docs: 2
+      by_category:
+        other: 3
+        docs: 5
+        hooks: 2
+        skills: 1
+      files_added: 0
+      files_modified: 9
+      files_deleted: 2
+      total_insertions: 494
+      total_deletions: 748
+      novel_structures:
+        new_directories: []
+        notable_patterns:
+        - pattern: .claude-plugin/
+          description: Claude Plugin 架構
+          example_path: .claude-plugin/marketplace.json
+        - pattern: marketplace.json
+          description: Marketplace 配置
+          example_path: .claude-plugin/marketplace.json
+        - pattern: plugin.json
+          description: Plugin 配置
+          example_path: .claude-plugin/plugin.json
+        - pattern: .codex/
+          description: Codex 配置
+          example_path: .codex/INSTALL.md
+        - pattern: hooks.json
+          description: Hooks 配置檔
+          example_path: hooks/hooks.json
+        - pattern: session-start.sh
+          description: Session 啟動腳本
+          example_path: hooks/session-start.sh
+        new_file_types:
+        - .codex/superpowers-codex
+        framework_indicators:
+        - framework: Claude Plugin System
+          description: 支援 Claude Code Plugin 架構，可作為獨立插件發布
+          files:
+          - .claude-plugin/marketplace.json
+          - .claude-plugin/plugin.json
+        - framework: Codex Support
+          description: 支援 Codex CLI 整合
+          files:
+          - .codex/INSTALL.md
+          - .codex/superpowers-bootstrap.md
+          - .codex/superpowers-codex
+        - framework: Hook System
+          description: 包含自動化 Hook 機制
+          files:
+          - hooks/hooks.json
+          - hooks/session-start.sh
+    commits:
+    - hash: a98c5df
+      subject: 'Release v4.2.0: Windows fixes, Codex native skill discovery, worktree
+        requirements'
+      author: Jesse Vincent
+      date: 2026-02-05 17:34:36 -0800
+      type: fix
+      files_count: 3
+    - hash: a72e416
+      subject: Fix stale Codex skills path in writing-skills SKILL.md
+      author: Drew Ritter
+      date: 2026-02-05 17:09:57 -0800
+      type: fix
+      files_count: 1
+    - hash: 8dd31c3
+      subject: Add Windows uninstall instructions and expand migration steps
+      author: Drew Ritter
+      date: 2026-02-05 17:03:19 -0800
+      type: feat
+      files_count: 2
+    - hash: 6a07692
+      subject: Drop installer script and AGENTS.md gatekeeper
+      author: Drew Ritter
+      date: 2026-02-05 16:53:22 -0800
+      type: other
+      files_count: 3
+    - hash: 0771fd7
+      subject: Fix path resolution and symlink removal in Codex installer
+      author: Drew Ritter
+      date: 2026-02-05 16:37:31 -0800
+      type: fix
+      files_count: 1
+    - hash: bcccc69
+      subject: Polish docs from 5-agent review
+      author: Drew Ritter
+      date: 2026-02-05 16:34:05 -0800
+      type: docs
+      files_count: 3
+    - hash: 3626ccc
+      subject: Rewrite Codex docs for native skill discovery
+      author: Drew Ritter
+      date: 2026-02-05 16:03:38 -0800
+      type: docs
+      files_count: 1
+    - hash: 47d3df7
+      subject: Rewrite INSTALL.md for native skill discovery
+      author: Drew Ritter
+      date: 2026-02-05 16:03:10 -0800
+      type: other
+      files_count: 1
+    - hash: d41f951
+      subject: Add minimal Codex installer for native skill discovery
+      author: Drew Ritter
+      date: 2026-02-05 16:02:54 -0800
+      type: feat
+      files_count: 1
+    - hash: b4f56fe
+      subject: Remove bootstrap CLI and related files
+      author: Drew Ritter
+      date: 2026-02-05 16:00:46 -0800
+      type: other
+      files_count: 3
+    - hash: 1143f9b
+      subject: Fix ~/ path expansion on Windows — use $HOME instead
+      author: Drew Ritter
+      date: 2026-02-05 12:08:26 -0800
+      type: fix
+      files_count: 3
+    - hash: 6cc2d8c
+      subject: Fix Windows/PowerShell invocation of superpowers-codex
+      author: Drew Ritter
+      date: 2026-02-05 11:18:56 -0800
+      type: fix
+      files_count: 4
+    - hash: 038abed
+      subject: 'fix: replace O(n^2) escape_for_json with parameter substitution'
+      author: Jesse Vincent
+      date: 2026-02-05 11:38:06 -0800
+      type: fix
+      files_count: 1
+    - hash: 961052e
+      subject: 'fix: run SessionStart hook async to prevent Windows terminal freeze'
+      author: Jesse Vincent
+      date: 2026-02-05 11:33:58 -0800
+      type: fix
+      files_count: 2
+    - hash: 689e2a7
+      subject: 'fix: Windows hook execution for Claude Code 2.1.x (#331)'
+      author: Jesse Vincent
+      date: 2026-01-22 13:29:41 -0800
+      type: fix
+      files_count: 1
+    - hash: 5e0d2f8
+      subject: Simplify installation verification instructions
+      author: Jesse Vincent
+      date: 2026-01-14 14:24:08 -0800
+      type: other
+      files_count: 1
+    file_changes:
+    - path: .claude-plugin/marketplace.json
+      status: M
+      category: other
+    - path: .claude-plugin/plugin.json
+      status: M
+      category: other
+    - path: .codex/INSTALL.md
+      status: M
+      category: docs
+    - path: .codex/superpowers-bootstrap.md
+      status: D
+      category: docs
+    - path: .codex/superpowers-codex
+      status: D
+      category: other
+    - path: README.md
+      status: M
+      category: docs
+    - path: RELEASE-NOTES.md
+      status: M
+      category: docs
+    - path: docs/README.codex.md
+      status: M
+      category: docs
+    - path: hooks/hooks.json
+      status: M
+      category: hooks
+    - path: hooks/session-start.sh
+      status: M
+      category: hooks
+    - path: skills/writing-skills/SKILL.md
+      status: M
+      category: skills
+  everything-claude-code:
+    local_path: /home/valor/.config/everything-claude-code
+    last_synced_commit: d85b1ae52e45cd12edb566aa617f93222bdcb264
+    current_commit: 90ad2f3885033c981ae1ab72120cef252296aa6c
+    recommendation: High
+    reasoning: '4 個新功能、2 個修復、33 個 skill 變更、25 個 agent 變更、55 個 command 變更、新增 160 個檔案、新框架:
+      OpenCode Support, Test Framework。建議優先整合。'
+    summary:
+      total_commits: 10
+      by_type:
+        docs: 3
+        fix: 2
+        feat: 4
+        refactor: 1
+      by_category:
+        other: 11
+        docs: 12
+        commands: 55
+        agents: 25
+        contexts: 3
+        rules: 33
+        skills: 33
+      files_added: 160
+      files_modified: 4
+      files_deleted: 1
+      total_insertions: 32094
+      total_deletions: 242
+      novel_structures:
+        new_directories: []
+        notable_patterns:
+        - pattern: .opencode/
+          description: OpenCode 配置
+          example_path: .opencode/MIGRATION.md
+        - pattern: plugins/
+          description: Plugin 目錄
+          example_path: .opencode/plugins/ecc-hooks.ts
+        - pattern: prompts/
+          description: Prompt 目錄
+          example_path: .opencode/prompts/agents/architect.txt
+        - pattern: examples/
+          description: 範例目錄
+          example_path: docs/zh-CN/examples/CLAUDE.md
+        new_file_types: []
+        framework_indicators:
+        - framework: OpenCode Support
+          description: 支援 OpenCode 整合
+          files:
+          - .opencode/MIGRATION.md
+          - .opencode/README.md
+          - .opencode/commands/build-fix.md
+          - .opencode/commands/checkpoint.md
+          - .opencode/commands/code-review.md
+        - framework: Test Framework
+          description: 包含測試結構
+          files:
+          - skills/continuous-learning-v2/scripts/test_parse_instinct.py
+    commits:
+    - hash: 90ad2f3
+      subject: 'docs: update README with latest stats and What''s New section'
+      author: Affaan Mustafa
+      date: 2026-02-06 02:22:21 -0800
+      type: docs
+      files_count: 1
+    - hash: e4e94a7
+      subject: 'fix: preserve content after frontmatter in parse_instinct_file() (#161)'
+      author: ericcai
+      date: 2026-02-06 17:00:48 +0800
+      type: fix
+      files_count: 2
+    - hash: c0fdd89
+      subject: 'docs: enhance CONTRIBUTING.md with detailed templates'
+      author: Affaan Mustafa
+      date: 2026-02-05 17:18:06 -0800
+      type: docs
+      files_count: 1
+    - hash: 0f7b308
+      subject: 'feat: add GitHub Sponsors support'
+      author: Affaan Mustafa
+      date: 2026-02-05 17:11:56 -0800
+      type: feat
+      files_count: 2
+    - hash: 86b5a53
+      subject: 'refactor(rules): restructure into common + language-specific directories'
+      author: Hor1zonZzz
+      date: 2026-02-05 21:58:06 +0800
+      type: refactor
+      files_count: 26
+    - hash: 90ad4ed
+      subject: 'feat(skills): add configure-ecc interactive installation wizard'
+      author: Hor1zonZzz
+      date: 2026-02-05 21:58:02 +0800
+      type: feat
+      files_count: 1
+    - hash: 6b424e3
+      subject: 'feat: add pm2 and multi-agent orchestration commands'
+      author: Skyler Anderson
+      date: 2026-02-05 05:57:58 -0800
+      type: feat
+      files_count: 6
+    - hash: 88054de
+      subject: 'docs: Add Chinese (zh-CN) translations for all documentation'
+      author: zdoc
+      date: 2026-02-05 21:57:54 +0800
+      type: docs
+      files_count: 83
+    - hash: 1ce3a98
+      subject: 'fix: correct markdown code block syntax in go-test.md'
+      author: zdoc
+      date: 2026-02-05 21:57:49 +0800
+      type: fix
+      files_count: 1
+    - hash: 6d440c0
+      subject: 'feat: complete OpenCode plugin support with hooks, tools, and commands'
+      author: Affaan Mustafa
+      date: 2026-02-05 04:39:45 -0800
+      type: feat
+      files_count: 51
+    file_changes:
+    - path: .github/FUNDING.yml
+      status: A
+      category: other
+    - path: .opencode/MIGRATION.md
+      status: A
+      category: docs
+    - path: .opencode/README.md
+      status: A
+      category: docs
+    - path: .opencode/commands/build-fix.md
+      status: A
+      category: commands
+    - path: .opencode/commands/checkpoint.md
+      status: A
+      category: commands
+    - path: .opencode/commands/code-review.md
+      status: A
+      category: commands
+    - path: .opencode/commands/e2e.md
+      status: A
+      category: commands
+    - path: .opencode/commands/eval.md
+      status: A
+      category: commands
+    - path: .opencode/commands/evolve.md
+      status: A
+      category: commands
+    - path: .opencode/commands/go-build.md
+      status: A
+      category: commands
+    - path: .opencode/commands/go-review.md
+      status: A
+      category: commands
+    - path: .opencode/commands/go-test.md
+      status: A
+      category: commands
+    - path: .opencode/commands/instinct-export.md
+      status: A
+      category: commands
+    - path: .opencode/commands/instinct-import.md
+      status: A
+      category: commands
+    - path: .opencode/commands/instinct-status.md
+      status: A
+      category: commands
+    - path: .opencode/commands/learn.md
+      status: A
+      category: commands
+    - path: .opencode/commands/orchestrate.md
+      status: A
+      category: commands
+    - path: .opencode/commands/plan.md
+      status: A
+      category: commands
+    - path: .opencode/commands/refactor-clean.md
+      status: A
+      category: commands
+    - path: .opencode/commands/security.md
+      status: A
+      category: commands
+    - path: .opencode/commands/setup-pm.md
+      status: A
+      category: commands
+    - path: .opencode/commands/skill-create.md
+      status: A
+      category: commands
+    - path: .opencode/commands/tdd.md
+      status: A
+      category: commands
+    - path: .opencode/commands/test-coverage.md
+      status: A
+      category: commands
+    - path: .opencode/commands/update-codemaps.md
+      status: A
+      category: commands
+    - path: .opencode/commands/update-docs.md
+      status: A
+      category: commands
+    - path: .opencode/commands/verify.md
+      status: A
+      category: commands
+    - path: .opencode/index.ts
+      status: A
+      category: other
+    - path: .opencode/instructions/INSTRUCTIONS.md
+      status: A
+      category: docs
+    - path: .opencode/opencode.json
+      status: A
+      category: other
+    - path: .opencode/package.json
+      status: A
+      category: other
+    - path: .opencode/plugins/ecc-hooks.ts
+      status: A
+      category: other
+    - path: .opencode/plugins/index.ts
+      status: A
+      category: other
+    - path: .opencode/prompts/agents/architect.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/build-error-resolver.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/code-reviewer.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/database-reviewer.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/doc-updater.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/e2e-runner.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/go-build-resolver.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/go-reviewer.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/planner.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/refactor-cleaner.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/security-reviewer.txt
+      status: A
+      category: agents
+    - path: .opencode/prompts/agents/tdd-guide.txt
+      status: A
+      category: agents
+    - path: .opencode/tools/check-coverage.ts
+      status: A
+      category: other
+    - path: .opencode/tools/index.ts
+      status: A
+      category: other
+    - path: .opencode/tools/run-tests.ts
+      status: A
+      category: other
+    - path: .opencode/tools/security-audit.ts
+      status: A
+      category: other
+    - path: .opencode/tsconfig.json
+      status: A
+      category: other

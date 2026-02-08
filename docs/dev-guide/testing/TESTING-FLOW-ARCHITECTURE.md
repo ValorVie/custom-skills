@@ -18,6 +18,11 @@
 
 關鍵原則：越接近 UI/真實環境的測試，維護成本越高，應該越精準聚焦「關鍵旅程」而不是「覆蓋所有路徑」。
 
+> **演進觀點：測試獎盃 (Testing Trophy)**
+> 近年由 Guillermo Rauch 提出「Write tests. Not too many. Mostly integration.」的主張，認為整合測試的 CP 值最高，應取代單元測試成為投資重心。這套模型稱為 **Testing Trophy**，在現代前端框架與微服務架構中逐漸流行。詳見 [架構原則指南](../principles/GOLDEN-STANDARDS.md#3-測試與品質保證-testing--qa)。
+>
+> 實務上建議：依專案特性選擇適合的比例分配，而非教條式遵循任一模型。
+
 ### 1.2 CI/CD：把測試放到「可重複的自動化生產線」
 
 測試若只靠人記得去跑，品質訊號會不穩定。成熟流程會把測試「嵌進」CI/CD：

@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ECC 上游整合：OpenCode Plugin Hooks 擴充**
+  - 新增 5 個 OpenCode 獨有事件處理：file.edited、session.idle、file.watcher.updated、permission.asked、todo.updated
+  - file.edited：條件式 Prettier 格式化 + console.log 偵測
+  - session.idle：彙總稽核報告（console.log 警告、編輯檔案清單）
+  - file.watcher.updated：外部 TypeScript 變更偵測與通知
+  - permission.asked：非侵入式稽核記錄
+  - todo.updated：任務進度追蹤（N/M completed X%）
+  - 來源：上游 everything-claude-code commit `90ad2f3`
+
+- **ECC 上游整合：OpenCode 自訂工具**
+  - 新增 `plugins/ecc-hooks-opencode/tools/run-tests.ts`：自動偵測測試框架並執行測試
+  - 新增 `plugins/ecc-hooks-opencode/tools/check-coverage.ts`：分析測試覆蓋率
+  - 新增 `plugins/ecc-hooks-opencode/tools/security-audit.ts`：依賴、秘密、程式碼安全掃描
+  - 新增 `plugins/ecc-hooks-opencode/tools/index.ts` 匯出
+
+- **ECC 上游整合：Orchestrate 命令**
+  - 新增 `commands/claude/orchestrate.md`：多 Agent 協調工作流
+  - 新增 `commands/opencode/orchestrate.md`：OpenCode 版等效命令
+  - 支援 feature / bugfix / refactor / security 四種預定義工作流
+  - 支援自訂 agent 序列（custom workflow）
+  - 定義結構化 handoff 文件格式
+
+- **ECC 上游整合：PM2 命令**
+  - 新增 `commands/claude/pm2.md`：自動偵測服務並生成 PM2 配置
+  - 新增 `commands/opencode/pm2.md`：OpenCode 版等效命令
+  - 支援 Node.js（Vite / Next.js / Express）和 Python（Django / FastAPI / Flask）框架偵測
+
 - **Session 歷史管理**
   - 新增 `/sessions` 指令（`commands/claude/sessions.md`）
   - 支援列表、載入、查詢、統計 session 歷史

@@ -38,7 +38,7 @@
 
 - Test Cases：案例庫、版本化
 - Test Runs：這次改版要跑哪些案例（選集）
-- Coverage 視角：需求/票據与案例的連結
+- Coverage 視角：需求/票據與案例的連結
 - 進度追蹤：執行率、Pass/Fail 分布
 - Defect 連結：案例失敗可直接連到 bug 單
 

@@ -43,6 +43,11 @@ def get_opencode_plugin_dir() -> Path:
     return get_opencode_config_dir() / "plugins"
 
 
+def get_opencode_superpowers_dir() -> Path:
+    """回傳 OpenCode 專用的 superpowers 目錄。"""
+    return get_opencode_config_dir() / "superpowers"
+
+
 def get_codex_config_dir() -> Path:
     """回傳 OpenAI Codex CLI 的配置目錄路徑。"""
     return get_home_dir() / ".codex"

@@ -20,6 +20,7 @@ from .paths import (
     get_antigravity_config_dir,
     get_opencode_config_dir,
     get_opencode_plugin_dir,
+    get_opencode_superpowers_dir,
     get_codex_config_dir,
     get_gemini_cli_config_dir,
     get_superpowers_dir,
@@ -28,6 +29,7 @@ from .paths import (
     get_anthropic_skills_dir,
     get_project_root,
 )
+from .system import run_command
 
 console = Console()
 
@@ -50,6 +52,8 @@ NPM_PACKAGES = [
 BUN_PACKAGES = [
     "@openai/codex",
 ]
+
+OPENCODE_SUPERPOWERS_URL = "https://github.com/obra/superpowers.git"
 
 
 def get_ecc_dir() -> Path:
@@ -84,6 +88,67 @@ REPOS = {
         get_ecc_dir,
     ),
 }
+
+
+def sync_opencode_superpowers_repo() -> Path:
+    """確保 OpenCode superpowers 儲存庫存在，若有就 pull，否則 clone。"""
+    repo_path = get_opencode_superpowers_dir()
+    repo_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if (repo_path / ".git").exists():
+        console.print(
+            f"[green]更新 OpenCode superpowers[/green] → [dim]{shorten_path(repo_path)}[/dim]"
+        )
+        run_command(["git", "pull"], cwd=str(repo_path), check=False)
+    else:
+        console.print(
+            f"[green]Clone OpenCode superpowers[/green] → [dim]{shorten_path(repo_path)}[/dim]"
+        )
+        run_command(["git", "clone", OPENCODE_SUPERPOWERS_URL, str(repo_path)], check=False)
+
+    return repo_path
+
+
+def refresh_opencode_superpowers_symlinks(repo_path: Path) -> bool:
+    """建立或刷新 OpenCode superpowers 的 plugin/skills symlink。"""
+    plugin_src = repo_path / ".opencode" / "plugins" / "superpowers.js"
+    skills_src = repo_path / "skills"
+    plugin_dst = get_opencode_plugin_dir() / "superpowers.js"
+    skills_dst = get_opencode_config_dir() / "skills" / "superpowers"
+
+    if not plugin_src.exists() or not skills_src.exists():
+        console.print(
+            "[red]✗ 找不到 superpowers 原始檔，請確認儲存庫內容[/red]"
+        )
+        return False
+
+    plugin_dst.parent.mkdir(parents=True, exist_ok=True)
+    skills_dst.parent.mkdir(parents=True, exist_ok=True)
+
+    def _clean(path: Path):
+        if path.is_symlink() or path.is_file():
+            path.unlink(missing_ok=True)
+        elif path.exists():
+            shutil.rmtree(path)
+
+    _clean(plugin_dst)
+    _clean(skills_dst)
+
+    try:
+        os.symlink(plugin_src, plugin_dst)
+        os.symlink(skills_src, skills_dst)
+    except OSError as e:
+        console.print(f"[red]✗ 建立 symlink 失敗：{e}[/red]")
+        return False
+
+    console.print("[green]✓[/green] OpenCode superpowers symlink 已更新")
+    console.print(
+        f"[dim]驗證：[/dim] ls -l {shorten_path(plugin_dst)}"
+    )
+    console.print(
+        f"[dim]驗證：[/dim] ls -l {shorten_path(skills_dst)}"
+    )
+    return True
 
 UNWANTED_UDS_FILES = [
     "tdd-assistant",

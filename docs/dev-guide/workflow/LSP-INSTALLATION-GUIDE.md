@@ -71,6 +71,20 @@ composer --version
 
 ---
 
+## PHP (Intelephense)
+
+```bash
+npm i -g intelephense
+```
+
+驗證：
+
+```bash
+intelephense --version
+```
+
+---
+
 ## PHP（PHPActor）
 
 ```bash

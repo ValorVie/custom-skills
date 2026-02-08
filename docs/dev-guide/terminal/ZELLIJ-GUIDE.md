@@ -319,120 +319,71 @@ Zellij 使用 KDL（KDL Document Language）格式作為設定檔格式。預設
 
 ### 推薦設定檔
 
-```toml
-# ~/.config/alacritty/alacritty.toml
+```kdl
+// ~/.config/zellij/config.kdl
 
-# ============================================================
-# 一般設定
-# ============================================================
-[general]
-live_config_reload = true
+// ============================================================
+// 主題與外觀
+// ============================================================
+theme "catppuccin-mocha"
 
-# ============================================================
-# 視窗設定
-# ============================================================
-[window]
-dynamic_padding = true
-decorations = "Full"
-opacity = 0.95
-startup_mode = "Windowed"
-option_as_alt = "Both"
+// 簡化 UI：使用箭頭代替邊框符號（適合不支援特殊字元的字型）
+// simplified_ui true
 
-[window.padding]
-x = 8
-y = 8
+// 顯示面板邊框與名稱
+pane_frames true
 
-# ============================================================
-# 字型設定
-# ============================================================
-[font]
-size = 14.0
+// ============================================================
+// 行為設定
+// ============================================================
 
-[font.normal]
-family = "Maple Mono NL NF CN"
-style = "Regular"
+// 預設模式（normal 或 locked）
+// 設為 locked 可避免快捷鍵誤觸，需要操作時按 Ctrl+g 解鎖
+default_mode "normal"
 
-[font.bold]
-family = "Maple Mono NL NF CN"
-style = "Bold"
+// 預設 layout（compact 隱藏多餘的 UI 元件）
+default_layout "compact"
 
-[font.italic]
-family = "Maple Mono NL NF CN"
-style = "Italic"
+// 滑鼠支援
+mouse_mode true
 
-[font.bold_italic]
-family = "Maple Mono NL NF CN"
-style = "Bold Italic"
+// 選取時自動複製到系統剪貼簿
+copy_on_select true
 
-[font.offset]
-x = 0
-y = 2
+// 複製指令（macOS 使用 pbcopy，Linux 使用 xclip 或 wl-copy）
+// copy_command "pbcopy"
 
-# ============================================================
-# 游標設定
-# ============================================================
-[cursor]
-unfocused_hollow = true
+// 捲動緩衝區大小
+scroll_buffer_size 50000
 
-[cursor.style]
-shape = "Block"
-blinking = "On"
+// ============================================================
+// Session 管理
+// ============================================================
 
-[cursor.vi_mode_style]
-shape = "Beam"
-blinking = "Off"
+// 啟用 session 序列化（用於 resurrect 功能）
+session_serialization true
 
-# ============================================================
-# 捲動設定
-# ============================================================
-[scrolling]
-history = 10000
-multiplier = 3
+// 序列化間隔（秒）
+serialization_interval 300
 
-# ============================================================
-# 選取設定
-# ============================================================
-[selection]
-save_to_clipboard = true
+// 鏡像 session（多 client 連同一 session 時是否同步畫面）
+mirror_session false
 
-# ============================================================
-# 顏色主題 - Vesper（黑底白字）
-# 來源：https://github.com/raunofreiberg/vesper
-# ============================================================
-[colors.primary]
-background = "#101010"
-foreground = "#ffffff"
-
-[colors.cursor]
-text    = "#101010"
-cursor  = "#ffffff"
-
-[colors.selection]
-text       = "#101010"
-background = "#b0b0b0"
-
-[colors.normal]
-black   = "#101010"
-red     = "#f5a191"
-green   = "#90b99f"
-yellow  = "#e6b99d"
-blue    = "#aca1cf"
-magenta = "#e29eca"
-cyan    = "#ea83a5"
-white   = "#a0a0a0"
-
-[colors.bright]
-black   = "#7e7e7e"
-red     = "#ff8080"
-green   = "#99ffe4"
-yellow  = "#ffc799"
-blue    = "#b9aeda"
-magenta = "#ecaad6"
-cyan    = "#f591b2"
-white   = "#ffffff"
+// ============================================================
+// 快捷鍵自訂
+// ============================================================
+keybinds {
+    // 在所有模式下共用（除了 locked）
+    shared_except "locked" {
+        // Alt+f 切換浮動面板
+        bind "Alt f" { ToggleFloatingPanes; }
+        // Alt+t 新增分頁
+        bind "Alt t" { NewTab; }
+    }
+}
 ```
 
-
+> **搭配 Alacritty 使用**：若你使用 Alacritty 作為終端模擬器，請參考 [Alacritty 指南](./ALACRITTY-GUIDE.md) 的推薦設定，特別是 macOS 上需要設定 `option_as_alt = "Both"` 才能正常使用 Zellij 的 Alt 快捷鍵。
 
 ### 產生預設設定檔
 

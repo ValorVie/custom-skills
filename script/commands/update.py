@@ -22,6 +22,8 @@ from ..utils.shared import (
     BUN_PACKAGES,
     update_claude_code,
     check_uds_initialized,
+    sync_opencode_superpowers_repo,
+    refresh_opencode_superpowers_symlinks,
 )
 
 app = typer.Typer()
@@ -220,6 +222,10 @@ def update(
         console.print("[yellow]跳過 Git 儲存庫更新[/yellow]")
     else:
         console.print("[green]正在更新儲存庫...[/green]")
+
+        # 確保 OpenCode superpowers 存在（git pull，若不存在則 clone）
+        opencode_superpowers_repo = sync_opencode_superpowers_repo()
+
         repos = [
             get_custom_skills_dir(),
             get_superpowers_dir(),
@@ -288,6 +294,9 @@ def update(
                 cwd=str(local_path),
                 check=False,
             )
+
+        # 更新完成後刷新 OpenCode symlink（保持冪等）
+        refresh_opencode_superpowers_symlinks(opencode_superpowers_repo)
 
         # 顯示更新摘要
         if updated_repos:

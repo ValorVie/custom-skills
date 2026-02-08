@@ -90,6 +90,8 @@ Commands from Everything Claude Code integration.
 | [`/learn`](./learn.md) | Extract patterns from session | 從會話萃取模式 |
 | `/coverage --generate` | Analyze coverage and generate tests | 分析覆蓋率並生成測試 |
 | [`/eval`](./eval.md) | Eval-driven development workflow | Eval 驅動開發流程 |
+| [`/orchestrate`](./orchestrate.md) | Multi-agent orchestration workflows | 多 Agent 協調工作流 |
+| [`/pm2`](./pm2.md) | Auto-detect services and generate PM2 config | PM2 服務管理初始化 |
 
 ### Custom Skills Project | 專案專屬指令
 

@@ -808,7 +808,12 @@ Copy-Item -Recurse -Force "$env:USERPROFILE\.config\custom-skills\agent\opencode
 
 #### 安裝 OpenCode Superpowers
 
-- 請 OpenCode 安裝 Superpowers 插件
+- 直接執行 `ai-dev install` 或 `ai-dev update` 會自動：
+  - 將 superpowers clone/pull 至 `~/.config/opencode/superpowers`
+  - 建立/刷新 symlink：`~/.config/opencode/plugins/superpowers.js`、`~/.config/opencode/skills/superpowers`
+  - 輸出驗證指令：`ls -l ~/.config/opencode/plugins/superpowers.js` 與 `ls -l ~/.config/opencode/skills/superpowers`
+
+- 若想在 OpenCode 內請求安裝 Superpowers 插件
 ```
 Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
 ```
