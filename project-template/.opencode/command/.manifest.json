@@ -1,0 +1,33 @@
+{
+  "version": "4.2.0",
+  "source": "universal-dev-standards",
+  "agent": "opencode",
+  "level": "project",
+  "commands": [
+    "atdd",
+    "bdd",
+    "changelog",
+    "check",
+    "commit",
+    "config",
+    "coverage",
+    "derive-all",
+    "derive-atdd",
+    "derive-bdd",
+    "derive-tdd",
+    "docs",
+    "init",
+    "methodology",
+    "refactor",
+    "release",
+    "requirement",
+    "reverse-bdd",
+    "reverse-spec",
+    "reverse-tdd",
+    "review",
+    "spec",
+    "tdd",
+    "update"
+  ],
+  "installedDate": "2026-02-08"
+}

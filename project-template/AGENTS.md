@@ -1,4 +1,3 @@
-
 ---
 
 # Added by Universal Dev Standards
@@ -114,11 +113,12 @@ Reference: .standards/checkin-standards.md
 | Git workflow | [git-workflow.ai.yaml](.standards/git-workflow.ai.yaml) | Branch/merge decisions |
 | Writing tests | [testing.ai.yaml](.standards/testing.ai.yaml) | When creating tests |
 
+
 ## Installed Standards Index
 
 This project has adopted **Level 3** standards. All standards are in `.standards/`:
 
-### Core (31 standards)
+### Core (33 standards)
 - `anti-hallucination.ai.yaml` - anti-hallucination.ai.yaml
 - `ai-friendly-architecture.ai.yaml` - ai-friendly-architecture.ai.yaml
 - `commit-message.ai.yaml` - 提交訊息格式
@@ -134,6 +134,8 @@ This project has adopted **Level 3** standards. All standards are in `.standards
 - `testing.ai.yaml` - 測試標準
 - `unit-testing.ai.yaml` - unit-testing.ai.yaml
 - `integration-testing.ai.yaml` - integration-testing.ai.yaml
+- `system-testing.ai.yaml` - system-testing.ai.yaml
+- `e2e-testing.ai.yaml` - e2e-testing.ai.yaml
 - `documentation-structure.ai.yaml` - documentation-structure.ai.yaml
 - `documentation-writing-standards.ai.yaml` - documentation-writing-standards.ai.yaml
 - `ai-instruction-standards.ai.yaml` - ai-instruction-standards.ai.yaml
