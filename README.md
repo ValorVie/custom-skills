@@ -4,6 +4,10 @@
 
 ## 安裝
 
+> **完整環境設定指南**：如果你是第一次設定 AI 開發環境（包含 Claude Code、MCP Server、Plugin 等），請參閱 [AI 開發環境設定指南](docs/AI開發環境設定指南.md)。
+>
+> 以下僅說明 `ai-dev` CLI 工具本身的安裝方式。
+
 ### 前置需求
 
 請先安裝 `uv` (Python 專案管理工具)：
@@ -17,27 +21,6 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```powershell
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
-
-### 安裝 Claude Code
-
-Claude Code 需要使用 native 安裝方式，不再透過 NPM 安裝：
-
-**macOS / Linux（推薦）：**
-```bash
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-**macOS (Homebrew)：**
-```bash
-brew install --cask claude-code
-```
-
-**Windows (WinGet)：**
-```powershell
-winget install Anthropic.ClaudeCode
-```
-
-> 詳細說明請參考 [Claude Code 官方文件](https://code.claude.com/docs)
 
 ### 安裝 CLI 工具
 
