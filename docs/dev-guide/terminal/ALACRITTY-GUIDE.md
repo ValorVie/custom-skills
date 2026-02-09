@@ -221,6 +221,12 @@ blue    = "#b9aeda"
 magenta = "#ecaad6"
 cyan    = "#f591b2"
 white   = "#ffffff"
+
+# Claude code
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001b\r"
 ```
 
 ### 推薦字型
