@@ -23,6 +23,7 @@
 | [OPENCODE-VS-CLAUDE-CODE.md](ai-tools/OPENCODE-VS-CLAUDE-CODE.md) | OpenCode 與 Claude Code 比較 |
 | [SKILLS-CLI.md](ai-tools/SKILLS-CLI.md) | Skills CLI 使用說明 |
 | [CODEX-GUIDE.md](ai-tools/CODEX-GUIDE.md) | Codex 安裝、設定與管理指南 |
+| [MCP-SERVER-GUIDE.md](ai-tools/MCP-SERVER-GUIDE.md) | MCP Server 設定指南（Claude Code / OpenCode 通用） |
 
 ## Git 操作 (`git/`)
 

@@ -1,0 +1,57 @@
+{
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@upstash/context7-mcp"
+      ],
+      "environment": {}
+    },
+    "snyk": {
+      "type": "local",
+      "command": [
+        "/opt/homebrew/bin/snyk",
+        "mcp",
+        "-t",
+        "stdio"
+      ],
+      "environment": {}
+    },
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@playwright/mcp@latest"
+      ],
+      "environment": {}
+    },
+    "n8n-mcp": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "n8n-mcp"
+      ],
+      "environment": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "true",
+        "N8N_API_URL": "https://${DOMAIN}",
+        "N8N_API_KEY": "${API_KEY}"
+      }
+    },
+    "postgres-mcp": {
+      "type": "local",
+      "command": [
+        "uv",
+        "run",
+        "postgres-mcp",
+        "--access-mode=unrestricted"
+      ],
+      "environment": {
+        "DATABASE_URI": "postgresql://${USER}:${PASSWORD}@${IP}:${PORT}/${DB}"
+      }
+    }
+  }
+}
