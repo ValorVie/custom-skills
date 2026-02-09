@@ -47,6 +47,7 @@ NPM_PACKAGES = [
     "universal-dev-standards",
     "opencode-ai@latest",
     "skills",
+    "happy-coder",
 ]
 
 BUN_PACKAGES = [
