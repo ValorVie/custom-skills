@@ -1,6 +1,6 @@
 {
   "name": "ecc-hooks",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "ECC Hooks - Memory Persistence, Strategic Compact & Code Quality",
   "private": true,
   "scripts": {

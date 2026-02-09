@@ -20,6 +20,7 @@ dist
 # 專案專用
 logs
 backups
+_backup_after_init_force/
 disabled
 .env
 

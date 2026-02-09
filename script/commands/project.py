@@ -7,13 +7,14 @@ project 指令群組：專案級別的初始化與更新操作。
 - update: 執行 openspec update 和 uds update
 """
 
+import filecmp
 import os
 import shutil
 import stat
 import subprocess
-import sys
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import typer
 from rich.console import Console
@@ -45,13 +46,29 @@ def _remove_readonly(path: Path) -> None:
             try:
                 if item.is_dir():
                     # 目錄需要 execute 權限才能進入和刪除內容
-                    os.chmod(item, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)  # 755
+                    os.chmod(
+                        item,
+                        stat.S_IRWXU
+                        | stat.S_IRGRP
+                        | stat.S_IXGRP
+                        | stat.S_IROTH
+                        | stat.S_IXOTH,
+                    )  # 755
                 else:
-                    os.chmod(item, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)  # 644
+                    os.chmod(
+                        item, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+                    )  # 644
             except (OSError, PermissionError):
                 pass
         try:
-            os.chmod(path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)  # 755
+            os.chmod(
+                path,
+                stat.S_IRWXU
+                | stat.S_IRGRP
+                | stat.S_IXGRP
+                | stat.S_IROTH
+                | stat.S_IXOTH,
+            )  # 755
         except (OSError, PermissionError):
             pass
 
@@ -70,6 +87,73 @@ def _safe_rmtree(path: Path) -> None:
 
     # 再執行刪除
     shutil.rmtree(path)
+
+
+def _collect_diff_files(src_dir: Path, dst_dir: Path) -> list[Path]:
+    """遞迴比對來源與目標目錄，回傳需要備份的相對檔案路徑。"""
+    src_dir = Path(src_dir)
+    dst_dir = Path(dst_dir)
+    diff_files: list[Path] = []
+
+    if not dst_dir.exists() or not dst_dir.is_dir():
+        return diff_files
+
+    def _collect_all_files(base_dir: Path) -> None:
+        for file_path in base_dir.rglob("*"):
+            if file_path.is_file():
+                diff_files.append(file_path.relative_to(dst_dir))
+
+    if not src_dir.exists() or not src_dir.is_dir():
+        _collect_all_files(dst_dir)
+        return sorted(diff_files)
+
+    def _walk(src_base: Path, dst_base: Path) -> None:
+        for dst_item in dst_base.iterdir():
+            src_item = src_base / dst_item.name
+
+            if dst_item.is_dir():
+                if not src_item.exists() or not src_item.is_dir():
+                    _collect_all_files(dst_item)
+                else:
+                    _walk(src_item, dst_item)
+                continue
+
+            if not dst_item.is_file():
+                continue
+
+            if not src_item.exists() or not src_item.is_file():
+                diff_files.append(dst_item.relative_to(dst_dir))
+                continue
+
+            try:
+                if not filecmp.cmp(src_item, dst_item, shallow=False):
+                    diff_files.append(dst_item.relative_to(dst_dir))
+            except OSError:
+                diff_files.append(dst_item.relative_to(dst_dir))
+
+    _walk(src_dir, dst_dir)
+    return sorted(diff_files)
+
+
+def _backup_diff_files(
+    target_dir: Path, diff_files: list[Path], item_name: str, backup_dir: Path
+) -> list[Path]:
+    """將差異檔案從目標目錄備份到指定備份路徑。"""
+    target_dir = Path(target_dir)
+    backup_dir = Path(backup_dir)
+    backed_up_files: list[Path] = []
+
+    for relative_path in diff_files:
+        source_file = target_dir / item_name / relative_path
+        if not source_file.exists() or not source_file.is_file():
+            continue
+
+        backup_file = backup_dir / item_name / relative_path
+        backup_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, backup_file)
+        backed_up_files.append(Path(item_name) / relative_path)
+
+    return backed_up_files
 
 
 def _merge_text_file(src: Path, dst: Path) -> tuple[int, int]:
@@ -200,7 +284,9 @@ def _sync_to_project_template(project_root: Path, template_dir: Path) -> None:
 
     同步的檔案清單由 template_dir 中現有的檔案決定，包含隱藏檔案和目錄。
     """
-    console.print("[bold yellow]偵測到 custom-skills 專案：啟用反向同步模式[/bold yellow]")
+    console.print(
+        "[bold yellow]偵測到 custom-skills 專案：啟用反向同步模式[/bold yellow]"
+    )
     console.print(f"[dim]專案根目錄：{project_root}[/dim]")
     console.print(f"[dim]模板目錄：{template_dir}[/dim]")
     console.print()
@@ -225,7 +311,9 @@ def _sync_to_project_template(project_root: Path, template_dir: Path) -> None:
             try:
                 added, total = _merge_text_file(src, dst)
                 if added > 0:
-                    console.print(f"  [blue]合併[/blue] {item_name}（+{added} 行，共 {total} 行）")
+                    console.print(
+                        f"  [blue]合併[/blue] {item_name}（+{added} 行，共 {total} 行）"
+                    )
                 else:
                     console.print(f"  [dim]無變更[/dim] {item_name}（內容相同）")
                 copied_count += 1
@@ -246,7 +334,9 @@ def _sync_to_project_template(project_root: Path, template_dir: Path) -> None:
                 console.print(f"  [green]✓[/green] {item_name}/ → project-template/")
             else:
                 if src.name in EXCLUDE_FROM_TEMPLATE:
-                    console.print(f"  [yellow]排除[/yellow] {item_name}（不屬於共享範本）")
+                    console.print(
+                        f"  [yellow]排除[/yellow] {item_name}（不屬於共享範本）"
+                    )
                     skipped_count += 1
                     continue
                 shutil.copy2(src, dst)
@@ -322,6 +412,12 @@ def init(
     # 複製模板
     copied_count = 0
     skipped_count = 0
+    backup_base_dir: Optional[Path] = None
+    backed_up_files: list[Path] = []
+
+    if force:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_base_dir = target_dir / "_backup_after_init_force" / timestamp
 
     for item in template_dir.iterdir():
         src = item
@@ -333,7 +429,9 @@ def init(
                 dst_existed = dst.exists()
                 added, total = _merge_text_file(src, dst)
                 if dst_existed and added > 0:
-                    console.print(f"  [blue]合併[/blue] {item.name}（+{added} 行，共 {total} 行）")
+                    console.print(
+                        f"  [blue]合併[/blue] {item.name}（+{added} 行，共 {total} 行）"
+                    )
                 elif dst_existed:
                     console.print(f"  [dim]無變更[/dim] {item.name}（內容相同）")
                 else:
@@ -353,10 +451,58 @@ def init(
         try:
             if src.is_dir():
                 if dst.exists():
-                    _safe_rmtree(dst)
+                    if force and backup_base_dir is not None:
+                        if dst.is_dir():
+                            diff_files = _collect_diff_files(src, dst)
+                            if diff_files:
+                                backed_up_files.extend(
+                                    _backup_diff_files(
+                                        target_dir=target_dir,
+                                        diff_files=diff_files,
+                                        item_name=item.name,
+                                        backup_dir=backup_base_dir,
+                                    )
+                                )
+                        elif dst.is_file():
+                            backup_file = backup_base_dir / item.name
+                            backup_file.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(dst, backup_file)
+                            backed_up_files.append(Path(item.name))
+
+                    if dst.is_dir():
+                        _safe_rmtree(dst)
+                    else:
+                        dst.unlink()
                 shutil.copytree(src, dst, ignore=_template_ignore)
                 console.print(f"  [green]✓[/green] {item.name}/")
             else:
+                if force and backup_base_dir is not None and dst.exists():
+                    if dst.is_file():
+                        try:
+                            files_differ = not filecmp.cmp(src, dst, shallow=False)
+                        except OSError:
+                            files_differ = True
+
+                        if files_differ:
+                            backup_file = backup_base_dir / item.name
+                            backup_file.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(dst, backup_file)
+                            backed_up_files.append(Path(item.name))
+                    elif dst.is_dir():
+                        diff_files = _collect_diff_files(src, dst)
+                        if diff_files:
+                            backed_up_files.extend(
+                                _backup_diff_files(
+                                    target_dir=target_dir,
+                                    diff_files=diff_files,
+                                    item_name=item.name,
+                                    backup_dir=backup_base_dir,
+                                )
+                            )
+
+                if dst.exists() and dst.is_dir():
+                    _safe_rmtree(dst)
+
                 shutil.copy2(src, dst)
                 console.print(f"  [green]✓[/green] {item.name}")
             copied_count += 1
@@ -366,7 +512,18 @@ def init(
     console.print()
     console.print(f"[green]複製完成：{copied_count} 個項目[/green]")
     if skipped_count > 0:
-        console.print(f"[yellow]跳過：{skipped_count} 個項目（使用 --force 覆蓋）[/yellow]")
+        console.print(
+            f"[yellow]跳過：{skipped_count} 個項目（使用 --force 覆蓋）[/yellow]"
+        )
+
+    if backed_up_files and backup_base_dir is not None:
+        backup_files_display = sorted({path.as_posix() for path in backed_up_files})
+        console.print()
+        console.print("[bold cyan]差異檔案備份摘要[/bold cyan]")
+        console.print(f"[dim]備份目錄：{backup_base_dir}[/dim]")
+        for backup_file in backup_files_display:
+            console.print(f"  [blue]-[/blue] {backup_file}")
+        console.print(f"[dim]備份檔案數量：{len(backup_files_display)}[/dim]")
 
     console.print()
     console.print("[bold green]專案初始化完成！[/bold green]")
@@ -422,7 +579,9 @@ def update(
                 check_dir = TOOLS[tool]["check_dir"]
                 console.print(f"  - {tool}: {check_dir}/ 不存在")
             console.print()
-            console.print(f"[dim]建議執行 `ai-dev project init --only {not_init[0]}`[/dim]")
+            console.print(
+                f"[dim]建議執行 `ai-dev project init --only {not_init[0]}`[/dim]"
+            )
             console.print()
 
             # 只更新已初始化的工具
