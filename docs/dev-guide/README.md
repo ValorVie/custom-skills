@@ -31,6 +31,7 @@
 | [GIT-WORKFLOW.md](git/GIT-WORKFLOW.md) | Git 工作流程指南 |
 | [LAZYGIT-GUIDE.md](git/LAZYGIT-GUIDE.md) | Lazygit 終端 Git UI 教學（安裝/設定/工作流） |
 | [GIT-REMOVE-SENSITIVE-FILES.md](git/GIT-REMOVE-SENSITIVE-FILES.md) | 從 Git 歷史移除敏感檔案 |
+| [GIT-SHARED-ACCOUNT-IDENTITY.md](git/GIT-SHARED-ACCOUNT-IDENTITY.md) | 共用帳號 Git 身分管理（SSH Key 分離 + Commit 身分） |
 | [GIT-SUBMODULE-PERFORMANCE.md](git/GIT-SUBMODULE-PERFORMANCE.md) | Git Submodule 效能優化 |
 | [Git Submodule 操作指南.md](git/Git%20Submodule%20操作指南.md) | Git Submodule 操作指南 |
 
