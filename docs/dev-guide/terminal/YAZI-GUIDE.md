@@ -475,9 +475,149 @@ require("git"):setup {
 | Plugin | 功能 | 安裝指令 |
 |--------|------|----------|
 | `yazi-rs/plugins:git` | Git 狀態顯示 | `ya pkg add yazi-rs/plugins:git` |
+| `Lil-Dank/lazygit` | 在 Yazi 中開啟 lazygit | `ya pkg add Lil-Dank/lazygit` |
 | `yazi-rs/plugins:smart-filter` | 智慧過濾 | `ya pkg add yazi-rs/plugins:smart-filter` |
 | `uhs-robert/sshfs` | SFTP/SSH 掛載 | `ya pkg add uhs-robert/sshfs` |
 | `boydaihungst/gvfs` | 多協定掛載 | `ya pkg add boydaihungst/gvfs` |
+
+### 動態調整面板比例（change-ratio Plugin）
+
+Yazi 預設的三欄比例只能在 `yazi.toml` 中靜態設定。透過 `rt.mgr.ratio` API（v25.12+），可以用自製 Plugin 在執行中即時切換佈局。
+
+**1. 建立 Plugin：**
+
+```bash
+mkdir -p ~/.config/yazi/plugins/change-ratio.yazi
+```
+
+`~/.config/yazi/plugins/change-ratio.yazi/main.lua`：
+
+```lua
+--- @sync entry
+return {
+  entry = function(_, job)
+    rt.mgr.ratio = { tonumber(job.args[1]), tonumber(job.args[2]), tonumber(job.args[3]) }
+    ya.emit("app:resize", {})
+  end,
+}
+```
+
+> 第一行的 `--- @sync entry` 是必要的標註，缺少會導致佈局不生效。
+
+**2. 綁定快捷鍵：**
+
+在 `~/.config/yazi/keymap.toml` 中加入（使用 `W` 前綴，避免與 `w` 工作管理員衝突）：
+
+```toml
+[mgr]
+prepend_keymap = [
+  { on = ["W", "0"], run = "plugin change-ratio -- 0 1 0", desc = "Current only (no parent, no preview)" },
+  { on = ["W", "1"], run = "plugin change-ratio -- 0 1 1", desc = "Two columns (current + preview)" },
+  { on = ["W", "2"], run = "plugin change-ratio -- 1 4 3", desc = "Default three columns" },
+  { on = ["W", "3"], run = "plugin change-ratio -- 0 1 3", desc = "Focus preview" },
+]
+```
+
+**3. 快捷鍵對照：**
+
+| 按鍵 | 比例 | 效果 |
+|------|------|------|
+| `W` → `0` | `0:1:0` | 只有當前目錄，無上層、無預覽 |
+| `W` → `1` | `0:1:1` | 當前目錄 + 預覽各半，無上層 |
+| `W` → `2` | `1:4:3` | 預設三欄佈局 |
+| `W` → `3` | `0:1:3` | 當前目錄窄、預覽佔 3/4 |
+
+比例格式為 `上層目錄:當前目錄:預覽`，數字為相對寬度，設為 `0` 即隱藏該欄。可自行調整數值。
+
+> 參考：[PR #2964 - feat: allow dynamic adjustment of layout ratio](https://github.com/sxyazi/yazi/pull/2964)
+
+### Git 整合
+
+Yazi 透過插件支援 Git 狀態高亮與 lazygit 整合，提供接近 VSCode 的 Git 檔案標記體驗。
+
+#### 安裝插件
+
+```bash
+ya pkg add yazi-rs/plugins:git    # Git 狀態標記
+ya pkg add Lil-Dank/lazygit       # lazygit 整合
+```
+
+#### 設定 Git 狀態顯示
+
+在 `~/.config/yazi/yazi.toml` 加入 fetcher，讓 Yazi 自動偵測 Git 狀態：
+
+```toml
+[[plugin.prepend_fetchers]]
+id = "git"
+url = "*"
+run = "git"
+
+[[plugin.prepend_fetchers]]
+id = "git"
+url = "*/"
+run = "git"
+```
+
+在 `~/.config/yazi/init.lua` 初始化插件並自訂顏色與符號：
+
+```lua
+-- Git 狀態顏色與符號（需在 setup 之前設定）
+th.git = th.git or {}
+th.git.modified = ui.Style():fg("blue")
+th.git.added = ui.Style():fg("green")
+th.git.untracked = ui.Style():fg("yellow")
+th.git.deleted = ui.Style():fg("red"):bold()
+th.git.ignored = ui.Style():fg("darkgray")
+
+th.git.modified_sign = "M"
+th.git.added_sign = "A"
+th.git.untracked_sign = "?"
+th.git.deleted_sign = "D"
+
+-- 初始化 git 插件
+require("git"):setup {
+  order = 1500,
+}
+```
+
+設定後，檔案列表會在每個檔案旁顯示 Git 狀態標記：
+
+| 標記 | 顏色 | 意義 |
+|------|------|------|
+| `M` | 藍色 | 已修改（Modified） |
+| `A` | 綠色 | 已加入（Added） |
+| `?` | 黃色 | 未追蹤（Untracked） |
+| `D` | 紅色粗體 | 已刪除（Deleted） |
+
+#### 設定 lazygit 與 Git diff 快捷鍵
+
+在 `~/.config/yazi/keymap.toml` 中加入（使用 `G` 前綴，避免與 `gg` 跳到頂部、`G` 跳到底部衝突）：
+
+```toml
+[mgr]
+prepend_keymap = [
+  # Git integration
+  { on = ["G", "g"], run = "plugin lazygit", desc = "Open lazygit" },
+  { on = ["G", "d"], run = '''shell 'git diff -- "$@" | less' --block''', desc = "Git diff current file" },
+]
+```
+
+> **注意：** 使用 `G` (Shift+g) 作為前綴後，原本的 `G`（跳到底部）需要等待按鍵超時才會觸發，或改用 `Ctrl+d` / `PageDown` 替代。
+
+#### Git 快捷鍵對照
+
+| 按鍵 | 功能 |
+|------|------|
+| `Gg` | 開啟 lazygit 完整介面（查看 diff、stage、commit） |
+| `Gd` | 對當前檔案執行 `git diff`，直接顯示變更內容 |
+
+#### 開發工作流
+
+1. 在檔案列表看到 **M/A/?/D** 標記 → 快速掌握哪些檔案有變更
+2. `Gd` → 查看單一檔案的 diff 細節
+3. `Gg` → 進入 lazygit 做完整 Git 操作（stage、commit、push）
+
+> 參考：[git.yazi](https://github.com/yazi-rs/plugins/tree/main/git.yazi)、[lazygit.yazi](https://github.com/Lil-Dank/lazygit.yazi)
 
 ### Plugin 目錄結構
 
@@ -558,6 +698,64 @@ export EDITOR="code --wait"   # VS Code
 - 快速確認 AI 產生的檔案結構
 - 批次重命名或搬移檔案
 - 搭配 Tab 管理在多個專案目錄間切換
+
+### 開發常用情境組合
+
+#### 1. 快速定位並開啟檔案
+
+```
+z → 輸入專案關鍵字跳轉 → f → 輸入檔名過濾 → Enter 開啟
+```
+
+適合：已知大概位置，想快速打開某個檔案編輯。
+
+#### 2. 搜尋檔案內容
+
+```
+S → 輸入搜尋關鍵字（ripgrep 遞迴搜尋）→ 在結果中選取 → Enter
+```
+
+適合：不確定在哪個檔案，只記得內容片段。
+
+#### 3. 複製路徑給 AI 工具
+
+```
+定位到目標檔案 → cc 複製完整路徑 → 貼到 Claude Code / OpenCode
+```
+
+適合：需要在 AI 對話中引用特定檔案路徑。`cd` 可複製目錄路徑、`cf` 複製檔名。
+
+#### 4. 批次搬移或整理檔案
+
+```
+Space 逐一選取（或 v 進入視覺模式連續選取）→ x 剪下 → 移到目標目錄 → p 貼上
+```
+
+適合：重構時搬移多個檔案到新目錄。
+
+#### 5. 快速建立專案結構
+
+```
+a → 輸入 src/ 建目錄 → a → 輸入 src/index.ts 建檔案 → 重複
+```
+
+適合：初始化專案或新增模組時一次建好目錄與檔案。
+
+#### 6. 確認 AI 產生的變更
+
+```
+,m 按修改時間排序 → 最近修改的檔案排在最前 → Enter 預覽或開啟
+```
+
+適合：AI 批次修改後，快速瀏覽哪些檔案被改過。
+
+#### 7. 在多個專案間切換
+
+```
+t 開新 Tab → Z 用 zoxide 跳到另一專案 → [ / ] 切換 Tab
+```
+
+適合：同時處理多個專案，每個 Tab 停留在不同專案目錄。
 
 ### Shell Wrapper（多 Shell 支援）
 
