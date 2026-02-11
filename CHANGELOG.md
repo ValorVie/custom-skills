@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`ai-dev update` 新增第三方 Skills 更新**
+  - 在 NPM 套件更新後自動執行 `npx skills update`
+  - 更新透過 skills.sh 安裝的第三方 Skills
+
+- **文件：新增 skills.sh 使用指南**
+  - 在 AI 開發環境設定指南新增「第五步：選用 SKILLS」章節
+  - 包含 `npx skills` 完整指令參考
+
 - **ECC 上游整合：OpenCode Plugin Hooks 擴充**
   - 新增 5 個 OpenCode 獨有事件處理：file.edited、session.idle、file.watcher.updated、permission.asked、todo.updated
   - file.edited：條件式 Prettier 格式化 + console.log 偵測

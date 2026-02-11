@@ -127,9 +127,10 @@ ai-dev update
 這會自動：
 1. 更新 Claude Code（若已安裝）。
 2. 更新全域 NPM 工具。
-3. 更新 Codex CLI（若 Bun 已安裝）。
-4. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
-5. 更新已設定的自訂 repo。
+3. 更新已安裝的第三方 Skills（`npx skills update`）。
+4. 更新 Codex CLI（若 Bun 已安裝）。
+5. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
+6. 更新已設定的自訂 repo。
 
 > **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
 

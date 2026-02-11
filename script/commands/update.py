@@ -202,6 +202,10 @@ def update(
             console.print("[dim]ℹ️  當前目錄未初始化 Standards（跳過 uds update）[/dim]")
             console.print("[dim]   如需在此專案使用，請執行: uds init[/dim]")
 
+        # 執行 npx skills update（更新已安裝的第三方 Skills）
+        console.print("[green]正在更新已安裝的 Skills...[/green]")
+        run_command(["npx", "skills", "update"], check=False)
+
     # 2.5 更新 Bun 套件
     if skip_bun:
         console.print("[yellow]跳過 Bun 套件更新[/yellow]")

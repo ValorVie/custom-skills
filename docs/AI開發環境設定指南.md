@@ -310,6 +310,41 @@ claude mcp remove <name>
 
 > Antigravity 的 MCP Server 設定請參閱[附錄 A](#附錄-a備選-ai-開發工具)。
 
+### 第五步：選用 SKILLS 
+- https://skills.sh/
+
+```shell
+# 尋找 Skills 的 SKILL
+npx skills add https://github.com/vercel-labs/skills --skill find-skills
+```
+
+```shell
+npx skills -h
+npx skills add vercel-labs/agent-skills
+npx skills add vercel-labs/agent-skills -g
+npx skills add vercel-labs/agent-skills --agent claude-code cursor
+npx skills add vercel-labs/agent-skills --skill pr-review commit
+# interactive remove
+npx skills remove
+# remove by name
+npx skills remove web-design
+# global skills only
+npx skills rm --global frontend-design
+# list all installed skills
+npx skills list
+# list global skills only
+npx skills ls -g
+# interactive search
+npx skills find
+# search by keyword
+npx skills find typescript
+# init new skill
+npx skills init my-skill
+npx skills check
+npx skills update
+```
+
+
 ---
 
 ## 每日更新維護
