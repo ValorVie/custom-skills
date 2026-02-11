@@ -1,0 +1,348 @@
+-- ~/.wezterm.lua
+-- 社群推薦完整配置 — Zellij 風格模式切換操作模型
+-- 核心概念：Ctrl+快捷鍵 進入模式 → 簡單按鍵操作 → Esc 離開
+local wezterm = require 'wezterm'
+local act = wezterm.action
+local config = wezterm.config_builder()
+
+-- ============================================================
+-- 一般設定
+-- ============================================================
+config.automatically_reload_config = true
+config.check_for_updates = true
+
+-- ============================================================
+-- 視窗設定
+-- ============================================================
+-- config.window_decorations = "RESIZE"  -- 隱藏標題列但保留調整大小功能
+config.window_background_opacity = 0.95
+config.macos_window_background_blur = 20  -- macOS 毛玻璃效果
+config.window_padding = {
+  left = 8,
+  right = 8,
+  top = 8,
+  bottom = 8,
+}
+config.initial_rows = 35
+config.initial_cols = 130
+config.window_close_confirmation = 'AlwaysPrompt'
+
+-- ============================================================
+-- 字型設定
+-- ============================================================
+config.font = wezterm.font_with_fallback {
+  'Maple Mono NL NF CN',
+  'JetBrains Mono',
+  'Noto Color Emoji',
+}
+config.font_size = 14.0
+config.line_height = 1.1
+-- 分頁列字型（Fancy Tab Bar 使用獨立字型設定）
+config.window_frame = {
+  font = wezterm.font { family = 'Maple Mono NL NF CN', weight = 'Bold' },
+  font_size = 11.0,
+}
+
+-- ============================================================
+-- 游標設定
+-- ============================================================
+config.default_cursor_style = 'BlinkingBlock'
+config.cursor_blink_rate = 500
+config.cursor_blink_ease_in = 'Constant'
+config.cursor_blink_ease_out = 'Constant'
+
+-- ============================================================
+-- 分頁列設定
+-- ============================================================
+config.enable_tab_bar = true
+config.hide_tab_bar_if_only_one_tab = false
+config.use_fancy_tab_bar = true
+config.tab_bar_at_bottom = false
+config.show_tab_index_in_tab_bar = true
+config.switch_to_last_active_tab_when_closing_tab = true
+
+-- ============================================================
+-- 捲動設定
+-- ============================================================
+config.scrollback_lines = 10000
+config.enable_scroll_bar = false
+
+-- ============================================================
+-- 色彩主題
+-- ============================================================
+config.color_scheme = 'Catppuccin Mocha'
+
+-- ============================================================
+-- 預設 Shell（依平台自動切換）
+-- ============================================================
+if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
+  -- Windows：使用 PowerShell 7 或 WSL
+  config.default_prog = { 'pwsh.exe' }
+  -- config.default_prog = { 'wsl.exe', '-d', 'Ubuntu' }
+end
+
+-- ============================================================
+-- 狀態列：顯示當前模式（Zellij 風格提示）
+-- ============================================================
+local mode_colors = {
+  pane    = '#f38ba8',  -- 粉紅
+  tab     = '#89b4fa',  -- 藍色
+  resize  = '#a6e3a1',  -- 綠色
+  scroll  = '#f9e2af',  -- 黃色
+  session = '#cba6f7',  -- 紫色
+  move    = '#fab387',  -- 橘色
+}
+
+wezterm.on('update-right-status', function(window, pane)
+  local mode = window:active_key_table()
+  if mode then
+    local color = mode_colors[mode] or '#a6adc8'
+    window:set_right_status(wezterm.format {
+      { Foreground = { Color = '#1e1e2e' } },
+      { Background = { Color = color } },
+      { Text = ' ' .. string.upper(mode) .. ' MODE ' },
+    })
+  else
+    window:set_right_status(wezterm.format {
+      { Foreground = { Color = '#6c7086' } },
+      { Background = { Color = '#1e1e2e' } },
+      { Text = ' NORMAL ' },
+    })
+  end
+end)
+
+-- ============================================================
+-- 快捷鍵：進入各模式 + 全域快捷鍵
+-- ============================================================
+config.keys = {
+  -- === 模式切換（Zellij 風格） ===
+
+  -- Ctrl+P → 進入 Pane 模式
+  {
+    key = 'p',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'pane',
+      one_shot = false,
+    },
+  },
+  -- Ctrl+T → 進入 Tab 模式
+  {
+    key = 't',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'tab',
+      one_shot = false,
+    },
+  },
+  -- Ctrl+N → 進入 Resize 模式
+  {
+    key = 'n',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'resize',
+      one_shot = false,
+    },
+  },
+  -- Ctrl+S → 進入 Scroll 模式
+  {
+    key = 's',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'scroll',
+      one_shot = false,
+    },
+  },
+  -- Ctrl+O → 進入 Session 模式
+  {
+    key = 'o',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'session',
+      one_shot = false,
+    },
+  },
+  -- Ctrl+H → 進入 Move 模式（移動 Pane 焦點）
+  {
+    key = 'h',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'move',
+      one_shot = false,
+    },
+  },
+
+  -- === 全域快捷鍵（不需進入模式，隨時可用） ===
+
+  -- Alt + 方向鍵 → 快速切換 Pane
+  { key = 'LeftArrow',  mods = 'ALT', action = act.ActivatePaneDirection 'Left' },
+  { key = 'RightArrow', mods = 'ALT', action = act.ActivatePaneDirection 'Right' },
+  { key = 'UpArrow',    mods = 'ALT', action = act.ActivatePaneDirection 'Up' },
+  { key = 'DownArrow',  mods = 'ALT', action = act.ActivatePaneDirection 'Down' },
+
+  -- Alt + 1~9 → 快速切換 Tab
+  { key = '1', mods = 'ALT', action = act.ActivateTab(0) },
+  { key = '2', mods = 'ALT', action = act.ActivateTab(1) },
+  { key = '3', mods = 'ALT', action = act.ActivateTab(2) },
+  { key = '4', mods = 'ALT', action = act.ActivateTab(3) },
+  { key = '5', mods = 'ALT', action = act.ActivateTab(4) },
+  { key = '6', mods = 'ALT', action = act.ActivateTab(5) },
+  { key = '7', mods = 'ALT', action = act.ActivateTab(6) },
+  { key = '8', mods = 'ALT', action = act.ActivateTab(7) },
+  { key = '9', mods = 'ALT', action = act.ActivateTab(8) },
+
+  -- Alt+Shift+Enter → 全螢幕切換
+  { key = 'Enter', mods = 'ALT|SHIFT', action = act.ToggleFullScreen },
+  -- Ctrl+Shift+P → 命令面板
+  { key = 'p', mods = 'CTRL|SHIFT', action = act.ActivateCommandPalette },
+}
+
+-- ============================================================
+-- Key Tables — 各模式內的操作（Zellij 風格）
+-- ============================================================
+config.key_tables = {
+
+  -- ── Pane 模式 (Ctrl+P) ──────────────────────────────
+  -- 分割、關閉、Zoom、旋轉窗格
+  pane = {
+    -- 分割
+    { key = 'd',          action = act.SplitHorizontal { domain = 'CurrentPaneDomain' } },
+    { key = 'e',          action = act.SplitVertical { domain = 'CurrentPaneDomain' } },
+    -- 導航
+    { key = 'LeftArrow',  action = act.ActivatePaneDirection 'Left' },
+    { key = 'RightArrow', action = act.ActivatePaneDirection 'Right' },
+    { key = 'UpArrow',    action = act.ActivatePaneDirection 'Up' },
+    { key = 'DownArrow',  action = act.ActivatePaneDirection 'Down' },
+    { key = 'h',          action = act.ActivatePaneDirection 'Left' },
+    { key = 'l',          action = act.ActivatePaneDirection 'Right' },
+    { key = 'k',          action = act.ActivatePaneDirection 'Up' },
+    { key = 'j',          action = act.ActivatePaneDirection 'Down' },
+    -- 操作
+    { key = 'x',          action = act.CloseCurrentPane { confirm = true } },
+    { key = 'f',          action = act.TogglePaneZoomState },
+    { key = 'r',          action = act.RotatePanes 'Clockwise' },
+    -- 離開
+    { key = 'Escape',     action = 'PopKeyTable' },
+    { key = 'Enter',      action = 'PopKeyTable' },
+  },
+
+  -- ── Tab 模式 (Ctrl+T) ──────────────────────────────
+  -- 新增、關閉、切換、重命名分頁
+  tab = {
+    -- 新增 / 關閉
+    { key = 'n',          action = act.SpawnTab 'CurrentPaneDomain' },
+    { key = 'x',          action = act.CloseCurrentTab { confirm = true } },
+    -- 導航
+    { key = 'LeftArrow',  action = act.ActivateTabRelative(-1) },
+    { key = 'RightArrow', action = act.ActivateTabRelative(1) },
+    { key = 'h',          action = act.ActivateTabRelative(-1) },
+    { key = 'l',          action = act.ActivateTabRelative(1) },
+    -- 數字鍵直接切換
+    { key = '1',          action = act.ActivateTab(0) },
+    { key = '2',          action = act.ActivateTab(1) },
+    { key = '3',          action = act.ActivateTab(2) },
+    { key = '4',          action = act.ActivateTab(3) },
+    { key = '5',          action = act.ActivateTab(4) },
+    { key = '6',          action = act.ActivateTab(5) },
+    { key = '7',          action = act.ActivateTab(6) },
+    { key = '8',          action = act.ActivateTab(7) },
+    { key = '9',          action = act.ActivateTab(8) },
+    -- 重命名
+    {
+      key = 'r',
+      action = act.PromptInputLine {
+        description = 'Enter new tab title',
+        action = wezterm.action_callback(function(window, pane, line)
+          if line then window:active_tab():set_title(line) end
+        end),
+      },
+    },
+    -- 離開
+    { key = 'Escape',     action = 'PopKeyTable' },
+    { key = 'Enter',      action = 'PopKeyTable' },
+  },
+
+  -- ── Resize 模式 (Ctrl+N) ───────────────────────────
+  -- 持續調整窗格大小
+  resize = {
+    { key = 'LeftArrow',  action = act.AdjustPaneSize { 'Left', 3 } },
+    { key = 'RightArrow', action = act.AdjustPaneSize { 'Right', 3 } },
+    { key = 'UpArrow',    action = act.AdjustPaneSize { 'Up', 3 } },
+    { key = 'DownArrow',  action = act.AdjustPaneSize { 'Down', 3 } },
+    { key = 'h',          action = act.AdjustPaneSize { 'Left', 3 } },
+    { key = 'l',          action = act.AdjustPaneSize { 'Right', 3 } },
+    { key = 'k',          action = act.AdjustPaneSize { 'Up', 3 } },
+    { key = 'j',          action = act.AdjustPaneSize { 'Down', 3 } },
+    -- Zoom 重設（取消單一 Pane 全螢幕）
+    { key = '=',          action = act.TogglePaneZoomState },
+    -- 離開
+    { key = 'Escape',     action = 'PopKeyTable' },
+    { key = 'Enter',      action = 'PopKeyTable' },
+  },
+
+  -- ── Scroll 模式 (Ctrl+S) ───────────────────────────
+  -- 捲動、搜尋、進入 Copy Mode
+  scroll = {
+    { key = 'UpArrow',    action = act.ScrollByLine(-1) },
+    { key = 'DownArrow',  action = act.ScrollByLine(1) },
+    { key = 'k',          action = act.ScrollByLine(-1) },
+    { key = 'j',          action = act.ScrollByLine(1) },
+    { key = 'u',          action = act.ScrollByPage(-0.5) },
+    { key = 'd',          action = act.ScrollByPage(0.5) },
+    { key = 'PageUp',     action = act.ScrollByPage(-1) },
+    { key = 'PageDown',   action = act.ScrollByPage(1) },
+    -- 搜尋
+    { key = 's',          action = act.Search { CaseSensitiveString = '' } },
+    -- 進入 Copy Mode（Vim 式瀏覽 + 選取）
+    { key = 'c',          action = act.ActivateCopyMode },
+    -- 離開
+    { key = 'Escape',     action = 'PopKeyTable' },
+    { key = 'Enter',      action = 'PopKeyTable' },
+  },
+
+  -- ── Session 模式 (Ctrl+O) ──────────────────────────
+  -- 工作區、啟動器、設定
+  session = {
+    -- 工作區選單
+    { key = 'w',          action = act.ShowLauncherArgs { flags = 'WORKSPACES' } },
+    -- 啟動器
+    { key = 'l',          action = act.ShowLauncher },
+    -- Tab 導覽
+    { key = 't',          action = act.ShowTabNavigator },
+    -- 除錯覆蓋層
+    { key = 'd',          action = act.ShowDebugOverlay },
+    -- 離開
+    { key = 'Escape',     action = 'PopKeyTable' },
+    { key = 'Enter',      action = 'PopKeyTable' },
+  },
+
+  -- ── Move 模式 (Ctrl+H) ─────────────────────────────
+  -- 在窗格間移動焦點（one-shot 風格，選完自動離開）
+  move = {
+    { key = 'LeftArrow',  action = act.ActivatePaneDirection 'Left' },
+    { key = 'RightArrow', action = act.ActivatePaneDirection 'Right' },
+    { key = 'UpArrow',    action = act.ActivatePaneDirection 'Up' },
+    { key = 'DownArrow',  action = act.ActivatePaneDirection 'Down' },
+    { key = 'h',          action = act.ActivatePaneDirection 'Left' },
+    { key = 'l',          action = act.ActivatePaneDirection 'Right' },
+    { key = 'k',          action = act.ActivatePaneDirection 'Up' },
+    { key = 'j',          action = act.ActivatePaneDirection 'Down' },
+    -- 離開
+    { key = 'Escape',     action = 'PopKeyTable' },
+    { key = 'Enter',      action = 'PopKeyTable' },
+  },
+}
+
+-- ============================================================
+-- 滑鼠設定
+-- ============================================================
+config.mouse_bindings = {
+  -- 左鍵選取後自動複製到系統剪貼簿
+  {
+    event = { Up = { streak = 1, button = 'Left' } },
+    mods = 'NONE',
+    action = act.CompleteSelection 'ClipboardAndPrimarySelection',
+  },
+}
+
+return config

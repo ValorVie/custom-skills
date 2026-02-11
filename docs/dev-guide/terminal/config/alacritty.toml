@@ -1,0 +1,115 @@
+# ~/.config/alacritty/alacritty.toml
+
+# ============================================================
+# 一般設定
+# ============================================================
+[general]
+live_config_reload = true
+
+# ============================================================
+# 視窗設定
+# ============================================================
+[window]
+dynamic_padding = true
+decorations = "Full"
+opacity = 0.95
+startup_mode = "Windowed"
+option_as_alt = "Both"
+
+[window.padding]
+x = 8
+y = 8
+
+# ============================================================
+# 字型設定
+# ============================================================
+[font]
+size = 14.0
+
+[font.normal]
+family = "Maple Mono NL NF CN"
+style = "Regular"
+
+[font.bold]
+family = "Maple Mono NL NF CN"
+style = "Bold"
+
+[font.italic]
+family = "Maple Mono NL NF CN"
+style = "Italic"
+
+[font.bold_italic]
+family = "Maple Mono NL NF CN"
+style = "Bold Italic"
+
+[font.offset]
+x = 0
+y = 2
+
+# ============================================================
+# 游標設定
+# ============================================================
+[cursor]
+unfocused_hollow = true
+
+[cursor.style]
+shape = "Block"
+blinking = "On"
+
+[cursor.vi_mode_style]
+shape = "Beam"
+blinking = "Off"
+
+# ============================================================
+# 捲動設定
+# ============================================================
+[scrolling]
+history = 10000
+multiplier = 3
+
+# ============================================================
+# 選取設定
+# ============================================================
+[selection]
+save_to_clipboard = true
+
+# ============================================================
+# 顏色主題 - Vesper（黑底白字）
+# 來源：https://github.com/raunofreiberg/vesper
+# ============================================================
+[colors.primary]
+background = "#101010"
+foreground = "#ffffff"
+
+[colors.cursor]
+text    = "#101010"
+cursor  = "#ffffff"
+
+[colors.selection]
+text       = "#101010"
+background = "#b0b0b0"
+
+[colors.normal]
+black   = "#101010"
+red     = "#f5a191"
+green   = "#90b99f"
+yellow  = "#e6b99d"
+blue    = "#aca1cf"
+magenta = "#e29eca"
+cyan    = "#ea83a5"
+white   = "#a0a0a0"
+
+[colors.bright]
+black   = "#7e7e7e"
+red     = "#ff8080"
+green   = "#99ffe4"
+yellow  = "#ffc799"
+blue    = "#b9aeda"
+magenta = "#ecaad6"
+cyan    = "#f591b2"
+white   = "#ffffff"
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001b\r"

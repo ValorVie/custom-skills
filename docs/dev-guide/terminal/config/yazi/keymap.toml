@@ -1,0 +1,13 @@
+"$schema" = "https://yazi-rs.github.io/schemas/keymap.json"
+
+[mgr]
+prepend_keymap = [
+  { on = ["W", "0"], run = "plugin change-ratio -- 0 1 0", desc = "Current only (no parent, no preview)" },
+  { on = ["W", "1"], run = "plugin change-ratio -- 0 1 1", desc = "Two columns (current + preview)" },
+  { on = ["W", "2"], run = "plugin change-ratio -- 1 4 3", desc = "Default three columns" },
+  { on = ["W", "3"], run = "plugin change-ratio -- 0 1 3", desc = "Focus preview" },
+
+  # Git integration
+  { on = ["G", "g"], run = "plugin lazygit", desc = "Open lazygit" },
+  { on = ["G", "d"], run = '''shell 'git diff -- "$@" | less' --block''', desc = "Git diff current file" },
+]
