@@ -1,7 +1,7 @@
 # 複製架構文檔
 
-> **版本**: 2.0.0
-> **更新日期**: 2026-01-24
+> **版本**: 2.1.0
+> **更新日期**: 2026-02-12
 
 ---
 
@@ -39,6 +39,7 @@
 | obsidian-skills | https://github.com/kepano/obsidian-skills.git | `~/.config/obsidian-skills/` |
 | anthropic-skills | https://github.com/anthropics/skills.git | `~/.config/anthropic-skills/` |
 | everything-claude-code | https://github.com/affaan-m/everything-claude-code.git | `~/.config/everything-claude-code/` |
+| auto-skill | https://github.com/Toolsai/auto-skill.git | `~/.config/auto-skill/` |
 
 ### 上游追蹤系統
 
@@ -78,6 +79,7 @@ upstream/
 | **UDS commands** | `~/.config/universal-dev-standards/skills/claude-code/commands/` | `~/.config/custom-skills/commands/claude/` |
 | **Obsidian skills** | `~/.config/obsidian-skills/skills/` | `~/.config/custom-skills/skills/` |
 | **Anthropic skill-creator** | `~/.config/anthropic-skills/skills/skill-creator/` | `~/.config/custom-skills/skills/skill-creator/` |
+| **Auto-Skill** | `~/.config/auto-skill/` | `~/.config/custom-skills/skills/auto-skill/` |
 
 ### Stage 3: 分發到各工具目錄
 將 `~/.config/custom-skills/` 的內容分發到各 AI 工具的配置目錄。
@@ -152,6 +154,7 @@ custom-skills/
 │  ├── universal-dev-standards  ──→  ~/.config/universal-dev-standards/
 │  ├── obsidian-skills          ──→  ~/.config/obsidian-skills/   │
 │  ├── anthropic-skills         ──→  ~/.config/anthropic-skills/  │
+│  ├── auto-skill               ──→  ~/.config/auto-skill/       │
 │  └── superpowers              ──→  ~/.config/superpowers/       │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
@@ -159,7 +162,7 @@ custom-skills/
 │                  Stage 2: 整合到 custom-skills                  │
 ├─────────────────────────────────────────────────────────────────┤
 │  ~/.config/custom-skills/                                       │
-│  ├── skills/        ←── UDS skills + Obsidian + Anthropic       │
+│  ├── skills/        ←── UDS + Obsidian + Anthropic + Auto-Skill  │
 │  ├── commands/                                                  │
 │  │   ├── claude/    ←── UDS commands                            │
 │  │   └── workflows/ ←── UDS workflows                           │
@@ -225,5 +228,6 @@ ecc 資源不轉換為 UDS 格式，保持原始狀態以便於上游同步。
 
 | 版本 | 日期 | 變更 |
 |------|------|------|
+| 2.1.0 | 2026-02-12 | 新增 auto-skill 上游來源 |
 | 2.0.0 | 2026-01-24 | 新增 ecc 整合、上游追蹤系統 |
 | 1.0.0 | 2026-01-24 | 初版，新增 Claude agents 和 workflows 支援 |

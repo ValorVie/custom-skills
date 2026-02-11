@@ -33,9 +33,18 @@ context: |
     - feature/描述, fix/描述, experiment/描述
     - Conventional Commits（繁體中文）
 
+  Key documentation:
+    - docs/dev-guide/workflow/ai-dev-framework-architecture.md → ai-dev CLI 框架技術架構（指令設計、職責分工、資源管理）
+    - docs/dev-guide/workflow/copy-architecture.md → 三階段複製架構（Clone → 整合 → 分發）
+    - docs/dev-guide/workflow/VIBE-CODING-DEV-STACK-FRAMEWORK.md → 開發堆疊框架與工作流
+    - docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md → 開發工作流程
+    - docs/AI輔助開發的本質原理.md → AI 輔助開發核心概念
+    - docs/Skill-Command-Agent差異說明.md → Skills、Commands、Agents 設計模式比較
+    - upstream/sources.yaml → 上游來源註冊表
+
   Dependencies:
     - Node.js >= 20.19.0, Git >= 2.x
-    - upstream: universal-dev-standards, everything-claude-code, superpowers, anthropic-skills, obsidian-skills
+    - upstream: universal-dev-standards, everything-claude-code, superpowers, anthropic-skills, obsidian-skills, auto-skill
 
 specs: []
 

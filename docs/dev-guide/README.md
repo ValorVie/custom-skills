@@ -60,4 +60,5 @@
 | [VIBE-CODING-DEV-STACK-FRAMEWORK.md](workflow/VIBE-CODING-DEV-STACK-FRAMEWORK.md) | Vibe Coding 開發堆疊框架與工作流 |
 | [CODE-QUALITY-TOOLS.md](workflow/CODE-QUALITY-TOOLS.md) | 程式碼品質工具 |
 | [LSP-INSTALLATION-GUIDE.md](workflow/LSP-INSTALLATION-GUIDE.md) | PHP/Python/Rust/JS/TS LSP 安裝指南 |
+| [ai-dev-framework-architecture.md](workflow/ai-dev-framework-architecture.md) | ai-dev CLI 框架技術架構（指令設計、職責分工、資源管理） |
 | [copy-architecture.md](workflow/copy-architecture.md) | Copy 架構說明 |

@@ -247,8 +247,14 @@ def update(
 
         # 記錄有更新的儲存庫
         updated_repos: list[str] = []
+        # 記錄尚未 clone 的儲存庫
+        missing_repos: list[str] = []
 
         for repo in repos:
+            if not repo.exists() or not (repo / ".git").exists():
+                missing_repos.append(str(repo))
+                continue
+
             if repo.exists() and (repo / ".git").exists():
                 # 取得當前分支
                 current_branch = get_current_branch(repo)
@@ -272,6 +278,18 @@ def update(
                     cwd=str(repo),
                     check=False,
                 )
+
+        # 顯示缺失儲存庫警告
+        if missing_repos:
+            console.print()
+            console.print(
+                "[yellow]⚠ 以下儲存庫尚未 clone，已跳過更新：[/yellow]"
+            )
+            for repo_path in missing_repos:
+                console.print(f"  • {repo_path}")
+            console.print(
+                "[dim]   請執行 `ai-dev install --skip-npm --skip-bun` 來補齊缺失的儲存庫[/dim]"
+            )
 
         # 更新 custom repos
         from ..utils.custom_repos import load_custom_repos
