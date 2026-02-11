@@ -12,6 +12,7 @@
 | 調研目標 | `/opsx:explore` | 探索程式碼、理解現狀 |
 | 建立提案 | `/opsx:new <name>` | 建立 change 和 proposal |
 | 建立規格 | `/opsx:continue` | 依序建立 design、specs、tasks |
+| 影響分析 | `/plan-analyze @<artifact>` | 分析提案完整性與專案影響（選用） |
 | 實作 | `/opsx:apply` | 執行 tasks 中的任務 |
 | 驗證 | `/opsx:verify` | 驗證實作符合規格 |
 | 生成測試 | `/custom-skills-{lang}-derive-tests` | 從 specs 生成測試程式碼 |
@@ -28,6 +29,7 @@
 
 ```
 想法 → /opsx:explore → /opsx:new → /opsx:continue (×N)
+    → /plan-analyze @proposal.md（選用，高風險變更建議執行）
     → /custom-skills-{lang}-derive-tests → /custom-skills-{lang}-test (Red)
     → /opsx:apply → /custom-skills-{lang}-test (Green)
     → /custom-skills-{lang}-coverage → /custom-skills-report
@@ -249,6 +251,45 @@ AI：讓我搜尋相關程式碼...
 - 每次執行 `/opsx:continue` 建立一個 artifact
 - 可以隨時查看進度：`openspec status --change <name>`
 - 如果發現需要修改已完成的 artifact，直接編輯即可
+
+---
+
+### Phase 3.5: 影響分析 — 評估風險（選用）
+
+當規格（specs）和任務清單（tasks）完成後、實作前，使用 `/plan-analyze` 對提案進行影響分析。
+
+**命令**：
+```
+/plan-analyze @openspec/changes/<change-name>/proposal.md
+```
+
+也可以分析其他 artifacts：
+```
+/plan-analyze @openspec/changes/<change-name>/design.md
+```
+
+**分析涵蓋**：
+1. 分析評估完善度 — 問題定義、範圍界定、證據支撐是否充分
+2. 功能設計完整性 — 修改範圍、向下相容、回滾方案是否完整
+3. 既有流程影響 — 是否破壞現有業務流程
+4. 潛在異常與副作用 — 效能、安全性、測試覆蓋、部署風險
+5. 綜合評估 — 整體評級與建議行動
+
+**何時應該執行**：
+
+| 情境 | 建議 |
+|------|------|
+| 高風險變更（涉及安全、資料、核心流程） | **強烈建議** |
+| 跨模組修改（影響多個系統元件） | **建議** |
+| 技術債清理或重構 | **建議** |
+| 小範圍功能新增 | 可跳過 |
+| 純文件或配置變更 | 可跳過 |
+
+**分析結果處理**：
+- **通過** → 直接進入 Phase 4 實作
+- **有條件通過** → 補充缺失項後進入實作
+- **需修改** → 回到 Phase 2/3 修訂提案或規格
+- **不建議執行** → 重新評估方案方向
 
 ---
 
@@ -629,10 +670,11 @@ A: 問自己：「這個變更有可以寫自動化測試驗證的程式邏輯�
 | `/custom-skills-php-test` | 執行 PHPUnit 測試 |
 | `/custom-skills-php-coverage` | 檢查 PHPUnit 覆蓋率 |
 
-**通用命令：**
+**分析與審閱命令：**
 
 | 命令 | 說明 |
 |------|------|
+| `/plan-analyze @<file>` | 分析計畫/報告的完整性與專案影響 |
 | `/custom-skills-report` | 生成測試報告（自動偵測語言） |
 
 ### C. CLI 命令
