@@ -47,3 +47,9 @@ sources:
     local_path: ~/.config/everything-claude-code/
     format: claude-code-native
     install_method: manual          # hooks 已自訂整合到 plugins/ecc-hooks，需手動比對
+  auto-skill:
+    repo: Toolsai/auto-skill
+    branch: main
+    local_path: ~/.config/auto-skill/
+    format: claude-code-native
+    install_method: ai-dev          # ai-dev clone 同步到 skills/

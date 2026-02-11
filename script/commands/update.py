@@ -16,6 +16,7 @@ from ..utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_ecc_dir,
+    get_auto_skill_dir,
 )
 from ..utils.shared import (
     NPM_PACKAGES,
@@ -238,6 +239,7 @@ def update(
             get_obsidian_skills_dir(),
             get_anthropic_skills_dir(),
             get_ecc_dir(),
+            get_auto_skill_dir(),
         ]
 
         # 備份目錄位於使用者目錄

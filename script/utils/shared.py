@@ -27,6 +27,7 @@ from .paths import (
     get_uds_dir,
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
+    get_auto_skill_dir,
     get_project_root,
 )
 from .system import run_command
@@ -87,6 +88,10 @@ REPOS = {
     "everything_claude_code": (
         "https://github.com/affaan-m/everything-claude-code.git",
         get_ecc_dir,
+    ),
+    "auto_skill": (
+        "https://github.com/Toolsai/auto-skill.git",
+        get_auto_skill_dir,
     ),
 }
 
@@ -500,6 +505,17 @@ def copy_sources_to_custom_skills() -> None:
         console.print(f"  [dim]{shorten_path(src_anthropic)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_skill_creator)}[/dim]")
         shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
+
+    # ============================================================
+    # Auto-Skill（自進化知識系統）
+    # ============================================================
+    src_auto_skill = get_auto_skill_dir()
+    if src_auto_skill.exists() and (src_auto_skill / "SKILL.md").exists():
+        dst_auto_skill = dst_custom / "auto-skill"
+        console.print(f"  [dim]{shorten_path(src_auto_skill)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_auto_skill)}[/dim]")
+        shutil.copytree(src_auto_skill, dst_auto_skill, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns(".git", "assets", "README.md"))
 
     # ============================================================
     # ECC (everything-claude-code) 資源
@@ -1202,6 +1218,17 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
         shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
 
     # ============================================================
+    # Auto-Skill（自進化知識系統）
+    # ============================================================
+    src_auto_skill = get_auto_skill_dir()
+    if src_auto_skill.exists() and (src_auto_skill / "SKILL.md").exists():
+        dst_auto_skill = dst_skills / "auto-skill"
+        console.print(f"  [dim]{shorten_path(src_auto_skill)}[/dim]")
+        console.print(f"    → [dim]{shorten_path(dst_auto_skill)}[/dim]")
+        shutil.copytree(src_auto_skill, dst_auto_skill, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns(".git", "assets", "README.md"))
+
+    # ============================================================
     # ECC (everything-claude-code) 資源 - 從專案內的 sources/ecc
     # ============================================================
     src_ecc = dev_project_root / "sources" / "ecc"
@@ -1666,6 +1693,7 @@ SOURCE_NAMES = {
     "obsidian": "obsidian-skills",
     "anthropic": "anthropic-skills",
     "ecc": "everything-claude-code",
+    "auto_skill": "auto-skill",
     "custom": "custom-skills",
     "user": "user",
 }
@@ -1703,12 +1731,20 @@ def get_source_skills() -> dict[str, set[str]]:
     else:
         sources["ecc"] = set()
 
+    # Auto-Skill
+    auto_skill_path = get_auto_skill_dir()
+    if auto_skill_path.exists() and (auto_skill_path / "SKILL.md").exists():
+        sources["auto_skill"] = {"auto-skill"}
+    else:
+        sources["auto_skill"] = set()
+
     # Custom skills (本專案)
     custom_path = get_custom_skills_dir() / "skills"
     if custom_path.exists():
         # 排除來自其他來源的
         all_known = (
             sources["uds"] | sources["obsidian"] | sources["anthropic"] | sources["ecc"]
+            | sources["auto_skill"]
         )
         sources["custom"] = {
             d.name
