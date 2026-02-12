@@ -1,9 +1,9 @@
 ---
-name: plan-analyze
+name: custom-skills-plan-analyze
 description: |
   分析計畫、報告或變更提案的完整性與對專案的影響評估。
   Use when: 使用者提供一份文件（計畫書、技術債評估、修改方案、RFC、ADR、資安報告等）並要求分析其品質、完整性或潛在風險。
-  觸發方式: /plan-analyze @文件路徑
+  觸發方式: /custom-skills-plan-analyze @文件路徑
   Keywords: 計畫分析, 報告評估, 影響分析, 風險評估, 完整性檢查, plan review, impact analysis, risk assessment, change analysis, 技術債, RFC review
 ---
 
@@ -12,7 +12,7 @@ description: |
 ## 使用方式
 
 ```
-/plan-analyze @path/to/document.md
+/custom-skills-plan-analyze @path/to/document.md
 ```
 
 接收一份文件，執行系統化的多維度分析，輸出結構化的評估報告。

@@ -12,7 +12,7 @@
 | 調研目標 | `/opsx:explore` | 探索程式碼、理解現狀 |
 | 建立提案 | `/opsx:new <name>` | 建立 change 和 proposal |
 | 建立規格 | `/opsx:continue` | 依序建立 design、specs、tasks |
-| 影響分析 | `/plan-analyze @<artifact>` | 分析提案完整性與專案影響（選用） |
+| 影響分析 | `/custom-skills-plan-analyze @<artifact>` | 分析提案完整性與專案影響（選用） |
 | 實作 | `/opsx:apply` | 執行 tasks 中的任務 |
 | 驗證 | `/opsx:verify` | 驗證實作符合規格 |
 | 生成測試 | `/custom-skills-{lang}-derive-tests` | 從 specs 生成測試程式碼 |
@@ -29,7 +29,7 @@
 
 ```
 想法 → /opsx:explore → /opsx:new → /opsx:continue (×N)
-    → /plan-analyze @proposal.md（選用，高風險變更建議執行）
+    → /custom-skills-plan-analyze @proposal.md（選用，高風險變更建議執行）
     → /custom-skills-{lang}-derive-tests → /custom-skills-{lang}-test (Red)
     → /opsx:apply → /custom-skills-{lang}-test (Green)
     → /custom-skills-{lang}-coverage → /custom-skills-report
@@ -256,16 +256,16 @@ AI：讓我搜尋相關程式碼...
 
 ### Phase 3.5: 影響分析 — 評估風險（選用）
 
-當規格（specs）和任務清單（tasks）完成後、實作前，使用 `/plan-analyze` 對提案進行影響分析。
+當規格（specs）和任務清單（tasks）完成後、實作前，使用 `/custom-skills-plan-analyze` 對提案進行影響分析。
 
 **命令**：
 ```
-/plan-analyze @openspec/changes/<change-name>/proposal.md
+/custom-skills-plan-analyze @openspec/changes/<change-name>/proposal.md
 ```
 
 也可以分析其他 artifacts：
 ```
-/plan-analyze @openspec/changes/<change-name>/design.md
+/custom-skills-plan-analyze @openspec/changes/<change-name>/design.md
 ```
 
 **分析涵蓋**：
@@ -674,7 +674,7 @@ A: 問自己：「這個變更有可以寫自動化測試驗證的程式邏輯�
 
 | 命令 | 說明 |
 |------|------|
-| `/plan-analyze @<file>` | 分析計畫/報告的完整性與專案影響 |
+| `/custom-skills-plan-analyze @<file>` | 分析計畫/報告的完整性與專案影響 |
 | `/custom-skills-report` | 生成測試報告（自動偵測語言） |
 
 ### C. CLI 命令
