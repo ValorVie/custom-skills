@@ -13,6 +13,15 @@
       "author": {
         "name": "custom-skills"
       }
+    },
+    {
+      "name": "auto-skill-hooks",
+      "source": "./plugins/auto-skill-hooks",
+      "description": "Auto-Skill Hooks - Knowledge Base & Experience Index Injection",
+      "version": "1.0.0",
+      "author": {
+        "name": "custom-skills"
+      }
     }
   ]
 }

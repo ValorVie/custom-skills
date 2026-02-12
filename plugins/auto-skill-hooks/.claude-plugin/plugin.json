@@ -1,0 +1,19 @@
+{
+  "name": "auto-skill-hooks",
+  "version": "1.0.0",
+  "description": "Auto-Skill Hooks - Knowledge Base & Experience Index Injection",
+  "author": {
+    "name": "custom-skills",
+    "email": "valorlove@gmail.com"
+  },
+  "homepage": "https://github.com/ValorVie/custom-skills",
+  "repository": "https://github.com/ValorVie/custom-skills",
+  "license": "MIT",
+  "keywords": [
+    "hooks",
+    "auto-skill",
+    "knowledge-base",
+    "experience",
+    "session-start"
+  ]
+}

@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **新增 Auto-Skill Hooks 獨立插件**
+  - 建立 `plugins/auto-skill-hooks/`，與 ecc-hooks 職責分離
+  - SessionStart hook 自動注入知識庫與經驗索引到對話 context
+  - 搭配 `~/.claude/CLAUDE.md` 全域行為指令，讓 Claude 根據索引按需讀取知識
+
+- **重構 auto-skill SKILL.md**
+  - 移除無法在 Claude Code 中運作的機制（自動加固、關鍵詞匹配、話題切換偵測）
+  - 保留條目格式規範、記錄判斷準則、動態分類
+  - 從 187 行精簡至 118 行
+
+- **新增 Git Pull 部署指南**
+  - `docs/dev-guide/git/GIT-PULL-DEPLOY.md`：使用 Sparse Checkout 讓伺服器 git pull 時排除 AI 開發檔案
+  - 支援 Git 2.25+（`git sparse-checkout` 子命令）與 Git 1.7+（舊式 `core.sparseCheckout`）
+  - 包含多台伺服器統一設定腳本
+
 - **`ai-dev update` 新增第三方 Skills 更新**
   - 在 NPM 套件更新後自動執行 `npx skills update`
   - 更新透過 skills.sh 安裝的第三方 Skills

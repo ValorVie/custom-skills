@@ -254,6 +254,7 @@ ai-dev status
 # 安裝 custom-skills ecc-hooks 插件
 /plugin marketplace add https://github.com/ValorVie/custom-skills.git
 /plugin install ecc-hooks@custom-skills
+/plugin install auto-skill-hooks@custom-skills
 
 # 安裝 PHP LSP
 /plugin install php-lsp

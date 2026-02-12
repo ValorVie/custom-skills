@@ -768,6 +768,18 @@ claude plugin install ecc-hooks@custom-skills
 
 詳見 `plugins/ecc-hooks/README.md`。
 
+### Auto-Skill Hooks Plugin 安裝
+
+自動注入知識庫與經驗索引到每次對話的 context，搭配 auto-skill 的自進化知識系統。
+
+```bash
+# 從 Git URL 安裝
+claude plugin install auto-skill-hooks@custom-skills
+
+# 或在會話中
+/plugin install auto-skill-hooks@custom-skills
+```
+
 ### OpenCode Plugin (ecc-hooks-opencode)
 
 OpenCode 平台的 ECC Hooks Plugin，提供：

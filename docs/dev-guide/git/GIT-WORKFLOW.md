@@ -266,4 +266,6 @@ gh pr view <pr-number>
 ## 參考
 
 - [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) - OpenSpec 開發工作流程
+- [GIT-WORKTREE-WORKFLOW.md](GIT-WORKTREE-WORKFLOW.md) - Worktree 並行開發
+- [GIT-PULL-DEPLOY.md](GIT-PULL-DEPLOY.md) - Git Pull 部署與 Sparse Checkout
 - [GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow) - GitHub 官方工作流程指南

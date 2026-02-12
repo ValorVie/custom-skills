@@ -1,0 +1,17 @@
+{
+  "description": "Auto-Skill Hooks - Knowledge Base & Experience Index Injection",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/inject-knowledge-index.py\""
+          }
+        ],
+        "description": "Inject auto-skill knowledge-base and experience index into conversation context"
+      }
+    ]
+  }
+}
