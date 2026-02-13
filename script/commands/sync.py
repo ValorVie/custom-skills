@@ -11,13 +11,19 @@ from rich.table import Table
 from ..utils.paths import get_sync_config_path, get_sync_repo_dir
 from ..utils.system import check_command_exists
 from ..utils.sync_config import (
+    LFS_THRESHOLD_MB,
+    check_lfs_available,
     count_directory_changes,
+    detect_local_changes,
+    detect_lfs_patterns,
     default_sync_directories,
     generate_sync_commit_message,
     get_claude_subdir,
     get_ignore_patterns,
     git_add_commit,
     git_init_or_clone,
+    git_lfs_migrate_existing,
+    git_lfs_setup,
     git_pull_rebase,
     git_push,
     git_status_summary,
@@ -37,6 +43,10 @@ app = typer.Typer(help="管理跨裝置同步（Git backend）")
 console = Console()
 
 SUPPORTED_PROFILES = {"claude", "claude-mem", "custom"}
+
+PULL_CHOICE_PUSH_THEN_PULL = "1"
+PULL_CHOICE_FORCE_PULL = "2"
+PULL_CHOICE_CANCEL = "3"
 
 
 def _ensure_repo_dir() -> Path:
@@ -107,6 +117,78 @@ def _sync_repo_to_local(config: dict[str, Any], delete: bool) -> dict[str, int]:
     return summary
 
 
+def _configure_lfs_tracking(repo_dir: Path, migrate_existing: bool) -> list[str]:
+    lfs_patterns = detect_lfs_patterns(repo_dir, threshold_mb=LFS_THRESHOLD_MB)
+
+    if not check_lfs_available():
+        if lfs_patterns:
+            console.print(
+                "[yellow]警告：偵測到超過 "
+                f"{LFS_THRESHOLD_MB} MB 的大型檔案，但未安裝 git-lfs。"
+                "建議安裝後再執行 `ai-dev sync push`。[/yellow]"
+            )
+        return []
+
+    if not git_lfs_setup(repo_dir):
+        console.print("[yellow]警告：git-lfs 初始化失敗，將略過 LFS 設定[/yellow]")
+        return []
+
+    if not lfs_patterns:
+        return []
+
+    console.print(f"[cyan]Git LFS 自動追蹤：{', '.join(lfs_patterns)}[/cyan]")
+
+    if migrate_existing:
+        if git_lfs_migrate_existing(repo_dir, lfs_patterns):
+            console.print("[cyan]已完成既有大檔案的 Git LFS migrate[/cyan]")
+        else:
+            console.print(
+                "[yellow]警告：Git LFS migrate 失敗，請手動執行 `git lfs migrate`。[/yellow]"
+            )
+
+    return lfs_patterns
+
+
+def _prompt_pull_safety(changes: dict[str, Any]) -> str:
+    total_changes = int(changes.get("total_changes", 0))
+    files = list(changes.get("files", []))
+
+    console.print(
+        f"[bold yellow]偵測到本機有 {total_changes} 個檔案尚未推送[/bold yellow]"
+    )
+
+    type_style = {
+        "added": ("+", "green"),
+        "modified": ("~", "yellow"),
+        "deleted": ("-", "red"),
+    }
+
+    max_items = 10
+    for item in files[:max_items]:
+        rel_path = str(item.get("path", ""))
+        change_type = str(item.get("type", "modified"))
+        marker, color = type_style.get(change_type, ("~", "yellow"))
+        console.print(f"  [{color}]{marker}[/{color}] {rel_path}")
+
+    if total_changes > max_items:
+        console.print(f"  [dim]...及其他 {total_changes - max_items} 個檔案[/dim]")
+
+    console.print()
+    console.print("1. 先 push 再 pull（推薦）")
+    console.print("2. 強制 pull（覆蓋本機變更）")
+    console.print("3. 取消")
+
+    while True:
+        choice = typer.prompt("請輸入選項 (1/2/3)", default="1").strip()
+        if choice in {
+            PULL_CHOICE_PUSH_THEN_PULL,
+            PULL_CHOICE_FORCE_PULL,
+            PULL_CHOICE_CANCEL,
+        }:
+            return choice
+        console.print("[yellow]無效選項，請輸入 1、2 或 3[/yellow]")
+
+
 @app.command()
 def init(
     remote: str = typer.Option(..., "--remote", help="Git remote URL"),
@@ -134,7 +216,6 @@ def init(
         (repo_dir / item["repo_subdir"]).mkdir(parents=True, exist_ok=True)
 
     write_gitignore(repo_dir, directories)
-    write_gitattributes(repo_dir)
 
     summary = {"added": 0, "updated": 0, "deleted": 0}
 
@@ -164,22 +245,14 @@ def init(
             break
 
     # 再做 local→repo（將本機新增檔案同步回 repo）
-    for item in directories:
-        local_path = Path(item["path"]).expanduser()
-        repo_path = repo_dir / item["repo_subdir"]
-        excludes = get_ignore_patterns(
-            item.get("ignore_profile", "custom"), item.get("custom_ignore", [])
-        )
+    local_to_repo_summary = _sync_local_to_repo({"directories": directories})
+    for key in summary:
+        summary[key] += int(local_to_repo_summary.get(key, 0))
 
-        if not local_path.exists():
-            if action != "cloned":
-                console.print(f"[yellow]跳過不存在目錄：{local_path}[/yellow]")
-            continue
-
-        result = sync_directory(local_path, repo_path, excludes=excludes, delete=True)
-        summary["added"] += int(result.get("added", 0))
-        summary["updated"] += int(result.get("updated", 0))
-        summary["deleted"] += int(result.get("deleted", 0))
+    lfs_patterns = _configure_lfs_tracking(
+        repo_dir, migrate_existing=action in {"existing", "cloned"}
+    )
+    write_gitattributes(repo_dir, lfs_patterns=lfs_patterns)
 
     committed = git_add_commit(repo_dir, generate_sync_commit_message())
 
@@ -221,9 +294,7 @@ def init(
             skipped = plugin_result.get("skipped", [])
 
             if installed:
-                console.print(
-                    f"[green]  已自動安裝 {len(installed)} 個 plugin[/green]"
-                )
+                console.print(f"[green]  已自動安裝 {len(installed)} 個 plugin[/green]")
                 for name in installed:
                     console.print(f"  [green]✓[/green] {name}")
 
@@ -245,9 +316,10 @@ def push() -> None:
     repo_dir = _ensure_repo_dir()
 
     write_gitignore(repo_dir, config.get("directories", []))
-    write_gitattributes(repo_dir)
 
     summary = _sync_local_to_repo(config)
+    lfs_patterns = _configure_lfs_tracking(repo_dir, migrate_existing=False)
+    write_gitattributes(repo_dir, lfs_patterns=lfs_patterns)
 
     # 產生 plugin manifest（可攜帶格式，無絕對路徑）
     claude_subdir = get_claude_subdir(config)
@@ -284,10 +356,30 @@ def pull(
         "--no-delete",
         help="拉取後同步到本機時，不刪除本機多出的檔案",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="跳過本機變更偵測，直接執行 pull",
+    ),
 ) -> None:
     """從遠端拉取並同步到本機。"""
     config = _load_config_or_exit(exit_code=1)
     repo_dir = _ensure_repo_dir()
+
+    if not force:
+        changes = detect_local_changes(config)
+        if int(changes.get("total_changes", 0)) > 0:
+            choice = _prompt_pull_safety(changes)
+
+            if choice == PULL_CHOICE_CANCEL:
+                console.print("[dim]已取消[/dim]")
+                return
+
+            if choice == PULL_CHOICE_PUSH_THEN_PULL:
+                console.print("[cyan]先執行 sync push，再繼續 pull...[/cyan]")
+                push()
+                config = _load_config_or_exit(exit_code=1)
+                repo_dir = _ensure_repo_dir()
 
     if not git_pull_rebase(repo_dir):
         console.print("[bold red]git pull --rebase 失敗[/bold red]")

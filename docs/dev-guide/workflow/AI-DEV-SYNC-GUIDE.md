@@ -9,6 +9,11 @@
 - **Git** 已安裝且可用
 - **私有 Git 遠端倉庫**（GitHub / GitLab / 自架）— 同步內容可能包含敏感資訊
 - **SSH Key 認證**（建議）— 避免每次 push/pull 輸入密碼
+- **Git LFS**（建議）— 自動處理超過 50 MB 的檔案（如 SQLite 資料庫），避免 GitHub push 失敗
+  - macOS: `brew install git-lfs`
+  - Linux: `sudo apt install git-lfs`（或 `sudo dnf install git-lfs`）
+  - Windows: `winget install GitHub.GitLFS`（或從 [git-lfs.com](https://git-lfs.com) 下載安裝）
+  - 安裝後無需額外設定，`ai-dev sync` 會自動偵測並啟用
 
 ---
 
@@ -65,7 +70,17 @@ ai-dev sync push
 ai-dev sync pull
 ```
 
-從遠端拉取最新變更，同步到本機目錄。
+從遠端拉取最新變更，同步到本機目錄。`pull` 預設會先偵測本機是否有未推送的變更：
+
+1. 先 push 再 pull（推薦）
+2. 強制 pull（覆蓋本機變更）
+3. 取消
+
+若你在腳本中需要非互動式操作，可使用 `--force` 跳過偵測：
+
+```bash
+ai-dev sync pull --force
+```
 
 > **提示**：`pull` 預設會刪除「遠端沒有但本機有」的檔案。若要保留本機獨有檔案：
 >
@@ -121,7 +136,7 @@ ai-dev sync remove ~/.gemini
 |------|------|------|
 | `init --remote <url>` | 初始化同步倉庫 | `ai-dev sync init --remote git@github.com:user/repo.git` |
 | `push` | 推送本機變更到遠端 | `ai-dev sync push` |
-| `pull` | 拉取遠端變更到本機 | `ai-dev sync pull --no-delete` |
+| `pull` | 拉取遠端變更到本機（支援 `--force`、`--no-delete`） | `ai-dev sync pull --force --no-delete` |
 | `status` | 查看同步狀態 | `ai-dev sync status` |
 | `add <path>` | 新增同步目錄 | `ai-dev sync add ~/.gemini --ignore "cache/"` |
 | `remove <path>` | 移除同步目錄 | `ai-dev sync remove ~/.gemini` |
@@ -167,11 +182,19 @@ Plugin 的程式碼和 metadata（含機器專屬絕對路徑）**不會直接�
 自動執行以下步驟：
 1. 讀取 `plugin-manifest.json`
 2. `git clone --depth 1` 各 marketplace repo 到 `~/.claude/plugins/marketplaces/`
-3. 從 marketplace 複製 plugin 到 `~/.claude/plugins/cache/`
-4. 產生本機版 `installed_plugins.json` 和 `known_marketplaces.json`
-5. 還原 `settings.json` 的 `enabledPlugins`（只啟用成功安裝的 plugin）
+3. 讀取各 marketplace 的 `.claude-plugin/marketplace.json` 解析 plugin 來源
+4. 根據來源類型安裝 plugin 到 `~/.claude/plugins/cache/`
+5. 產生本機版 `installed_plugins.json` 和 `known_marketplaces.json`
+6. 還原 `settings.json` 的 `enabledPlugins`（只啟用成功安裝的 plugin）
 
-> `directory` 類型的 marketplace（如 npm 全域安裝的套件）無法自動 clone，會顯示跳過訊息。
+**支援三種 marketplace plugin 來源：**
+
+| 來源類型 | 範例 | 安裝方式 |
+|----------|------|----------|
+| 相對路徑（內嵌） | `"./plugins/code-simplifier"` | 從 marketplace repo 內複製 |
+| 相對路徑（非標準） | `"./plugin"` | 從 marketplace repo 內複製 |
+| 外部 Git URL | `{"source": "url", "url": "https://..."}` | 另外 `git clone --depth 1` |
+| `directory` 類型 | 本機 npm 套件路徑 | 無法自動 clone，顯示跳過訊息 |
 
 ### 排除的 Plugin 檔案
 
@@ -231,12 +254,75 @@ logs/  worker.pid  *.db-wal  *.db-shm
 
 **建議**：同步前先確認 claude-mem worker 已停止（或至少沒有活躍的寫入操作）。
 
+### Git LFS 運作原理
+
+一般 Git 對每個版本存完整快照。文字檔可以 delta 壓縮（只存差異），但 **binary 檔案（如 SQLite）無法 delta**，每次 commit 都是完整副本，導致 repo 快速膨脹。
+
+Git LFS 將大檔案的實際內容存到獨立的 LFS Storage，Git repo 中只追蹤一個約 130 bytes 的 **pointer 檔案**：
+
+```
+version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32...
+size 63832064
+```
+
+| | 一般 Git | Git LFS |
+|---|---|---|
+| 儲存位置 | 全部在 `.git/objects/` | 大檔在獨立 LFS storage |
+| 歷史版本 | 每版存完整副本 | 每版只存 pointer，大檔按需下載 |
+| Clone 速度 | 下載所有歷史版本 | 只下載最新版大檔案 |
+| Repo 大小 | 隨 commit 線性膨脹 | Repo 本身很小 |
+| GitHub 限制 | 單檔 100 MB 硬限 | 單檔 2 GB |
+| Diff/Merge | 文字檔可 diff/merge | LFS 檔案視為 binary，無法 merge |
+
+`.gitattributes` 中的 LFS 規則告訴 Git「這類檔案走 LFS filter」：
+
+```
+*.sqlite3 filter=lfs diff=lfs merge=lfs -text
+```
+
+`git add` 時 Git 自動將實際內容存到 LFS、在 staging area 放入 pointer，使用者完全無感。
+
+### Git LFS 自動追蹤
+
+sync 在 `push` 和 `init` 時會自動掃描 repo 中超過 **50 MB** 的檔案，以副檔名為單位產生 Git LFS track 規則並寫入 `.gitattributes`。
+
+**自動偵測行為：**
+
+| 情境 | 行為 |
+|------|------|
+| 有 git-lfs + 有大檔案 | 自動啟用 LFS，寫入 track 規則，顯示追蹤訊息 |
+| 有 git-lfs + 無大檔案 | 不寫入 LFS 規則，正常運作 |
+| 無 git-lfs + 有大檔案 | 顯示黃色警告建議安裝，不阻擋操作 |
+| 無 git-lfs + 無大檔案 | 完全靜默，正常運作 |
+
+**排除 JSONL**：`*.jsonl` 不會被 LFS 追蹤，即使超過 50 MB。因為 JSONL 使用 `merge=union` 自動合併策略，LFS 會將其視為 binary 而失去此能力。兩台機器同時新增 session 記錄時，`merge=union` 可自動按行合併避免衝突。
+
+**GitHub LFS 配額**：免費帳號 1 GB storage + 1 GB/月 bandwidth，一般使用足夠。
+
+**手動操作（通常不需要）：**
+
+```bash
+# 查看 LFS 追蹤的檔案
+cd ~/.config/ai-dev/sync-repo && git lfs ls-files
+
+# 手動將既有大檔案遷移到 LFS（會改寫 git history）
+cd ~/.config/ai-dev/sync-repo
+git lfs migrate import --include="*.sqlite3" --everything
+git push --force
+```
+
 ### 大型檔案與倉庫膨脹
 
-`~/.claude/projects/` 可能累積到數百 MB。長期使用建議：
+`~/.claude/projects/` 與 `~/.claude-mem` 可能逐步累積大型 binary（例如 `*.sqlite3`、`*.db`）。
 
-- 定期執行 `git gc --aggressive`（在 sync-repo 目錄內）
-- 評估是否使用 Git LFS 處理大型 JSONL 檔案
+目前 `ai-dev sync` 會在 `init`/`push` 時自動偵測超過 50 MB 的檔案並加入 Git LFS（排除 `*.jsonl`），可避免觸發 GitHub 大檔案限制並降低歷史膨脹速度。
+
+長期維運建議：
+
+- 確保所有機器都已安裝 git-lfs（避免只拉到 pointer file）
+- 既有歷史已包含大型 binary 時，優先在初始化階段完成 migrate
+- 定期在 sync-repo 執行 `git gc --aggressive` 維持倉庫健康
 
 ### 跨平台路徑差異
 
