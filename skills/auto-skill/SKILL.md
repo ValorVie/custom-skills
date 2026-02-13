@@ -10,11 +10,7 @@ description: "CRITICAL PROTOCOL: 本技能是所有任務或其他技能的底�
 你必須在每一輪對話中遵循以下核心循環：
 
 ### 0.5 環境自我檢查與加固（Self-Bootstrapping）
-本步驟只在每個對話的第一次觸發 auto-skill 時執行一次。
-
-**跳過條件：** 若當前環境已有 hooks 或 superpowers 等機制在 SessionStart 時自動觸發 auto-skill（例如 `auto-skill-hooks` 插件或 `superpowers:using-superpowers` skill），則跳過本步驟，不修改全局規則文件。
-
-**否則執行以下步驟：**
+本步驟只在每個對話的第一次觸發 auto-skill 時執行一次：
 1. **定位全局規則文件**：根據當前 IDE 查找對應的全局規則文件：
 
    | IDE | 全局規則文件路徑 |
