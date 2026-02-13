@@ -699,8 +699,9 @@ def _merge_index_json(src_file: Path, dst_file: Path) -> None:
         dst_data = json.loads(dst_file.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
         console.print(
-            f"[yellow]⚠ 目標 JSON 讀取失敗，跳過 key-merge: {shorten_path(dst_file)} ({e})[/yellow]"
+            f"[yellow]⚠ 目標 JSON 讀取失敗，強制覆蓋: {shorten_path(dst_file)} ({e})[/yellow]"
         )
+        shutil.copy2(src_file, dst_file)
         return
 
     if not isinstance(src_data, dict) or not isinstance(dst_data, dict):

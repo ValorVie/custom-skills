@@ -9,7 +9,7 @@
       "name": "ecc-hooks",
       "source": "./plugins/ecc-hooks",
       "description": "Everything Claude Code - Memory Persistence & Strategic Compact Hooks",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "custom-skills"
       }
@@ -18,7 +18,7 @@
       "name": "auto-skill-hooks",
       "source": "./plugins/auto-skill-hooks",
       "description": "Auto-Skill Hooks - Knowledge Base & Experience Index Injection",
-      "version": "1.0.0",
+      "version": "1.2.1",
       "author": {
         "name": "custom-skills"
       }
