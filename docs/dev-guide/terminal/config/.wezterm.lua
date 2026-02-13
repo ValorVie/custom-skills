@@ -91,6 +91,7 @@ local mode_colors = {
   scroll  = '#f9e2af',  -- 黃色
   session = '#cba6f7',  -- 紫色
   move    = '#fab387',  -- 橘色
+  lock    = '#f38ba8',  -- 紅色
 }
 
 wezterm.on('update-right-status', function(window, pane)
@@ -168,6 +169,15 @@ config.keys = {
     mods = 'CTRL',
     action = act.ActivateKeyTable {
       name = 'move',
+      one_shot = false,
+    },
+  },
+  -- Ctrl+G → 進入 Lock 模式（鎖定鍵盤，防止誤觸）
+  {
+    key = 'g',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'lock',
       one_shot = false,
     },
   },
@@ -314,6 +324,12 @@ config.key_tables = {
     -- 離開
     { key = 'Escape',     action = 'PopKeyTable' },
     { key = 'Enter',      action = 'PopKeyTable' },
+  },
+
+  -- ── Lock 模式 (Ctrl+G) ─────────────────────────────
+  -- 鎖定鍵盤防止誤觸，僅 Ctrl+G 可解鎖
+  lock = {
+    { key = 'g', mods = 'CTRL', action = 'PopKeyTable' },
   },
 
   -- ── Move 模式 (Ctrl+H) ─────────────────────────────

@@ -227,6 +227,7 @@ local mode_colors = {
   scroll  = '#f9e2af',  -- 黃色
   session = '#cba6f7',  -- 紫色
   move    = '#fab387',  -- 橘色
+  lock    = '#f38ba8',  -- 紅色
 }
 
 wezterm.on('update-right-status', function(window, pane)
@@ -304,6 +305,15 @@ config.keys = {
     mods = 'CTRL',
     action = act.ActivateKeyTable {
       name = 'move',
+      one_shot = false,
+    },
+  },
+  -- Ctrl+G → 進入 Lock 模式（鎖定鍵盤，防止誤觸）
+  {
+    key = 'g',
+    mods = 'CTRL',
+    action = act.ActivateKeyTable {
+      name = 'lock',
       one_shot = false,
     },
   },
@@ -452,6 +462,12 @@ config.key_tables = {
     { key = 'Enter',      action = 'PopKeyTable' },
   },
 
+  -- ── Lock 模式 (Ctrl+G) ─────────────────────────────
+  -- 鎖定鍵盤防止誤觸，僅 Ctrl+G 可解鎖
+  lock = {
+    { key = 'g', mods = 'CTRL', action = 'PopKeyTable' },
+  },
+
   -- ── Move 模式 (Ctrl+H) ─────────────────────────────
   -- 在窗格間移動焦點（one-shot 風格，選完自動離開）
   move = {
@@ -509,6 +525,7 @@ return config
 > | | | `t` | Tab 導覽 |
 > | | | `d` | 除錯覆蓋層 |
 > | `Ctrl+H` | **Move** | 方向鍵 / `hjkl` | 移動焦點 |
+> | `Ctrl+G` | **Lock** | `Ctrl+G` | 解鎖（鎖定時所有按鍵無效） |
 > | — | — | `Esc` / `Enter` | 離開任何模式 |
 > | **全域** | — | `Alt + 方向鍵` | 快速切換 Pane |
 > | | | `Alt + 1~9` | 快速切 Tab |
