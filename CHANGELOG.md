@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **新增 `ai-dev sync` 指令群組（OpenSpec: ai-dev-sync-command）**
+  - 新增 `ai-dev sync init/push/pull/status/add/remove` 六個子指令
+  - 新增 `~/.config/ai-dev/sync.yaml` 與 `~/.config/ai-dev/sync-repo/` 路徑管理
+  - 內建 `claude` / `claude-mem` ignore profiles，自動產生 `.gitignore` 與 `.gitattributes`
+  - 同步引擎支援 macOS/Linux `rsync` 與 Windows `shutil` fallback
+  - 新增對應測試：`tests/test_sync_config.py`、`tests/test_sync_engine.py`、`tests/test_sync_command.py`
+
 - **新增 Auto-Skill Hooks 獨立插件**
   - 建立 `plugins/auto-skill-hooks/`，與 ecc-hooks 職責分離
   - SessionStart hook 自動注入知識庫與經驗索引到對話 context

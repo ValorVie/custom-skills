@@ -24,6 +24,7 @@
 | [SKILLS-CLI.md](ai-tools/SKILLS-CLI.md) | Skills CLI 使用說明 |
 | [CODEX-GUIDE.md](ai-tools/CODEX-GUIDE.md) | Codex 安裝、設定與管理指南 |
 | [MCP-SERVER-GUIDE.md](ai-tools/MCP-SERVER-GUIDE.md) | MCP Server 設定指南（Claude Code / OpenCode 通用） |
+| [CLAUDE-CODE-SYNC.md](ai-tools/CLAUDE-CODE-SYNC.md) | Claude Code 跨裝置同步指南（Syncthing / Git） |
 
 ## Git 操作 (`git/`)
 

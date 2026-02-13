@@ -14,6 +14,21 @@ def get_custom_skills_dir() -> Path:
     return get_config_dir() / "custom-skills"
 
 
+def get_ai_dev_config_dir() -> Path:
+    """回傳 ai-dev 設定目錄。"""
+    return get_config_dir() / "ai-dev"
+
+
+def get_sync_config_path() -> Path:
+    """回傳 sync 設定檔路徑。"""
+    return get_ai_dev_config_dir() / "sync.yaml"
+
+
+def get_sync_repo_dir() -> Path:
+    """回傳 sync repo 目錄路徑。"""
+    return get_ai_dev_config_dir() / "sync-repo"
+
+
 def get_claude_config_dir() -> Path:
     return get_home_dir() / ".claude"
 

@@ -16,6 +16,7 @@ from .commands.derive_tests import derive_tests
 from .commands import project
 from .commands import standards
 from .commands import hooks
+from .commands import sync
 
 
 def get_app_version() -> str:
@@ -51,6 +52,7 @@ def main_callback(
     """AI Development Environment Setup CLI"""
     pass
 
+
 app.command()(install)
 app.command()(update)
 app.command()(clone)
@@ -66,6 +68,7 @@ app.command(name="derive-tests")(derive_tests)
 app.add_typer(project.app, name="project")
 app.add_typer(standards.app, name="standards")
 app.add_typer(hooks.app, name="hooks")
+app.add_typer(sync.app, name="sync")
 
 
 def tui():
