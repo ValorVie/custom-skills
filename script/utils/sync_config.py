@@ -366,14 +366,63 @@ def _git_has_remote(repo_dir: Path, remote_name: str) -> bool:
     return result.returncode == 0
 
 
+def _git_set_remote(repo_path: Path, remote_url: str) -> None:
+    if _git_has_remote(repo_path, "origin"):
+        run_command(
+            ["git", "remote", "set-url", "origin", remote_url], cwd=str(repo_path)
+        )
+    else:
+        run_command(
+            ["git", "remote", "add", "origin", remote_url], cwd=str(repo_path)
+        )
+
+
+def _git_remote_has_branch(repo_path: Path, branch: str) -> bool:
+    result = subprocess.run(
+        ["git", "ls-remote", "--heads", "origin", branch],
+        cwd=str(repo_path),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode == 0 and branch in result.stdout
+
+
 def git_init_or_clone(repo_dir: Path | str, remote_url: str) -> str:
+    """初始化或 clone sync repo。回傳 'existing' | 'cloned' | 'initialized'。"""
     repo_path = Path(repo_dir).expanduser()
 
+    # 已有 .git → 更新 remote URL 並對齊遠端
     if (repo_path / ".git").exists():
+        _git_set_remote(repo_path, remote_url)
+        # fetch 遠端並對齊，避免 stale 狀態導致 push 失敗
+        subprocess.run(
+            ["git", "fetch", "origin"],
+            cwd=str(repo_path),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if _git_remote_has_branch(repo_path, "main"):
+            # 設定 upstream tracking
+            subprocess.run(
+                ["git", "branch", "--set-upstream-to=origin/main", "main"],
+                cwd=str(repo_path),
+                capture_output=True,
+                check=False,
+            )
+            # rebase 本地變更到遠端之上
+            subprocess.run(
+                ["git", "rebase", "origin/main"],
+                cwd=str(repo_path),
+                capture_output=True,
+                check=False,
+            )
         return "existing"
 
     repo_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # 嘗試 clone
     if not repo_path.exists():
         clone_result = subprocess.run(
             ["git", "clone", remote_url, str(repo_path)],
@@ -383,17 +432,34 @@ def git_init_or_clone(repo_dir: Path | str, remote_url: str) -> str:
         )
         if clone_result.returncode == 0:
             return "cloned"
+        # clone 失敗，清理殘留目錄
+        if repo_path.exists():
+            shutil.rmtree(repo_path)
 
+    # fallback: init + fetch
     repo_path.mkdir(parents=True, exist_ok=True)
     run_command(["git", "init"], cwd=str(repo_path))
+    _git_set_remote(repo_path, remote_url)
 
-    if _git_has_remote(repo_path, "origin"):
+    # 嘗試 fetch 遠端內容
+    fetch_result = subprocess.run(
+        ["git", "fetch", "origin"],
+        cwd=str(repo_path),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    if fetch_result.returncode == 0 and _git_remote_has_branch(repo_path, "main"):
+        # 遠端有 main → 以遠端為基礎
         run_command(
-            ["git", "remote", "set-url", "origin", remote_url], cwd=str(repo_path)
+            ["git", "checkout", "-b", "main", "--track", "origin/main"],
+            cwd=str(repo_path),
+            check=False,
         )
-    else:
-        run_command(["git", "remote", "add", "origin", remote_url], cwd=str(repo_path))
+        return "cloned"
 
+    # 遠端為空或 fetch 失敗 → 本地全新開始
     run_command(["git", "branch", "-M", "main"], cwd=str(repo_path), check=False)
     return "initialized"
 
@@ -420,13 +486,30 @@ def git_add_commit(repo_dir: Path | str, message: str) -> bool:
 
 def git_pull_rebase(repo_dir: Path | str) -> bool:
     repo_path = Path(repo_dir).expanduser()
+    if not _has_upstream(repo_path):
+        return True  # 尚未設定 upstream，跳過 pull
     result = run_command(["git", "pull", "--rebase"], cwd=str(repo_path), check=False)
+    return result.returncode == 0
+
+
+def _has_upstream(repo_dir: Path) -> bool:
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+        cwd=str(repo_dir),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     return result.returncode == 0
 
 
 def git_push(repo_dir: Path | str) -> bool:
     repo_path = Path(repo_dir).expanduser()
-    result = run_command(["git", "push"], cwd=str(repo_path), check=False)
+    if _has_upstream(repo_path):
+        cmd = ["git", "push"]
+    else:
+        cmd = ["git", "push", "-u", "origin", "main"]
+    result = run_command(cmd, cwd=str(repo_path), check=False)
     return result.returncode == 0
 
 
@@ -447,17 +530,20 @@ def git_status_summary(repo_dir: Path | str) -> dict[str, int]:
     else:
         local_changes = 0
 
-    behind_result = subprocess.run(
-        ["git", "rev-list", "--count", "HEAD..@{upstream}"],
-        cwd=str(repo_path),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if behind_result.returncode == 0:
-        try:
-            behind_count = int(behind_result.stdout.strip() or "0")
-        except ValueError:
+    if _has_upstream(repo_path):
+        behind_result = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD..@{upstream}"],
+            cwd=str(repo_path),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if behind_result.returncode == 0:
+            try:
+                behind_count = int(behind_result.stdout.strip() or "0")
+            except ValueError:
+                behind_count = 0
+        else:
             behind_count = 0
     else:
         behind_count = 0

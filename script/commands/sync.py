@@ -134,6 +134,25 @@ def init(
     write_gitattributes(repo_dir)
 
     summary = {"added": 0, "updated": 0, "deleted": 0}
+
+    # cloned = 遠端已有內容（第二台機器）→ 先 repo→local 還原
+    if action == "cloned":
+        for item in directories:
+            repo_path = repo_dir / item["repo_subdir"]
+            local_path = Path(item["path"]).expanduser()
+            excludes = get_ignore_patterns(
+                item.get("ignore_profile", "custom"), item.get("custom_ignore", [])
+            )
+            if not repo_path.exists() or not any(repo_path.iterdir()):
+                continue
+            local_path.mkdir(parents=True, exist_ok=True)
+            result = sync_directory(
+                repo_path, local_path, excludes=excludes, delete=False
+            )
+            summary["added"] += int(result.get("added", 0))
+            summary["updated"] += int(result.get("updated", 0))
+
+    # 再做 local→repo（將本機新增檔案同步回 repo）
     for item in directories:
         local_path = Path(item["path"]).expanduser()
         repo_path = repo_dir / item["repo_subdir"]
@@ -142,7 +161,8 @@ def init(
         )
 
         if not local_path.exists():
-            console.print(f"[yellow]跳過不存在目錄：{local_path}[/yellow]")
+            if action != "cloned":
+                console.print(f"[yellow]跳過不存在目錄：{local_path}[/yellow]")
             continue
 
         result = sync_directory(local_path, repo_path, excludes=excludes, delete=True)
@@ -151,11 +171,15 @@ def init(
         summary["deleted"] += int(result.get("deleted", 0))
 
     committed = git_add_commit(repo_dir, generate_sync_commit_message())
-    if committed:
-        if not git_pull_rebase(repo_dir):
-            raise typer.Exit(code=1)
-        if not git_push(repo_dir):
-            raise typer.Exit(code=1)
+
+    if not git_pull_rebase(repo_dir):
+        console.print("[bold red]git pull --rebase 失敗[/bold red]")
+        raise typer.Exit(code=1)
+
+    # init 時一律嘗試 push（確保遠端有內容）
+    if not git_push(repo_dir):
+        console.print("[bold red]git push 失敗，請確認遠端 URL 與權限[/bold red]")
+        raise typer.Exit(code=1)
 
     config = {
         "version": "1",
