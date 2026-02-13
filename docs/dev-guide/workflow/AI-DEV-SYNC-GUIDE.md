@@ -25,22 +25,27 @@ ai-dev sync init --remote git@github.com:<user>/claude-sync.git
 1. Clone 或建立 `~/.config/ai-dev/sync-repo/` Git 倉庫
 2. 預設同步 `~/.claude` 和 `~/.claude-mem` 兩個目錄
 3. 產生 `.gitignore`（自動排除快取、debug 等不需要的檔案）
-4. 執行首次同步並推送到遠端
+4. 產生 `plugin-manifest.json`（可攜帶的 plugin 狀態記錄）
+5. 執行首次同步並推送到遠端
 
 ### 第二台機器：加入同步
 
 ```bash
-# 同樣初始化，指向相同遠端倉庫（會自動從遠端還原配置）
+# 初始化，指向相同遠端倉庫（自動從遠端還原配置 + 安裝 plugin）
 ai-dev sync init --remote git@github.com:<user>/claude-sync.git
-
-# 重新安裝 plugin（同步只帶清單，不帶程式碼）
-claude plugins install
 
 # 登入 Claude Code（token 存在系統 keychain，不會被同步）
 claude
 ```
 
-> **注意**：每台新機器都需要獨立登入 Claude Code 和安裝 plugin。
+init 會自動完成：
+1. 從遠端還原 `~/.claude` 和 `~/.claude-mem` 的內容
+2. Clone 各 marketplace 的 Git repo
+3. 從 marketplace 複製 plugin 到 cache
+4. 寫入 `installed_plugins.json` 和 `known_marketplaces.json`（本機路徑）
+5. 還原 `settings.json` 的 `enabledPlugins`
+
+> **只需獨立登入 Claude Code**，plugin 會自動安裝。若有 `directory` 類型的 marketplace（如本機 npm 套件），需手動處理。
 
 ---
 
@@ -52,7 +57,7 @@ claude
 ai-dev sync push
 ```
 
-將本機所有同步目錄的變更推送到遠端。
+將本機所有同步目錄的變更推送到遠端。push 時會自動更新 `plugin-manifest.json`。
 
 ### 換到另一台機器：拉取變更
 
@@ -146,6 +151,41 @@ directories:
 
 ---
 
+## Plugin 同步機制
+
+Plugin 的程式碼和 metadata（含機器專屬絕對路徑）**不會直接同步**。取而代之，sync 使用 **plugin manifest** 機制：
+
+### Push 時（第一台機器）
+
+自動從 `installed_plugins.json` 和 `known_marketplaces.json` 產生可攜帶的 `plugin-manifest.json`，記錄：
+- Marketplace 名稱與來源 URL（不含本機路徑）
+- 已安裝 plugin 名稱與版本
+- 已啟用 plugin 清單
+
+### Init 時（第二台機器）
+
+自動執行以下步驟：
+1. 讀取 `plugin-manifest.json`
+2. `git clone --depth 1` 各 marketplace repo 到 `~/.claude/plugins/marketplaces/`
+3. 從 marketplace 複製 plugin 到 `~/.claude/plugins/cache/`
+4. 產生本機版 `installed_plugins.json` 和 `known_marketplaces.json`
+5. 還原 `settings.json` 的 `enabledPlugins`（只啟用成功安裝的 plugin）
+
+> `directory` 類型的 marketplace（如 npm 全域安裝的套件）無法自動 clone，會顯示跳過訊息。
+
+### 排除的 Plugin 檔案
+
+| 檔案 | 排除原因 |
+|------|----------|
+| `plugins/installed_plugins.json` | 含 `installPath` 絕對路徑 |
+| `plugins/known_marketplaces.json` | 含 `installLocation` 絕對路徑 |
+| `plugins/cache/` | 可重建的快取 |
+| `plugins/marketplaces/` | Git repos + node_modules，可重新 clone |
+| `plugins/repos/` | 可重新 clone |
+| `plugins/install-counts-cache.json` | 可重建 |
+
+---
+
 ## 預設 Ignore Profile
 
 ### claude
@@ -159,8 +199,6 @@ plugins/cache/  plugins/marketplaces/  plugins/repos/
 plugins/install-counts-cache.json  plugins/installed_plugins.json
 plugins/known_marketplaces.json
 ```
-
-> **排除 plugin metadata 的原因**：`installed_plugins.json` 和 `known_marketplaces.json` 包含機器專屬的絕對路徑，跨平台同步會導致所有 plugin 載入失敗。`settings.json` 中的 `enabledPlugins` 已足夠記錄需要安裝的 plugin 清單。
 
 ### claude-mem
 
@@ -180,13 +218,12 @@ logs/  worker.pid  *.db-wal  *.db-shm
 
 ### 新機器必做步驟
 
-同步只帶**配置與清單**，以下項目需在每台新機器獨立處理：
-
-| 項目 | 原因 | 指令 |
-|------|------|------|
-| 登入 Claude Code | Token 存在系統 keychain，不同步 | `claude` |
-| 安裝 Plugin | 程式碼排除同步，只帶清單 | `claude plugins install` |
-| 安裝 MCP Server | 依賴本機環境 | 依各 MCP 文件安裝 |
+| 項目 | 自動/手動 | 說明 |
+|------|-----------|------|
+| 登入 Claude Code | 手動 | Token 存在系統 keychain，需執行 `claude` |
+| Marketplace + Plugin | **自動** | init 時自動 clone marketplace 並安裝 plugin |
+| `directory` 類型 Marketplace | 手動 | 如 npm 全域套件，需在本機另行安裝 |
+| MCP Server | 手動 | 依賴本機環境，依各 MCP 文件安裝 |
 
 ### SQLite 資料庫安全
 
@@ -203,7 +240,7 @@ logs/  worker.pid  *.db-wal  *.db-shm
 
 ### 跨平台路徑差異
 
-`~/.claude/projects/` 下的子目錄名稱包含機器路徑（如 `-Users-arlen-Documents-project`）。不同機器若專案路徑不同，Claude Code 不會自動關聯。
+`~/.claude/projects/` 和 `history.jsonl` 包含機器專屬路徑（如 `-Users-arlen-Documents-project`）。不同機器若專案路徑不同，Claude Code 不會自動關聯。
 
 **解決方式**：統一各機器的專案路徑，或手動重新命名目錄。
 
@@ -212,21 +249,6 @@ logs/  worker.pid  *.db-wal  *.db-shm
 - 使用 `git pull --rebase` 減少衝突機率
 - `.gitattributes` 已設定 `*.jsonl merge=union` 自動合併 JSONL 檔案
 - JSON 檔案若發生衝突需手動解決
-
-### 新機器安裝外掛
-
-Plugin 的程式碼和 metadata 都已排除同步（包含機器專屬路徑）。新機器需手動新增 marketplace 並安裝 plugin：
-
-```bash
-# 1. 新增 marketplace（可在 settings.json 的 enabledPlugins 查看需要哪些）
-claude marketplace add anthropics/claude-plugins-official
-# ... 依需求新增其他 marketplace
-
-# 2. 安裝 plugin
-claude install plugin-name@marketplace-name
-```
-
-> 可參考 `~/.claude/settings.json` 的 `enabledPlugins` 欄位，確認需要安裝的 plugin 清單。
 
 ---
 

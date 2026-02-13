@@ -14,6 +14,7 @@ from ..utils.sync_config import (
     count_directory_changes,
     default_sync_directories,
     generate_sync_commit_message,
+    get_claude_subdir,
     get_ignore_patterns,
     git_add_commit,
     git_init_or_clone,
@@ -23,6 +24,8 @@ from ..utils.sync_config import (
     load_sync_config,
     make_repo_subdir_name,
     now_iso8601,
+    restore_plugins_on_pull,
+    save_plugin_manifest,
     save_sync_config,
     sync_directory,
     to_tilde_path,
@@ -152,6 +155,14 @@ def init(
             summary["added"] += int(result.get("added", 0))
             summary["updated"] += int(result.get("updated", 0))
 
+    # 產生 plugin manifest（第一台機器 push 時也會做，這裡確保 init 就有）
+    for item in directories:
+        if item.get("ignore_profile") == "claude":
+            local_path = Path(item["path"]).expanduser()
+            if local_path.exists():
+                save_plugin_manifest(repo_dir, item["repo_subdir"], local_path)
+            break
+
     # 再做 local→repo（將本機新增檔案同步回 repo）
     for item in directories:
         local_path = Path(item["path"]).expanduser()
@@ -195,6 +206,37 @@ def init(
         f"[dim]同步摘要：+{summary['added']} ~{summary['updated']} -{summary['deleted']}[/dim]"
     )
 
+    # 第二台機器：自動安裝 plugin
+    if action == "cloned":
+        claude_sub = None
+        for item in directories:
+            if item.get("ignore_profile") == "claude":
+                claude_sub = item.get("repo_subdir")
+                break
+        if claude_sub:
+            console.print()
+            console.print("[bold]正在還原 Plugin...[/bold]")
+            plugin_result = restore_plugins_on_pull(repo_dir, claude_sub)
+            installed = plugin_result.get("installed", [])
+            skipped = plugin_result.get("skipped", [])
+
+            if installed:
+                console.print(
+                    f"[green]  已自動安裝 {len(installed)} 個 plugin[/green]"
+                )
+                for name in installed:
+                    console.print(f"  [green]✓[/green] {name}")
+
+            if skipped:
+                console.print(
+                    f"[yellow]  {len(skipped)} 個 plugin 需手動安裝：[/yellow]"
+                )
+                for name in skipped:
+                    console.print(f"  [yellow]•[/yellow] {name}")
+
+            if not installed and not skipped:
+                console.print("[dim]  無 plugin 需要還原[/dim]")
+
 
 @app.command()
 def push() -> None:
@@ -206,6 +248,12 @@ def push() -> None:
     write_gitattributes(repo_dir)
 
     summary = _sync_local_to_repo(config)
+
+    # 產生 plugin manifest（可攜帶格式，無絕對路徑）
+    claude_subdir = get_claude_subdir(config)
+    if claude_subdir:
+        save_plugin_manifest(repo_dir, claude_subdir)
+
     committed = git_add_commit(repo_dir, generate_sync_commit_message())
 
     if not committed:

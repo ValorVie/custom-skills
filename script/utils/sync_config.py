@@ -606,3 +606,270 @@ def ensure_sync_repo_dir() -> Path:
     repo_dir = get_sync_repo_dir()
     repo_dir.mkdir(parents=True, exist_ok=True)
     return repo_dir
+
+
+# ---------------------------------------------------------------------------
+# Plugin manifest: 可攜帶的 plugin 狀態記錄
+# ---------------------------------------------------------------------------
+
+PLUGIN_MANIFEST_NAME = "plugin-manifest.json"
+
+
+def generate_plugin_manifest(claude_dir: Path | str) -> dict[str, Any] | None:
+    """從 ~/.claude 讀取 plugin metadata，產生可攜帶 manifest（無絕對路徑）。"""
+    import json
+
+    claude_path = Path(claude_dir).expanduser()
+    installed_path = claude_path / "plugins" / "installed_plugins.json"
+    marketplaces_path = claude_path / "plugins" / "known_marketplaces.json"
+    settings_path = claude_path / "settings.json"
+
+    if not installed_path.exists() and not marketplaces_path.exists():
+        return None
+
+    manifest: dict[str, Any] = {"version": 1, "marketplaces": {}, "plugins": []}
+
+    # 提取 marketplace 來源（只保留 source，去除本機路徑）
+    if marketplaces_path.exists():
+        try:
+            with open(marketplaces_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            for name, info in raw.items():
+                source = info.get("source", {})
+                manifest["marketplaces"][name] = source
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # 提取已安裝 plugin（只保留名稱、版本、marketplace）
+    if installed_path.exists():
+        try:
+            with open(installed_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            for plugin_key, entries in raw.get("plugins", {}).items():
+                if not entries:
+                    continue
+                latest = entries[-1]
+                manifest["plugins"].append(
+                    {
+                        "name": plugin_key,
+                        "version": latest.get("version", ""),
+                        "scope": latest.get("scope", "user"),
+                    }
+                )
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # 從 settings.json 補充 enabledPlugins
+    if settings_path.exists():
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+            manifest["enabledPlugins"] = list(
+                settings.get("enabledPlugins", {}).keys()
+            )
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    return manifest
+
+
+def save_plugin_manifest(
+    repo_dir: Path | str, claude_subdir: str, claude_dir: Path | str | None = None
+) -> bool:
+    """在 push 時產生 plugin manifest 並存入 sync repo。"""
+    import json
+
+    repo_path = Path(repo_dir).expanduser()
+
+    if claude_dir is None:
+        claude_dir = _find_claude_dir_for_subdir(claude_subdir)
+    if not claude_dir:
+        return False
+
+    manifest = generate_plugin_manifest(claude_dir)
+    if not manifest:
+        return False
+
+    manifest_path = repo_path / claude_subdir / "plugins" / PLUGIN_MANIFEST_NAME
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+    return True
+
+
+def restore_plugins_on_pull(
+    repo_dir: Path | str, claude_subdir: str
+) -> dict[str, Any]:
+    """在 init/pull 時讀取 manifest，自動安裝 marketplace 與 plugin。
+
+    回傳 {"installed": [...], "skipped": [...], "manifest": dict}
+    """
+    import json
+
+    repo_path = Path(repo_dir).expanduser()
+    manifest_path = repo_path / claude_subdir / "plugins" / PLUGIN_MANIFEST_NAME
+    result: dict[str, Any] = {"installed": [], "skipped": [], "manifest": None}
+
+    if not manifest_path.exists():
+        return result
+
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return result
+
+    result["manifest"] = manifest
+    claude_dir = Path("~/.claude").expanduser()
+    plugins_dir = claude_dir / "plugins"
+    plugins_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Clone marketplace repos
+    marketplaces = manifest.get("marketplaces", {})
+    cloned_marketplaces: set[str] = set()
+
+    for name, source in marketplaces.items():
+        marketplace_dir = plugins_dir / "marketplaces" / name
+        if marketplace_dir.exists():
+            cloned_marketplaces.add(name)
+            continue
+
+        clone_url = _marketplace_clone_url(source)
+        if not clone_url:
+            console.print(
+                f"[yellow]  跳過 marketplace {name}："
+                f"source 類型 '{source.get('source')}' 無法自動 clone[/yellow]"
+            )
+            continue
+
+        marketplace_dir.parent.mkdir(parents=True, exist_ok=True)
+        clone_result = subprocess.run(
+            ["git", "clone", "--depth", "1", clone_url, str(marketplace_dir)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if clone_result.returncode == 0:
+            cloned_marketplaces.add(name)
+        else:
+            console.print(
+                f"[yellow]  clone marketplace {name} 失敗：{clone_result.stderr.strip()[:100]}[/yellow]"
+            )
+
+    # 2. 寫入 known_marketplaces.json（本機路徑）
+    known: dict[str, Any] = {}
+    for name, source in marketplaces.items():
+        if name not in cloned_marketplaces:
+            continue
+        marketplace_dir = plugins_dir / "marketplaces" / name
+        known[name] = {
+            "source": source,
+            "installLocation": str(marketplace_dir),
+            "lastUpdated": now_iso8601(),
+        }
+    if known:
+        with open(plugins_dir / "known_marketplaces.json", "w", encoding="utf-8") as f:
+            json.dump(known, f, indent=2, ensure_ascii=False)
+
+    # 3. 安裝 plugin：從 marketplace 複製到 cache
+    installed_plugins: dict[str, list[dict[str, Any]]] = {}
+    enabled_plugins: dict[str, bool] = {}
+
+    for plugin_info in manifest.get("plugins", []):
+        plugin_key = plugin_info["name"]  # e.g. "code-simplifier@claude-plugins-official"
+        version = plugin_info.get("version", "latest")
+        scope = plugin_info.get("scope", "user")
+
+        parts = plugin_key.split("@", 1)
+        if len(parts) != 2:
+            result["skipped"].append(plugin_key)
+            continue
+        plugin_name, marketplace_name = parts
+
+        if marketplace_name not in cloned_marketplaces:
+            result["skipped"].append(plugin_key)
+            continue
+
+        # 找到 marketplace 裡的 plugin 目錄
+        marketplace_dir = plugins_dir / "marketplaces" / marketplace_name
+        plugin_src = marketplace_dir / "plugins" / plugin_name
+        if not plugin_src.exists():
+            result["skipped"].append(plugin_key)
+            continue
+
+        # 複製到 cache
+        cache_dir = plugins_dir / "cache" / marketplace_name / plugin_name / version
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+        cache_dir.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(plugin_src, cache_dir)
+
+        installed_plugins[plugin_key] = [
+            {
+                "scope": scope,
+                "installPath": str(cache_dir),
+                "version": version,
+                "installedAt": now_iso8601(),
+                "lastUpdated": now_iso8601(),
+            }
+        ]
+        enabled_plugins[plugin_key] = True
+        result["installed"].append(plugin_key)
+
+    # 4. 寫入 installed_plugins.json
+    if installed_plugins:
+        with open(
+            plugins_dir / "installed_plugins.json", "w", encoding="utf-8"
+        ) as f:
+            json.dump(
+                {"version": 2, "plugins": installed_plugins},
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
+
+    # 5. 還原 settings.json 的 enabledPlugins（已安裝的才啟用）
+    settings_path = claude_dir / "settings.json"
+    if settings_path.exists() and enabled_plugins:
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+            settings["enabledPlugins"] = enabled_plugins
+            with open(settings_path, "w", encoding="utf-8") as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    return result
+
+
+def _marketplace_clone_url(source: dict[str, Any]) -> str | None:
+    """從 marketplace source 產生可 clone 的 URL。"""
+    src_type = source.get("source", "")
+    if src_type == "github":
+        repo = source.get("repo", "")
+        return f"https://github.com/{repo}.git" if repo else None
+    if src_type == "git":
+        return source.get("url")
+    # directory 類型無法遠端 clone
+    return None
+
+
+def _find_claude_dir_for_subdir(claude_subdir: str) -> Path | None:
+    """從 sync config 找到 subdir 對應的本機路徑。"""
+    try:
+        config = load_sync_config()
+    except FileNotFoundError:
+        return None
+    for item in config.get("directories", []):
+        if item.get("repo_subdir") == claude_subdir:
+            return Path(item["path"]).expanduser()
+    return None
+
+
+def get_claude_subdir(config: dict[str, Any]) -> str | None:
+    """找到 ignore_profile 為 'claude' 的 repo_subdir。"""
+    for item in config.get("directories", []):
+        if item.get("ignore_profile") == "claude":
+            return str(item.get("repo_subdir", ""))
+    return None
