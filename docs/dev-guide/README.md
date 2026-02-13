@@ -62,4 +62,5 @@
 | [CODE-QUALITY-TOOLS.md](workflow/CODE-QUALITY-TOOLS.md) | 程式碼品質工具 |
 | [LSP-INSTALLATION-GUIDE.md](workflow/LSP-INSTALLATION-GUIDE.md) | PHP/Python/Rust/JS/TS LSP 安裝指南 |
 | [ai-dev-framework-architecture.md](workflow/ai-dev-framework-architecture.md) | ai-dev CLI 框架技術架構（指令設計、職責分工、資源管理） |
+| [AI-DEV-SYNC-GUIDE.md](workflow/AI-DEV-SYNC-GUIDE.md) | ai-dev sync 跨裝置同步教學（Git backend） |
 | [copy-architecture.md](workflow/copy-architecture.md) | Copy 架構說明 |
