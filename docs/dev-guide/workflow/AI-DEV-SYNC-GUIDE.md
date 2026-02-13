@@ -220,7 +220,7 @@ debug/  cache/  paste-cache/  downloads/  shell-snapshots/
 session-env/  ide/  statsig/  telemetry/  stats-cache.json
 plugins/cache/  plugins/marketplaces/  plugins/repos/
 plugins/install-counts-cache.json  plugins/installed_plugins.json
-plugins/known_marketplaces.json
+plugins/known_marketplaces.json  .credentials.json
 ```
 
 ### claude-mem

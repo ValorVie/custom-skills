@@ -40,6 +40,7 @@ CLAUDE_IGNORE_PATTERNS = [
     "plugins/install-counts-cache.json",
     "plugins/installed_plugins.json",
     "plugins/known_marketplaces.json",
+    ".credentials.json",
 ]
 
 CLAUDE_MEM_IGNORE_PATTERNS = ["logs/", "worker.pid", "*.db-wal", "*.db-shm"]
