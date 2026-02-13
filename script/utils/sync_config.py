@@ -771,7 +771,23 @@ def restore_plugins_on_pull(
         with open(plugins_dir / "known_marketplaces.json", "w", encoding="utf-8") as f:
             json.dump(known, f, indent=2, ensure_ascii=False)
 
-    # 3. 安裝 plugin：從 marketplace 複製到 cache
+    # 2.5 讀取各 marketplace 的 marketplace.json（用於解析 plugin 來源路徑）
+    marketplace_plugin_map: dict[str, dict[str, Any]] = {}
+    for name in cloned_marketplaces:
+        mkt_json = plugins_dir / "marketplaces" / name / ".claude-plugin" / "marketplace.json"
+        if not mkt_json.exists():
+            continue
+        try:
+            with open(mkt_json, "r", encoding="utf-8") as f:
+                mkt_data = json.load(f)
+            for p in mkt_data.get("plugins", []):
+                p_name = p.get("name", "")
+                if p_name:
+                    marketplace_plugin_map[f"{p_name}@{name}"] = p
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # 3. 安裝 plugin：根據 marketplace.json 的 source 解析來源
     installed_plugins: dict[str, list[dict[str, Any]]] = {}
     enabled_plugins: dict[str, bool] = {}
 
@@ -790,10 +806,11 @@ def restore_plugins_on_pull(
             result["skipped"].append(plugin_key)
             continue
 
-        # 找到 marketplace 裡的 plugin 目錄
         marketplace_dir = plugins_dir / "marketplaces" / marketplace_name
-        plugin_src = marketplace_dir / "plugins" / plugin_name
-        if not plugin_src.exists():
+        plugin_src = _resolve_plugin_source(
+            plugin_key, plugin_name, marketplace_dir, marketplace_plugin_map, plugins_dir
+        )
+        if not plugin_src:
             result["skipped"].append(plugin_key)
             continue
 
@@ -841,6 +858,58 @@ def restore_plugins_on_pull(
             pass
 
     return result
+
+
+def _resolve_plugin_source(
+    plugin_key: str,
+    plugin_name: str,
+    marketplace_dir: Path,
+    marketplace_plugin_map: dict[str, Any],
+    plugins_dir: Path,
+) -> Path | None:
+    """根據 marketplace.json 的 source 欄位解析 plugin 來源目錄。
+
+    支援三種 source 型別：
+    - 相對路徑字串 (e.g. "./plugins/foo", "./plugin") → marketplace 內的子目錄
+    - URL 物件 (e.g. {"source": "url", "url": "https://...git"}) → 另外 clone
+    - 不在 marketplace.json 中 → fallback 到 plugins/<name>
+    """
+    mkt_entry = marketplace_plugin_map.get(plugin_key)
+
+    if mkt_entry:
+        source = mkt_entry.get("source")
+
+        # 相對路徑字串：marketplace 內的子目錄
+        if isinstance(source, str):
+            resolved = (marketplace_dir / source).resolve()
+            if resolved.exists():
+                return resolved
+
+        # URL 物件：從外部 repo clone
+        elif isinstance(source, dict):
+            clone_url = source.get("url")
+            if clone_url:
+                # clone 到 repos/<marketplace>/<plugin>
+                repo_dest = plugins_dir / "repos" / plugin_key.replace("@", "/")
+                if not repo_dest.exists():
+                    repo_dest.parent.mkdir(parents=True, exist_ok=True)
+                    clone_result = subprocess.run(
+                        ["git", "clone", "--depth", "1", clone_url, str(repo_dest)],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if clone_result.returncode != 0:
+                        console.print(
+                            f"[yellow]  clone plugin {plugin_key} 失敗："
+                            f"{clone_result.stderr.strip()[:100]}[/yellow]"
+                        )
+                        return None
+                return repo_dest
+
+    # fallback：標準 plugins/<name> 目錄
+    fallback = marketplace_dir / "plugins" / plugin_name
+    return fallback if fallback.exists() else None
 
 
 def _marketplace_clone_url(source: dict[str, Any]) -> str | None:
