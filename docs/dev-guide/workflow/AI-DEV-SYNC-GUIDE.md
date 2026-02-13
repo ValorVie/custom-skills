@@ -30,12 +30,17 @@ ai-dev sync init --remote git@github.com:<user>/claude-sync.git
 ### 第二台機器：加入同步
 
 ```bash
-# 同樣初始化，指向相同遠端倉庫
+# 同樣初始化，指向相同遠端倉庫（會自動從遠端還原配置）
 ai-dev sync init --remote git@github.com:<user>/claude-sync.git
 
-# 拉取遠端內容到本機
-ai-dev sync pull
+# 重新安裝 plugin（同步只帶清單，不帶程式碼）
+claude plugins install
+
+# 登入 Claude Code（token 存在系統 keychain，不會被同步）
+claude
 ```
+
+> **注意**：每台新機器都需要獨立登入 Claude Code 和安裝 plugin。
 
 ---
 
@@ -151,8 +156,11 @@ directories:
 debug/  cache/  paste-cache/  downloads/  shell-snapshots/
 session-env/  ide/  statsig/  telemetry/  stats-cache.json
 plugins/cache/  plugins/marketplaces/  plugins/repos/
-plugins/install-counts-cache.json
+plugins/install-counts-cache.json  plugins/installed_plugins.json
+plugins/known_marketplaces.json
 ```
+
+> **排除 plugin metadata 的原因**：`installed_plugins.json` 和 `known_marketplaces.json` 包含機器專屬的絕對路徑，跨平台同步會導致所有 plugin 載入失敗。`settings.json` 中的 `enabledPlugins` 已足夠記錄需要安裝的 plugin 清單。
 
 ### claude-mem
 
@@ -169,6 +177,16 @@ logs/  worker.pid  *.db-wal  *.db-shm
 ---
 
 ## 注意事項
+
+### 新機器必做步驟
+
+同步只帶**配置與清單**，以下項目需在每台新機器獨立處理：
+
+| 項目 | 原因 | 指令 |
+|------|------|------|
+| 登入 Claude Code | Token 存在系統 keychain，不同步 | `claude` |
+| 安裝 Plugin | 程式碼排除同步，只帶清單 | `claude plugins install` |
+| 安裝 MCP Server | 依賴本機環境 | 依各 MCP 文件安裝 |
 
 ### SQLite 資料庫安全
 
@@ -195,13 +213,20 @@ logs/  worker.pid  *.db-wal  *.db-shm
 - `.gitattributes` 已設定 `*.jsonl merge=union` 自動合併 JSONL 檔案
 - JSON 檔案若發生衝突需手動解決
 
-### 拉取後重裝外掛
+### 新機器安裝外掛
 
-外掛的實際程式碼（`plugins/marketplaces/`、`plugins/repos/`）已排除同步。拉取到新機器後需重新安裝：
+Plugin 的程式碼和 metadata 都已排除同步（包含機器專屬路徑）。新機器需手動新增 marketplace 並安裝 plugin：
 
 ```bash
-claude plugins install
+# 1. 新增 marketplace（可在 settings.json 的 enabledPlugins 查看需要哪些）
+claude marketplace add anthropics/claude-plugins-official
+# ... 依需求新增其他 marketplace
+
+# 2. 安裝 plugin
+claude install plugin-name@marketplace-name
 ```
+
+> 可參考 `~/.claude/settings.json` 的 `enabledPlugins` 欄位，確認需要安裝的 plugin 清單。
 
 ---
 

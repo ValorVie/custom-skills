@@ -58,8 +58,6 @@
 | `file-history/` | 29MB | 檔案編輯歷史 | 編輯紀錄跨裝置完整 |
 | `usage-data/` | 2MB | 用量統計報告 | 統計資料合併可用 |
 | `plugins/config.json` | <1KB | 外掛設定 | 外掛配置一致 |
-| `plugins/installed_plugins.json` | <1KB | 已安裝外掛清單 | 知道該裝哪些外掛 |
-| `plugins/known_marketplaces.json` | <1KB | Marketplace 清單 | Marketplace 來源一致 |
 
 ### 排除（不同步）
 
@@ -69,6 +67,8 @@
 | `plugins/cache/` | 11MB | 外掛快取 | 可重建的暫存資料 |
 | `plugins/marketplaces/` | 355MB | Marketplace git repos | 含 node_modules（254MB），可 reinstall 重建 |
 | `plugins/repos/` | 0 | 外掛 repo clone | 可重新 clone |
+| `plugins/installed_plugins.json` | 4KB | 已安裝外掛清單 | 含機器專屬絕對路徑，跨平台會導致 plugin 載入失敗 |
+| `plugins/known_marketplaces.json` | 2KB | Marketplace 清單 | 含機器專屬絕對路徑，同上 |
 | `shell-snapshots/` | 24MB | Shell 環境快照 | 包含本機 shell 變數與路徑，跨機器不適用 |
 | `session-env/` | ~0 | 會話環境變數 | 449 個目錄，本機環境專屬 |
 | `ide/` | 48KB | IDE 連線 lock 檔 | PID lock 檔案，跨機器必定衝突 |
