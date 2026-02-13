@@ -1,0 +1,16 @@
+{
+  "rules": [
+    {
+      "pattern": "*/_index.json",
+      "strategy": "key-merge"
+    },
+    {
+      "pattern": "knowledge-base/*.md",
+      "strategy": "skip-if-exists"
+    },
+    {
+      "pattern": "experience/*.md",
+      "strategy": "skip-if-exists"
+    }
+  ]
+}

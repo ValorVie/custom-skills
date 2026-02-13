@@ -46,6 +46,18 @@ plugin SHALL 將 Claude Code hooks.json 中的事件對映到 OpenCode plugin �
 - **WHEN** OpenCode 觸發 `tool.execute.before` 事件且工具為 `edit` 或 `write`
 - **THEN** plugin SHALL 執行 `scripts/strategic-compact/suggest-compact.py`
 
+#### Scenario: file.edited 逐檔自動化（新增）
+- **WHEN** OpenCode 觸發 `file.edited` 事件
+- **THEN** plugin SHALL 委派至 opencode-hooks 模組處理逐檔自動化
+
+#### Scenario: session.idle 彙總作業（新增）
+- **WHEN** OpenCode 觸發 `session.idle` 事件
+- **THEN** plugin SHALL 委派至 opencode-hooks 模組處理 session 級別彙總
+
+#### Scenario: file.watcher.updated 外部變更偵測（新增）
+- **WHEN** OpenCode 觸發 `file.watcher.updated` 事件
+- **THEN** plugin SHALL 委派至 opencode-hooks 模組處理外部變更偵測
+
 ### Requirement: Plugin 可被分發
 
 `ai-dev clone` SHALL 將 OpenCode plugin 分發到 `~/.config/opencode/plugins/`。

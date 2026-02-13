@@ -6,6 +6,10 @@ import os
 import stat
 import errno
 import shutil
+import difflib
+import fnmatch
+import json
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -110,7 +114,9 @@ def sync_opencode_superpowers_repo() -> Path:
         console.print(
             f"[green]Clone OpenCode superpowers[/green] → [dim]{shorten_path(repo_path)}[/dim]"
         )
-        run_command(["git", "clone", OPENCODE_SUPERPOWERS_URL, str(repo_path)], check=False)
+        run_command(
+            ["git", "clone", OPENCODE_SUPERPOWERS_URL, str(repo_path)], check=False
+        )
 
     return repo_path
 
@@ -123,9 +129,7 @@ def refresh_opencode_superpowers_symlinks(repo_path: Path) -> bool:
     skills_dst = get_opencode_config_dir() / "skills" / "superpowers"
 
     if not plugin_src.exists() or not skills_src.exists():
-        console.print(
-            "[red]✗ 找不到 superpowers 原始檔，請確認儲存庫內容[/red]"
-        )
+        console.print("[red]✗ 找不到 superpowers 原始檔，請確認儲存庫內容[/red]")
         return False
 
     plugin_dst.parent.mkdir(parents=True, exist_ok=True)
@@ -164,13 +168,10 @@ def refresh_opencode_superpowers_symlinks(repo_path: Path) -> bool:
             "[green]✓[/green] OpenCode superpowers 已複製"
             "（無 symlink 權限，使用檔案複製）"
         )
-    console.print(
-        f"[dim]驗證：[/dim] ls -l {shorten_path(plugin_dst)}"
-    )
-    console.print(
-        f"[dim]驗證：[/dim] ls -l {shorten_path(skills_dst)}"
-    )
+    console.print(f"[dim]驗證：[/dim] ls -l {shorten_path(plugin_dst)}")
+    console.print(f"[dim]驗證：[/dim] ls -l {shorten_path(skills_dst)}")
     return True
+
 
 UNWANTED_UDS_FILES = [
     "tdd-assistant",
@@ -530,8 +531,12 @@ def copy_sources_to_custom_skills() -> None:
         dst_auto_skill = dst_custom / "auto-skill"
         console.print(f"  [dim]{shorten_path(src_auto_skill)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_auto_skill)}[/dim]")
-        shutil.copytree(src_auto_skill, dst_auto_skill, dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns(".git", "assets", "README.md"))
+        shutil.copytree(
+            src_auto_skill,
+            dst_auto_skill,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(".git", "assets", "README.md"),
+        )
 
     # ============================================================
     # ECC (everything-claude-code) 資源
@@ -617,6 +622,245 @@ def _migrate_opencode_plugin_dir_if_needed() -> None:
     )
 
 
+def _load_clone_policy(skill_dir: Path, show_warning: bool = True) -> dict | None:
+    """載入並驗證 skill 目錄中的 .clonepolicy.json。"""
+    policy_file = skill_dir / ".clonepolicy.json"
+    if not policy_file.exists():
+        return None
+
+    def _warn(message: str) -> None:
+        if show_warning:
+            console.print(
+                f"[yellow]⚠ clone policy 無效：{shorten_path(policy_file)} ({message})，改用 copytree[/yellow]"
+            )
+
+    try:
+        data = json.loads(policy_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        _warn(str(e))
+        return None
+
+    if not isinstance(data, dict):
+        _warn("根節點必須是 object")
+        return None
+
+    rules = data.get("rules")
+    if not isinstance(rules, list):
+        _warn("缺少 rules 陣列")
+        return None
+
+    normalized_rules: list[dict[str, str]] = []
+    valid_strategies = {"key-merge", "skip-if-exists"}
+    for idx, rule in enumerate(rules, start=1):
+        if not isinstance(rule, dict):
+            _warn(f"rules[{idx}] 必須是 object")
+            return None
+
+        pattern = rule.get("pattern")
+        strategy = rule.get("strategy")
+
+        if not isinstance(pattern, str) or not pattern:
+            _warn(f"rules[{idx}].pattern 必須是非空字串")
+            return None
+
+        if strategy not in valid_strategies:
+            _warn(f"rules[{idx}].strategy 必須是 {', '.join(sorted(valid_strategies))}")
+            return None
+
+        normalized_rules.append({"pattern": pattern, "strategy": strategy})
+
+    return {"rules": normalized_rules}
+
+
+def _resolve_clone_strategy(relative_path: str, rules: list[dict[str, str]]) -> str:
+    """依規則決定檔案複製策略。"""
+    for rule in rules:
+        if fnmatch.fnmatch(relative_path, rule["pattern"]):
+            return rule["strategy"]
+    return "default"
+
+
+def _merge_index_json(src_file: Path, dst_file: Path) -> None:
+    """以 id/skillId 為 key 合併 _index.json。"""
+    if not dst_file.exists():
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_file, dst_file)
+        return
+
+    try:
+        src_data = json.loads(src_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        console.print(
+            f"[yellow]⚠ 來源 JSON 讀取失敗，跳過 key-merge: {shorten_path(src_file)} ({e})[/yellow]"
+        )
+        return
+
+    try:
+        dst_data = json.loads(dst_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        console.print(
+            f"[yellow]⚠ 目標 JSON 讀取失敗，跳過 key-merge: {shorten_path(dst_file)} ({e})[/yellow]"
+        )
+        return
+
+    if not isinstance(src_data, dict) or not isinstance(dst_data, dict):
+        console.print(
+            f"[yellow]⚠ JSON 結構錯誤，跳過 key-merge: {shorten_path(dst_file)}[/yellow]"
+        )
+        return
+
+    def _get_key(item: dict) -> tuple[str, str] | None:
+        item_id = item.get("id")
+        if isinstance(item_id, str):
+            return ("id", item_id)
+
+        skill_id = item.get("skillId")
+        if isinstance(skill_id, str):
+            return ("skillId", skill_id)
+
+        return None
+
+    for field_name, src_value in src_data.items():
+        dst_value = dst_data.get(field_name)
+        if not isinstance(src_value, list) or not isinstance(dst_value, list):
+            continue
+
+        existing_keys: set[tuple[str, str]] = set()
+        for dst_item in dst_value:
+            if not isinstance(dst_item, dict):
+                continue
+            key = _get_key(dst_item)
+            if key is not None:
+                existing_keys.add(key)
+
+        for src_item in src_value:
+            if not isinstance(src_item, dict):
+                continue
+            key = _get_key(src_item)
+            if key is None or key in existing_keys:
+                continue
+            dst_value.append(src_item)
+            existing_keys.add(key)
+
+    dst_file.parent.mkdir(parents=True, exist_ok=True)
+    dst_file.write_text(
+        json.dumps(dst_data, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _show_clone_file_diff(src_file: Path, dst_file: Path) -> None:
+    """顯示來源與目標檔案差異（文字檔）。"""
+    try:
+        src_lines = src_file.read_text(encoding="utf-8").splitlines()
+        dst_lines = dst_file.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError:
+        console.print("    [yellow]無法顯示差異（可能為二進位檔案）[/yellow]")
+        return
+    except OSError as e:
+        console.print(f"    [yellow]無法讀取檔案顯示差異: {e}[/yellow]")
+        return
+
+    diff_lines = list(
+        difflib.unified_diff(
+            dst_lines,
+            src_lines,
+            fromfile=str(dst_file),
+            tofile=str(src_file),
+            lineterm="",
+        )
+    )
+    if not diff_lines:
+        console.print("    [dim]無差異[/dim]")
+        return
+
+    console.print("\n".join(diff_lines))
+
+
+def _copy_skill_with_policy(
+    src: Path,
+    dst: Path,
+    policy: dict,
+    force: bool,
+    skip_conflicts: bool,
+) -> None:
+    """依 clone policy 逐檔複製 skill。"""
+    from .manifest import compute_file_hash
+
+    rules = policy.get("rules", [])
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for src_file in sorted(src.rglob("*")):
+        if not src_file.is_file():
+            continue
+
+        relative_path = src_file.relative_to(src).as_posix()
+        if relative_path == ".clonepolicy.json":
+            continue
+
+        strategy = _resolve_clone_strategy(relative_path, rules)
+        dst_file = dst / relative_path
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+
+        if strategy == "skip-if-exists":
+            if dst_file.exists():
+                continue
+            shutil.copy2(src_file, dst_file)
+            continue
+
+        if strategy == "key-merge":
+            _merge_index_json(src_file, dst_file)
+            continue
+
+        if not dst_file.exists():
+            shutil.copy2(src_file, dst_file)
+            continue
+
+        src_hash = compute_file_hash(src_file)
+        dst_hash = compute_file_hash(dst_file)
+        if src_hash == dst_hash:
+            continue
+
+        if force:
+            shutil.copy2(src_file, dst_file)
+            continue
+
+        if skip_conflicts:
+            console.print(f"    [yellow]跳過（衝突）: {relative_path}[/yellow]")
+            continue
+
+        while True:
+            console.print()
+            console.print(f"    [bold yellow]檔案衝突: {relative_path}[/bold yellow]")
+            console.print("    [cyan]1[/cyan]. 覆蓋")
+            console.print("    [cyan]2[/cyan]. 跳過")
+            console.print("    [cyan]3[/cyan]. 備份後覆蓋")
+            console.print("    [cyan]4[/cyan]. 查看差異")
+
+            try:
+                choice = input("    請輸入選項 (1-4): ").strip()
+            except (EOFError, KeyboardInterrupt):
+                choice = "2"
+
+            if choice == "1":
+                shutil.copy2(src_file, dst_file)
+                break
+            if choice == "2":
+                break
+            if choice == "3":
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_path = dst_file.with_name(f"{dst_file.name}.{timestamp}.bak")
+                shutil.copy2(dst_file, backup_path)
+                console.print(f"    [dim]已備份: {shorten_path(backup_path)}[/dim]")
+                shutil.copy2(src_file, dst_file)
+                break
+            if choice == "4":
+                _show_clone_file_diff(src_file, dst_file)
+                continue
+
+            console.print("    [red]無效選項，請輸入 1-4[/red]")
+
+
 def _copy_with_log(
     src: Path,
     dst: Path,
@@ -625,6 +869,8 @@ def _copy_with_log(
     tracker: "ManifestTracker | None" = None,
     skip_names: set[str] | None = None,
     source: str = "custom-skills",
+    force: bool = False,
+    skip_conflicts: bool = False,
 ) -> None:
     """複製目錄並輸出帶路徑的日誌。
 
@@ -636,6 +882,8 @@ def _copy_with_log(
         tracker: ManifestTracker 實例（用於記錄已複製的檔案）
         skip_names: 要跳過的資源名稱集合（用於衝突跳過）
         source: 資源來源名稱（用於 manifest 追蹤）
+        force: 預設策略衝突時是否強制覆蓋
+        skip_conflicts: 預設策略衝突時是否直接跳過
     """
     if not src.exists():
         return
@@ -661,7 +909,17 @@ def _copy_with_log(
                         console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")
                         continue
                     dst_item = dst / item.name
-                    shutil.copytree(item, dst_item, dirs_exist_ok=True)
+                    policy = _load_clone_policy(item)
+                    if policy is not None:
+                        _copy_skill_with_policy(
+                            item,
+                            dst_item,
+                            policy,
+                            force=force,
+                            skip_conflicts=skip_conflicts,
+                        )
+                    else:
+                        shutil.copytree(item, dst_item, dirs_exist_ok=True)
                     if record_method:
                         record_method(item.name, item, source=source)
         elif resource_type == "plugins":
@@ -685,8 +943,24 @@ def _copy_with_log(
                     if record_method:
                         record_method(name, item, source=source)
     else:
-        # 無 tracker，直接複製整個目錄
-        shutil.copytree(src, dst, dirs_exist_ok=True)
+        # 無 tracker，仍需尊重 clone policy
+        if resource_type == "skills":
+            for item in src.iterdir():
+                if item.is_dir() and not item.name.startswith("."):
+                    dst_item = dst / item.name
+                    policy = _load_clone_policy(item)
+                    if policy is not None:
+                        _copy_skill_with_policy(
+                            item,
+                            dst_item,
+                            policy,
+                            force=force,
+                            skip_conflicts=skip_conflicts,
+                        )
+                    else:
+                        shutil.copytree(item, dst_item, dirs_exist_ok=True)
+        else:
+            shutil.copytree(src, dst, dirs_exist_ok=True)
 
 
 def copy_custom_skills_to_targets(
@@ -805,6 +1079,12 @@ def copy_custom_skills_to_targets(
             if resource_type == "skills":
                 for item in src.iterdir():
                     if item.is_dir() and not item.name.startswith("."):
+                        # 含 .clonepolicy.json 的 skill 跳過 prescan：
+                        # 其衝突在 _copy_skill_with_policy 中以檔案層級處理，
+                        # 不需要目錄層級的衝突檢測。
+                        # copy 階段仍會呼叫 record_method 記錄 hash（用於孤兒清理）。
+                        if _load_clone_policy(item, show_warning=False) is not None:
+                            continue
                         if record_method:
                             record_method(item.name, item, source="custom-skills")
             else:
@@ -859,14 +1139,25 @@ def copy_custom_skills_to_targets(
                 resource_type,
                 target_name,
                 tracker=tracker,
-                skip_names=skip_names
-                if resource_type in ["skills", "commands", "agents", "workflows"]
-                else None,
+                skip_names=(
+                    skip_names
+                    if resource_type in ["skills", "commands", "agents", "workflows"]
+                    else None
+                ),
                 source="custom-skills",
+                force=force,
+                skip_conflicts=skip_conflicts,
             )
 
         # 5.5 分發 custom repos 的資源
-        _distribute_custom_repos(target, target_name, tracker, skip_names)
+        _distribute_custom_repos(
+            target,
+            target_name,
+            tracker,
+            skip_names,
+            force=force,
+            skip_conflicts=skip_conflicts,
+        )
 
         # 6. 產生新 manifest
         new_manifest = tracker.to_manifest(version)
@@ -929,6 +1220,9 @@ def _scan_repo_resources(
         if record:
             for item in skills_dir.iterdir():
                 if item.is_dir() and not item.name.startswith("."):
+                    # 含 clone policy 的 skill 跳過 prescan（衝突在檔案層級處理）
+                    if _load_clone_policy(item, show_warning=False) is not None:
+                        continue
                     record(item.name, item, source=source)
 
     # Commands（按平台子目錄）
@@ -970,6 +1264,8 @@ def _distribute_custom_repos(
     target_name: str,
     tracker: "ManifestTracker",
     skip_names: set[str],
+    force: bool = False,
+    skip_conflicts: bool = False,
 ) -> None:
     """分發 custom repos 的資源到指定平台。"""
     from .custom_repos import load_custom_repos
@@ -1003,6 +1299,8 @@ def _distribute_custom_repos(
                     tracker=tracker,
                     skip_names=skip_names,
                     source=repo_name,
+                    force=force,
+                    skip_conflicts=skip_conflicts,
                 )
 
         # Commands（按平台子目錄）
@@ -1018,6 +1316,8 @@ def _distribute_custom_repos(
                     tracker=tracker,
                     skip_names=skip_names,
                     source=repo_name,
+                    force=force,
+                    skip_conflicts=skip_conflicts,
                 )
 
         # Agents（按平台子目錄）
@@ -1033,6 +1333,8 @@ def _distribute_custom_repos(
                     tracker=tracker,
                     skip_names=skip_names,
                     source=repo_name,
+                    force=force,
+                    skip_conflicts=skip_conflicts,
                 )
 
 
@@ -1241,8 +1543,12 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
         dst_auto_skill = dst_skills / "auto-skill"
         console.print(f"  [dim]{shorten_path(src_auto_skill)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_auto_skill)}[/dim]")
-        shutil.copytree(src_auto_skill, dst_auto_skill, dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns(".git", "assets", "README.md"))
+        shutil.copytree(
+            src_auto_skill,
+            dst_auto_skill,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(".git", "assets", "README.md"),
+        )
 
     # ============================================================
     # ECC (everything-claude-code) 資源 - 從專案內的 sources/ecc
@@ -1759,7 +2065,10 @@ def get_source_skills() -> dict[str, set[str]]:
     if custom_path.exists():
         # 排除來自其他來源的
         all_known = (
-            sources["uds"] | sources["obsidian"] | sources["anthropic"] | sources["ecc"]
+            sources["uds"]
+            | sources["obsidian"]
+            | sources["anthropic"]
+            | sources["ecc"]
             | sources["auto_skill"]
         )
         sources["custom"] = {
