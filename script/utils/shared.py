@@ -143,11 +143,27 @@ def refresh_opencode_superpowers_symlinks(repo_path: Path) -> bool:
     try:
         os.symlink(plugin_src, plugin_dst)
         os.symlink(skills_src, skills_dst)
-    except OSError as e:
-        console.print(f"[red]✗ 建立 symlink 失敗：{e}[/red]")
-        return False
+        method = "symlink"
+    except OSError:
+        # Windows 無 symlink 權限時 fallback 為複製
+        try:
+            shutil.copy2(plugin_src, plugin_dst)
+            if skills_src.is_dir():
+                shutil.copytree(skills_src, skills_dst)
+            else:
+                shutil.copy2(skills_src, skills_dst)
+            method = "copy"
+        except OSError as e:
+            console.print(f"[red]✗ 建立連結失敗：{e}[/red]")
+            return False
 
-    console.print("[green]✓[/green] OpenCode superpowers symlink 已更新")
+    if method == "symlink":
+        console.print("[green]✓[/green] OpenCode superpowers symlink 已更新")
+    else:
+        console.print(
+            "[green]✓[/green] OpenCode superpowers 已複製"
+            "（無 symlink 權限，使用檔案複製）"
+        )
     console.print(
         f"[dim]驗證：[/dim] ls -l {shorten_path(plugin_dst)}"
     )
