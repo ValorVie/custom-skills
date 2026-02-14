@@ -367,6 +367,13 @@ config.key_tables = {
     { key = 'x',          action = act.CloseCurrentPane { confirm = true } },
     { key = 'f',          action = act.TogglePaneZoomState },
     { key = 'r',          action = act.RotatePanes 'Clockwise' },
+    -- 攔截其他模式切換鍵
+    { key = 't', mods = 'CTRL', action = act.Nop },
+    { key = 'n', mods = 'CTRL', action = act.Nop },
+    { key = 's', mods = 'CTRL', action = act.Nop },
+    { key = 'o', mods = 'CTRL', action = act.Nop },
+    { key = 'h', mods = 'CTRL', action = act.Nop },
+    { key = 'g', mods = 'CTRL', action = act.Nop },
     -- 離開
     { key = 'Escape',     action = 'PopKeyTable' },
     { key = 'Enter',      action = 'PopKeyTable' },
@@ -403,6 +410,13 @@ config.key_tables = {
         end),
       },
     },
+    -- 攔截其他模式切換鍵
+    { key = 'p', mods = 'CTRL', action = act.Nop },
+    { key = 'n', mods = 'CTRL', action = act.Nop },
+    { key = 's', mods = 'CTRL', action = act.Nop },
+    { key = 'o', mods = 'CTRL', action = act.Nop },
+    { key = 'h', mods = 'CTRL', action = act.Nop },
+    { key = 'g', mods = 'CTRL', action = act.Nop },
     -- 離開
     { key = 'Escape',     action = 'PopKeyTable' },
     { key = 'Enter',      action = 'PopKeyTable' },
@@ -421,6 +435,13 @@ config.key_tables = {
     { key = 'j',          action = act.AdjustPaneSize { 'Down', 3 } },
     -- Zoom 重設（取消單一 Pane 全螢幕）
     { key = '=',          action = act.TogglePaneZoomState },
+    -- 攔截其他模式切換鍵
+    { key = 'p', mods = 'CTRL', action = act.Nop },
+    { key = 't', mods = 'CTRL', action = act.Nop },
+    { key = 's', mods = 'CTRL', action = act.Nop },
+    { key = 'o', mods = 'CTRL', action = act.Nop },
+    { key = 'h', mods = 'CTRL', action = act.Nop },
+    { key = 'g', mods = 'CTRL', action = act.Nop },
     -- 離開
     { key = 'Escape',     action = 'PopKeyTable' },
     { key = 'Enter',      action = 'PopKeyTable' },
@@ -441,6 +462,13 @@ config.key_tables = {
     { key = 's',          action = act.Search { CaseSensitiveString = '' } },
     -- 進入 Copy Mode（Vim 式瀏覽 + 選取）
     { key = 'c',          action = act.ActivateCopyMode },
+    -- 攔截其他模式切換鍵
+    { key = 'p', mods = 'CTRL', action = act.Nop },
+    { key = 't', mods = 'CTRL', action = act.Nop },
+    { key = 'n', mods = 'CTRL', action = act.Nop },
+    { key = 'o', mods = 'CTRL', action = act.Nop },
+    { key = 'h', mods = 'CTRL', action = act.Nop },
+    { key = 'g', mods = 'CTRL', action = act.Nop },
     -- 離開
     { key = 'Escape',     action = 'PopKeyTable' },
     { key = 'Enter',      action = 'PopKeyTable' },
@@ -457,6 +485,13 @@ config.key_tables = {
     { key = 't',          action = act.ShowTabNavigator },
     -- 除錯覆蓋層
     { key = 'd',          action = act.ShowDebugOverlay },
+    -- 攔截其他模式切換鍵
+    { key = 'p', mods = 'CTRL', action = act.Nop },
+    { key = 't', mods = 'CTRL', action = act.Nop },
+    { key = 'n', mods = 'CTRL', action = act.Nop },
+    { key = 's', mods = 'CTRL', action = act.Nop },
+    { key = 'h', mods = 'CTRL', action = act.Nop },
+    { key = 'g', mods = 'CTRL', action = act.Nop },
     -- 離開
     { key = 'Escape',     action = 'PopKeyTable' },
     { key = 'Enter',      action = 'PopKeyTable' },
@@ -464,8 +499,15 @@ config.key_tables = {
 
   -- ── Lock 模式 (Ctrl+G) ─────────────────────────────
   -- 鎖定鍵盤防止誤觸，僅 Ctrl+G 可解鎖
+  -- 必須攔截所有全域模式切換鍵，否則會穿透到 config.keys
   lock = {
     { key = 'g', mods = 'CTRL', action = 'PopKeyTable' },
+    { key = 'p', mods = 'CTRL', action = act.Nop },
+    { key = 't', mods = 'CTRL', action = act.Nop },
+    { key = 'n', mods = 'CTRL', action = act.Nop },
+    { key = 's', mods = 'CTRL', action = act.Nop },
+    { key = 'o', mods = 'CTRL', action = act.Nop },
+    { key = 'h', mods = 'CTRL', action = act.Nop },
   },
 
   -- ── Move 模式 (Ctrl+H) ─────────────────────────────
@@ -479,6 +521,13 @@ config.key_tables = {
     { key = 'l',          action = act.ActivatePaneDirection 'Right' },
     { key = 'k',          action = act.ActivatePaneDirection 'Up' },
     { key = 'j',          action = act.ActivatePaneDirection 'Down' },
+    -- 攔截其他模式切換鍵
+    { key = 'p', mods = 'CTRL', action = act.Nop },
+    { key = 't', mods = 'CTRL', action = act.Nop },
+    { key = 'n', mods = 'CTRL', action = act.Nop },
+    { key = 's', mods = 'CTRL', action = act.Nop },
+    { key = 'o', mods = 'CTRL', action = act.Nop },
+    { key = 'g', mods = 'CTRL', action = act.Nop },
     -- 離開
     { key = 'Escape',     action = 'PopKeyTable' },
     { key = 'Enter',      action = 'PopKeyTable' },
@@ -526,7 +575,7 @@ return config
 > | | | `d` | 除錯覆蓋層 |
 > | `Ctrl+H` | **Move** | 方向鍵 / `hjkl` | 移動焦點 |
 > | `Ctrl+G` | **Lock** | `Ctrl+G` | 解鎖（鎖定時所有按鍵無效） |
-> | — | — | `Esc` / `Enter` | 離開任何模式 |
+> | — | — | `Esc` / `Enter` | 離開任何模式（必須先離開才能切換到其他模式） |
 > | **全域** | — | `Alt + 方向鍵` | 快速切換 Pane |
 > | | | `Alt + 1~9` | 快速切 Tab |
 > | | | `Alt+Shift+Enter` | 全螢幕 |
