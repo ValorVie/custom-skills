@@ -1,0 +1,64 @@
+# ============================================
+# WSL ↔ Windows 同步排除規則
+# ============================================
+# 用法: 複製到 ~/.config/sync-exclude.txt 後依需求修改
+# 格式: 每行一個規則，支援 rsync pattern 語法
+# 註解: # 開頭的行會被忽略
+
+# --- 套件管理 / 虛擬環境 ---
+node_modules
+.venv
+venv
+vendor
+__pycache__
+.pytest_cache
+*.pyc
+
+# --- 環境設定（兩端可能不同）---
+.env
+.env.local
+.env.*.local
+
+# --- 建置產物 ---
+dist
+build
+.next
+.nuxt
+.output
+*.tsbuildinfo
+
+# --- 快取 ---
+.cache
+.turbo
+.parcel-cache
+.eslintcache
+.prettiercache
+
+# --- 版本控制 ---
+# 建議排除，兩端各自管理 git
+# 如果只在一端用 git，可以註解掉這行
+.git
+
+# --- IDE / 編輯器 ---
+.idea
+.vscode/settings.json
+.vscode/*.code-workspace
+*.swp
+*.swo
+*~
+
+# --- 日誌與暫存 ---
+*.log
+logs/
+tmp/
+.tmp
+
+# --- 系統檔案 ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- 專案特定（依需求取消註解或新增）---
+# golem_memory/
+# *.bin
+# *.sqlite

@@ -65,3 +65,12 @@
 | [ai-dev-framework-architecture.md](workflow/ai-dev-framework-architecture.md) | ai-dev CLI 框架技術架構（指令設計、職責分工、資源管理） |
 | [AI-DEV-SYNC-GUIDE.md](workflow/AI-DEV-SYNC-GUIDE.md) | ai-dev sync 跨裝置同步教學（Git backend） |
 | [copy-architecture.md](workflow/copy-architecture.md) | Copy 架構說明 |
+| [WSL-WINDOWS-SYNC-GUIDE.md](workflow/WSL-WINDOWS-SYNC-GUIDE.md) | WSL ↔ Windows 檔案同步指南（rsync / watchman） |
+
+## 範例檔案 (`examples/`)
+
+| 檔案 | 說明 |
+|------|------|
+| [sync-exclude.example.txt](examples/sync-exclude.example.txt) | WSL ↔ Windows 同步排除規則範例 |
+| [wsl-sync-daemon.sh](examples/wsl-sync-daemon.sh) | watchman 即時同步腳本 |
+| [wsl-sync-golem.service](examples/wsl-sync-golem.service) | systemd 服務範例（開機自啟） |

@@ -1,0 +1,29 @@
+# ============================================
+# WSL 同步 systemd 服務範例
+# ============================================
+# 安裝步驟:
+#   1. 複製到 ~/.config/systemd/user/wsl-sync-golem.service
+#   2. 修改下方路徑為你的實際路徑
+#   3. systemctl --user daemon-reload
+#   4. systemctl --user enable --now wsl-sync-golem.service
+#
+# 管理:
+#   systemctl --user status wsl-sync-golem.service   # 查看狀態
+#   systemctl --user restart wsl-sync-golem.service   # 重啟
+#   journalctl --user -u wsl-sync-golem.service -f    # 查看日誌
+
+[Unit]
+Description=WSL sync: project-golem → Windows
+After=default.target
+
+[Service]
+Type=simple
+# 修改以下路徑 ↓
+ExecStart=%h/.local/bin/wsl-sync-daemon.sh %h/Code/project-golem /mnt/f/Code/project-golem %h/.config/sync-exclude.txt
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
