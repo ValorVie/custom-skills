@@ -247,6 +247,56 @@ logs/  worker.pid  *.db-wal  *.db-shm
 | Marketplace + Plugin | **自動** | init 時自動 clone marketplace 並安裝 plugin |
 | `directory` 類型 Marketplace | 手動 | 如 npm 全域套件，需在本機另行安裝 |
 | MCP Server | 手動 | 依賴本機環境，依各 MCP 文件安裝 |
+| `~/.claude.json` 設定 | 手動 | MCP、權限、偏好等需手動遷移（見下方說明） |
+
+### `~/.claude.json` 手動遷移
+
+`~/.claude.json` 是 Claude Code 的全域設定檔，位於 home 目錄根層（不在 `~/.claude/` 內），因此 **不在 sync 同步範圍內**。新機器需手動遷移以下設定：
+
+#### 需要手動遷移的項目
+
+| 項目 | 路徑 | 說明 |
+|------|------|------|
+| 全域 MCP Servers | `.mcpServers` | 含 command 路徑、API Key、環境變數，需依新機器環境調整 |
+| 使用者偏好 | `autoUpdates`、`autoConnectIde` | 可直接複製 |
+
+#### 首次進入專案時自動產生的項目（不需遷移）
+
+以下設定會在你首次用 Claude Code 開啟專案時透過互動式對話自動建立：
+
+| 項目 | 路徑 | 說明 |
+|------|------|------|
+| 專案信任 | `projects.<path>.hasTrustDialogAccepted` | 首次開啟時 Claude 會詢問是否信任 |
+| Hook 信任 | `projects.<path>.hasTrustDialogHooksAccepted` | 有 hook 時 Claude 會詢問是否允許 |
+| 工具權限 | `projects.<path>.allowedTools` | 使用工具時逐步授權累積 |
+| 專案 MCP | `projects.<path>.mcpServers` | 依專案 `.mcp.json` 自動載入 |
+
+#### 不應遷移的項目（裝置專屬）
+
+| 項目 | 說明 |
+|------|------|
+| `userID`、`firstStartTime` | 裝置唯一識別碼 |
+| `numStartups`、`tipsHistory`、`promptQueueUseCount` | 使用統計與 UI 提示紀錄 |
+| `projects` 整個區塊 | key 為絕對路徑（如 `/Users/arlen/...`），跨機器無法對應 |
+| `cachedStatsigGates`、`cachedGrowthBookFeatures` | A/B 測試快取，由伺服器下發 |
+| `githubRepoPaths` | 含絕對路徑的 GitHub repo 對應表 |
+| `lastSessionId`、session metrics | 裝置執行時期資料 |
+
+#### 建議做法
+
+最簡單的方式是只複製 MCP Servers 設定區塊，再依新機器環境調整路徑與憑證：
+
+```bash
+# 從舊機器匯出 MCP 設定（僅供參考，需手動調整路徑）
+cat ~/.claude.json | python3 -c "
+import json, sys
+cfg = json.load(sys.stdin)
+print(json.dumps({'mcpServers': cfg.get('mcpServers', {})}, indent=2, ensure_ascii=False))
+"
+```
+
+> **注意**：MCP 設定中可能包含 API Key 和資料庫連線字串等敏感資訊，傳輸時請注意安全。
+> 含本機路徑的 MCP（如 `pencil` 使用 `.vscode/extensions/` 路徑）需依新機器實際路徑修改。
 
 ### SQLite 資料庫安全
 

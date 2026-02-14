@@ -245,7 +245,7 @@ ai-dev status
 /plugin install superpowers@superpowers-marketplace
 
 # 安裝 Code Simplifier
-/plugin marketplace update claude-plugins-official
+/plugin marketplace add anthropics/claude-plugins-official
 /plugin install code-simplifier
 
 # 安裝 Ralph Loop (選用，用於批次任務)

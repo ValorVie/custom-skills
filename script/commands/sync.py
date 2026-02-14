@@ -139,7 +139,7 @@ def _configure_lfs_tracking(repo_dir: Path, migrate_existing: bool) -> list[str]
     console.print(f"[cyan]Git LFS 自動追蹤：{', '.join(lfs_patterns)}[/cyan]")
 
     if migrate_existing:
-        if git_lfs_migrate_existing(repo_dir, lfs_patterns):
+        if git_lfs_migrate_existing(repo_dir, lfs_patterns, rewrite_history=rewrite_history):
             console.print("[cyan]已完成既有大檔案的 Git LFS migrate[/cyan]")
         else:
             console.print(
@@ -250,7 +250,8 @@ def init(
         summary[key] += int(local_to_repo_summary.get(key, 0))
 
     lfs_patterns = _configure_lfs_tracking(
-        repo_dir, migrate_existing=action in {"existing", "cloned"}
+        repo_dir,
+        migrate_existing=action == "existing",
     )
     write_gitattributes(repo_dir, lfs_patterns=lfs_patterns)
 
@@ -310,10 +311,25 @@ def init(
 
 
 @app.command()
-def push() -> None:
+def push(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="強制推送，覆蓋遠端歷史（用於修復遠端被搞亂的情況）",
+    ),
+) -> None:
     """同步本機變更到遠端。"""
     config = _load_config_or_exit(exit_code=1)
     repo_dir = _ensure_repo_dir()
+
+    if force:
+        confirmed = typer.confirm(
+            "⚠️  --force 會覆蓋遠端歷史，其他機器需重新 init。確定要繼續嗎？",
+            default=False,
+        )
+        if not confirmed:
+            console.print("[dim]已取消[/dim]")
+            return
 
     write_gitignore(repo_dir, config.get("directories", []))
 
@@ -328,15 +344,16 @@ def push() -> None:
 
     committed = git_add_commit(repo_dir, generate_sync_commit_message())
 
-    if not committed:
+    if not committed and not force:
         console.print("[green]無變更需要同步[/green]")
         return
 
-    if not git_pull_rebase(repo_dir):
-        console.print("[bold red]git pull --rebase 失敗[/bold red]")
-        raise typer.Exit(code=1)
+    if not force:
+        if not git_pull_rebase(repo_dir):
+            console.print("[bold red]git pull --rebase 失敗[/bold red]")
+            raise typer.Exit(code=1)
 
-    if not git_push(repo_dir):
+    if not git_push(repo_dir, force=force):
         console.print("[bold red]git push 失敗[/bold red]")
         raise typer.Exit(code=1)
 

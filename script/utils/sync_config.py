@@ -286,7 +286,6 @@ def git_lfs_migrate_existing(repo_dir: Path | str, patterns: list[str]) -> bool:
     result = subprocess.run(
         ["git", "lfs", "migrate", "import", f"--include={include}", "--everything"],
         cwd=str(repo_path),
-        capture_output=True,
         text=True,
         check=False,
     )
@@ -603,12 +602,14 @@ def _has_upstream(repo_dir: Path) -> bool:
     return result.returncode == 0
 
 
-def git_push(repo_dir: Path | str) -> bool:
+def git_push(repo_dir: Path | str, force: bool = False) -> bool:
     repo_path = Path(repo_dir).expanduser()
     if _has_upstream(repo_path):
         cmd = ["git", "push"]
     else:
         cmd = ["git", "push", "-u", "origin", "main"]
+    if force:
+        cmd.append("--force")
     result = run_command(cmd, cwd=str(repo_path), check=False)
     return result.returncode == 0
 
