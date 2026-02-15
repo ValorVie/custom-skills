@@ -6,10 +6,24 @@ local act = wezterm.action
 local config = wezterm.config_builder()
 
 -- ============================================================
+-- 平台偵測
+-- ============================================================
+local is_windows = wezterm.target_triple:find('windows') ~= nil
+local is_darwin  = wezterm.target_triple:find('darwin') ~= nil
+local is_linux   = wezterm.target_triple:find('linux') ~= nil
+
+-- ============================================================
 -- 一般設定
 -- ============================================================
 config.automatically_reload_config = true
 config.check_for_updates = true
+config.front_end = 'WebGpu'                              -- GPU 加速渲染（比預設 OpenGL 效能更好）
+config.use_dead_keys = false                              -- 防止 dead key 干擾 Vim / Shell 快捷鍵
+config.adjust_window_size_when_changing_font_size = false  -- 改字體大小時不改視窗尺寸
+-- macOS：讓右 Option 鍵能輸入特殊字元（~ \ | 等）
+if is_darwin then
+  config.send_composed_key_when_right_alt_is_pressed = true
+end
 
 -- ============================================================
 -- Mux Server（Session 持久化）
@@ -50,6 +64,11 @@ do
   end
 end
 config.window_close_confirmation = 'AlwaysPrompt'
+-- 非活躍窗格變暗（多 pane 時一眼辨別焦點位置）
+config.inactive_pane_hsb = {
+  saturation = 0.8,
+  brightness = 0.6,
+}
 
 -- ============================================================
 -- 字型設定
@@ -97,9 +116,35 @@ config.enable_scroll_bar = false
 config.color_scheme = 'Catppuccin Mocha'
 
 -- ============================================================
+-- Tab 標題格式（顯示索引 + 程式名 + 工作目錄）
+-- ============================================================
+wezterm.on('format-tab-title', function(tab, tabs, panes, cfg, hover, max_width)
+  local pane = tab.active_pane
+  -- 取得程式名稱
+  local process = pane.foreground_process_name or ''
+  process = process:gsub('(.+[/\\])', '')  -- 只保留檔名
+  -- 取得工作目錄（只保留最後一層）
+  local cwd = pane.current_working_dir
+  local dir = ''
+  if cwd then
+    local cwd_str = tostring(cwd)
+    -- 移除 file:// 前綴和尾端斜線
+    cwd_str = cwd_str:gsub('^file://[^/]*', ''):gsub('/$', '')
+    dir = cwd_str:match('[^/]+$') or cwd_str
+  end
+  -- 格式：「索引: 程式 @ 目錄」
+  local title = string.format(' %d: %s @ %s ', tab.tab_index + 1, process, dir)
+  -- 截斷過長標題
+  if #title > max_width - 2 then
+    title = title:sub(1, max_width - 5) .. '… '
+  end
+  return title
+end)
+
+-- ============================================================
 -- 預設 Shell（依平台自動切換）
 -- ============================================================
-if wezterm.target_triple == 'x86_64-pc-windows-msvc' then
+if is_windows then
   -- Windows：使用 PowerShell 7 或 WSL
   config.default_prog = { 'pwsh.exe' }
   -- config.default_prog = { 'wsl.exe', '-d', 'Ubuntu' }
@@ -232,7 +277,7 @@ end)
 -- 快捷鍵速查面板（Ctrl+/ 開啟，類似命令面板）
 -- ============================================================
 local shortcut_items = {
-  { label = '── 模式切換 ──────────────────────────', id = '' },
+  { label = '── 模式切換（macOS: Cmd 亦可）────────', id = '' },
   { label = 'Ctrl+P    Pane 模式（窗格管理）',       id = '' },
   { label = 'Ctrl+T    Tab 模式（分頁管理）',        id = '' },
   { label = 'Ctrl+N    Resize 模式（調整大小）',     id = '' },
@@ -251,6 +296,7 @@ local shortcut_items = {
   { label = 'x         關閉分頁',                    id = '' },
   { label = '←→ / h l  切換分頁',                    id = '' },
   { label = '1-9       跳到第 N 個分頁',             id = '' },
+  { label = 'Shift+←→/HL 移動分頁順序',              id = '' },
   { label = 'r         重新命名分頁',                id = '' },
   { label = '── Resize 模式 (Ctrl+N) ─────────────', id = '' },
   { label = '←→↑↓/hjkl 調整窗格大小',               id = '' },
@@ -277,6 +323,8 @@ local shortcut_items = {
   { label = 'Ctrl+Shift+P    命令面板',              id = '' },
   { label = 'Ctrl+Shift+K    本速查表',              id = '' },
   { label = 'Ctrl+Alt+V      貼上圖片',              id = '' },
+  { label = 'Ctrl+Shift+Space Quick Select',         id = '' },
+  { label = 'Ctrl+左鍵       開啟超連結',            id = '' },
   { label = 'Esc / Enter     離開任何模式',          id = '' },
 }
 
@@ -291,72 +339,21 @@ end
 -- ============================================================
 -- 快捷鍵：進入各模式 + 全域快捷鍵
 -- ============================================================
+-- 模式切換定義（同時產生 Ctrl 和 macOS SUPER 版本）
+local mode_switches = {
+  { key = 'p', name = 'pane',    desc = 'Pane 模式' },
+  { key = 't', name = 'tab',     desc = 'Tab 模式' },
+  { key = 'n', name = 'resize',  desc = 'Resize 模式' },
+  { key = 's', name = 'scroll',  desc = 'Scroll 模式' },
+  { key = 'o', name = 'session', desc = 'Session 模式' },
+  { key = 'h', name = 'move',    desc = 'Move 模式' },
+  { key = 'g', name = 'lock',    desc = 'Lock 模式' },
+}
+
 config.keys = {
   -- === 模式切換（Zellij 風格） ===
-
-  -- Ctrl+P → 進入 Pane 模式
-  {
-    key = 'p',
-    mods = 'CTRL',
-    action = act.ActivateKeyTable {
-      name = 'pane',
-      one_shot = false,
-    },
-  },
-  -- Ctrl+T → 進入 Tab 模式
-  {
-    key = 't',
-    mods = 'CTRL',
-    action = act.ActivateKeyTable {
-      name = 'tab',
-      one_shot = false,
-    },
-  },
-  -- Ctrl+N → 進入 Resize 模式
-  {
-    key = 'n',
-    mods = 'CTRL',
-    action = act.ActivateKeyTable {
-      name = 'resize',
-      one_shot = false,
-    },
-  },
-  -- Ctrl+S → 進入 Scroll 模式
-  {
-    key = 's',
-    mods = 'CTRL',
-    action = act.ActivateKeyTable {
-      name = 'scroll',
-      one_shot = false,
-    },
-  },
-  -- Ctrl+O → 進入 Session 模式
-  {
-    key = 'o',
-    mods = 'CTRL',
-    action = act.ActivateKeyTable {
-      name = 'session',
-      one_shot = false,
-    },
-  },
-  -- Ctrl+H → 進入 Move 模式（移動 Pane 焦點）
-  {
-    key = 'h',
-    mods = 'CTRL',
-    action = act.ActivateKeyTable {
-      name = 'move',
-      one_shot = false,
-    },
-  },
-  -- Ctrl+G → 進入 Lock 模式（鎖定鍵盤，防止誤觸）
-  {
-    key = 'g',
-    mods = 'CTRL',
-    action = act.ActivateKeyTable {
-      name = 'lock',
-      one_shot = false,
-    },
-  },
+  -- Ctrl+鍵 進入各模式（所有平台）
+  -- macOS 額外支援 Cmd+鍵（見下方動態插入）
 
   -- === 全域快捷鍵（不需進入模式，隨時可用） ===
 
@@ -391,9 +388,28 @@ config.keys = {
       show_shortcuts(window, pane)
     end),
   },
-  -- Ctrl+Alt+V → 貼上圖片（剪貼簿圖片存檔後貼入路徑）
-  -- WezTerm 在 Windows 端執行，用 PowerShell 取剪貼簿圖片
-  {
+  -- Ctrl+Shift+Space → Quick Select（快速選取 URL / 路徑 / hash）
+  { key = 'Space', mods = 'CTRL|SHIFT', action = act.QuickSelect },
+
+}
+
+-- 動態插入模式切換鍵（Ctrl 版 + macOS SUPER 版）
+for _, m in ipairs(mode_switches) do
+  table.insert(config.keys, {
+    key = m.key, mods = 'CTRL',
+    action = act.ActivateKeyTable { name = m.name, one_shot = false },
+  })
+  if is_darwin then
+    table.insert(config.keys, {
+      key = m.key, mods = 'SUPER',
+      action = act.ActivateKeyTable { name = m.name, one_shot = false },
+    })
+  end
+end
+
+-- Windows（WSL 環境）：Ctrl+Alt+V 貼上剪貼簿圖片
+if is_windows then
+  table.insert(config.keys, {
     key = 'v',
     mods = 'CTRL|ALT',
     action = wezterm.action_callback(function(window, pane)
@@ -404,7 +420,6 @@ config.keys = {
       if success and stdout then
         local win_path = stdout:gsub('[\r\n]+$', '')
         if win_path ~= 'NOIMAGE' then
-          -- 直接在 Lua 中轉換 Windows → WSL 路徑
           local wsl_path = win_path:gsub('\\', '/')
           wsl_path = wsl_path:gsub('^(%a):', function(drive)
             return '/mnt/' .. drive:lower()
@@ -415,8 +430,8 @@ config.keys = {
         end
       end
     end),
-  },
-}
+  })
+end
 
 -- ============================================================
 -- Key Tables — 各模式內的操作（Zellij 風格）
@@ -465,6 +480,11 @@ config.key_tables = {
     { key = 'RightArrow', action = act.ActivateTabRelative(1) },
     { key = 'h',          action = act.ActivateTabRelative(-1) },
     { key = 'l',          action = act.ActivateTabRelative(1) },
+    -- 移動 Tab 順序
+    { key = 'LeftArrow',  mods = 'SHIFT', action = act.MoveTabRelative(-1) },
+    { key = 'RightArrow', mods = 'SHIFT', action = act.MoveTabRelative(1) },
+    { key = 'H',          mods = 'SHIFT', action = act.MoveTabRelative(-1) },
+    { key = 'L',          mods = 'SHIFT', action = act.MoveTabRelative(1) },
     -- 數字鍵直接切換
     { key = '1',          action = act.ActivateTab(0) },
     { key = '2',          action = act.ActivateTab(1) },
@@ -642,6 +662,16 @@ config.key_tables = {
   },
 }
 
+-- macOS：在每個 Key Table 中攔截 SUPER 版模式切換鍵
+if is_darwin then
+  for table_name, bindings in pairs(config.key_tables) do
+    for _, m in ipairs(mode_switches) do
+      -- 不攔截當前模式自己的退出鍵（如 Lock 模式的 Ctrl+G）
+      table.insert(bindings, { key = m.key, mods = 'SUPER', action = act.Nop })
+    end
+  end
+end
+
 -- ============================================================
 -- 滑鼠設定
 -- ============================================================
@@ -651,6 +681,18 @@ config.mouse_bindings = {
     event = { Up = { streak = 1, button = 'Left' } },
     mods = 'NONE',
     action = act.CompleteSelection 'ClipboardAndPrimarySelection',
+  },
+  -- Ctrl+左鍵 → 開啟超連結
+  {
+    event = { Up = { streak = 1, button = 'Left' } },
+    mods = 'CTRL',
+    action = act.OpenLinkAtMouseCursor,
+  },
+  -- 避免 Ctrl+左鍵按下時觸發其他動作
+  {
+    event = { Down = { streak = 1, button = 'Left' } },
+    mods = 'CTRL',
+    action = act.Nop,
   },
 }
 
