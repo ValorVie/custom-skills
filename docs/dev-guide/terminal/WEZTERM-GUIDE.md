@@ -11,6 +11,7 @@
 - [自訂快捷鍵](#自訂快捷鍵)
 - [分頁與分割視窗](#分頁與分割視窗)
 - [搭配工具建議](#搭配工具建議)
+- [WSL 圖片貼上（Claude Code 整合）](#wsl-圖片貼上claude-code-整合)
 
 ---
 
@@ -451,6 +452,32 @@ config.keys = {
   { key = 'Enter', mods = 'ALT|SHIFT', action = act.ToggleFullScreen },
   -- Ctrl+Shift+P → 命令面板
   { key = 'p', mods = 'CTRL|SHIFT', action = act.ActivateCommandPalette },
+
+  -- Ctrl+Alt+V → 貼上圖片（WSL 環境下從 Windows 剪貼簿取圖片）
+  -- 支援截圖（Win+Shift+S）與資料夾中 Ctrl+C 複製的圖片檔
+  {
+    key = 'v',
+    mods = 'CTRL|ALT',
+    action = wezterm.action_callback(function(window, pane)
+      local success, stdout = wezterm.run_child_process({
+        'powershell.exe', '-NoProfile', '-Command',
+        [[Add-Type -AssemblyName System.Windows.Forms; $i=[System.Windows.Forms.Clipboard]::GetImage(); if($i){$f="$env:TEMP\clip_"+(Get-Date -Format 'yyyyMMdd_HHmmss')+".png"; $i.Save($f,[System.Drawing.Imaging.ImageFormat]::Png); Write-Host $f} else {$fl=[System.Windows.Forms.Clipboard]::GetFileDropList(); if($fl.Count -gt 0){foreach($p in $fl){$ext=[System.IO.Path]::GetExtension($p).ToLower(); if($ext -match '\.(png|jpg|jpeg|gif|bmp|webp|svg)$'){Write-Host $p}}} else {Write-Host "NOIMAGE"}}]],
+      })
+      if success and stdout then
+        local win_path = stdout:gsub('[\r\n]+$', '')
+        if win_path ~= 'NOIMAGE' then
+          -- Windows 路徑轉 WSL 路徑（C:\... → /mnt/c/...）
+          local wsl_path = win_path:gsub('\\', '/')
+          wsl_path = wsl_path:gsub('^(%a):', function(drive)
+            return '/mnt/' .. drive:lower()
+          end)
+          pane:send_text(wsl_path)
+        else
+          window:perform_action(act.PasteFrom 'Clipboard', pane)
+        end
+      end
+    end),
+  },
 }
 
 -- ============================================================
@@ -726,6 +753,7 @@ return config
 > | | | `Alt + 1~9` | 快速切 Tab |
 > | | | `Alt+Shift+Enter` | 全螢幕 |
 > | | | `Ctrl+Shift+P` | 命令面板 |
+> | | | `Ctrl+Alt+V` | 貼上圖片（WSL 剪貼簿圖片） |
 
 ### 推薦字型
 
@@ -1114,6 +1142,35 @@ WezTerm（終端模擬器 + 內建多工）
   + eza / bat / ripgrep（現代 CLI 工具）
   + Nerd Font 字型（圖示支援，WezTerm 已內建 fallback）
 ```
+
+---
+
+## WSL 圖片貼上（Claude Code 整合）
+
+在 WSL 環境中，Claude Code 無法直接透過 `Ctrl+V` 貼上剪貼簿中的圖片（[已知問題](https://github.com/anthropics/claude-code/issues/13738)）。透過 WezTerm 的 `action_callback` 可以繞過此限制。
+
+### 運作原理
+
+1. WezTerm 在 Windows 端執行，透過 `powershell.exe` 存取 Windows 剪貼簿
+2. 偵測到圖片資料時，存為 `%TEMP%\clip_<timestamp>.png`
+3. 將 Windows 路徑轉換為 WSL 路徑（`C:\...` → `/mnt/c/...`）
+4. 將路徑文字送入當前 pane
+
+### 支援的來源
+
+| 來源 | 說明 |
+|------|------|
+| `Win+Shift+S` 截圖 | 螢幕截圖直接存為 PNG |
+| 資料夾中 `Ctrl+C` 複製圖片檔 | 取得檔案路徑（支援 png/jpg/gif/bmp/webp/svg） |
+| 非圖片內容 | 自動降級為一般文字貼上 |
+
+### 使用方式
+
+1. 截圖（`Win+Shift+S`）或在檔案總管中複製圖片檔
+2. 在 Claude Code 中按 `Ctrl+Alt+V`
+3. 圖片路徑會自動貼入，例如：`/mnt/c/Users/username/AppData/Local/Temp/clip_20260215_143022.png`
+
+> **注意**：此功能需要 WezTerm 在 Windows 端運行且連線至 WSL。純 Linux 環境請改用 `xclip` 或 `wl-paste` 方案。
 
 ---
 

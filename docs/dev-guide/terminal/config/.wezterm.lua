@@ -276,6 +276,7 @@ local shortcut_items = {
   { label = 'Alt+Shift+Enter 全螢幕切換',            id = '' },
   { label = 'Ctrl+Shift+P    命令面板',              id = '' },
   { label = 'Ctrl+Shift+K    本速查表',              id = '' },
+  { label = 'Ctrl+Alt+V      貼上圖片',              id = '' },
   { label = 'Esc / Enter     離開任何模式',          id = '' },
 }
 
@@ -388,6 +389,31 @@ config.keys = {
     mods = 'CTRL|SHIFT',
     action = wezterm.action_callback(function(window, pane)
       show_shortcuts(window, pane)
+    end),
+  },
+  -- Ctrl+Alt+V → 貼上圖片（剪貼簿圖片存檔後貼入路徑）
+  -- WezTerm 在 Windows 端執行，用 PowerShell 取剪貼簿圖片
+  {
+    key = 'v',
+    mods = 'CTRL|ALT',
+    action = wezterm.action_callback(function(window, pane)
+      local success, stdout = wezterm.run_child_process({
+        'powershell.exe', '-NoProfile', '-Command',
+        [[Add-Type -AssemblyName System.Windows.Forms; $i=[System.Windows.Forms.Clipboard]::GetImage(); if($i){$f="$env:TEMP\clip_"+(Get-Date -Format 'yyyyMMdd_HHmmss')+".png"; $i.Save($f,[System.Drawing.Imaging.ImageFormat]::Png); Write-Host $f} else {$fl=[System.Windows.Forms.Clipboard]::GetFileDropList(); if($fl.Count -gt 0){foreach($p in $fl){$ext=[System.IO.Path]::GetExtension($p).ToLower(); if($ext -match '\.(png|jpg|jpeg|gif|bmp|webp|svg)$'){Write-Host $p}}} else {Write-Host "NOIMAGE"}}]],
+      })
+      if success and stdout then
+        local win_path = stdout:gsub('[\r\n]+$', '')
+        if win_path ~= 'NOIMAGE' then
+          -- 直接在 Lua 中轉換 Windows → WSL 路徑
+          local wsl_path = win_path:gsub('\\', '/')
+          wsl_path = wsl_path:gsub('^(%a):', function(drive)
+            return '/mnt/' .. drive:lower()
+          end)
+          pane:send_text(wsl_path)
+        else
+          window:perform_action(act.PasteFrom 'Clipboard', pane)
+        end
+      end
     end),
   },
 }
