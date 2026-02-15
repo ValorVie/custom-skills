@@ -1,0 +1,29 @@
+# ============================================
+# WSL 同步 systemd 服務（統一管理版）
+# ============================================
+# 安裝步驟:
+#   1. 複製 wsl-sync-daemon.sh 和 wsl-sync-manager.sh 到 ~/.local/bin/
+#   2. 建立 ~/.config/sync-projects.txt（從 sync-projects.example.txt 複製）
+#   3. 複製本檔到 ~/.config/systemd/user/wsl-sync.service
+#   4. systemctl --user daemon-reload
+#   5. systemctl --user enable --now wsl-sync.service
+#
+# 管理:
+#   systemctl --user status wsl-sync.service     # 查看狀態
+#   systemctl --user restart wsl-sync.service     # 重啟（新增專案後）
+#   journalctl --user -u wsl-sync.service -f      # 查看日誌
+
+[Unit]
+Description=WSL → Windows multi-project sync manager
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/wsl-sync-manager.sh %h/.config/sync-projects.txt
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

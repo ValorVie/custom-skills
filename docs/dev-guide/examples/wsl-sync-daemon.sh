@@ -89,7 +89,7 @@ inotifywait "${INOTIFY_ARGS[@]}" | while IFS= read -r changed_path; do
 
   if [ -f "$src_file" ]; then
     mkdir -p "$(dirname "$dst_file")"
-    cp "$src_file" "$dst_file"
+    cp -f "$src_file" "$dst_file"
     echo "[sync] → $rel"
   elif [ -d "$src_file" ]; then
     mkdir -p "$dst_file"

@@ -1,0 +1,13 @@
+# WSL → Windows 同步專案清單
+# 格式: <WSL路徑>  <Windows路徑>  [排除規則檔(選填)]
+#
+# 範例:
+#   ~/Code/my-project  /mnt/f/Code/my-project
+#   ~/Code/another     /mnt/c/Users/me/another  ~/.config/another-exclude.txt
+#
+# 未指定排除規則檔時，預設使用 ~/.config/sync-exclude.txt
+# 新增專案只要加一行，然後 restart service 即可
+
+~/Code/project-golem  /mnt/f/Code/project-golem
+# ~/Code/project-two  /mnt/f/Code/project-two
+# ~/Code/project-three  /mnt/c/Users/me/project-three  ~/.config/special-exclude.txt
