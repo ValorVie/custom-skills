@@ -626,16 +626,16 @@ config.key_tables = {
   },
 
   -- ── Lock 模式 (Ctrl+G) ─────────────────────────────
-  -- 鎖定鍵盤防止誤觸，僅 Ctrl+G 可解鎖
-  -- 必須攔截所有全域模式切換鍵，否則會穿透到 config.keys
+  -- 所有按鍵穿透到終端程式（nano、vim 等），僅 Ctrl+G 可解鎖
+  -- 用 SendKey 攔截模式切換鍵後轉送給終端，避免穿透到 config.keys
   lock = {
     { key = 'g', mods = 'CTRL', action = 'PopKeyTable' },
-    { key = 'p', mods = 'CTRL', action = act.Nop },
-    { key = 't', mods = 'CTRL', action = act.Nop },
-    { key = 'n', mods = 'CTRL', action = act.Nop },
-    { key = 's', mods = 'CTRL', action = act.Nop },
-    { key = 'o', mods = 'CTRL', action = act.Nop },
-    { key = 'h', mods = 'CTRL', action = act.Nop },
+    { key = 'p', mods = 'CTRL', action = act.SendKey { key = 'p', mods = 'CTRL' } },
+    { key = 't', mods = 'CTRL', action = act.SendKey { key = 't', mods = 'CTRL' } },
+    { key = 'n', mods = 'CTRL', action = act.SendKey { key = 'n', mods = 'CTRL' } },
+    { key = 's', mods = 'CTRL', action = act.SendKey { key = 's', mods = 'CTRL' } },
+    { key = 'o', mods = 'CTRL', action = act.SendKey { key = 'o', mods = 'CTRL' } },
+    { key = 'h', mods = 'CTRL', action = act.SendKey { key = 'h', mods = 'CTRL' } },
   },
 
   -- ── Move 模式 (Ctrl+H) ─────────────────────────────
