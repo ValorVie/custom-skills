@@ -345,6 +345,17 @@ npx skills check
 npx skills update
 ```
 
+#### 目前安裝
+```shell
+# 尋找 Skills 的 SKILL (全局)
+npx skills add https://github.com/vercel-labs/skills --skill find-skills
+
+# tampermonkey 專案 (專案)
+npx skills add henkisdabro/wookstar-claude-code-plugins@tampermonkey
+
+```
+
+
 
 ---
 

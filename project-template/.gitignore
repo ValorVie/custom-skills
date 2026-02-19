@@ -20,7 +20,6 @@ dist
 # 專案專用
 logs
 backups
-_backup_after_init_force/
 disabled
 .env
 
@@ -31,6 +30,8 @@ plugins/ecc-hooks/coverage
 # Personal settings
 settings/
 meassage/
+message/
+conversations/
 .claude/settings.local.json
 HEARTBEAT.md
 SOUL.md

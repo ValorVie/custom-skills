@@ -30,6 +30,8 @@ plugins/ecc-hooks/coverage
 # Personal settings
 settings/
 meassage/
+message/
+conversations/
 .claude/settings.local.json
 HEARTBEAT.md
 SOUL.md
