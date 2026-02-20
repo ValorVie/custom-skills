@@ -353,6 +353,17 @@ npx skills add https://github.com/vercel-labs/skills --skill find-skills
 # tampermonkey 專案 (專案)
 npx skills add henkisdabro/wookstar-claude-code-plugins@tampermonkey
 
+# Tauri 核心（2 個）
+npx skills add hairyf/skills@tauri -y
+npx skills add dchuk/claude-code-tauri-skills@integrating-tauri-js-frontends -y
+
+# Rust 最佳實踐（2 個，互補）
+npx skills add apollographql/skills@rust-best-practices -y
+npx skills add zhanghandong/rust-skills@coding-guidelines -y
+
+# Vue（1 個）
+npx skills add dedalus-erp-pas/foundation-skills@vue-best-practices -y
+
 ```
 
 
