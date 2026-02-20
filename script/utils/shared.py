@@ -136,9 +136,15 @@ def refresh_opencode_superpowers_symlinks(repo_path: Path) -> bool:
     skills_dst.parent.mkdir(parents=True, exist_ok=True)
 
     def _clean(path: Path):
-        if path.is_symlink() or path.is_file():
-            path.unlink(missing_ok=True)
-        elif path.exists():
+        # Windows 目錄 junction/symlink 可能無法被 is_symlink()/os.path.islink() 偵測，
+        # 但 shutil.rmtree 內部會用 FILE_ATTRIBUTE_REPARSE_POINT 偵測並拒絕操作。
+        # 因此對存在的路徑，先嘗試 unlink（處理 symlink/junction/file），
+        # 失敗才 fallback 到 rmtree（處理真實目錄）。
+        if not path.exists() and not path.is_symlink():
+            return
+        try:
+            path.unlink()
+        except (OSError, PermissionError):
             shutil.rmtree(path)
 
     _clean(plugin_dst)
