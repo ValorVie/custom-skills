@@ -155,6 +155,7 @@ end
 -- ============================================================
 -- 限制：只能還原工作目錄，無法還原正在執行的程式
 local session_file = (os.getenv('USERPROFILE') or os.getenv('HOME')) .. '/.wezterm-session.json'
+local session_saved_at = 0  -- 用於狀態列顯示存檔提示
 
 local function save_session(window)
   local mux_win = window:mux_window()
@@ -224,6 +225,19 @@ wezterm.on('mux-startup', function()
   end
 end)
 
+-- GUI 重新連接到已執行的 Mux Server 時，若只有空白 session 則還原
+wezterm.on('gui-attached', function(domain)
+  local mux = wezterm.mux
+  local windows = mux.all_windows()
+  if #windows == 1 then
+    local tabs = windows[1]:tabs()
+    -- 只有一個 tab、一個 pane = 空白 session，嘗試還原
+    if #tabs == 1 and #tabs[1]:panes() == 1 then
+      restore_session(windows[1])
+    end
+  end
+end)
+
 -- ============================================================
 -- 視窗大小變更時儲存
 -- ============================================================
@@ -250,6 +264,15 @@ local mode_colors = {
 }
 
 wezterm.on('update-right-status', function(window, pane)
+  -- 存檔後 2 秒內顯示綠色提示
+  if os.time() - session_saved_at <= 2 then
+    window:set_right_status(wezterm.format {
+      { Foreground = { Color = '#1e1e2e' } },
+      { Background = { Color = '#a6e3a1' } },
+      { Text = ' ✓ SESSION SAVED ' },
+    })
+    return
+  end
   local mode = window:active_key_table()
   if mode then
     local color = mode_colors[mode] or '#a6adc8'
@@ -580,7 +603,7 @@ config.key_tables = {
       key = 's',
       action = wezterm.action_callback(function(window, pane)
         save_session(window)
-        window:toast_notification('WezTerm', 'Session saved', nil, 3000)
+        session_saved_at = os.time()
       end),
     },
     -- 工作區選單
@@ -608,7 +631,7 @@ config.key_tables = {
       key = 'k',
       action = wezterm.action_callback(function(window, pane)
         save_session(window)
-        window:toast_notification('WezTerm', 'Session saved. Shutting down...', nil, 2000)
+        session_saved_at = os.time()
         wezterm.sleep_ms(500)
         window:perform_action(act.QuitApplication, pane)
       end),
