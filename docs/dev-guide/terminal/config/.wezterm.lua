@@ -144,6 +144,10 @@ end)
 -- ============================================================
 -- 預設 Shell（依平台自動切換）
 -- ============================================================
+-- 重要：Session 還原依賴 shell 透過 OSC 7 通知 WezTerm 當前工作目錄。
+-- Bash/Zsh 通常內建支援；PowerShell 需在 $PROFILE 的 Starship init 之後加入：
+--   （詳見 $PROFILE 檔案中的 OSC 7 區塊）
+--
 if is_windows then
   -- Windows：使用 PowerShell 7 或 WSL
   config.default_prog = { 'pwsh.exe' }
@@ -157,15 +161,66 @@ end
 local session_file = (os.getenv('USERPROFILE') or os.getenv('HOME')) .. '/.wezterm-session.json'
 local session_saved_at = 0  -- 用於狀態列顯示存檔提示
 
+-- 將 file:// URL 轉為本地路徑（WezTerm 的 cwd 回傳 file://hostname/path 格式）
+local function url_to_path(url_str)
+  if not url_str then return nil end
+  local path = url_str:gsub('^file://[^/]*', '')
+  -- Windows：/C:/Users/... → C:\Users\...
+  if is_windows then
+    path = path:gsub('^/(%a):/', '%1:/')
+  end
+  return path
+end
+
+-- Windows 專用：自動偵測預設 WSL distro 名稱
+local wsl_distro = nil
+if is_windows then
+  local handle = io.popen('wsl.exe -l -q 2>nul')
+  if handle then
+    -- wsl -l -q 的第一行是預設 distro（輸出可能含 UTF-16 BOM/NUL bytes）
+    local line = handle:read('*l')
+    handle:close()
+    if line then
+      wsl_distro = line:gsub('%z', ''):gsub('^%s+', ''):gsub('%s+$', '')
+      if wsl_distro == '' then wsl_distro = nil end
+    end
+  end
+end
+
+-- 偵測 pane 是否在 WSL 中執行（僅 Windows 平台需要區分）
+local function detect_shell_type(pane)
+  if not is_windows then return 'default' end
+  -- 方法 1：透過 CWD 路徑格式判斷（最可靠）
+  -- Linux 路徑以 / 開頭但不是 /C:/ 這類 Windows 磁碟路徑
+  local cwd = pane:get_current_working_dir()
+  if cwd then
+    local path = url_to_path(tostring(cwd))
+    if path and path:match('^/') and not path:match('^/%a:/') then
+      return 'wsl'
+    end
+  end
+  -- 方法 2：透過前景程序名判斷（備用）
+  local process = pane:get_foreground_process_name() or ''
+  if process:find('wsl') or process:find('/usr/') or process:find('/bin/') then
+    return 'wsl'
+  end
+  return 'default'
+end
+
 local function save_session(window)
   local mux_win = window:mux_window()
   local data = { tabs = {} }
   for _, tab in ipairs(mux_win:tabs()) do
     local panes = {}
     for _, pane_info in ipairs(tab:panes_with_info()) do
-      local cwd = pane_info.pane:get_current_working_dir()
+      local pane = pane_info.pane
+      local cwd = pane:get_current_working_dir()
+      local shell_type = detect_shell_type(pane)
+      local cwd_str = url_to_path(cwd and tostring(cwd) or nil)
+      -- WSL pane 保留 Linux 路徑；Windows pane 轉 Windows 路徑
       table.insert(panes, {
-        cwd = cwd and tostring(cwd) or nil,
+        cwd = cwd_str,
+        shell = shell_type,
         left = pane_info.left,
         top = pane_info.top,
         width = pane_info.width,
@@ -181,6 +236,23 @@ local function save_session(window)
   end
 end
 
+-- 根據 shell 類型產生 spawn/split 參數
+local function make_spawn_args(pane_data)
+  local args = {}
+  if pane_data.shell == 'wsl' and wsl_distro then
+    -- WSL pane：用 wsl.exe 啟動，自動使用偵測到的預設 distro
+    if pane_data.cwd then
+      args.args = { 'wsl.exe', '-d', wsl_distro, '--cd', pane_data.cwd }
+    else
+      args.args = { 'wsl.exe', '-d', wsl_distro }
+    end
+  else
+    -- 預設 shell 或非 Windows 平台：直接設定 cwd
+    if pane_data.cwd then args.cwd = pane_data.cwd end
+  end
+  return args
+end
+
 local function restore_session(mux_window)
   local f = io.open(session_file, 'r')
   if not f then return false end
@@ -193,24 +265,37 @@ local function restore_session(mux_window)
   local first_tab = data.tabs[1]
   if first_tab.panes[1] and first_tab.panes[1].cwd then
     local first_pane = mux_window:active_tab():active_pane()
-    first_pane:send_text('cd ' .. wezterm.shell_quote_arg(first_tab.panes[1].cwd) .. '\r')
+    local p1 = first_tab.panes[1]
+    if p1.shell == 'wsl' and wsl_distro then
+      -- 第一個 pane 已是 default_prog（pwsh），透過 send_text 啟動 WSL
+      local cmd = 'wsl.exe -d ' .. wezterm.shell_quote_arg(wsl_distro)
+      if p1.cwd then cmd = cmd .. ' --cd ' .. wezterm.shell_quote_arg(p1.cwd) end
+      first_pane:send_text(cmd .. '\r')
+    else
+      first_pane:send_text('cd ' .. wezterm.shell_quote_arg(p1.cwd) .. '; clear\r')
+    end
     -- 同一 tab 的其他 pane：依位置判斷分割方向
     for i = 2, #first_tab.panes do
       local p = first_tab.panes[i]
       local direction = (p.left > 0 and p.top == 0) and 'Right' or 'Bottom'
-      local new_pane = first_pane:split { direction = direction, cwd = p.cwd }
+      local spawn_args = make_spawn_args(p)
+      spawn_args.direction = direction
+      first_pane:split(spawn_args)
     end
   end
 
   -- 其餘 tab
   for i = 2, #data.tabs do
     local tab_data = data.tabs[i]
-    local first_cwd = tab_data.panes[1] and tab_data.panes[1].cwd or nil
-    local new_tab, new_pane = mux_window:spawn_tab { cwd = first_cwd }
+    local p1 = tab_data.panes[1] or {}
+    local spawn_args = make_spawn_args(p1)
+    local new_tab, new_pane = mux_window:spawn_tab(spawn_args)
     for j = 2, #tab_data.panes do
       local p = tab_data.panes[j]
       local direction = (p.left > 0 and p.top == 0) and 'Right' or 'Bottom'
-      new_pane:split { direction = direction, cwd = p.cwd }
+      local split_args = make_spawn_args(p)
+      split_args.direction = direction
+      new_pane:split(split_args)
     end
   end
   return true
@@ -239,6 +324,24 @@ wezterm.on('gui-attached', function(domain)
 end)
 
 -- ============================================================
+-- Session 自動存檔（確保重開機前有最新狀態）
+-- ============================================================
+-- Tab/Pane 數量變化時自動存檔
+local last_auto_save = 0
+local function auto_save_session(window)
+  -- 節流：至少間隔 5 秒
+  local now = os.time()
+  if now - last_auto_save < 5 then return end
+  last_auto_save = now
+  save_session(window)
+end
+
+-- 當有新 tab 建立或關閉時觸發
+wezterm.on('window-config-reloaded', function(window, pane)
+  auto_save_session(window)
+end)
+
+-- ============================================================
 -- 視窗大小變更時儲存
 -- ============================================================
 wezterm.on('window-resized', function(window, pane)
@@ -264,6 +367,12 @@ local mode_colors = {
 }
 
 wezterm.on('update-right-status', function(window, pane)
+  -- 每 30 秒自動存檔（借用 status bar 更新頻率）
+  local now = os.time()
+  if now - last_auto_save >= 30 then
+    last_auto_save = now
+    save_session(window)
+  end
   -- 存檔後 2 秒內顯示綠色提示
   if os.time() - session_saved_at <= 2 then
     window:set_right_status(wezterm.format {
