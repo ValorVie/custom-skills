@@ -44,7 +44,15 @@ CLAUDE_IGNORE_PATTERNS = [
     ".credentials.json",
 ]
 
-CLAUDE_MEM_IGNORE_PATTERNS = ["logs/", "worker.pid", "*.db-wal", "*.db-shm"]
+CLAUDE_MEM_IGNORE_PATTERNS = [
+    "logs/",
+    "worker.pid",
+    "*.db",
+    "*.db-wal",
+    "*.db-shm",
+    "chroma/",
+    "vector-db/",
+]
 
 GLOBAL_IGNORE_PATTERNS = [".DS_Store", "Thumbs.db", "desktop.ini"]
 
