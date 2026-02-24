@@ -44,16 +44,6 @@ CLAUDE_IGNORE_PATTERNS = [
     ".credentials.json",
 ]
 
-CLAUDE_MEM_IGNORE_PATTERNS = [
-    "logs/",
-    "worker.pid",
-    "*.db",
-    "*.db-wal",
-    "*.db-shm",
-    "chroma/",
-    "vector-db/",
-]
-
 GLOBAL_IGNORE_PATTERNS = [".DS_Store", "Thumbs.db", "desktop.ini"]
 
 LFS_THRESHOLD_MB = 50
@@ -184,12 +174,6 @@ def default_sync_directories() -> list[dict[str, Any]]:
             "ignore_profile": "claude",
             "custom_ignore": [],
         },
-        {
-            "path": "~/.claude-mem",
-            "repo_subdir": "claude-mem",
-            "ignore_profile": "claude-mem",
-            "custom_ignore": [],
-        },
     ]
 
 
@@ -208,8 +192,6 @@ def get_ignore_patterns(
 ) -> list[str]:
     if profile == "claude":
         return list(CLAUDE_IGNORE_PATTERNS)
-    if profile == "claude-mem":
-        return list(CLAUDE_MEM_IGNORE_PATTERNS)
     if profile == "custom":
         return list(custom_ignore or [])
 

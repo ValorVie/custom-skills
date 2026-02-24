@@ -44,7 +44,7 @@ from ..utils.sync_config import (
 app = typer.Typer(help="管理跨裝置同步（Git backend）")
 console = Console()
 
-SUPPORTED_PROFILES = {"claude", "claude-mem", "custom"}
+SUPPORTED_PROFILES = {"claude", "custom"}
 
 PULL_CHOICE_PUSH_THEN_PULL = "1"
 PULL_CHOICE_FORCE_PULL = "2"

@@ -272,6 +272,38 @@ auto_sync: true
 auto_sync_interval_minutes: 10
 ```
 
+## 從 ai-dev sync 遷移
+
+此服務取代了 `ai-dev sync` 中的 claude-mem 同步功能（rsync `.db` 檔案方式）。升級後需在每台裝置上執行以下步驟：
+
+### 1. 移除 ai-dev sync 中的 claude-mem 目錄
+
+```bash
+ai-dev sync remove ~/.claude-mem
+```
+
+### 2. 清除 GitHub sync repo 中的 claude-mem 資料
+
+sync repo 中已有的 `claude-mem/` 目錄需要手動刪除並推送：
+
+```bash
+# 進入 sync repo（預設路徑）
+cd ~/.config/ai-dev/sync-repo
+
+# 刪除 claude-mem 目錄
+rm -rf claude-mem/
+
+# 提交並推送
+git add -A && git commit -m "chore: remove claude-mem from sync repo (migrated to sync server)"
+git push
+```
+
+完成後，在其他裝置執行 `ai-dev sync pull` 即可同步移除。
+
+### 3. 註冊並啟用 sync server
+
+參照上方「快速開始」的步驟 2-4，在每台裝置上註冊並啟用自動同步。
+
 ## 部署建議
 
 - 搭配 Traefik 或 Nginx reverse proxy 提供 HTTPS
