@@ -64,9 +64,11 @@ docker compose up -d
 
 Server 啟動後會自動執行 database migration，無需手動操作。
 
+PostgreSQL 18 Alpine 建議固定 `PGDATA` 並將 volume 掛到 `/var/lib/postgresql`，避免容器重建後資料落在匿名 volume。
+
 ### 2. 註冊裝置
 
-每台裝置需要各自註冊一次，取得專屬的 API Key：
+每台裝置用固定 `--name` 註冊，取得專屬的 API Key：
 
 ```bash
 ai-dev mem register \
@@ -76,6 +78,8 @@ ai-dev mem register \
 ```
 
 成功後設定會儲存到 `~/.config/ai-dev/sync-server.yaml`。
+
+若同一台裝置再次用相同 `--name` 註冊，Server 會保留原 `device_id` 並旋轉 API Key（舊 key 立即失效）。
 
 ### 3. 手動同步
 
@@ -129,11 +133,15 @@ ai-dev mem auto
 {
   "api_key": "cm_sync_a1b2c3d4...",
   "device_id": 1,
-  "name": "my-device"
+  "name": "my-device",
+  "rotated": false
 }
 ```
 
 API Key 只在註冊時回傳一次，Server 端僅儲存 SHA-256 hash。
+
+- `rotated = false`：首次註冊
+- `rotated = true`：同名裝置重新註冊（API Key 已輪替）
 
 ### `POST /api/sync/push`
 
@@ -269,6 +277,7 @@ auto_sync_interval_minutes: 10
 - 搭配 Traefik 或 Nginx reverse proxy 提供 HTTPS
 - `DB_PASSWORD` 和 `ADMIN_SECRET` 使用強隨機密碼
 - PostgreSQL volume (`pgdata`) 建議定期備份
+- 避免使用 `docker compose down -v`（會刪除資料 volume）
 - 日誌位於 container stdout，可透過 Docker logging driver 收集
 
 ## 同步原理

@@ -5,10 +5,12 @@ services:
       POSTGRES_DB: claude_mem_sync
       POSTGRES_USER: ${DB_USER:-claude_mem}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-claude_mem}"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-claude_mem} -d claude_mem_sync"]
       interval: 5s
       retries: 5
 

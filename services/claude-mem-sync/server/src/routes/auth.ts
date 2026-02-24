@@ -22,12 +22,47 @@ router.post("/api/auth/register", async (req, res) => {
   const apiKey = `cm_sync_${randomBytes(16).toString("hex")}`;
   const hash = hashApiKey(apiKey);
 
-  const result = await pool.query(
-    "INSERT INTO devices (api_key_hash, name) VALUES ($1, $2) RETURNING id",
-    [hash, name]
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  res.json({ api_key: apiKey, device_id: result.rows[0].id, name });
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtext($1))",
+      [name]
+    );
+
+    const existing = await client.query(
+      "SELECT id FROM devices WHERE name = $1 ORDER BY id ASC LIMIT 1",
+      [name]
+    );
+
+    let deviceId: number;
+    let rotated = false;
+
+    if (existing.rows.length > 0) {
+      deviceId = existing.rows[0].id;
+      rotated = true;
+      await client.query(
+        "UPDATE devices SET api_key_hash = $1, created_at = now() WHERE id = $2",
+        [hash, deviceId]
+      );
+    } else {
+      const inserted = await client.query(
+        "INSERT INTO devices (api_key_hash, name) VALUES ($1, $2) RETURNING id",
+        [hash, name]
+      );
+      deviceId = inserted.rows[0].id;
+    }
+
+    await client.query("COMMIT");
+    res.json({ api_key: apiKey, device_id: deviceId, name, rotated });
+  } catch (err: any) {
+    await client.query("ROLLBACK");
+    console.error("Register failed:", err.message);
+    res.status(500).json({ error: "Register failed" });
+  } finally {
+    client.release();
+  }
 });
 
 export default router;

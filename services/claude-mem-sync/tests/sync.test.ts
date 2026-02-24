@@ -50,6 +50,43 @@ describe("Auth", () => {
     expect(data.device_id).toBeGreaterThan(0);
   });
 
+  test("POST /api/auth/register same name keeps device_id and rotates key", async () => {
+    const first = await apiRequest(
+      "POST",
+      "/api/auth/register",
+      { name: "idempotent-device" },
+      { "X-Admin-Secret": ADMIN_SECRET }
+    );
+    const second = await apiRequest(
+      "POST",
+      "/api/auth/register",
+      { name: "idempotent-device" },
+      { "X-Admin-Secret": ADMIN_SECRET }
+    );
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(second.data.device_id).toBe(first.data.device_id);
+    expect(second.data.api_key).not.toBe(first.data.api_key);
+    expect(second.data.rotated).toBe(true);
+
+    const oldKeyStatus = await apiRequest(
+      "GET",
+      "/api/sync/status",
+      undefined,
+      { "X-API-Key": first.data.api_key }
+    );
+    expect(oldKeyStatus.status).toBe(401);
+
+    const newKeyStatus = await apiRequest(
+      "GET",
+      "/api/sync/status",
+      undefined,
+      { "X-API-Key": second.data.api_key }
+    );
+    expect(newKeyStatus.status).toBe(200);
+  });
+
   test("POST /api/auth/register requires name", async () => {
     const { status } = await apiRequest(
       "POST",

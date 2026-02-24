@@ -1,4 +1,5 @@
 """ai-dev mem — claude-mem sync server 客戶端指令。"""
+
 from __future__ import annotations
 
 import json
@@ -26,6 +27,52 @@ app = typer.Typer(help="管理 claude-mem 跨裝置同步（HTTP API backend）"
 console = Console()
 
 
+def _normalize_summaries_for_push(
+    summaries: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int]:
+    """兼容本地 schema：將 memory_session_id 映射到 session_id。"""
+    normalized: list[dict[str, Any]] = []
+    skipped = 0
+
+    for summary in summaries:
+        payload = dict(summary)
+        if not payload.get("session_id"):
+            payload["session_id"] = payload.get("memory_session_id")
+
+        if not payload.get("session_id"):
+            skipped += 1
+            continue
+
+        normalized.append(payload)
+
+    return normalized, skipped
+
+
+def _api_request_or_exit(
+    config: dict[str, Any],
+    method: str,
+    path: str,
+    body: dict | None = None,
+    extra_headers: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    try:
+        return api_request(config, method, path, body=body, extra_headers=extra_headers)
+    except RuntimeError as e:
+        message = str(e)
+        if "HTTP 401" in message and "Invalid API key" in message:
+            server_url = config.get("server_url", "<server-url>")
+            device_name = config.get("device_name", "<device-name>")
+            console.print("[bold red]API key 無效或已失效[/bold red]")
+            console.print(
+                "[yellow]請重新註冊：[/yellow]"
+                f"ai-dev mem register --server {server_url} --name {device_name} "
+                "--admin-secret <ADMIN_SECRET>"
+            )
+        else:
+            console.print(f"[bold red]{message}[/bold red]")
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def register(
     server: str = typer.Option(..., "--server", help="Sync server URL"),
@@ -34,24 +81,33 @@ def register(
 ) -> None:
     """向 sync server 註冊本裝置。"""
     config: dict[str, Any] = {"server_url": server}
-    result = api_request(
+    result = _api_request_or_exit(
         config,
         "POST",
         "/api/auth/register",
         body={"name": name},
         extra_headers={"X-Admin-Secret": admin_secret},
     )
-    config.update({
-        "api_key": result["api_key"],
-        "device_name": name,
-        "device_id": result["device_id"],
-        "last_push_epoch": 0,
-        "last_pull_epoch": 0,
-        "auto_sync": False,
-        "auto_sync_interval_minutes": 10,
-    })
+    config.update(
+        {
+            "api_key": result["api_key"],
+            "device_name": name,
+            "device_id": result["device_id"],
+            "last_push_epoch": 0,
+            "last_pull_epoch": 0,
+            "auto_sync": False,
+            "auto_sync_interval_minutes": 10,
+        }
+    )
     save_server_config(config)
-    console.print(f"[bold green]註冊成功[/bold green] device_id={result['device_id']}")
+    if result.get("rotated"):
+        console.print(
+            f"[bold green]重新註冊成功[/bold green] device_id={result['device_id']}（已更新 API key）"
+        )
+    else:
+        console.print(
+            f"[bold green]註冊成功[/bold green] device_id={result['device_id']}"
+        )
 
 
 @app.command()
@@ -66,29 +122,44 @@ def push() -> None:
     observations = query_local_db(
         "SELECT * FROM observations WHERE created_at_epoch > ?", (last_epoch,)
     )
-    summaries = query_local_db(
+    raw_summaries = query_local_db(
         "SELECT * FROM session_summaries WHERE created_at_epoch > ?", (last_epoch,)
     )
+    summaries, skipped_summaries = _normalize_summaries_for_push(raw_summaries)
     prompts = query_local_db(
         "SELECT * FROM user_prompts WHERE created_at_epoch > ?", (last_epoch,)
     )
 
     total = len(sessions) + len(observations) + len(summaries) + len(prompts)
     if total == 0:
-        console.print("[green]無新資料需要推送[/green]")
+        if skipped_summaries > 0:
+            console.print(
+                f"[yellow]無可推送資料（已略過 {skipped_summaries} 筆 summaries，缺少 session_id）[/yellow]"
+            )
+        else:
+            console.print("[green]無新資料需要推送[/green]")
         return
 
     console.print(
         f"[cyan]推送中：{len(sessions)} sessions, {len(observations)} observations, "
         f"{len(summaries)} summaries, {len(prompts)} prompts[/cyan]"
     )
+    if skipped_summaries > 0:
+        console.print(
+            f"[yellow]略過 {skipped_summaries} 筆 summaries（缺少 session_id）[/yellow]"
+        )
 
-    result = api_request(config, "POST", "/api/sync/push", body={
-        "sessions": sessions,
-        "observations": observations,
-        "summaries": summaries,
-        "prompts": prompts,
-    })
+    result = _api_request_or_exit(
+        config,
+        "POST",
+        "/api/sync/push",
+        body={
+            "sessions": sessions,
+            "observations": observations,
+            "summaries": summaries,
+            "prompts": prompts,
+        },
+    )
 
     config["last_push_epoch"] = result["server_epoch"]
     save_server_config(config)
@@ -114,13 +185,20 @@ def pull() -> None:
     last_epoch = config.get("last_pull_epoch", 0)
 
     all_data: dict[str, list] = {
-        "sessions": [], "observations": [], "summaries": [], "prompts": []
+        "sessions": [],
+        "observations": [],
+        "summaries": [],
+        "prompts": [],
     }
     since = last_epoch
     server_epoch = since
 
     while True:
-        result = api_request(config, "GET", f"/api/sync/pull?since={since}&limit=500")
+        result = _api_request_or_exit(
+            config,
+            "GET",
+            f"/api/sync/pull?since={since}&limit=500",
+        )
         for key in all_data:
             all_data[key].extend(result.get(key, []))
         server_epoch = result.get("server_epoch", server_epoch)
@@ -185,7 +263,7 @@ def pull() -> None:
 def status() -> None:
     """顯示 sync server 同步狀態。"""
     config = load_server_config()
-    result = api_request(config, "GET", "/api/sync/status")
+    result = _api_request_or_exit(config, "GET", "/api/sync/status")
 
     table = Table(title="claude-mem Sync Status")
     table.add_column("項目", style="cyan")
@@ -206,7 +284,9 @@ def status() -> None:
 # ---------------------------------------------------------------------------
 
 LAUNCHD_LABEL = "com.ai-dev.mem-sync"
-LAUNCHD_PLIST_PATH = Path("~/Library/LaunchAgents").expanduser() / f"{LAUNCHD_LABEL}.plist"
+LAUNCHD_PLIST_PATH = (
+    Path("~/Library/LaunchAgents").expanduser() / f"{LAUNCHD_LABEL}.plist"
+)
 CRON_MARKER = "# ai-dev-mem-sync"
 
 
@@ -241,36 +321,49 @@ def _install_launchd(interval_minutes: int) -> None:
     """)
     LAUNCHD_PLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
     LAUNCHD_PLIST_PATH.write_text(plist, encoding="utf-8")
-    subprocess.run(["launchctl", "unload", str(LAUNCHD_PLIST_PATH)],
-                   capture_output=True, check=False)
-    subprocess.run(["launchctl", "load", str(LAUNCHD_PLIST_PATH)],
-                   capture_output=True, check=False)
+    subprocess.run(
+        ["launchctl", "unload", str(LAUNCHD_PLIST_PATH)],
+        capture_output=True,
+        check=False,
+    )
+    subprocess.run(
+        ["launchctl", "load", str(LAUNCHD_PLIST_PATH)], capture_output=True, check=False
+    )
 
 
 def _remove_launchd() -> None:
-    subprocess.run(["launchctl", "unload", str(LAUNCHD_PLIST_PATH)],
-                   capture_output=True, check=False)
+    subprocess.run(
+        ["launchctl", "unload", str(LAUNCHD_PLIST_PATH)],
+        capture_output=True,
+        check=False,
+    )
     LAUNCHD_PLIST_PATH.unlink(missing_ok=True)
 
 
 def _install_cron(interval_minutes: int) -> None:
     ai_dev = _find_ai_dev()
     job = f"*/{interval_minutes} * * * * {ai_dev} mem push && {ai_dev} mem pull {CRON_MARKER}"
-    result = subprocess.run(["crontab", "-l"], capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        ["crontab", "-l"], capture_output=True, text=True, check=False
+    )
     existing = result.stdout if result.returncode == 0 else ""
     lines = [l for l in existing.splitlines() if CRON_MARKER not in l]
     lines.append(job)
-    subprocess.run(["crontab", "-"], input="\n".join(lines) + "\n",
-                   text=True, check=True)
+    subprocess.run(
+        ["crontab", "-"], input="\n".join(lines) + "\n", text=True, check=True
+    )
 
 
 def _remove_cron() -> None:
-    result = subprocess.run(["crontab", "-l"], capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        ["crontab", "-l"], capture_output=True, text=True, check=False
+    )
     if result.returncode != 0:
         return
     lines = [l for l in result.stdout.splitlines() if CRON_MARKER not in l]
-    subprocess.run(["crontab", "-"], input="\n".join(lines) + "\n",
-                   text=True, check=True)
+    subprocess.run(
+        ["crontab", "-"], input="\n".join(lines) + "\n", text=True, check=True
+    )
 
 
 @app.command()
