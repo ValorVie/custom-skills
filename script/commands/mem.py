@@ -2,8 +2,13 @@
 from __future__ import annotations
 
 import json
+import platform
+import shutil
+import subprocess
+import textwrap
 import urllib.request
 import urllib.error
+from pathlib import Path
 from typing import Any
 
 import typer
@@ -194,3 +199,109 @@ def status() -> None:
 
     console.print(f"[dim]Last push epoch: {config.get('last_push_epoch', 0)}[/dim]")
     console.print(f"[dim]Last pull epoch: {config.get('last_pull_epoch', 0)}[/dim]")
+
+
+# ---------------------------------------------------------------------------
+# auto sync scheduling (launchd / cron)
+# ---------------------------------------------------------------------------
+
+LAUNCHD_LABEL = "com.ai-dev.mem-sync"
+LAUNCHD_PLIST_PATH = Path("~/Library/LaunchAgents").expanduser() / f"{LAUNCHD_LABEL}.plist"
+CRON_MARKER = "# ai-dev-mem-sync"
+
+
+def _find_ai_dev() -> str:
+    return shutil.which("ai-dev") or "ai-dev"
+
+
+def _install_launchd(interval_minutes: int) -> None:
+    ai_dev = _find_ai_dev()
+    plist = textwrap.dedent(f"""\
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+          "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>{LAUNCHD_LABEL}</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>/bin/sh</string>
+                <string>-c</string>
+                <string>{ai_dev} mem push &amp;&amp; {ai_dev} mem pull</string>
+            </array>
+            <key>StartInterval</key>
+            <integer>{interval_minutes * 60}</integer>
+            <key>StandardOutPath</key>
+            <string>/tmp/ai-dev-mem-sync.log</string>
+            <key>StandardErrorPath</key>
+            <string>/tmp/ai-dev-mem-sync.log</string>
+        </dict>
+        </plist>
+    """)
+    LAUNCHD_PLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    LAUNCHD_PLIST_PATH.write_text(plist, encoding="utf-8")
+    subprocess.run(["launchctl", "unload", str(LAUNCHD_PLIST_PATH)],
+                   capture_output=True, check=False)
+    subprocess.run(["launchctl", "load", str(LAUNCHD_PLIST_PATH)],
+                   capture_output=True, check=False)
+
+
+def _remove_launchd() -> None:
+    subprocess.run(["launchctl", "unload", str(LAUNCHD_PLIST_PATH)],
+                   capture_output=True, check=False)
+    LAUNCHD_PLIST_PATH.unlink(missing_ok=True)
+
+
+def _install_cron(interval_minutes: int) -> None:
+    ai_dev = _find_ai_dev()
+    job = f"*/{interval_minutes} * * * * {ai_dev} mem push && {ai_dev} mem pull {CRON_MARKER}"
+    result = subprocess.run(["crontab", "-l"], capture_output=True, text=True, check=False)
+    existing = result.stdout if result.returncode == 0 else ""
+    lines = [l for l in existing.splitlines() if CRON_MARKER not in l]
+    lines.append(job)
+    subprocess.run(["crontab", "-"], input="\n".join(lines) + "\n",
+                   text=True, check=True)
+
+
+def _remove_cron() -> None:
+    result = subprocess.run(["crontab", "-l"], capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        return
+    lines = [l for l in result.stdout.splitlines() if CRON_MARKER not in l]
+    subprocess.run(["crontab", "-"], input="\n".join(lines) + "\n",
+                   text=True, check=True)
+
+
+@app.command()
+def auto(
+    enable: bool = typer.Option(None, "--on/--off", help="啟用或停用自動同步"),
+) -> None:
+    """切換 claude-mem 自動同步排程。"""
+    config = load_server_config()
+
+    if enable is None:
+        status_text = "啟用" if config.get("auto_sync") else "停用"
+        interval = config.get("auto_sync_interval_minutes", 10)
+        console.print(f"自動同步：[bold]{status_text}[/bold]（每 {interval} 分鐘）")
+        return
+
+    system = platform.system()
+    interval = config.get("auto_sync_interval_minutes", 10)
+
+    if enable:
+        if system == "Darwin":
+            _install_launchd(interval)
+        else:
+            _install_cron(interval)
+        config["auto_sync"] = True
+        save_server_config(config)
+        console.print(f"[bold green]自動同步已啟用[/bold green]（每 {interval} 分鐘）")
+    else:
+        if system == "Darwin":
+            _remove_launchd()
+        else:
+            _remove_cron()
+        config["auto_sync"] = False
+        save_server_config(config)
+        console.print("[bold yellow]自動同步已停用[/bold yellow]")
