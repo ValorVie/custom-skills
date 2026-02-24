@@ -94,7 +94,8 @@ router.post("/api/sync/push", async (req: Request, res: Response) => {
     res.json({ success: true, stats, server_epoch: Date.now() });
   } catch (err: any) {
     await client.query("ROLLBACK");
-    res.status(500).json({ error: err.message });
+    console.error("Push failed:", err.message);
+    res.status(500).json({ error: "Push failed" });
   } finally {
     client.release();
   }
@@ -110,49 +111,54 @@ router.get("/api/sync/pull", async (req: Request, res: Response) => {
 
   const deviceFilter = "AND origin_device_id IS DISTINCT FROM $2";
 
-  const [sessions, observations, summaries, prompts] = await Promise.all([
-    pool.query(
-      `SELECT * FROM sdk_sessions WHERE synced_at > $1 ${deviceFilter}
-       ORDER BY synced_at LIMIT $3`,
-      [since, device.id, limit]
-    ),
-    pool.query(
-      `SELECT * FROM observations WHERE synced_at > $1 ${deviceFilter}
-       ORDER BY synced_at LIMIT $3`,
-      [since, device.id, limit]
-    ),
-    pool.query(
-      `SELECT * FROM session_summaries WHERE synced_at > $1 ${deviceFilter}
-       ORDER BY synced_at LIMIT $3`,
-      [since, device.id, limit]
-    ),
-    pool.query(
-      `SELECT * FROM user_prompts WHERE synced_at > $1 ${deviceFilter}
-       ORDER BY synced_at LIMIT $3`,
-      [since, device.id, limit]
-    ),
-  ]);
+  try {
+    const [sessions, observations, summaries, prompts] = await Promise.all([
+      pool.query(
+        `SELECT * FROM sdk_sessions WHERE synced_at > $1 ${deviceFilter}
+         ORDER BY synced_at LIMIT $3`,
+        [since, device.id, limit]
+      ),
+      pool.query(
+        `SELECT * FROM observations WHERE synced_at > $1 ${deviceFilter}
+         ORDER BY synced_at LIMIT $3`,
+        [since, device.id, limit]
+      ),
+      pool.query(
+        `SELECT * FROM session_summaries WHERE synced_at > $1 ${deviceFilter}
+         ORDER BY synced_at LIMIT $3`,
+        [since, device.id, limit]
+      ),
+      pool.query(
+        `SELECT * FROM user_prompts WHERE synced_at > $1 ${deviceFilter}
+         ORDER BY synced_at LIMIT $3`,
+        [since, device.id, limit]
+      ),
+    ]);
 
-  const hasMore = [sessions, observations, summaries, prompts]
-    .some((r) => r.rows.length >= limit);
+    const hasMore = [sessions, observations, summaries, prompts]
+      .some((r) => r.rows.length === limit);
 
-  let maxSyncedAt = since;
-  for (const result of [sessions, observations, summaries, prompts]) {
-    for (const row of result.rows) {
-      const rowTime = new Date(row.synced_at).toISOString();
-      if (rowTime > maxSyncedAt) maxSyncedAt = rowTime;
+    let maxSyncedAt = since;
+    for (const result of [sessions, observations, summaries, prompts]) {
+      for (const row of result.rows) {
+        const rowTime = new Date(row.synced_at).toISOString();
+        if (rowTime > maxSyncedAt) maxSyncedAt = rowTime;
+      }
     }
-  }
 
-  res.json({
-    sessions: sessions.rows,
-    observations: observations.rows,
-    summaries: summaries.rows,
-    prompts: prompts.rows,
-    has_more: hasMore,
-    next_since: new Date(maxSyncedAt).getTime(),
-    server_epoch: Date.now(),
-  });
+    res.json({
+      sessions: sessions.rows,
+      observations: observations.rows,
+      summaries: summaries.rows,
+      prompts: prompts.rows,
+      has_more: hasMore,
+      next_since: new Date(maxSyncedAt).getTime(),
+      server_epoch: Date.now(),
+    });
+  } catch (err: any) {
+    console.error("Pull failed:", err.message);
+    res.status(500).json({ error: "Pull failed" });
+  }
 });
 
 // ─── GET /api/sync/status ───
