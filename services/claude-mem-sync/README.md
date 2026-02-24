@@ -94,7 +94,24 @@ ai-dev mem pull
 ai-dev mem status
 ```
 
-### 4. 自動同步
+### 4. 重建搜尋索引
+
+`ai-dev mem pull` 匯入的資料會寫入 SQLite 和 FTS5 全文索引，但不會自動建立 ChromaDB 向量索引。若發現 MCP `search()` 找不到 pull 匯入的 observations，執行 reindex：
+
+```bash
+ai-dev mem reindex
+```
+
+**前提條件：** claude-mem worker 必須在運行中（開啟 Claude Code session 即可）。
+
+**運作方式：**
+1. 比對 SQLite observations 和 ChromaDB 已索引的 IDs，找出缺失項
+2. 逐筆透過 worker `/api/memory/save` 端點寫入，觸發 worker 內部的 `syncObservation()` 完成 ChromaDB 索引
+3. 原始 observation 完整保留在 SQLite 中，新建的記錄作為搜尋索引用的副本
+
+**注意：** reindex 會在 SQLite 中建立新的 observation 記錄（僅含 narrative + title + project），這是因為 ChromaDB 索引只能透過 worker 的 save 流程觸發。原始記錄的完整 metadata（facts, concepts, files_read 等）仍保留在原位。
+
+### 5. 自動同步
 
 ```bash
 # 啟用自動同步（macOS: launchd, Linux: cron，預設每 10 分鐘）
@@ -317,5 +334,12 @@ git push
 1. **Push**：Client 查詢本地 SQLite `WHERE epoch > last_push_epoch`，批次 POST 到 Server
 2. **Server 寫入**：在 transaction 中依序 INSERT，`ON CONFLICT DO NOTHING` 跳過重複
 3. **Pull**：Client 用 `since` 時間戳向 Server 增量查詢，Server 自動排除該裝置推送的資料
-4. **Client 匯入**：Pull 到的資料 POST 到本地 claude-mem `localhost:37777/api/import`，由 claude-mem 自行 dedup
+4. **Client 匯入**：Pull 到的資料 POST 到本地 claude-mem `localhost:37777/api/import`，由 claude-mem 自行 dedup。若 worker 未啟動，fallback 為直接寫入 SQLite
 5. **時間戳管理**：使用 Server 端 `synced_at`（`DEFAULT now()`）避免 Client 時鐘偏差問題
+6. **搜尋索引同步**：Pull 匯入只寫入 SQLite + FTS5，ChromaDB 向量索引需執行 `ai-dev mem reindex` 補建。Reindex 透過 worker 的 `/api/memory/save` 逐筆觸發 `syncObservation()` 完成向量索引
+
+### 已知限制
+
+- **Pull 後需手動 reindex**：`/api/import` 端點不觸發 ChromaDB sync，pull 匯入的 observations 無法被語意搜尋，直到執行 `ai-dev mem reindex`
+- **Reindex 建立副本記錄**：由於 ChromaDB 只能透過 worker save 流程索引，reindex 會在 SQLite 建立僅含 narrative/title/project 的副本 observation，原始記錄完整保留
+- **ChromaDB 不支援跨進程寫入**：外部 PersistentClient 寫入的資料對 worker 內建的 chroma-mcp 不可見（HNSW segment manager 隔離），因此只能透過 worker API 觸發索引
