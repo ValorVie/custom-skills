@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS sdk_sessions (
 
 CREATE TABLE IF NOT EXISTS observations (
   id                  SERIAL PRIMARY KEY,
-  memory_session_id   TEXT NOT NULL REFERENCES sdk_sessions(memory_session_id),
+  memory_session_id   TEXT NOT NULL,
   project             TEXT NOT NULL,
   type                TEXT NOT NULL,
   title               TEXT,

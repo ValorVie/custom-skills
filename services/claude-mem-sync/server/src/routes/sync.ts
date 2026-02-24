@@ -29,7 +29,12 @@ router.post("/api/sync/push", async (req: Request, res: Response) => {
            started_at, started_at_epoch, completed_at, completed_at_epoch,
            status, worker_port, prompt_counter, origin_device_id)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-         ON CONFLICT (content_session_id) DO NOTHING`,
+         ON CONFLICT (content_session_id) DO UPDATE SET
+           memory_session_id = COALESCE(sdk_sessions.memory_session_id, EXCLUDED.memory_session_id),
+           completed_at = COALESCE(EXCLUDED.completed_at, sdk_sessions.completed_at),
+           completed_at_epoch = COALESCE(EXCLUDED.completed_at_epoch, sdk_sessions.completed_at_epoch),
+           status = COALESCE(EXCLUDED.status, sdk_sessions.status),
+           custom_title = COALESCE(EXCLUDED.custom_title, sdk_sessions.custom_title)`,
         [s.content_session_id, s.memory_session_id, s.project, s.user_prompt,
          s.custom_title, s.started_at, s.started_at_epoch, s.completed_at,
          s.completed_at_epoch, s.status || "active", s.worker_port,

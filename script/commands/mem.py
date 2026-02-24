@@ -125,6 +125,22 @@ def push() -> None:
     observations = query_local_db(
         "SELECT * FROM observations WHERE created_at_epoch > ?", (last_epoch,)
     )
+
+    # 補齊 observations 引用但不在本次 push 範圍內的 sessions（避免 FK 違規）
+    pushed_session_ids = {s["memory_session_id"] for s in sessions if s.get("memory_session_id")}
+    missing_session_ids = {
+        o["memory_session_id"]
+        for o in observations
+        if o.get("memory_session_id") and o["memory_session_id"] not in pushed_session_ids
+    }
+    if missing_session_ids:
+        placeholders = ",".join("?" for _ in missing_session_ids)
+        dep_sessions = query_local_db(
+            f"SELECT * FROM sdk_sessions WHERE memory_session_id IN ({placeholders})",
+            tuple(missing_session_ids),
+        )
+        sessions.extend(dep_sessions)
+
     raw_summaries = query_local_db(
         "SELECT * FROM session_summaries WHERE created_at_epoch > ?", (last_epoch,)
     )
