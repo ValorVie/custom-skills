@@ -348,7 +348,7 @@ npx skills update
 #### 目前安裝
 ```shell
 # 尋找 Skills 的 SKILL (全局)
-npx skills add https://github.com/vercel-labs/skills --skill find-skills
+npx skills add https://github.com/vercel-labs/skills -g --skill find-skills
 
 # tampermonkey 專案 (專案)
 npx skills add henkisdabro/wookstar-claude-code-plugins@tampermonkey
@@ -364,6 +364,8 @@ npx skills add zhanghandong/rust-skills@coding-guidelines -y
 # Vue（1 個）
 npx skills add dedalus-erp-pas/foundation-skills@vue-best-practices -y
 
+# Obsidian Visual
+npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -y
 ```
 
 
