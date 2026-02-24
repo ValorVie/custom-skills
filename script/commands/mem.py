@@ -19,12 +19,10 @@ from rich.table import Table
 from ..utils.mem_sync import (
     api_request,
     import_to_local_db,
-    kill_chroma_mcp,
     load_server_config,
     query_local_db,
     reindex_observations,
     save_server_config,
-    verify_search,
     worker_available,
 )
 
@@ -316,39 +314,14 @@ def reindex() -> None:
         return
 
     console.print(
-        f"[bold green]寫入完成[/bold green] "
+        f"[bold green]Reindex 完成[/bold green] "
         f"synced={stats['synced']} errors={stats['errors']} "
         f"（共 {stats['total']} 筆，原缺 {stats['missing']} 筆）"
     )
-
-    if stats["synced"] == 0:
-        console.print("[bold red]無任何索引寫入成功[/bold red]")
-        raise typer.Exit(code=1)
-
-    # Kill chroma-mcp 讓 worker 重啟
-    console.print("[cyan]正在重啟 chroma-mcp 進程...[/cyan]")
-    if kill_chroma_mcp():
-        import time
-        time.sleep(3)
-        console.print("[green]chroma-mcp 已重啟[/green]")
-    else:
+    if stats["errors"] > 0:
         console.print(
-            "[yellow]找不到 chroma-mcp 進程，請手動重啟 Claude Code session[/yellow]"
+            "[yellow]部分 observations 索引失敗，請確認 worker 正常運作後重試[/yellow]"
         )
-        return
-
-    # 驗證搜尋
-    console.print("[cyan]正在驗證搜尋...[/cyan]")
-    sample_title = stats.get("sample_title", "")
-    if sample_title and verify_search(sample_title):
-        console.print("[bold green]驗證成功 — 搜尋索引已生效[/bold green]")
-    elif sample_title:
-        console.print(
-            "[yellow]驗證未通過 — 索引已寫入但搜尋可能需要更多時間。"
-            "若仍無法搜尋，請重啟 Claude Code session[/yellow]"
-        )
-    else:
-        console.print("[green]Reindex 完成[/green]")
 
 
 # ---------------------------------------------------------------------------

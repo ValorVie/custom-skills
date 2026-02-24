@@ -5,7 +5,6 @@ import json
 import sqlite3
 import urllib.request
 import urllib.error
-import urllib.parse
 from pathlib import Path
 from typing import Any
 
@@ -135,9 +134,7 @@ def _exists(conn: sqlite3.Connection, sql: str, params: tuple) -> bool:
 
 
 WORKER_URL = "http://localhost:37777"
-CHROMA_DIR = Path("~/.claude-mem/chroma").expanduser()
-CHROMA_DB_PATH = CHROMA_DIR / "chroma.sqlite3"
-CHROMA_COLLECTION = "cm__claude-mem"
+CHROMA_DB_PATH = Path("~/.claude-mem/chroma/chroma.sqlite3").expanduser()
 
 
 def worker_available() -> bool:
@@ -174,73 +171,20 @@ def _get_indexed_observation_ids() -> set[int]:
         conn.close()
 
 
-def _build_chroma_documents(obs: dict[str, Any]) -> list[dict[str, Any]]:
-    """將一筆 observation 轉換為 worker 格式的 ChromaDB documents。
+def reindex_observations() -> dict[str, Any]:
+    """找出 ChromaDB 中缺失的 observations，透過 worker API 重新索引。
 
-    格式匹配 worker 的 syncObservation：
-    - obs_{id}_narrative → narrative 欄位
-    - obs_{id}_fact_{n} → facts JSON array 的第 n 項
-    """
-    obs_id = obs["id"]
-    base_metadata: dict[str, Any] = {
-        "doc_type": "observation",
-        "sqlite_id": obs_id,
-        "project": obs.get("project") or "",
-        "title": obs.get("title") or "",
-        "subtitle": obs.get("subtitle") or "",
-        "type": obs.get("type") or "",
-        "created_at_epoch": obs.get("created_at_epoch") or 0,
-    }
-    if obs.get("memory_session_id"):
-        base_metadata["memory_session_id"] = obs["memory_session_id"]
-    if obs.get("concepts"):
-        base_metadata["concepts"] = obs["concepts"]
-    if obs.get("files_read"):
-        base_metadata["files_read"] = obs["files_read"]
-
-    docs: list[dict[str, Any]] = []
-
-    # narrative document
-    narrative = obs.get("narrative") or ""
-    if narrative.strip():
-        docs.append({
-            "id": f"obs_{obs_id}_narrative",
-            "document": narrative,
-            "metadata": {**base_metadata, "field_type": "narrative"},
-        })
-
-    # fact documents (parse JSON array)
-    facts_raw = obs.get("facts") or "[]"
-    try:
-        facts = json.loads(facts_raw) if isinstance(facts_raw, str) else facts_raw
-    except (json.JSONDecodeError, TypeError):
-        facts = []
-    if isinstance(facts, list):
-        for i, fact in enumerate(facts):
-            if isinstance(fact, str) and fact.strip():
-                docs.append({
-                    "id": f"obs_{obs_id}_fact_{i}",
-                    "document": fact,
-                    "metadata": {**base_metadata, "field_type": "fact"},
-                })
-
-    return docs
-
-
-def reindex_observations() -> dict[str, int]:
-    """找出 ChromaDB 中缺失的 observations 並重建索引。
+    使用 worker 的 /api/memory/save 端點逐筆寫入，
+    worker 內部會自動觸發 ChromaDB syncObservation。
+    原始 observation 保留在 SQLite 中（完整 metadata），
+    新建的 observation 作為搜尋索引用的副本。
 
     Returns:
-        dict with keys: total, already_indexed, missing, synced, errors, sample_title
+        dict with keys: total, already_indexed, missing, synced, errors
     """
     db_path = CLAUDE_MEM_DB_PATH
     if not db_path.exists():
         raise FileNotFoundError(f"claude-mem 資料庫不存在：{db_path}")
-    if not CHROMA_DIR.exists():
-        raise FileNotFoundError(
-            f"ChromaDB 目錄不存在：{CHROMA_DIR}\n"
-            "請確認 claude-mem plugin 已啟動且 ChromaDB 已初始化"
-        )
 
     indexed_ids = _get_indexed_observation_ids()
 
@@ -248,8 +192,7 @@ def reindex_observations() -> dict[str, int]:
     conn.row_factory = sqlite3.Row
     try:
         all_obs = conn.execute(
-            "SELECT id, title, subtitle, narrative, text, facts, concepts, "
-            "type, project, memory_session_id, created_at_epoch, files_read "
+            "SELECT id, title, narrative, project "
             "FROM observations ORDER BY id"
         ).fetchall()
     finally:
@@ -262,160 +205,36 @@ def reindex_observations() -> dict[str, int]:
         "missing": len(missing),
         "synced": 0,
         "errors": 0,
-        "sample_title": "",
     }
 
     if not missing:
         return stats
 
-    stats["sample_title"] = missing[0].get("title", "")
-
-    # 組裝所有 ChromaDB documents
-    all_docs: list[dict[str, Any]] = []
     for obs in missing:
-        all_docs.extend(_build_chroma_documents(obs))
+        text = obs.get("narrative") or obs.get("title") or ""
+        if not text.strip():
+            continue
 
-    if not all_docs:
-        return stats
+        payload = json.dumps({
+            "text": text,
+            "title": obs.get("title", ""),
+            "project": obs.get("project", ""),
+        }).encode("utf-8")
 
-    # 透過 uv run --with chromadb 寫入
-    stats.update(_write_to_chroma(all_docs))
-    return stats
-
-
-def _write_to_chroma(docs: list[dict[str, Any]]) -> dict[str, int]:
-    """用 uv run --with chromadb subprocess 寫入 ChromaDB。"""
-    import shutil
-    import subprocess as sp
-    import tempfile
-
-    if not shutil.which("uv"):
-        raise FileNotFoundError(
-            "找不到 uv 指令。請安裝：https://docs.astral.sh/uv/getting-started/installation/"
-        )
-
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False, encoding="utf-8"
-    ) as f:
-        json.dump(docs, f, ensure_ascii=False)
-        tmp_path = f.name
-
-    chroma_path = str(CHROMA_DIR)
-    collection_name = CHROMA_COLLECTION
-    script = f"""\
-import json, sys
-import chromadb
-
-client = chromadb.PersistentClient(path="{chroma_path}")
-col = client.get_or_create_collection("{collection_name}")
-
-with open("{tmp_path}", "r") as f:
-    items = json.load(f)
-
-synced = errors = 0
-for item in items:
-    try:
-        col.add(
-            documents=[item["document"]],
-            metadatas=[item["metadata"]],
-            ids=[item["id"]],
-        )
-        synced += 1
-    except Exception as e:
-        print(f"Error {{item['id']}}: {{e}}", file=sys.stderr)
-        errors += 1
-
-print(json.dumps({{"synced": synced, "errors": errors}}))
-"""
-
-    result = sp.run(
-        ["uv", "run", "--with", "chromadb", "python3", "-c", script],
-        capture_output=True, text=True, timeout=300,
-    )
-
-    Path(tmp_path).unlink(missing_ok=True)
-
-    if result.returncode == 0:
         try:
-            lines = result.stdout.strip().splitlines()
-            r = json.loads(lines[-1])
-            return {"synced": r.get("synced", 0), "errors": r.get("errors", 0)}
-        except (json.JSONDecodeError, ValueError, IndexError):
-            return {"synced": 0, "errors": len(docs)}
-    else:
-        return {"synced": 0, "errors": len(docs)}
-
-
-def kill_chroma_mcp() -> bool:
-    """Kill chroma-mcp 進程（worker 的子進程），讓 worker 自動重啟它。
-
-    Returns:
-        True if process was found and killed, False otherwise.
-    """
-    import os
-    import signal
-    import subprocess as sp
-
-    # 找 worker PID
-    try:
-        req = urllib.request.Request(f"{WORKER_URL}/api/health", method="GET")
-        with urllib.request.urlopen(req, timeout=3) as resp:
-            health = json.loads(resp.read().decode("utf-8"))
-            worker_pid = health.get("pid")
-    except (urllib.error.URLError, OSError, json.JSONDecodeError):
-        return False
-
-    if not worker_pid:
-        return False
-
-    # 找 worker 的 chroma-mcp 子進程
-    result = sp.run(
-        ["ps", "--ppid", str(worker_pid), "-o", "pid,cmd", "--no-headers"],
-        capture_output=True, text=True, check=False,
-    )
-    if result.returncode != 0:
-        return False
-
-    chroma_pids: list[int] = []
-    for line in result.stdout.strip().splitlines():
-        parts = line.strip().split(None, 1)
-        if len(parts) == 2 and "chroma-mcp" in parts[1]:
-            chroma_pids.append(int(parts[0]))
-
-    if not chroma_pids:
-        return False
-
-    for pid in chroma_pids:
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except OSError:
-            pass
-
-    return True
-
-
-def verify_search(sample_title: str, timeout_secs: int = 15) -> bool:
-    """驗證 ChromaDB 搜尋是否能找到指定 observation。"""
-    import time
-
-    deadline = time.time() + timeout_secs
-    while time.time() < deadline:
-        try:
-            url = (
-                f"{WORKER_URL}/api/search?"
-                f"query={urllib.parse.quote(sample_title)}&limit=3&type=observation"
+            req = urllib.request.Request(
+                f"{WORKER_URL}/api/memory/save",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
             )
-            req = urllib.request.Request(url, method="GET")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-                text = body.get("content", [{}])[0].get("text", "")
-                if sample_title[:20] in text or "result" in text.lower():
-                    return True
-        except (urllib.error.URLError, OSError, json.JSONDecodeError, KeyError, IndexError):
-            pass
-        time.sleep(2)
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                resp.read()
+            stats["synced"] += 1
+        except (urllib.error.URLError, OSError):
+            stats["errors"] += 1
 
-    return False
+    return stats
 
 
 def import_to_local_db(data: dict[str, list]) -> dict[str, Any]:
