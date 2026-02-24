@@ -269,6 +269,23 @@ def pull() -> None:
         f"{stats.get('promptsSkipped', 0)}p"
     )
 
+    # 自動重建 ChromaDB 搜尋索引（worker 在線時）
+    obs_imported = stats.get("observationsImported", 0)
+    if obs_imported > 0 and worker_available():
+        console.print("[cyan]正在同步 ChromaDB 搜尋索引...[/cyan]")
+        try:
+            reindex_stats = reindex_observations()
+            synced = reindex_stats["synced"]
+            errors = reindex_stats["errors"]
+            if synced > 0 or errors > 0:
+                console.print(
+                    f"[green]索引同步完成[/green] synced={synced} errors={errors}"
+                )
+        except (FileNotFoundError, RuntimeError):
+            console.print(
+                "[yellow]ChromaDB 索引同步失敗，稍後可執行 ai-dev mem reindex 補建[/yellow]"
+            )
+
 
 @app.command()
 def status() -> None:
