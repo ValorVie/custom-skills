@@ -6,6 +6,7 @@ import { config } from "./config.js";
 import { pool } from "./db.js";
 import healthRoutes from "./routes/health.js";
 import authRoutes from "./routes/auth.js";
+import syncRoutes from "./routes/sync.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -13,6 +14,7 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(healthRoutes);
 app.use(authRoutes);
+app.use(syncRoutes);
 
 async function start() {
   const migrationSql = readFileSync(
