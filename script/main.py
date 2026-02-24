@@ -17,6 +17,7 @@ from .commands import project
 from .commands import standards
 from .commands import hooks
 from .commands import sync
+from .commands import mem
 
 
 def get_app_version() -> str:
@@ -69,6 +70,7 @@ app.add_typer(project.app, name="project")
 app.add_typer(standards.app, name="standards")
 app.add_typer(hooks.app, name="hooks")
 app.add_typer(sync.app, name="sync")
+app.add_typer(mem.app, name="mem")
 
 
 def tui():
