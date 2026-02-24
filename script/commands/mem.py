@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import platform
 import shutil
+import sqlite3
 import subprocess
 import textwrap
 import urllib.request
@@ -17,9 +18,14 @@ from rich.console import Console
 from rich.table import Table
 
 from ..utils.mem_sync import (
+    CLAUDE_MEM_DB_PATH,
     api_request,
+    append_pulled_hashes,
+    compute_content_hash,
     import_to_local_db,
+    load_pulled_hashes,
     load_server_config,
+    push_preflight,
     query_local_db,
     reindex_observations,
     save_server_config,
@@ -127,11 +133,14 @@ def push() -> None:
     )
 
     # 補齊 observations 引用但不在本次 push 範圍內的 sessions（避免 FK 違規）
-    pushed_session_ids = {s["memory_session_id"] for s in sessions if s.get("memory_session_id")}
+    pushed_session_ids = {
+        s["memory_session_id"] for s in sessions if s.get("memory_session_id")
+    }
     missing_session_ids = {
         o["memory_session_id"]
         for o in observations
-        if o.get("memory_session_id") and o["memory_session_id"] not in pushed_session_ids
+        if o.get("memory_session_id")
+        and o["memory_session_id"] not in pushed_session_ids
     }
     if missing_session_ids:
         placeholders = ",".join("?" for _ in missing_session_ids)
@@ -149,20 +158,53 @@ def push() -> None:
         "SELECT * FROM user_prompts WHERE created_at_epoch > ?", (last_epoch,)
     )
 
+    pulled_hashes = load_pulled_hashes()
+    for obs in observations:
+        obs["sync_content_hash"] = compute_content_hash(obs)
+
+    observations_before_dedup = len(observations)
+    observations = [
+        o for o in observations if o["sync_content_hash"] not in pulled_hashes
+    ]
+    pulled_excluded = observations_before_dedup - len(observations)
+
+    preflight_skipped = 0
+    if observations:
+        observation_hashes = [o["sync_content_hash"] for o in observations]
+        try:
+            missing_hashes = set(push_preflight(config, observation_hashes))
+            before_preflight = len(observations)
+            observations = [
+                o for o in observations if o["sync_content_hash"] in missing_hashes
+            ]
+            preflight_skipped = before_preflight - len(observations)
+        except RuntimeError:
+            console.print(
+                "[yellow]Preflight 不可用，改為全量推送 observations[/yellow]"
+            )
+
     total = len(sessions) + len(observations) + len(summaries) + len(prompts)
     if total == 0:
+        dedup_msg = ""
+        if pulled_excluded > 0 or preflight_skipped > 0:
+            dedup_msg = f"（去重排除：{pulled_excluded} pulled + {preflight_skipped} preflight）"
         if skipped_summaries > 0:
             console.print(
-                f"[yellow]無可推送資料（已略過 {skipped_summaries} 筆 summaries，缺少 session_id）[/yellow]"
+                f"[yellow]無可推送資料{dedup_msg}"
+                f"（已略過 {skipped_summaries} 筆 summaries，缺少 session_id）[/yellow]"
             )
         else:
-            console.print("[green]無新資料需要推送[/green]")
+            console.print(f"[green]無新資料需要推送{dedup_msg}[/green]")
         return
 
     console.print(
         f"[cyan]推送中：{len(sessions)} sessions, {len(observations)} observations, "
         f"{len(summaries)} summaries, {len(prompts)} prompts[/cyan]"
     )
+    if pulled_excluded > 0 or preflight_skipped > 0:
+        console.print(
+            f"[dim]去重排除：{pulled_excluded} pulled + {preflight_skipped} preflight[/dim]"
+        )
     if skipped_summaries > 0:
         console.print(
             f"[yellow]略過 {skipped_summaries} 筆 summaries（缺少 session_id）[/yellow]"
@@ -225,9 +267,43 @@ def pull() -> None:
             break
         since = result.get("next_since", since)
 
+    fetched_total = sum(len(v) for v in all_data.values())
+
+    local_obs = query_local_db(
+        "SELECT title, narrative, facts, project, type FROM observations"
+    )
+    local_hashes = {compute_content_hash(o) for o in local_obs}
+
+    observations_before_dedup = len(all_data["observations"])
+    filtered_observations: list[dict[str, Any]] = []
+    for obs in all_data["observations"]:
+        sync_hash = obs.get("sync_content_hash")
+        if not sync_hash:
+            sync_hash = compute_content_hash(obs)
+            obs["sync_content_hash"] = sync_hash
+
+        if sync_hash in local_hashes:
+            continue
+
+        local_hashes.add(sync_hash)
+        filtered_observations.append(obs)
+
+    hash_excluded = observations_before_dedup - len(filtered_observations)
+    all_data["observations"] = filtered_observations
+
     total = sum(len(v) for v in all_data.values())
     if total == 0:
-        console.print("[green]無新資料需要拉取[/green]")
+        if fetched_total > 0:
+            config["last_pull_epoch"] = server_epoch
+            save_server_config(config)
+
+        if hash_excluded > 0:
+            console.print(
+                f"[green]無新資料需要拉取[/green] "
+                f"[dim]（hash 去重排除 {hash_excluded} observations）[/dim]"
+            )
+        else:
+            console.print("[green]無新資料需要拉取[/green]")
         return
 
     console.print(
@@ -236,6 +312,8 @@ def pull() -> None:
         f"{len(all_data['summaries'])} summaries, "
         f"{len(all_data['prompts'])} prompts[/cyan]"
     )
+    if hash_excluded > 0:
+        console.print(f"[dim]hash 去重排除 {hash_excluded} observations[/dim]")
 
     # 匯入到本地 claude-mem（優先 HTTP API，fallback 直接寫 SQLite）
     import_payload = {
@@ -285,6 +363,15 @@ def pull() -> None:
         f"{stats.get('promptsSkipped', 0)}p"
     )
 
+    # 匯入成功後才記錄 pulled-hashes（避免失敗時誤記）
+    append_pulled_hashes(
+        [
+            o["sync_content_hash"]
+            for o in all_data["observations"]
+            if o.get("sync_content_hash")
+        ]
+    )
+
     # 自動重建 ChromaDB 搜尋索引（worker 在線時）
     obs_imported = stats.get("observationsImported", 0)
     if obs_imported > 0 and worker_available():
@@ -309,18 +396,73 @@ def status() -> None:
     config = load_server_config()
     result = _api_request_or_exit(config, "GET", "/api/sync/status")
 
+    local_obs = query_local_db(
+        "SELECT id, title, narrative, facts, project, type FROM observations"
+    )
+    hash_counts: dict[str, int] = {}
+    for obs in local_obs:
+        content_hash = compute_content_hash(obs)
+        hash_counts[content_hash] = hash_counts.get(content_hash, 0) + 1
+
+    local_duplicates = sum(count - 1 for count in hash_counts.values() if count > 1)
+    pulled_count = len(load_pulled_hashes())
+
     table = Table(title="claude-mem Sync Status")
     table.add_column("項目", style="cyan")
-    table.add_column("Server 數量", style="green")
-    table.add_row("Sessions", str(result.get("sessions", 0)))
-    table.add_row("Observations", str(result.get("observations", 0)))
-    table.add_row("Summaries", str(result.get("summaries", 0)))
-    table.add_row("Prompts", str(result.get("prompts", 0)))
-    table.add_row("Devices", str(result.get("devices", 0)))
+    table.add_column("值", style="green")
+    table.add_row("Server sessions", str(result.get("sessions", 0)))
+    table.add_row("Server observations", str(result.get("observations", 0)))
+    table.add_row("Server summaries", str(result.get("summaries", 0)))
+    table.add_row("Server prompts", str(result.get("prompts", 0)))
+    table.add_row("Server devices", str(result.get("devices", 0)))
+    table.add_row("───", "───")
+    table.add_row("Local observations", str(len(local_obs)))
+    table.add_row("Local duplicates", str(local_duplicates))
+    table.add_row("Pulled hashes tracked", str(pulled_count))
     console.print(table)
 
     console.print(f"[dim]Last push epoch: {config.get('last_push_epoch', 0)}[/dim]")
     console.print(f"[dim]Last pull epoch: {config.get('last_pull_epoch', 0)}[/dim]")
+
+
+@app.command()
+def cleanup() -> None:
+    """掃描並刪除本地 claude-mem 中的重複 observations。"""
+    observations = query_local_db(
+        "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id"
+    )
+    if not observations:
+        console.print("[green]本地無 observations[/green]")
+        return
+
+    hash_groups: dict[str, list[int]] = {}
+    for obs in observations:
+        content_hash = compute_content_hash(obs)
+        hash_groups.setdefault(content_hash, []).append(obs["id"])
+
+    duplicate_ids: list[int] = []
+    for ids in hash_groups.values():
+        if len(ids) > 1:
+            duplicate_ids.extend(ids[1:])
+
+    if not duplicate_ids:
+        console.print("[green]無重複 observations[/green]")
+        return
+
+    conn = sqlite3.connect(str(CLAUDE_MEM_DB_PATH))
+    try:
+        placeholders = ",".join("?" for _ in duplicate_ids)
+        conn.execute(
+            f"DELETE FROM observations WHERE id IN ({placeholders})",
+            duplicate_ids,
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    console.print(
+        f"[bold green]Cleanup 完成[/bold green] 移除 {len(duplicate_ids)} 筆重複"
+    )
 
 
 @app.command()

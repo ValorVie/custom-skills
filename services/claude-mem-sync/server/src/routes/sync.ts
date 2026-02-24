@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { pool } from "../db.js";
 import { requireApiKey } from "../middleware/auth.js";
+import { computeContentHash } from "../utils/hash.js";
 
 const router = Router();
 router.use(requireApiKey);
@@ -46,17 +47,22 @@ router.post("/api/sync/push", async (req: Request, res: Response) => {
 
     // observations
     for (const o of observations) {
+      const syncContentHash =
+        typeof o.sync_content_hash === "string" && o.sync_content_hash.length > 0
+          ? o.sync_content_hash
+          : computeContentHash(o);
+
       const r = await client.query(
         `INSERT INTO observations
           (memory_session_id, project, type, title, subtitle, narrative, text,
-           facts, concepts, files_read, files_modified, prompt_number,
-           content_hash, created_at, created_at_epoch, origin_device_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-         ON CONFLICT (memory_session_id, title, created_at_epoch) DO NOTHING`,
+            facts, concepts, files_read, files_modified, prompt_number,
+            content_hash, created_at, created_at_epoch, origin_device_id, sync_content_hash)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+          ON CONFLICT (sync_content_hash) DO NOTHING`,
         [o.memory_session_id, o.project, o.type, o.title, o.subtitle,
-         o.narrative, o.text, o.facts, o.concepts, o.files_read,
-         o.files_modified, o.prompt_number, o.content_hash,
-         o.created_at, o.created_at_epoch, device.id]
+          o.narrative, o.text, o.facts, o.concepts, o.files_read,
+          o.files_modified, o.prompt_number, o.content_hash,
+          o.created_at, o.created_at_epoch, device.id, syncContentHash]
       );
       if (r.rowCount && r.rowCount > 0) stats.observationsImported++;
       else stats.observationsSkipped++;
@@ -103,6 +109,41 @@ router.post("/api/sync/push", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Push failed" });
   } finally {
     client.release();
+  }
+});
+
+// ─── POST /api/sync/push-preflight ───
+router.post("/api/sync/push-preflight", async (req: Request, res: Response) => {
+  const rawHashes = req.body?.hashes;
+  if (!Array.isArray(rawHashes) || rawHashes.length === 0) {
+    res.json({ missing: [] });
+    return;
+  }
+
+  const hashes = [
+    ...new Set(rawHashes.filter((value): value is string => typeof value === "string" && value.length > 0)),
+  ];
+  if (hashes.length === 0) {
+    res.json({ missing: [] });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT sync_content_hash FROM observations WHERE sync_content_hash = ANY($1::text[])",
+      [hashes],
+    );
+    const found = new Set(
+      result.rows
+        .map((row: { sync_content_hash: string | null }) => row.sync_content_hash)
+        .filter((hash): hash is string => typeof hash === "string"),
+    );
+
+    const missing = hashes.filter((hash) => !found.has(hash));
+    res.json({ missing });
+  } catch (err: any) {
+    console.error("Preflight failed:", err.message);
+    res.status(500).json({ error: "Preflight failed" });
   }
 });
 

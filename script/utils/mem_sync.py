@@ -1,6 +1,8 @@
 """claude-mem sync server 客戶端工具函式。"""
+
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import urllib.request
@@ -13,6 +15,7 @@ import yaml
 from .paths import get_ai_dev_config_dir
 
 SYNC_SERVER_CONFIG_NAME = "sync-server.yaml"
+PULLED_HASHES_FILENAME = "pulled-hashes.txt"
 CLAUDE_MEM_DB_PATH = Path("~/.claude-mem/claude-mem.db").expanduser()
 
 
@@ -34,7 +37,9 @@ def save_server_config(config: dict[str, Any]) -> None:
     path = get_server_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        yaml.dump(
+            config, f, allow_unicode=True, default_flow_style=False, sort_keys=False
+        )
 
 
 def api_request(
@@ -79,33 +84,143 @@ def query_local_db(sql: str, params: tuple = ()) -> list[dict[str, Any]]:
         conn.close()
 
 
+def _normalize_hash_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _normalize_hash_facts(value: Any) -> str:
+    if value is None:
+        return "[]"
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def compute_content_hash(obs: dict[str, Any]) -> str:
+    """計算 observation 的 content hash（SHA-256 前 32 hex chars）。"""
+    payload = json.dumps(
+        {
+            "facts": _normalize_hash_facts(obs.get("facts")),
+            "narrative": _normalize_hash_text(obs.get("narrative")),
+            "project": _normalize_hash_text(obs.get("project")),
+            "title": _normalize_hash_text(obs.get("title")),
+            "type": _normalize_hash_text(obs.get("type")),
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+
+
+def _get_pulled_hashes_path() -> Path:
+    return get_ai_dev_config_dir() / PULLED_HASHES_FILENAME
+
+
+def load_pulled_hashes() -> set[str]:
+    """讀取 pull 匯入過的 observations content hash。"""
+    path = _get_pulled_hashes_path()
+    if not path.exists():
+        return set()
+    return {
+        line.strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    }
+
+
+def append_pulled_hashes(hashes: list[str]) -> None:
+    """追加 pull 匯入的 observations content hash。"""
+    normalized = [h.strip() for h in hashes if isinstance(h, str) and h.strip()]
+    if not normalized:
+        return
+
+    path = _get_pulled_hashes_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        for value in normalized:
+            f.write(value + "\n")
+
+
+def push_preflight(config: dict[str, Any], hashes: list[str]) -> list[str]:
+    """查詢 server 缺少的 observations content hash。"""
+    if not hashes:
+        return []
+    result = api_request(
+        config,
+        "POST",
+        "/api/sync/push-preflight",
+        body={"hashes": hashes},
+    )
+    missing = result.get("missing", [])
+    if not isinstance(missing, list):
+        return []
+    return [h for h in missing if isinstance(h, str) and h]
+
+
 # ---------------------------------------------------------------------------
 # Direct SQLite import (fallback when claude-mem worker is unavailable)
 # ---------------------------------------------------------------------------
 
 # Column lists per table — only insert columns that exist in the local schema.
 _SESSION_COLS = [
-    "content_session_id", "memory_session_id", "project", "user_prompt",
-    "started_at", "started_at_epoch", "completed_at", "completed_at_epoch",
+    "content_session_id",
+    "memory_session_id",
+    "project",
+    "user_prompt",
+    "started_at",
+    "started_at_epoch",
+    "completed_at",
+    "completed_at_epoch",
     "status",
 ]
 
 _OBSERVATION_COLS = [
-    "memory_session_id", "project", "text", "type", "title", "subtitle",
-    "facts", "narrative", "concepts", "files_read", "files_modified",
-    "prompt_number", "discovery_tokens", "created_at", "created_at_epoch",
+    "memory_session_id",
+    "project",
+    "text",
+    "type",
+    "title",
+    "subtitle",
+    "facts",
+    "narrative",
+    "concepts",
+    "files_read",
+    "files_modified",
+    "prompt_number",
+    "discovery_tokens",
+    "created_at",
+    "created_at_epoch",
     "content_hash",
 ]
 
 _SUMMARY_COLS = [
-    "memory_session_id", "project", "request", "investigated", "learned",
-    "completed", "next_steps", "files_read", "files_edited", "notes",
-    "prompt_number", "discovery_tokens", "created_at", "created_at_epoch",
+    "memory_session_id",
+    "project",
+    "request",
+    "investigated",
+    "learned",
+    "completed",
+    "next_steps",
+    "files_read",
+    "files_edited",
+    "notes",
+    "prompt_number",
+    "discovery_tokens",
+    "created_at",
+    "created_at_epoch",
 ]
 
 _PROMPT_COLS = [
-    "content_session_id", "prompt_number", "prompt_text",
-    "created_at", "created_at_epoch",
+    "content_session_id",
+    "prompt_number",
+    "prompt_text",
+    "created_at",
+    "created_at_epoch",
 ]
 
 
@@ -192,8 +307,7 @@ def reindex_observations() -> dict[str, Any]:
     conn.row_factory = sqlite3.Row
     try:
         all_obs = conn.execute(
-            "SELECT id, title, narrative, project "
-            "FROM observations ORDER BY id"
+            "SELECT id, title, narrative, project FROM observations ORDER BY id"
         ).fetchall()
     finally:
         conn.close()
@@ -215,11 +329,13 @@ def reindex_observations() -> dict[str, Any]:
         if not text.strip():
             continue
 
-        payload = json.dumps({
-            "text": text,
-            "title": obs.get("title", ""),
-            "project": obs.get("project", ""),
-        }).encode("utf-8")
+        payload = json.dumps(
+            {
+                "text": text,
+                "title": obs.get("title", ""),
+                "project": obs.get("project", ""),
+            }
+        ).encode("utf-8")
 
         try:
             req = urllib.request.Request(
@@ -244,10 +360,14 @@ def import_to_local_db(data: dict[str, list]) -> dict[str, Any]:
         raise FileNotFoundError(f"claude-mem 資料庫不存在：{db_path}")
 
     stats: dict[str, int] = {
-        "sessionsImported": 0, "sessionsSkipped": 0,
-        "observationsImported": 0, "observationsSkipped": 0,
-        "summariesImported": 0, "summariesSkipped": 0,
-        "promptsImported": 0, "promptsSkipped": 0,
+        "sessionsImported": 0,
+        "sessionsSkipped": 0,
+        "observationsImported": 0,
+        "observationsSkipped": 0,
+        "summariesImported": 0,
+        "summariesSkipped": 0,
+        "promptsImported": 0,
+        "promptsSkipped": 0,
     }
 
     conn = sqlite3.connect(str(db_path))
@@ -266,7 +386,11 @@ def import_to_local_db(data: dict[str, list]) -> dict[str, Any]:
             if _exists(
                 conn,
                 "SELECT 1 FROM observations WHERE memory_session_id = ? AND title = ? AND created_at_epoch = ?",
-                (row.get("memory_session_id"), row.get("title"), row.get("created_at_epoch")),
+                (
+                    row.get("memory_session_id"),
+                    row.get("title"),
+                    row.get("created_at_epoch"),
+                ),
             ):
                 stats["observationsSkipped"] += 1
                 continue
