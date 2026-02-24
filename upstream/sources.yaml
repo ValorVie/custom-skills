@@ -46,7 +46,7 @@ sources:
     branch: main
     local_path: ~/.config/everything-claude-code/
     format: claude-code-native
-    install_method: manual          # hooks 已自訂整合到 plugins/ecc-hooks，需手動比對
+    install_method: selective       # 分發規則見 upstream/distribution.yaml
   auto-skill:
     repo: Toolsai/auto-skill
     branch: main

@@ -1,0 +1,76 @@
+version: 1
+source: everything-claude-code
+source_path: ~/.config/everything-claude-code/
+
+# ECC 選擇性分發規則
+# 在 ai-dev clone 時，從 ~/.config/everything-claude-code/ 選擇性分發資源到各平台
+#
+# skills: 所有平台共用同一來源路徑
+# commands/agents: 各平台使用獨立來源路徑（ECC 為不同平台維護獨立版本）
+
+distribute:
+  skills:
+    source_path: skills/
+    targets:
+      - claude
+      - antigravity
+      - opencode
+      - gemini
+      - codex
+
+  commands:
+    claude:
+      source_path: commands/
+    opencode:
+      source_path: .opencode/commands/
+    # Gemini 使用 .toml 格式，與 ECC .md 格式不相容，不分發
+    # Codex 不支援 commands，不分發
+
+  agents:
+    claude:
+      source_path: agents/
+    opencode:
+      source_path: .opencode/prompts/agents/
+    gemini:
+      source_path: agents/
+    # Codex 不支援 agents，不分發
+
+# 分發 skills 時要跳過的目錄名稱
+skip_directories: []
+
+# 排除特定資源不分發
+# skills: 所有平台都不分發
+# commands/agents: 依平台排除
+exclude:
+  skills:
+    # C++
+    - cpp-coding-standards
+    - cpp-testing
+    # Django
+    - django-patterns
+    - django-security
+    - django-tdd
+    - django-verification
+    # Go
+    - golang-patterns
+    - golang-testing
+    # Java / Spring Boot
+    - java-coding-standards
+    - jpa-patterns
+    - springboot-patterns
+    - springboot-security
+    - springboot-tdd
+    - springboot-verification
+    # Swift
+    - swift-actor-persistence
+    - swift-protocol-di-testing
+    # 特定產品
+    - clickhouse-io
+    - nutrient-document-processing
+  commands:
+    claude: []
+    opencode: []
+  agents:
+    claude: []
+    opencode: []
+    gemini: []

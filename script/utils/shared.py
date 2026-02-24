@@ -70,8 +70,8 @@ def get_ecc_dir() -> Path:
 
 
 def get_ecc_sources_dir() -> Path:
-    """回傳專案內 sources/ecc 目錄的路徑。"""
-    return get_project_root() / "sources" / "ecc"
+    """回傳 ECC 上游目錄的路徑（~/.config/everything-claude-code/）。"""
+    return get_ecc_dir()
 
 
 REPOS = {
@@ -211,6 +211,7 @@ COPY_TARGETS = {
     "gemini": {
         "skills": get_gemini_cli_config_dir() / "skills",
         "commands": get_gemini_cli_config_dir() / "commands",
+        "agents": get_gemini_cli_config_dir() / "agents",
     },
 }
 
@@ -543,45 +544,6 @@ def copy_sources_to_custom_skills() -> None:
             dirs_exist_ok=True,
             ignore=shutil.ignore_patterns(".git", "assets", "README.md"),
         )
-
-    # ============================================================
-    # ECC (everything-claude-code) 資源
-    # ============================================================
-    src_ecc = get_ecc_sources_dir()
-    if src_ecc.exists():
-        console.print("[bold cyan]  整合 ECC 資源...[/bold cyan]")
-
-        # ECC skills → custom-skills/skills
-        src_ecc_skills = src_ecc / "skills"
-        if src_ecc_skills.exists():
-            console.print(f"  [dim]{shorten_path(src_ecc_skills)}[/dim]")
-            console.print(f"    → [dim]{shorten_path(dst_custom)}[/dim]")
-            for skill_dir in src_ecc_skills.iterdir():
-                if skill_dir.is_dir():
-                    dst_skill = dst_custom / skill_dir.name
-                    shutil.copytree(skill_dir, dst_skill, dirs_exist_ok=True)
-
-        # ECC agents → custom-skills/agents/claude
-        src_ecc_agents = src_ecc / "agents"
-        if src_ecc_agents.exists():
-            dst_agents_claude = get_custom_skills_dir() / "agents" / "claude"
-            console.print(f"  [dim]{shorten_path(src_ecc_agents)}[/dim]")
-            console.print(f"    → [dim]{shorten_path(dst_agents_claude)}[/dim]")
-            dst_agents_claude.mkdir(parents=True, exist_ok=True)
-            for agent_file in src_ecc_agents.iterdir():
-                if agent_file.is_file() and agent_file.suffix == ".md":
-                    shutil.copy2(agent_file, dst_agents_claude / agent_file.name)
-
-        # ECC commands → custom-skills/commands/claude
-        src_ecc_commands = src_ecc / "commands"
-        if src_ecc_commands.exists():
-            dst_commands_claude = get_custom_skills_dir() / "commands" / "claude"
-            console.print(f"  [dim]{shorten_path(src_ecc_commands)}[/dim]")
-            console.print(f"    → [dim]{shorten_path(dst_commands_claude)}[/dim]")
-            dst_commands_claude.mkdir(parents=True, exist_ok=True)
-            for cmd_file in src_ecc_commands.iterdir():
-                if cmd_file.is_file() and cmd_file.suffix == ".md":
-                    shutil.copy2(cmd_file, dst_commands_claude / cmd_file.name)
 
 
 def _ensure_opencode_plugin_entry_file(dst: Path) -> None:
@@ -1059,6 +1021,7 @@ def copy_custom_skills_to_targets(
     }
 
     version = get_project_version()
+    dist_config = _load_distribution_config()
 
     # 對每個平台執行分發
     for target, config in platform_configs.items():
@@ -1102,6 +1065,10 @@ def copy_custom_skills_to_targets(
 
         # 預掃描 custom repos 的資源
         _prescan_custom_repos(target, record_method_map)
+
+        # 預掃描 ECC 的資源
+        if dist_config:
+            _prescan_ecc(target, record_method_map, dist_config)
 
         # 3. 檢測衝突
         conflicts = detect_conflicts(target, old_manifest, tracker)
@@ -1164,6 +1131,17 @@ def copy_custom_skills_to_targets(
             skip_names,
             force=force,
             skip_conflicts=skip_conflicts,
+        )
+
+        # 5.6 分發 ECC 選擇性資源
+        _distribute_ecc_selective(
+            target,
+            target_name,
+            tracker,
+            skip_names,
+            force=force,
+            skip_conflicts=skip_conflicts,
+            dist_config=dist_config,
         )
 
         # 6. 產生新 manifest
@@ -1345,6 +1323,190 @@ def _distribute_custom_repos(
                 )
 
 
+def _load_distribution_config() -> dict | None:
+    """讀取並解析 upstream/distribution.yaml。
+
+    source_path 中的 ~ 會自動展開為絕對路徑。
+
+    Returns:
+        dict: 分發設定，若檔案不存在則回傳 None
+    """
+    import yaml
+
+    config_path = get_custom_skills_dir() / "upstream" / "distribution.yaml"
+    if not config_path.exists():
+        return None
+
+    with open(config_path, encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+    if config and "source_path" in config:
+        config["source_path"] = str(Path(config["source_path"]).expanduser())
+
+    return config
+
+
+def _prescan_ecc(
+    target: str,
+    record_method_map: dict,
+    dist_config: dict,
+) -> None:
+    """預掃描 ECC 資源（用於衝突檢測）。"""
+    source_base = Path(dist_config["source_path"])
+    if not source_base.exists():
+        return
+
+    distribute = dist_config.get("distribute", {})
+    skip_dirs = set(dist_config.get("skip_directories", []))
+    exclude = dist_config.get("exclude", {})
+
+    # Skills
+    skills_config = distribute.get("skills", {})
+    if skills_config and target in skills_config.get("targets", []):
+        src = source_base / skills_config["source_path"]
+        if src.exists():
+            record = record_method_map.get("skills")
+            exclude_skills = set(exclude.get("skills", []))
+            if record:
+                for item in src.iterdir():
+                    if (
+                        item.is_dir()
+                        and not item.name.startswith(".")
+                        and item.name not in skip_dirs
+                        and item.name not in exclude_skills
+                    ):
+                        record(item.name, item, source="ecc")
+
+    # Commands
+    commands_config = distribute.get("commands", {})
+    if target in commands_config:
+        src = source_base / commands_config[target]["source_path"]
+        if src.exists():
+            record = record_method_map.get("commands")
+            exclude_cmds = set(exclude.get("commands", {}).get(target, []))
+            if record:
+                for item in src.iterdir():
+                    if item.is_file() and item.suffix == ".md":
+                        if item.name.lower() != "readme.md" and item.stem not in exclude_cmds:
+                            record(item.stem, item, source="ecc")
+
+    # Agents
+    agents_config = distribute.get("agents", {})
+    if target in agents_config:
+        src = source_base / agents_config[target]["source_path"]
+        if src.exists():
+            record = record_method_map.get("agents")
+            exclude_agents = set(exclude.get("agents", {}).get(target, []))
+            if record:
+                for item in src.iterdir():
+                    if item.is_file() and item.suffix == ".md":
+                        if item.name.lower() != "readme.md" and item.stem not in exclude_agents:
+                            record(item.stem, item, source="ecc")
+
+
+def _distribute_ecc_selective(
+    target: str,
+    target_name: str,
+    tracker: "ManifestTracker",
+    skip_names: set[str],
+    force: bool = False,
+    skip_conflicts: bool = False,
+    dist_config: dict | None = None,
+) -> None:
+    """根據 distribution.yaml 從 ECC 選擇性分發資源到指定平台。"""
+    if dist_config is None:
+        return
+
+    source_base = Path(dist_config["source_path"])
+    if not source_base.exists():
+        console.print(
+            "  [yellow]⚠ ECC 目錄不存在，跳過分發[/yellow]\n"
+            f"  [yellow]  路徑: {source_base}[/yellow]\n"
+            "  [yellow]  請先執行 ai-dev update 拉取 ECC[/yellow]"
+        )
+        return
+
+    distribute = dist_config.get("distribute", {})
+    skip_dirs = set(dist_config.get("skip_directories", []))
+    exclude = dist_config.get("exclude", {})
+
+    console.print(f"  [bold cyan]分發 ECC 資源 → {target_name}[/bold cyan]")
+
+    # Skills
+    skills_config = distribute.get("skills", {})
+    if skills_config and target in skills_config.get("targets", []):
+        src = source_base / skills_config["source_path"]
+        dst = COPY_TARGETS.get(target, {}).get("skills")
+        if src.exists() and dst:
+            exclude_skills = set(exclude.get("skills", []))
+            console.print(f"  [green]skills[/green] → [cyan]{target_name}[/cyan]")
+            console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
+            dst.mkdir(parents=True, exist_ok=True)
+            for item in src.iterdir():
+                if (
+                    item.is_dir()
+                    and not item.name.startswith(".")
+                    and item.name not in skip_dirs
+                    and item.name not in exclude_skills
+                ):
+                    if skip_names and item.name in skip_names:
+                        console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")
+                        continue
+                    dst_item = dst / item.name
+                    shutil.copytree(item, dst_item, dirs_exist_ok=True)
+                    tracker.record_skill(item.name, item, source="ecc")
+
+    # Commands
+    commands_config = distribute.get("commands", {})
+    if target in commands_config:
+        cmd_plat = commands_config[target]
+        src = source_base / cmd_plat["source_path"]
+        dst = COPY_TARGETS.get(target, {}).get("commands")
+        if src.exists() and dst:
+            exclude_cmds = set(exclude.get("commands", {}).get(target, []))
+            console.print(f"  [green]commands[/green] → [cyan]{target_name}[/cyan]")
+            console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
+            dst.mkdir(parents=True, exist_ok=True)
+            for item in src.iterdir():
+                if item.is_file() and item.suffix == ".md":
+                    if item.name.lower() == "readme.md":
+                        continue
+                    name = item.stem
+                    if name in exclude_cmds:
+                        continue
+                    if skip_names and name in skip_names:
+                        console.print(f"    [yellow]跳過（衝突）: {name}[/yellow]")
+                        continue
+                    dst_item = dst / item.name
+                    shutil.copy2(item, dst_item)
+                    tracker.record_command(name, item, source="ecc")
+
+    # Agents
+    agents_config = distribute.get("agents", {})
+    if target in agents_config:
+        agt_plat = agents_config[target]
+        src = source_base / agt_plat["source_path"]
+        dst = COPY_TARGETS.get(target, {}).get("agents")
+        if src.exists() and dst:
+            exclude_agents = set(exclude.get("agents", {}).get(target, []))
+            console.print(f"  [green]agents[/green] → [cyan]{target_name}[/cyan]")
+            console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
+            dst.mkdir(parents=True, exist_ok=True)
+            for item in src.iterdir():
+                if item.is_file() and item.suffix == ".md":
+                    if item.name.lower() == "readme.md":
+                        continue
+                    name = item.stem
+                    if name in exclude_agents:
+                        continue
+                    if skip_names and name in skip_names:
+                        console.print(f"    [yellow]跳過（衝突）: {name}[/yellow]")
+                        continue
+                    dst_item = dst / item.name
+                    shutil.copy2(item, dst_item)
+                    tracker.record_agent(name, item, source="ecc")
+
+
 def _is_custom_skills_project(project_root: Path) -> bool:
     """檢查是否在 custom-skills 專案目錄中。
 
@@ -1460,7 +1622,7 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
     - UDS (skills, agents, workflows, commands)
     - Obsidian skills
     - Anthropic skill-creator
-    - ECC (skills, agents, commands) - 從專案內的 sources/ecc
+    - Auto-Skill（自進化知識系統）
 
     Args:
         dev_project_root: 開發專案的根目錄
@@ -1556,45 +1718,6 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
             dirs_exist_ok=True,
             ignore=shutil.ignore_patterns(".git", "assets", "README.md"),
         )
-
-    # ============================================================
-    # ECC (everything-claude-code) 資源 - 從專案內的 sources/ecc
-    # ============================================================
-    src_ecc = dev_project_root / "sources" / "ecc"
-    if src_ecc.exists():
-        console.print("[bold cyan]  整合 ECC 資源...[/bold cyan]")
-
-        # ECC skills → dev/skills
-        src_ecc_skills = src_ecc / "skills"
-        if src_ecc_skills.exists():
-            console.print(f"  [dim]{shorten_path(src_ecc_skills)}[/dim]")
-            console.print(f"    → [dim]{shorten_path(dst_skills)}[/dim]")
-            for skill_dir in src_ecc_skills.iterdir():
-                if skill_dir.is_dir():
-                    dst_skill = dst_skills / skill_dir.name
-                    shutil.copytree(skill_dir, dst_skill, dirs_exist_ok=True)
-
-        # ECC agents → dev/agents/claude
-        src_ecc_agents = src_ecc / "agents"
-        if src_ecc_agents.exists():
-            dst_agents_claude = dev_project_root / "agents" / "claude"
-            console.print(f"  [dim]{shorten_path(src_ecc_agents)}[/dim]")
-            console.print(f"    → [dim]{shorten_path(dst_agents_claude)}[/dim]")
-            dst_agents_claude.mkdir(parents=True, exist_ok=True)
-            for agent_file in src_ecc_agents.iterdir():
-                if agent_file.is_file() and agent_file.suffix == ".md":
-                    shutil.copy2(agent_file, dst_agents_claude / agent_file.name)
-
-        # ECC commands → dev/commands/claude
-        src_ecc_commands = src_ecc / "commands"
-        if src_ecc_commands.exists():
-            dst_commands_claude = dev_project_root / "commands" / "claude"
-            console.print(f"  [dim]{shorten_path(src_ecc_commands)}[/dim]")
-            console.print(f"    → [dim]{shorten_path(dst_commands_claude)}[/dim]")
-            dst_commands_claude.mkdir(parents=True, exist_ok=True)
-            for cmd_file in src_ecc_commands.iterdir():
-                if cmd_file.is_file() and cmd_file.suffix == ".md":
-                    shutil.copy2(cmd_file, dst_commands_claude / cmd_file.name)
 
     console.print("[green]✓ 外部來源整合完成[/green]")
 
@@ -1884,11 +2007,11 @@ def copy_single_resource(
 
     # 根據資源類型尋找來源
     if resource_type == "skills":
-        # Skills 來源：UDS, Obsidian, Anthropic, ECC, Custom
+        # Skills 來源：UDS, Obsidian, Anthropic, ECC（上游）, Custom
         sources = [
             get_uds_dir() / "skills" / "claude-code" / name,
             get_obsidian_skills_dir() / "skills" / name,
-            get_ecc_sources_dir() / "skills" / name,
+            get_ecc_dir() / "skills" / name,
             get_custom_skills_dir() / "skills" / name,
         ]
         if name == "skill-creator":
@@ -1901,9 +2024,9 @@ def copy_single_resource(
                 return True
 
     elif resource_type == "commands":
-        # Commands 來源：ECC, custom-skills/commands/claude
+        # Commands 來源：ECC（上游）, custom-skills/commands/claude
         sources = [
-            get_ecc_sources_dir() / "commands" / f"{name}.md",
+            get_ecc_dir() / "commands" / f"{name}.md",
             get_custom_skills_dir() / "commands" / "claude" / f"{name}.md",
         ]
         for src in sources:
@@ -1921,9 +2044,9 @@ def copy_single_resource(
             return True
 
     elif resource_type == "agents":
-        # Agents 來源：ECC, Claude, OpenCode
+        # Agents 來源：ECC（上游）, Claude, OpenCode
         sources = [
-            get_ecc_sources_dir() / "agents" / f"{name}.md",
+            get_ecc_dir() / "agents" / f"{name}.md",
             get_custom_skills_dir() / "agents" / "claude" / f"{name}.md",
             get_custom_skills_dir() / "agents" / "opencode" / f"{name}.md",
         ]
@@ -2053,8 +2176,8 @@ def get_source_skills() -> dict[str, set[str]]:
     else:
         sources["anthropic"] = set()
 
-    # ECC skills (everything-claude-code)
-    ecc_path = get_ecc_sources_dir() / "skills"
+    # ECC skills (everything-claude-code) — 從上游目錄讀取
+    ecc_path = get_ecc_dir() / "skills"
     if ecc_path.exists():
         sources["ecc"] = {d.name for d in ecc_path.iterdir() if d.is_dir()}
     else:
@@ -2112,6 +2235,7 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
         ("codex", "skills"): get_codex_config_dir() / "skills",
         ("gemini", "skills"): get_gemini_cli_config_dir() / "skills",
         ("gemini", "commands"): get_gemini_cli_config_dir() / "commands",
+        ("gemini", "agents"): get_gemini_cli_config_dir() / "agents",
     }
     return paths.get((target, resource_type))
 
@@ -2120,8 +2244,8 @@ def get_source_commands() -> dict[str, set[str]]:
     """取得 commands 的來源名稱集合。"""
     sources = {}
 
-    # ECC commands (everything-claude-code)
-    ecc_cmd = get_ecc_sources_dir() / "commands"
+    # ECC commands (everything-claude-code) — 從上游目錄讀取
+    ecc_cmd = get_ecc_dir() / "commands"
     if ecc_cmd.exists():
         sources["ecc"] = {
             f.stem for f in ecc_cmd.iterdir() if f.is_file() and f.suffix == ".md"
@@ -2164,8 +2288,8 @@ def get_source_agents() -> dict[str, set[str]]:
     """取得 agents 的來源名稱集合。"""
     sources = {}
 
-    # ECC agents (everything-claude-code)
-    ecc_agents = get_ecc_sources_dir() / "agents"
+    # ECC agents (everything-claude-code) — 從上游目錄讀取
+    ecc_agents = get_ecc_dir() / "agents"
     if ecc_agents.exists():
         sources["ecc"] = {
             f.stem for f in ecc_agents.iterdir() if f.is_file() and f.suffix == ".md"
@@ -2486,8 +2610,8 @@ def open_in_file_manager(file_path: Path) -> bool:
 
 
 def get_ecc_hooks_source_dir() -> Path:
-    """取得 ECC Hooks 來源目錄。"""
-    return get_ecc_sources_dir() / "hooks"
+    """取得 ECC Hooks 來源目錄（上游）。"""
+    return get_ecc_dir() / "hooks"
 
 
 def get_ecc_hooks_plugin_dir() -> Path:
