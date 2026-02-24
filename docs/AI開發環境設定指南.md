@@ -365,7 +365,7 @@ npx skills add zhanghandong/rust-skills@coding-guidelines -y
 npx skills add dedalus-erp-pas/foundation-skills@vue-best-practices -y
 
 # Obsidian Visual
-npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -y
+npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -g -y
 ```
 
 
