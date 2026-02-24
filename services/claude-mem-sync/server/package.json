@@ -1,0 +1,21 @@
+{
+  "name": "claude-mem-sync-server",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "migrate": "bun run src/migrate.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/pg": "^8.11.0",
+    "typescript": "^5.7.0",
+    "@types/bun": "latest"
+  }
+}
