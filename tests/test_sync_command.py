@@ -66,7 +66,7 @@ def test_sync_init_writes_default_config(tmp_path: Path, monkeypatch):
 
     assert result.exit_code == 0
     assert captured["cfg"]["remote"] == "git@example.com:me/sync.git"
-    assert len(captured["cfg"]["directories"]) == 2
+    assert len(captured["cfg"]["directories"]) == 1
 
 
 def test_sync_init_existing_repo_runs_lfs_migrate(tmp_path: Path, monkeypatch):

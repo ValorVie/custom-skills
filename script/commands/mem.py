@@ -18,6 +18,7 @@ from rich.table import Table
 
 from ..utils.mem_sync import (
     api_request,
+    import_to_local_db,
     load_server_config,
     query_local_db,
     save_server_config,
@@ -218,13 +219,16 @@ def pull() -> None:
         f"{len(all_data['prompts'])} prompts[/cyan]"
     )
 
-    # 透過 claude-mem 的 /api/import 匯入（含 dedup）
+    # 匯入到本地 claude-mem（優先 HTTP API，fallback 直接寫 SQLite）
     import_payload = {
         "sessions": all_data["sessions"],
         "summaries": all_data["summaries"],
         "observations": all_data["observations"],
         "prompts": all_data["prompts"],
     }
+
+    import_result: dict[str, Any] = {}
+    import_method = "api"
 
     try:
         req = urllib.request.Request(
@@ -237,17 +241,22 @@ def pull() -> None:
             import_result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.URLError:
         console.print(
-            "[bold red]claude-mem worker 未啟動（localhost:37777）。"
-            "請先啟動 Claude Code。[/bold red]"
+            "[yellow]claude-mem worker 未啟動，改用直接寫入 SQLite...[/yellow]"
         )
-        raise typer.Exit(code=1)
+        import_method = "sqlite"
+        try:
+            import_result = import_to_local_db(import_payload)
+        except FileNotFoundError as e:
+            console.print(f"[bold red]{e}[/bold red]")
+            raise typer.Exit(code=1)
 
     config["last_pull_epoch"] = server_epoch
     save_server_config(config)
 
     stats = import_result.get("stats", {})
+    method_label = "SQLite" if import_method == "sqlite" else "API"
     console.print(
-        f"[bold green]Pull 完成[/bold green] "
+        f"[bold green]Pull 完成[/bold green] ({method_label}) "
         f"imported: {stats.get('sessionsImported', 0)}s "
         f"{stats.get('observationsImported', 0)}o "
         f"{stats.get('summariesImported', 0)}sm "
