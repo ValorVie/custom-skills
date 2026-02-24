@@ -690,12 +690,46 @@ def git_add_commit(repo_dir: Path | str, message: str) -> bool:
     return result.returncode == 0
 
 
+def _git_has_changes(repo_path: Path) -> bool:
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=str(repo_path),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return bool(result.stdout.strip())
+
+
 def git_pull_rebase(repo_dir: Path | str) -> bool:
     repo_path = Path(repo_dir).expanduser()
     if not _has_upstream(repo_path):
         return True  # 尚未設定 upstream，跳過 pull
+
+    stashed = False
+    if _git_has_changes(repo_path):
+        stash_result = subprocess.run(
+            ["git", "stash", "--include-untracked"],
+            cwd=str(repo_path),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        stashed = stash_result.returncode == 0
+
     result = run_command(["git", "pull", "--rebase"], cwd=str(repo_path), check=False)
-    return result.returncode == 0
+    ok = result.returncode == 0
+
+    if stashed:
+        subprocess.run(
+            ["git", "stash", "pop"],
+            cwd=str(repo_path),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    return ok
 
 
 def _has_upstream(repo_dir: Path) -> bool:
