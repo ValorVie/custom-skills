@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import filecmp
 import fnmatch
+import json
 import re
 import shutil
 import socket
@@ -9,7 +10,7 @@ import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import yaml
 from rich.console import Console
@@ -49,6 +50,122 @@ GLOBAL_IGNORE_PATTERNS = [".DS_Store", "Thumbs.db", "desktop.ini"]
 
 LFS_THRESHOLD_MB = 50
 LFS_EXCLUDE_EXTENSIONS = {".jsonl"}
+PATH_VARIABLES = {"HOME": str(Path.home())}
+
+
+def _replace_prefix(value: str, prefix: str, replacement: str) -> str:
+    if value == prefix:
+        return replacement
+    if value.startswith(f"{prefix}/") or value.startswith(f"{prefix}\\"):
+        return f"{replacement}{value[len(prefix) :]}"
+    return value
+
+
+def _replace_paths_in_json(
+    data: Any, transform: Callable[[str], str]
+) -> tuple[Any, bool]:
+    if isinstance(data, dict):
+        changed = False
+        output: dict[str, Any] = {}
+        for key, value in data.items():
+            new_value, item_changed = _replace_paths_in_json(value, transform)
+            output[key] = new_value
+            changed = changed or item_changed
+        return output, changed
+
+    if isinstance(data, list):
+        changed = False
+        output: list[Any] = []
+        for value in data:
+            new_value, item_changed = _replace_paths_in_json(value, transform)
+            output.append(new_value)
+            changed = changed or item_changed
+        return output, changed
+
+    if isinstance(data, str):
+        replaced = transform(data)
+        return replaced, replaced != data
+
+    return data, False
+
+
+def _normalize_path_value(value: str) -> str:
+    replaced = value
+    for name, path_value in PATH_VARIABLES.items():
+        replaced = _replace_prefix(replaced, path_value, f"{{{{{name}}}}}")
+    return replaced
+
+
+def _expand_path_value(value: str) -> str:
+    replaced = value
+    for name, path_value in PATH_VARIABLES.items():
+        replaced = _replace_prefix(replaced, f"{{{{{name}}}}}", path_value)
+    return replaced
+
+
+def normalize_paths_in_file(file_path: Path | str) -> bool:
+    target_path = Path(file_path).expanduser()
+    if not target_path.exists():
+        return False
+
+    with open(target_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    replaced_payload, changed = _replace_paths_in_json(payload, _normalize_path_value)
+    if not changed:
+        return False
+
+    with open(target_path, "w", encoding="utf-8") as f:
+        json.dump(replaced_payload, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    return True
+
+
+def expand_paths_in_file(file_path: Path | str) -> bool:
+    target_path = Path(file_path).expanduser()
+    if not target_path.exists():
+        return False
+
+    with open(target_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    replaced_payload, changed = _replace_paths_in_json(payload, _expand_path_value)
+    if not changed:
+        return False
+
+    with open(target_path, "w", encoding="utf-8") as f:
+        json.dump(replaced_payload, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    return True
+
+
+def normalize_paths_in_repo(config: dict[str, Any]) -> list[str]:
+    repo_dir = get_sync_repo_dir()
+    changed_files: list[str] = []
+
+    for item in config.get("directories", []):
+        repo_subdir = str(item.get("repo_subdir", "")).strip()
+        settings_path = (
+            repo_dir / repo_subdir / "settings.json"
+            if repo_subdir
+            else repo_dir / "settings.json"
+        )
+        if normalize_paths_in_file(settings_path):
+            changed_files.append(str(settings_path))
+
+    return changed_files
+
+
+def expand_paths_in_local(config: dict[str, Any]) -> list[str]:
+    changed_files: list[str] = []
+
+    for item in config.get("directories", []):
+        local_path = Path(str(item.get("path", ""))).expanduser()
+        settings_path = local_path / "settings.json"
+        if expand_paths_in_file(settings_path):
+            changed_files.append(str(settings_path))
+
+    return changed_files
 
 
 def default_sync_directories() -> list[dict[str, Any]]:

@@ -17,6 +17,7 @@ from ..utils.sync_config import (
     detect_local_changes,
     detect_lfs_patterns,
     default_sync_directories,
+    expand_paths_in_local,
     generate_sync_commit_message,
     get_claude_subdir,
     get_ignore_patterns,
@@ -29,6 +30,7 @@ from ..utils.sync_config import (
     git_status_summary,
     load_sync_config,
     make_repo_subdir_name,
+    normalize_paths_in_repo,
     now_iso8601,
     restore_plugins_on_pull,
     save_plugin_manifest,
@@ -139,7 +141,7 @@ def _configure_lfs_tracking(repo_dir: Path, migrate_existing: bool) -> list[str]
     console.print(f"[cyan]Git LFS 自動追蹤：{', '.join(lfs_patterns)}[/cyan]")
 
     if migrate_existing:
-        if git_lfs_migrate_existing(repo_dir, lfs_patterns, rewrite_history=rewrite_history):
+        if git_lfs_migrate_existing(repo_dir, lfs_patterns):
             console.print("[cyan]已完成既有大檔案的 Git LFS migrate[/cyan]")
         else:
             console.print(
@@ -334,6 +336,7 @@ def push(
     write_gitignore(repo_dir, config.get("directories", []))
 
     summary = _sync_local_to_repo(config)
+    normalize_paths_in_repo(config)
     lfs_patterns = _configure_lfs_tracking(repo_dir, migrate_existing=False)
     write_gitattributes(repo_dir, lfs_patterns=lfs_patterns)
 
@@ -403,6 +406,7 @@ def pull(
         raise typer.Exit(code=1)
 
     summary = _sync_repo_to_local(config, delete=not no_delete)
+    expand_paths_in_local(config)
     config["last_sync"] = now_iso8601()
     save_sync_config(config)
 

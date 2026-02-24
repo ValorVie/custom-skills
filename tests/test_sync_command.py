@@ -218,6 +218,42 @@ def test_sync_push_writes_gitattributes_with_lfs_patterns(tmp_path: Path, monkey
     assert captured["patterns"] == ["*.sqlite3"]
 
 
+def test_sync_push_normalizes_repo_paths(tmp_path: Path, monkeypatch):
+    repo_dir = tmp_path / "sync-repo"
+    repo_dir.mkdir()
+    called = {"normalized": False}
+
+    config = {
+        "version": "1",
+        "remote": "git@example.com:me/sync.git",
+        "last_sync": None,
+        "directories": [],
+    }
+
+    monkeypatch.setattr(sync_cmd, "load_sync_config", lambda: config)
+    monkeypatch.setattr(sync_cmd, "get_sync_repo_dir", lambda: repo_dir)
+    monkeypatch.setattr(sync_cmd, "write_gitignore", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        sync_cmd,
+        "_sync_local_to_repo",
+        lambda *_args, **_kwargs: {"added": 0, "updated": 0, "deleted": 0},
+    )
+    monkeypatch.setattr(
+        sync_cmd,
+        "normalize_paths_in_repo",
+        lambda *_args, **_kwargs: called.update({"normalized": True}) or [],
+    )
+    monkeypatch.setattr(sync_cmd, "check_lfs_available", lambda: False)
+    monkeypatch.setattr(sync_cmd, "write_gitattributes", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(sync_cmd, "get_claude_subdir", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(sync_cmd, "git_add_commit", lambda *_args, **_kwargs: False)
+
+    result = runner.invoke(app, ["sync", "push"])
+
+    assert result.exit_code == 0
+    assert called["normalized"] is True
+
+
 def test_sync_pull_force_skips_local_change_detection(tmp_path: Path, monkeypatch):
     repo_dir = tmp_path / "sync-repo"
     repo_dir.mkdir()
@@ -249,6 +285,38 @@ def test_sync_pull_force_skips_local_change_detection(tmp_path: Path, monkeypatc
 
     assert result.exit_code == 0
     assert "sync pull 完成" in result.stdout
+
+
+def test_sync_pull_expands_local_paths(tmp_path: Path, monkeypatch):
+    repo_dir = tmp_path / "sync-repo"
+    repo_dir.mkdir()
+    called = {"expanded": False}
+    config = {
+        "version": "1",
+        "remote": "git@example.com:me/sync.git",
+        "last_sync": None,
+        "directories": [],
+    }
+
+    monkeypatch.setattr(sync_cmd, "load_sync_config", lambda: config)
+    monkeypatch.setattr(sync_cmd, "get_sync_repo_dir", lambda: repo_dir)
+    monkeypatch.setattr(sync_cmd, "git_pull_rebase", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(
+        sync_cmd,
+        "_sync_repo_to_local",
+        lambda *_args, **_kwargs: {"added": 0, "updated": 0, "deleted": 0},
+    )
+    monkeypatch.setattr(
+        sync_cmd,
+        "expand_paths_in_local",
+        lambda *_args, **_kwargs: called.update({"expanded": True}) or [],
+    )
+    monkeypatch.setattr(sync_cmd, "save_sync_config", lambda *_args, **_kwargs: None)
+
+    result = runner.invoke(app, ["sync", "pull", "--force"])
+
+    assert result.exit_code == 0
+    assert called["expanded"] is True
 
 
 def test_sync_pull_cancel_does_not_execute_pull(tmp_path: Path, monkeypatch):

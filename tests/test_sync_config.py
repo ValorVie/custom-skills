@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -225,3 +226,158 @@ def test_detect_local_changes_reports_added_modified_deleted_and_respects_ignore
 
     changed_paths = [item["path"] for item in changes["files"]]
     assert "claude/skip.tmp" not in changed_paths
+
+
+def test_normalize_paths_in_file_rewrites_home_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        '{"DATA_DIR": "/home/test/.claude-mem"}\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(sync_config, "PATH_VARIABLES", {"HOME": "/home/test"})
+
+    changed = sync_config.normalize_paths_in_file(settings_path)
+
+    assert changed is True
+    payload = json.loads(settings_path.read_text(encoding="utf-8"))
+    assert payload["DATA_DIR"] == "{{HOME}}/.claude-mem"
+
+
+def test_normalize_paths_in_file_returns_false_without_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    settings_path = tmp_path / "settings.json"
+    original = '{"MODE": "code"}\n'
+    settings_path.write_text(original, encoding="utf-8")
+    monkeypatch.setattr(sync_config, "PATH_VARIABLES", {"HOME": "/home/test"})
+
+    changed = sync_config.normalize_paths_in_file(settings_path)
+
+    assert changed is False
+    assert settings_path.read_text(encoding="utf-8") == original
+
+
+def test_normalize_paths_in_file_handles_nested_values(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "config": {"path": "/home/test/data"},
+                "list": ["/home/test/a", {"inner": "/home/test/b"}, 1],
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sync_config, "PATH_VARIABLES", {"HOME": "/home/test"})
+
+    changed = sync_config.normalize_paths_in_file(settings_path)
+
+    assert changed is True
+    payload = json.loads(settings_path.read_text(encoding="utf-8"))
+    assert payload["config"]["path"] == "{{HOME}}/data"
+    assert payload["list"][0] == "{{HOME}}/a"
+    assert payload["list"][1]["inner"] == "{{HOME}}/b"
+    assert payload["list"][2] == 1
+
+
+def test_normalize_paths_in_file_returns_false_when_file_missing(tmp_path: Path):
+    missing_path = tmp_path / "missing.json"
+
+    assert sync_config.normalize_paths_in_file(missing_path) is False
+
+
+def test_expand_paths_in_file_rewrites_placeholder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text('{"DATA_DIR": "{{HOME}}/.claude-mem"}\n', encoding="utf-8")
+    monkeypatch.setattr(sync_config, "PATH_VARIABLES", {"HOME": "/home/bob"})
+
+    changed = sync_config.expand_paths_in_file(settings_path)
+
+    assert changed is True
+    payload = json.loads(settings_path.read_text(encoding="utf-8"))
+    assert payload["DATA_DIR"] == "/home/bob/.claude-mem"
+
+
+def test_expand_paths_in_file_returns_false_without_placeholders(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    settings_path = tmp_path / "settings.json"
+    original = '{"MODE": "code"}\n'
+    settings_path.write_text(original, encoding="utf-8")
+    monkeypatch.setattr(sync_config, "PATH_VARIABLES", {"HOME": "/home/bob"})
+
+    changed = sync_config.expand_paths_in_file(settings_path)
+
+    assert changed is False
+    assert settings_path.read_text(encoding="utf-8") == original
+
+
+def test_expand_paths_in_file_returns_false_when_file_missing(tmp_path: Path):
+    missing_path = tmp_path / "missing.json"
+
+    assert sync_config.expand_paths_in_file(missing_path) is False
+
+
+def test_normalize_paths_in_repo_processes_multiple_directories(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    repo_dir = tmp_path / "sync-repo"
+    changed_settings = repo_dir / "claude-mem" / "settings.json"
+    unchanged_settings = repo_dir / "claude" / "settings.json"
+    changed_settings.parent.mkdir(parents=True)
+    unchanged_settings.parent.mkdir(parents=True)
+    changed_settings.write_text(
+        '{"DATA_DIR": "/home/test/.claude-mem"}\n', encoding="utf-8"
+    )
+    unchanged_settings.write_text('{"MODE": "code"}\n', encoding="utf-8")
+
+    monkeypatch.setattr(sync_config, "get_sync_repo_dir", lambda: repo_dir)
+    monkeypatch.setattr(sync_config, "PATH_VARIABLES", {"HOME": "/home/test"})
+
+    changed_files = sync_config.normalize_paths_in_repo(
+        {
+            "directories": [
+                {"repo_subdir": "claude-mem"},
+                {"repo_subdir": "claude"},
+                {"repo_subdir": "missing"},
+            ]
+        }
+    )
+
+    assert changed_files == [str(changed_settings)]
+
+
+def test_expand_paths_in_local_processes_multiple_directories(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    changed_dir = tmp_path / "claude-mem"
+    unchanged_dir = tmp_path / "claude"
+    changed_dir.mkdir()
+    unchanged_dir.mkdir()
+    changed_settings = changed_dir / "settings.json"
+    unchanged_settings = unchanged_dir / "settings.json"
+    changed_settings.write_text(
+        '{"DATA_DIR": "{{HOME}}/.claude-mem"}\n', encoding="utf-8"
+    )
+    unchanged_settings.write_text('{"MODE": "code"}\n', encoding="utf-8")
+
+    monkeypatch.setattr(sync_config, "PATH_VARIABLES", {"HOME": "/home/bob"})
+
+    changed_files = sync_config.expand_paths_in_local(
+        {
+            "directories": [
+                {"path": str(changed_dir)},
+                {"path": str(unchanged_dir)},
+                {"path": str(tmp_path / "missing")},
+            ]
+        }
+    )
+
+    assert changed_files == [str(changed_settings)]
