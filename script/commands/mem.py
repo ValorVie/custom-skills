@@ -19,9 +19,13 @@ from rich.table import Table
 from ..utils.mem_sync import (
     api_request,
     import_to_local_db,
+    kill_chroma_mcp,
     load_server_config,
     query_local_db,
+    reindex_observations,
     save_server_config,
+    verify_search,
+    worker_available,
 )
 
 app = typer.Typer(help="管理 claude-mem 跨裝置同步（HTTP API backend）")
@@ -286,6 +290,65 @@ def status() -> None:
 
     console.print(f"[dim]Last push epoch: {config.get('last_push_epoch', 0)}[/dim]")
     console.print(f"[dim]Last pull epoch: {config.get('last_pull_epoch', 0)}[/dim]")
+
+
+@app.command()
+def reindex() -> None:
+    """重建 ChromaDB 搜尋索引（修復 pull 匯入後搜尋不到的問題）。"""
+    if not worker_available():
+        console.print(
+            "[bold red]claude-mem worker 未啟動，無法重建索引[/bold red]\n"
+            "[yellow]請先啟動 Claude Code 讓 worker 自動啟動後再試[/yellow]"
+        )
+        raise typer.Exit(code=1)
+
+    console.print("[cyan]正在掃描缺失的 ChromaDB 索引...[/cyan]")
+    try:
+        stats = reindex_observations()
+    except FileNotFoundError as e:
+        console.print(f"[bold red]{e}[/bold red]")
+        raise typer.Exit(code=1)
+
+    if stats["missing"] == 0:
+        console.print(
+            f"[green]索引已完整[/green]（共 {stats['total']} 筆 observations）"
+        )
+        return
+
+    console.print(
+        f"[bold green]寫入完成[/bold green] "
+        f"synced={stats['synced']} errors={stats['errors']} "
+        f"（共 {stats['total']} 筆，原缺 {stats['missing']} 筆）"
+    )
+
+    if stats["synced"] == 0:
+        console.print("[bold red]無任何索引寫入成功[/bold red]")
+        raise typer.Exit(code=1)
+
+    # Kill chroma-mcp 讓 worker 重啟
+    console.print("[cyan]正在重啟 chroma-mcp 進程...[/cyan]")
+    if kill_chroma_mcp():
+        import time
+        time.sleep(3)
+        console.print("[green]chroma-mcp 已重啟[/green]")
+    else:
+        console.print(
+            "[yellow]找不到 chroma-mcp 進程，請手動重啟 Claude Code session[/yellow]"
+        )
+        return
+
+    # 驗證搜尋
+    console.print("[cyan]正在驗證搜尋...[/cyan]")
+    sample_title = stats.get("sample_title", "")
+    if sample_title and verify_search(sample_title):
+        console.print("[bold green]驗證成功 — 搜尋索引已生效[/bold green]")
+    elif sample_title:
+        console.print(
+            "[yellow]驗證未通過 — 索引已寫入但搜尋可能需要更多時間。"
+            "若仍無法搜尋，請重啟 Claude Code session[/yellow]"
+        )
+    else:
+        console.print("[green]Reindex 完成[/green]")
 
 
 # ---------------------------------------------------------------------------
