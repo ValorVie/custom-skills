@@ -166,6 +166,9 @@ def update(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
     skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件更新"),
     skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
+    skip_plugins: bool = typer.Option(
+        False, "--skip-plugins", help="跳過 Claude Code Plugin Marketplace 更新"
+    ),
 ):
     """更新工具與拉取儲存庫。
 
@@ -173,6 +176,7 @@ def update(
     1. 更新 Claude Code（除非 --skip-npm）
     2. 更新全域 NPM 套件（除非 --skip-npm）
     3. 拉取 ~/.config/ 下的所有 repo（除非 --skip-repos）
+    4. 更新 Claude Code Plugin Marketplace（除非 --skip-plugins）
 
     注意：此指令不會分發 Skills 到各工具目錄。
     如需分發，請執行 `ai-dev clone`。
@@ -331,6 +335,35 @@ def update(
         else:
             console.print()
             console.print("[dim]所有儲存庫皆為最新[/dim]")
+
+    # 4. 更新 Claude Code Plugin Marketplaces
+    if skip_plugins:
+        console.print("[yellow]跳過 Plugin Marketplace 更新[/yellow]")
+    else:
+        marketplace_dir = Path.home() / ".claude" / "plugins" / "marketplaces"
+        if marketplace_dir.exists():
+            marketplaces = [
+                d.name
+                for d in marketplace_dir.iterdir()
+                if d.is_dir() and not d.name.startswith(".")
+            ]
+            if marketplaces:
+                console.print(
+                    f"[green]正在更新 {len(marketplaces)} 個 Plugin Marketplace...[/green]"
+                )
+                for mp in marketplaces:
+                    console.print(f"  正在更新 {mp}...")
+                    run_command(
+                        ["claude", "plugin", "marketplace", "update", mp],
+                        check=False,
+                    )
+                console.print(
+                    f"[bold cyan]已更新 {len(marketplaces)} 個 Marketplace[/bold cyan]"
+                )
+            else:
+                console.print("[dim]未偵測到已安裝的 Plugin Marketplace[/dim]")
+        else:
+            console.print("[dim]未偵測到 Claude Code Plugin 目錄[/dim]")
 
     console.print("[bold green]更新完成！[/bold green]")
     console.print()
