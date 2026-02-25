@@ -253,12 +253,16 @@ async function workerAvailable(): Promise<boolean> {
 
 /**
  * 清理本地 claude-mem 中的重複 observations，回傳移除數量。
+ * 優先保留已被 ChromaDB 索引的記錄；若都未索引則保留最小 ID。
  */
 export async function cleanupDuplicates(
-  options: { dbPath?: string } = {},
+  options: { dbPath?: string; chromaDbPath?: string } = {},
 ): Promise<MemCleanupResult> {
   const dbPath = options.dbPath ?? defaultMemDbPath();
   if (!existsSync(dbPath)) return { duplicatesRemoved: 0 };
+
+  const chromaDbPath = options.chromaDbPath ?? defaultChromaDbPath();
+  const indexedIds = getIndexedObservationIds(chromaDbPath);
 
   const db = openDb(dbPath, true);
   let allObs: ObservationRow[];
@@ -280,7 +284,11 @@ export async function cleanupDuplicates(
 
   const duplicateIds: number[] = [];
   for (const ids of hashGroups.values()) {
-    if (ids.length > 1) duplicateIds.push(...ids.slice(1));
+    if (ids.length <= 1) continue;
+    // 優先保留已索引的記錄
+    const indexedInGroup = ids.filter((id) => indexedIds.has(id));
+    const keep = indexedInGroup.length > 0 ? indexedInGroup[0] : ids[0];
+    duplicateIds.push(...ids.filter((id) => id !== keep));
   }
 
   if (duplicateIds.length === 0) return { duplicatesRemoved: 0 };
@@ -323,13 +331,29 @@ export async function reindexMemData(
     db.close();
   }
 
-  const missing = allObs.filter((o) => !indexedIds.has(o.id));
+  // 用「reindex 實際送出的 text」判斷該內容是否已有索引
+  // 防止 narrative=null 的原始記錄和 narrative=title 的副本被視為不同
+  const indexedTexts = new Set<string>();
+  for (const obs of allObs) {
+    if (!indexedIds.has(obs.id)) continue;
+    const text = (obs.narrative || obs.title || "").trim();
+    if (text) indexedTexts.add(text);
+  }
+
+  const missing: ObservationRow[] = [];
+  for (const obs of allObs) {
+    if (indexedIds.has(obs.id)) continue;
+    const text = (obs.narrative || obs.title || "").trim();
+    if (!text) continue;
+    if (indexedTexts.has(text)) continue; // 該內容已透過其他記錄被索引
+    missing.push(obs);
+  }
+
   let synced = 0;
   let errors = 0;
 
   for (const obs of missing) {
     const text = obs.narrative || obs.title || "";
-    if (!text.trim()) continue;
 
     try {
       const resp = await fetch(`${WORKER_URL}/api/memory/save`, {
