@@ -384,6 +384,13 @@ def pull() -> None:
                 console.print(
                     f"[green]索引同步完成[/green] synced={synced} errors={errors}"
                 )
+            # reindex 透過 worker /api/memory/save 會建立副本，自動清理
+            if synced > 0:
+                removed = _cleanup_duplicates()
+                if removed > 0:
+                    console.print(
+                        f"[dim]自動清理 {removed} 筆重複 observations[/dim]"
+                    )
         except (FileNotFoundError, RuntimeError):
             console.print(
                 "[yellow]ChromaDB 索引同步失敗，稍後可執行 ai-dev mem reindex 補建[/yellow]"
@@ -425,15 +432,13 @@ def status() -> None:
     console.print(f"[dim]Last pull epoch: {config.get('last_pull_epoch', 0)}[/dim]")
 
 
-@app.command()
-def cleanup() -> None:
-    """掃描並刪除本地 claude-mem 中的重複 observations。"""
+def _cleanup_duplicates() -> int:
+    """掃描並刪除本地 claude-mem 中的重複 observations，回傳移除數量。"""
     observations = query_local_db(
         "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id"
     )
     if not observations:
-        console.print("[green]本地無 observations[/green]")
-        return
+        return 0
 
     hash_groups: dict[str, list[int]] = {}
     for obs in observations:
@@ -446,8 +451,7 @@ def cleanup() -> None:
             duplicate_ids.extend(ids[1:])
 
     if not duplicate_ids:
-        console.print("[green]無重複 observations[/green]")
-        return
+        return 0
 
     conn = sqlite3.connect(str(CLAUDE_MEM_DB_PATH))
     try:
@@ -460,9 +464,19 @@ def cleanup() -> None:
     finally:
         conn.close()
 
-    console.print(
-        f"[bold green]Cleanup 完成[/bold green] 移除 {len(duplicate_ids)} 筆重複"
-    )
+    return len(duplicate_ids)
+
+
+@app.command()
+def cleanup() -> None:
+    """掃描並刪除本地 claude-mem 中的重複 observations。"""
+    removed = _cleanup_duplicates()
+    if removed == 0:
+        console.print("[green]無重複 observations[/green]")
+    else:
+        console.print(
+            f"[bold green]Cleanup 完成[/bold green] 移除 {removed} 筆重複"
+        )
 
 
 @app.command()
@@ -496,6 +510,13 @@ def reindex() -> None:
     if stats["errors"] > 0:
         console.print(
             "[yellow]部分 observations 索引失敗，請確認 worker 正常運作後重試[/yellow]"
+        )
+
+    # reindex 透過 worker /api/memory/save 會建立副本，自動清理
+    removed = _cleanup_duplicates()
+    if removed > 0:
+        console.print(
+            f"[dim]自動清理 {removed} 筆重複 observations[/dim]"
         )
 
 
