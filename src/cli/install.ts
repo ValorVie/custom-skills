@@ -21,6 +21,7 @@ export function registerInstallCommand(program: Command): void {
           skipNpm: options.skipNpm,
           skipBun: options.skipBun,
           skipRepos: options.skipRepos,
+          onProgress: options.json ? undefined : (msg) => console.log(msg),
         });
 
         if (options.json) {
@@ -36,24 +37,27 @@ export function registerInstallCommand(program: Command): void {
         if (result.npmPackages.length > 0) {
           console.log("- NPM Packages:");
           for (const item of result.npmPackages) {
-            console.log(`  - ${item.name}: ${item.success ? "OK" : "FAIL"}`);
+            const status = item.success ? "OK" : "FAIL";
+            const msg = item.message ? ` (${item.message})` : "";
+            console.log(`  - ${item.name}: ${status}${msg}`);
           }
         }
 
         if (result.bunPackages.length > 0) {
           console.log("- Bun Packages:");
           for (const item of result.bunPackages) {
-            console.log(`  - ${item.name}: ${item.success ? "OK" : "FAIL"}`);
+            const status = item.success ? "OK" : "FAIL";
+            const msg = item.message ? ` (${item.message})` : "";
+            console.log(`  - ${item.name}: ${status}${msg}`);
           }
         }
 
         if (result.repos.length > 0) {
           console.log("- Repositories:");
           for (const item of result.repos) {
-            const message = item.message ? ` (${item.message})` : "";
-            console.log(
-              `  - ${item.name}: ${item.success ? "OK" : "FAIL"}${message}`,
-            );
+            const status = item.success ? "OK" : "FAIL";
+            const msg = item.message ? ` (${item.message})` : "";
+            console.log(`  - ${item.name}: ${status}${msg}`);
           }
         }
 

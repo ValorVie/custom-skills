@@ -1,4 +1,7 @@
-import { useMemo, useReducer } from "react";
+import { readdir } from "node:fs/promises";
+import { useEffect, useMemo, useReducer } from "react";
+
+import { COPY_TARGETS, type TargetType } from "../../utils/shared";
 
 export type Screen = "main" | "preview" | "confirm" | "settings";
 export type Target = "claude" | "opencode" | "codex" | "gemini";
@@ -23,6 +26,7 @@ interface ResourcesState {
   sourceFilter: SourceFilter;
   resources: Resource[];
   selectedIndex: number;
+  loading: boolean;
 }
 
 type Action =
@@ -33,64 +37,68 @@ type Action =
   | { type: "switch_target" }
   | { type: "move_next" }
   | { type: "move_prev" }
-  | { type: "set_enabled_for_selected"; enabled: boolean };
+  | { type: "set_enabled_for_selected"; enabled: boolean }
+  | { type: "set_resources"; resources: Resource[] };
 
 const TARGETS: Target[] = ["claude", "opencode", "codex", "gemini"];
 
-const DEFAULT_RESOURCES: Resource[] = [
-  {
-    id: "skill-ops",
-    name: "openspec-apply-change",
-    type: "skill",
-    source: "custom-skills",
-    enabled: true,
-    selected: false,
-    content: "Implements tasks from an OpenSpec change.",
-  },
-  {
-    id: "skill-auto",
-    name: "auto-skill",
-    type: "skill",
-    source: "custom-skills",
-    enabled: true,
-    selected: false,
-    content: "Bootstraps skill workflows with memory support.",
-  },
-  {
-    id: "cmd-sync",
-    name: "sync",
-    type: "command",
-    source: "external",
-    enabled: true,
-    selected: false,
-    content: "Sync command group for cross-device workflows.",
-  },
-  {
-    id: "agent-reviewer",
-    name: "reviewer",
-    type: "agent",
-    source: "external",
-    enabled: false,
-    selected: false,
-    content: "Code review specialist.",
-  },
-  {
-    id: "wf-checkin",
-    name: "checkin-assistant",
-    type: "workflow",
-    source: "custom-skills",
-    enabled: true,
-    selected: false,
-    content: "Guides pre-commit quality gates.",
-  },
-];
+const RESOURCE_TYPE_MAP: Record<string, ResourceType> = {
+  skills: "skill",
+  commands: "command",
+  agents: "agent",
+  workflows: "workflow",
+};
+
+async function scanDirectory(dirPath: string): Promise<string[]> {
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    return entries
+      .filter((e) => !e.name.startsWith("."))
+      .map((e) => e.name.replace(/\.[^.]+$/, ""))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+export async function loadResources(target: Target): Promise<Resource[]> {
+  const targetConfig = COPY_TARGETS[target as TargetType];
+  if (!targetConfig) {
+    return [];
+  }
+
+  const resources: Resource[] = [];
+
+  for (const [dirKey, dirPath] of Object.entries(targetConfig)) {
+    const resourceType = RESOURCE_TYPE_MAP[dirKey];
+    if (!resourceType || !dirPath) {
+      continue;
+    }
+
+    const names = await scanDirectory(dirPath);
+    for (const name of names) {
+      resources.push({
+        id: `${dirKey}-${name}`,
+        name,
+        type: resourceType,
+        source: "custom-skills",
+        enabled: true,
+        selected: false,
+        content: "",
+      });
+    }
+  }
+
+  return resources;
+}
 
 const INITIAL_STATE: ResourcesState = {
   target: "claude",
   typeFilter: "all",
   sourceFilter: "all",
-  resources: DEFAULT_RESOURCES,
+  resources: [],
   selectedIndex: 0,
+  loading: true,
 };
 
 function clampSelectedIndex(index: number, maxExclusive: number): number {
@@ -111,6 +119,14 @@ function resourcesReducer(
   action: Action,
 ): ResourcesState {
   switch (action.type) {
+    case "set_resources":
+      return {
+        ...state,
+        resources: action.resources,
+        selectedIndex: 0,
+        loading: false,
+      };
+
     case "toggle_selected":
       return {
         ...state,
@@ -155,6 +171,7 @@ function resourcesReducer(
       return {
         ...state,
         target: nextTarget,
+        loading: true,
       };
     }
 
@@ -199,6 +216,18 @@ function resourcesReducer(
 
 export function useResources() {
   const [state, dispatch] = useReducer(resourcesReducer, INITIAL_STATE);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadResources(state.target).then((resources) => {
+      if (!cancelled) {
+        dispatch({ type: "set_resources", resources });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.target]);
 
   const visibleResources = useMemo(
     () =>

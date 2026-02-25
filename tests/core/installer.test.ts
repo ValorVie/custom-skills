@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { runInstall } from "../../src/core/installer";
+import type { RunCommandOptions } from "../../src/utils/system";
 
 describe("core/installer", () => {
   test("runInstall returns structured result", async () => {
@@ -107,6 +108,55 @@ describe("core/installer", () => {
         { name: "clone-repo", success: true, message: undefined },
       ]);
       expect(result.errors.length).toBe(0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("runInstall passes timeoutMs to runCommandFn", async () => {
+    const calls: { command: string[]; options: RunCommandOptions }[] = [];
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-installer-timeout-"));
+    const repoDir = join(root, "repo");
+
+    try {
+      const result = await runInstall({
+        deps: {
+          commandExistsFn: () => true,
+          getBunVersionFn: async () => "1.3.0",
+          npmPackages: ["test-npm"],
+          bunPackages: ["test-bun"],
+          repos: [
+            {
+              name: "test-repo",
+              url: "https://example.com/test.git",
+              dir: repoDir,
+            },
+          ],
+          runCommandFn: async (
+            command: string[],
+            options: RunCommandOptions = {},
+          ) => {
+            calls.push({ command, options });
+            return { stdout: "", stderr: "", exitCode: 0 };
+          },
+        },
+      });
+
+      expect(result.errors.length).toBe(0);
+
+      const npmCall = calls.find((c) => c.command[0] === "npm");
+      expect(npmCall).toBeDefined();
+      expect(npmCall?.options.timeoutMs).toBe(60_000);
+
+      const bunCall = calls.find((c) => c.command[0] === "bun");
+      expect(bunCall).toBeDefined();
+      expect(bunCall?.options.timeoutMs).toBe(60_000);
+
+      const gitCall = calls.find(
+        (c) => c.command[0] === "git" && c.command[1] === "clone",
+      );
+      expect(gitCall).toBeDefined();
+      expect(gitCall?.options.timeoutMs).toBe(120_000);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -20,6 +20,7 @@ export interface InstallOptions {
   skipBun?: boolean;
   skipRepos?: boolean;
   deps?: InstallDependencies;
+  onProgress?: (message: string) => void;
 }
 
 export interface InstallItemResult {
@@ -46,6 +47,7 @@ async function installNpmPackage(
 ): Promise<InstallItemResult> {
   const result = await runCommandFn(["npm", "install", "-g", packageName], {
     check: false,
+    timeoutMs: 60_000,
   });
 
   return {
@@ -61,6 +63,7 @@ async function installBunPackage(
 ): Promise<InstallItemResult> {
   const result = await runCommandFn(["bun", "install", "-g", packageName], {
     check: false,
+    timeoutMs: 60_000,
   });
 
   return {
@@ -90,6 +93,7 @@ async function ensureRepo(
   await mkdir(dirname(repoDir), { recursive: true });
   const result = await runCommandFn(["git", "clone", repoUrl, repoDir], {
     check: false,
+    timeoutMs: 120_000,
   });
 
   return {
@@ -112,6 +116,7 @@ export async function runInstall(
   const npmPackages = deps.npmPackages ?? NPM_PACKAGES;
   const bunPackages = deps.bunPackages ?? BUN_PACKAGES;
   const repos = deps.repos ?? REPOS;
+  const onProgress = options.onProgress ?? (() => {});
 
   const prerequisites = {
     node: commandExistsFn("node"),
@@ -136,6 +141,7 @@ export async function runInstall(
 
   if (!skipNpm && prerequisites.node) {
     for (const pkg of npmPackages) {
+      onProgress(`Installing npm package: ${pkg}...`);
       result.npmPackages.push(await installNpmPackage(pkg, runCommandFn));
     }
   }
@@ -148,6 +154,7 @@ export async function runInstall(
     } else {
       await getBunVersionFn();
       for (const pkg of bunPackages) {
+        onProgress(`Installing bun package: ${pkg}...`);
         result.bunPackages.push(await installBunPackage(pkg, runCommandFn));
       }
     }
@@ -155,6 +162,7 @@ export async function runInstall(
 
   if (!skipRepos && prerequisites.git) {
     for (const repo of repos) {
+      onProgress(`Cloning repository: ${repo.name}...`);
       result.repos.push(
         await ensureRepo(repo.name, repo.url, repo.dir, runCommandFn),
       );

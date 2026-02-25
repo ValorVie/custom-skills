@@ -20,6 +20,7 @@ export interface UpdateOptions {
   skipBun?: boolean;
   skipRepos?: boolean;
   deps?: UpdateDependencies;
+  onProgress?: (message: string) => void;
 }
 
 export interface UpdateItemResult {
@@ -48,6 +49,7 @@ export async function runUpdate(
   const npmPackages = deps.npmPackages ?? NPM_PACKAGES;
   const bunPackages = deps.bunPackages ?? BUN_PACKAGES;
   const repos = deps.repos ?? REPOS;
+  const onProgress = options.onProgress ?? (() => {});
 
   const result: UpdateResult = {
     npmPackages: [],
@@ -61,8 +63,10 @@ export async function runUpdate(
       result.errors.push("npm is not installed");
     } else {
       for (const pkg of npmPackages) {
+        onProgress(`Updating npm package: ${pkg}...`);
         const updateResult = await runCommandFn(["npm", "install", "-g", pkg], {
           check: false,
+          timeoutMs: 60_000,
         });
         result.npmPackages.push({
           name: pkg,
@@ -79,8 +83,10 @@ export async function runUpdate(
       result.errors.push("bun is not installed");
     } else {
       for (const pkg of bunPackages) {
+        onProgress(`Updating bun package: ${pkg}...`);
         const updateResult = await runCommandFn(["bun", "install", "-g", pkg], {
           check: false,
+          timeoutMs: 60_000,
         });
         result.bunPackages.push({
           name: pkg,
@@ -105,10 +111,12 @@ export async function runUpdate(
         continue;
       }
 
+      onProgress(`Updating repository: ${repo.name}...`);
       const updateResult = await runCommandFn(
         ["git", "-C", repo.dir, "pull", "--ff-only"],
         {
           check: false,
+          timeoutMs: 60_000,
         },
       );
       result.repos.push({
