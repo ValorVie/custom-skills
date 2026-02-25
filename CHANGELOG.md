@@ -232,6 +232,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2026-02-24
+
+### Added
+
+- **Bun + TypeScript CLI（完整遷移）**
+  - 新增 TypeScript 分層架構：`src/cli/`、`src/core/`、`src/utils/`、`src/tui/`
+  - 新增 Commander.js CLI 入口與全指令群（含 project/standards/hooks/sync/mem）
+  - 新增 Ink TUI 骨架與 main/preview/confirm/settings 視圖切換
+  - 新增 `tests/cli/smoke.test.ts` 與完整 Bun 測試流程
+- **npm 發佈配置**
+  - 套件名稱改為 `@valorvie/ai-dev`
+  - 新增 `build/lint/test` scripts，`build` 輸出 `dist/cli.js`
+  - 支援 `bun add -g @valorvie/ai-dev` 與 `npm install -g @valorvie/ai-dev`
+
+### Changed
+
+- **執行與開發工具鏈**
+  - CLI runtime 由 Python 改為 Bun
+  - 測試框架由 pytest 改為 `bun test`
+  - Lint/format 由 ruff + black 改為 Biome
+
+### Removed
+
+- **Python CLI 實作**
+  - 移除 `script/`、`pyproject.toml`、`uv.lock`、根目錄 Python 測試檔
+
+### Breaking Changes
+
+- 安裝方式改為 npm/Bun 全域安裝，不再使用 `uv tool install` / `pip install -e .`
+- 執行環境需求改為 Bun runtime（取代 Python 3.13 + uv）
+
 ## [0.9.7] - 2026-01-25
 
 ### Added

@@ -1,5 +1,7 @@
 // Use requireActual to bypass any mocks
-const { spawn } = jest.requireActual('child_process');
+const { spawn } = typeof jest !== 'undefined' && jest.requireActual
+  ? jest.requireActual('child_process')
+  : require('child_process');
 const path = require('path');
 
 /**

@@ -11,6 +11,8 @@ const RUN_ID = process.env.TEST_RUN_ID || `${Date.now()}-${Math.random().toStrin
 const BASE_CONTENT_SESSION_ID = `test-cs-001-${RUN_ID}`;
 const BASE_MEMORY_SESSION_ID = `test-ms-001-${RUN_ID}`;
 const BASE_PROJECT = `test-project-${RUN_ID}`;
+const RUN_MEM_SYNC_E2E = process.env.RUN_MEM_SYNC_E2E === "1";
+const describeIf = RUN_MEM_SYNC_E2E ? describe : describe.skip;
 
 async function apiRequest(
   method: string,
@@ -30,7 +32,7 @@ async function apiRequest(
   return { status: res.status, data };
 }
 
-describe("Health", () => {
+describeIf("Health", () => {
   test("GET /api/health returns ok", async () => {
     const { status, data } = await apiRequest("GET", "/api/health");
     expect(status).toBe(200);
@@ -38,7 +40,7 @@ describe("Health", () => {
   });
 });
 
-describe("Auth", () => {
+describeIf("Auth", () => {
   test("POST /api/auth/register requires admin secret", async () => {
     const { status } = await apiRequest("POST", "/api/auth/register", { name: "test" });
     expect(status).toBe(403);
@@ -104,7 +106,7 @@ describe("Auth", () => {
   });
 });
 
-describe("Sync", () => {
+describeIf("Sync", () => {
   let deviceAKey: string;
   let deviceBKey: string;
   let deviceAId: number;

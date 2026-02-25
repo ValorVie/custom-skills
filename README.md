@@ -10,37 +10,46 @@
 
 ### 前置需求
 
-請先安裝 `uv` (Python 專案管理工具)：
+請先安裝以下工具：
+
+- Bun (建議 1.3+)
+- Node.js 與 npm (建議 20+)
 
 **macOS / Linux:**
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -fsSL https://bun.sh/install | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+powershell -c "irm bun.sh/install.ps1|iex"
+```
+
+安裝後可用以下指令確認：
+
+```bash
+bun --version
+npm --version
 ```
 
 ### 安裝 CLI 工具
 
-**從 GitHub 安裝（推薦）：**
+**全域安裝（推薦）：**
 
 ```bash
-# 使用 uv
-uv tool install git+https://github.com/ValorVie/custom-skills.git
+# 使用 Bun
+bun add -g @valorvie/ai-dev
 
-# 使用 pipx
-pipx install git+https://github.com/ValorVie/custom-skills.git
-
-# 私有倉庫需要 token
-uv tool install git+https://<GITHUB_TOKEN>@github.com/ValorVie/custom-skills.git
+# 使用 npm
+npm install -g @valorvie/ai-dev
 ```
 
 **更新 CLI 工具：**
 
 ```bash
-uv tool upgrade ai-dev
+bun update -g @valorvie/ai-dev
+# 或
+npm update -g @valorvie/ai-dev
 ```
 
 **本地開發安裝：**
@@ -49,18 +58,14 @@ uv tool upgrade ai-dev
 git clone https://github.com/ValorVie/custom-skills.git
 cd custom-skills
 
-# 一般安裝（需要更新 pyproject.toml 的 version 欄位後重新安裝才能套用程式碼變更）
-uv tool install . --force
+bun install
 
-# Editable 安裝（推薦開發使用，程式碼變更立即生效）
-uv tool install -e . --force
+# 直接執行原始碼
+bun run src/cli.ts --help
+
+# 產生建置檔
+bun run build
 ```
-
-> **關於 `-e` (editable) 模式**：
-> - **一般安裝**：把源碼複製到安裝目錄，修改源碼後需要重新安裝才會生效
-> - **Editable 安裝**：建立指向專案目錄的連結，修改源碼後**立即生效**，不需重新安裝
->
-> 開發期間建議使用 `-e` 模式，或直接用 `uv run ai-dev <command>` 從專案目錄執行。
 
 ## 使用方式
 
@@ -69,7 +74,7 @@ uv tool install -e . --force
 ```bash
 # 顯示版本
 ai-dev --version
-ai-dev -v
+ai-dev -V
 
 # 顯示說明
 ai-dev --help
@@ -490,7 +495,7 @@ npx skills add vercel-labs/agent-skills
 
 ### 測試 (Test)
 
-執行測試並輸出原始結果（自動偵測專案測試框架）：
+執行 Bun 測試並輸出原始結果：
 
 ```bash
 # 執行所有測試
@@ -516,9 +521,9 @@ ai-dev test -k "test_name"
 | `path` (位置參數) | 測試路徑（檔案或目錄） |
 | `--verbose`, `-v` | 顯示詳細輸出 |
 | `--fail-fast`, `-x` | 失敗時立即停止 |
-| `-k` | 過濾測試名稱 |
+| `--keyword`, `-k` | 過濾測試名稱 |
 
-> **注意**：目前支援 Python (pytest)。
+> **注意**：此指令會呼叫 `bun test`。
 
 ### 覆蓋率 (Coverage)
 
@@ -528,8 +533,8 @@ ai-dev test -k "test_name"
 # 分析整個專案
 ai-dev coverage
 
-# 僅分析指定目錄
-ai-dev coverage --source script/
+# 分析指定測試路徑
+ai-dev coverage tests/
 ```
 
 #### 可選參數
@@ -537,9 +542,8 @@ ai-dev coverage --source script/
 | 參數 | 說明 |
 |------|------|
 | `path` (位置參數) | 測試路徑（檔案或目錄） |
-| `--source`, `-s` | 原始碼路徑 |
 
-> **注意**：目前僅支援 Python，需要 pytest-cov 已安裝。
+> **注意**：此指令會呼叫 `bun test --coverage`。
 
 ### Hooks 管理
 
@@ -580,55 +584,20 @@ ai-dev hooks status
 
 ## 開發
 
-本專案使用 `uv` 管理依賴，設定檔位於 `pyproject.toml`。
+本專案使用 Bun + TypeScript。
 
 ```bash
-# 新增依賴
-uv add <package>
+# 安裝依賴
+bun install
 
-# 同步依賴
-uv sync
+# 執行 CLI
+bun run src/cli.ts --help
 
-# 本地安裝測試
-uv tool install . --force
-
-# 建置套件
-uv build
-```
-
-### 更新套件版本
-
-安全更新 `uv.lock` 中的套件：
-
-```bash
-# 查看可更新的套件（不實際更新）
-uv lock --dry-run --upgrade
-
-# 更新所有套件到最新相容版本（依照 pyproject.toml 的限制）
-uv lock --upgrade
-
-# 只更新特定套件
-uv lock --upgrade-package textual
-
-# 同步安裝（確保環境與 lock 檔一致）
-uv sync
-
-# 測試是否正常運作
-uv run ai-dev tui
-```
-
-> **還原方式**：如果更新後有問題，可以用 `git checkout uv.lock && uv sync` 還原。
-
-### 清除快取
-
-如果遇到版本不一致或奇怪的快取問題：
-
-```bash
-# 清除 uv 快取
-uv cache clean
-
-# 重新同步（強制重新安裝）
-uv sync --reinstall
+# 測試、lint、型別檢查、建置
+bun test
+bun run lint
+bunx tsc --noEmit
+bun run build
 ```
 
 ## 資源來源
