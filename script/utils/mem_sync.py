@@ -262,7 +262,7 @@ def worker_available() -> bool:
         return False
 
 
-def _get_indexed_observation_ids() -> set[int]:
+def get_indexed_observation_ids() -> set[int]:
     """從 ChromaDB SQLite 讀取已索引的 observation sqlite_ids。"""
     if not CHROMA_DB_PATH.exists():
         return set()
@@ -301,7 +301,7 @@ def reindex_observations() -> dict[str, Any]:
     if not db_path.exists():
         raise FileNotFoundError(f"claude-mem 資料庫不存在：{db_path}")
 
-    indexed_ids = _get_indexed_observation_ids()
+    indexed_ids = get_indexed_observation_ids()
 
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
@@ -312,7 +312,28 @@ def reindex_observations() -> dict[str, Any]:
     finally:
         conn.close()
 
-    missing = [dict(r) for r in all_obs if r["id"] not in indexed_ids]
+    # 用「reindex 實際送出的 text」做 hash，判斷該內容是否已有索引
+    # 防止 narrative=None 的原始記錄和 narrative=title 的副本被視為不同
+    indexed_texts: set[str] = set()
+    for r in all_obs:
+        obs = dict(r)
+        if obs["id"] in indexed_ids:
+            text = obs.get("narrative") or obs.get("title") or ""
+            if text.strip():
+                indexed_texts.add(text.strip())
+
+    missing: list[dict[str, Any]] = []
+    for r in all_obs:
+        obs = dict(r)
+        if obs["id"] in indexed_ids:
+            continue
+        text = obs.get("narrative") or obs.get("title") or ""
+        if not text.strip():
+            continue
+        if text.strip() in indexed_texts:
+            continue  # 該內容已透過其他記錄被索引
+        missing.append(obs)
+
     stats: dict[str, Any] = {
         "total": len(all_obs),
         "already_indexed": len(indexed_ids),
@@ -326,8 +347,6 @@ def reindex_observations() -> dict[str, Any]:
 
     for obs in missing:
         text = obs.get("narrative") or obs.get("title") or ""
-        if not text.strip():
-            continue
 
         payload = json.dumps(
             {

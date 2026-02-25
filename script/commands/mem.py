@@ -22,6 +22,7 @@ from ..utils.mem_sync import (
     api_request,
     append_pulled_hashes,
     compute_content_hash,
+    get_indexed_observation_ids,
     import_to_local_db,
     load_pulled_hashes,
     load_server_config,
@@ -384,6 +385,13 @@ def pull() -> None:
                 console.print(
                     f"[green]索引同步完成[/green] synced={synced} errors={errors}"
                 )
+            # reindex 透過 worker /api/memory/save 會建立副本，自動清理
+            if synced > 0:
+                removed = _cleanup_duplicates()
+                if removed > 0:
+                    console.print(
+                        f"[dim]自動清理 {removed} 筆重複 observations[/dim]"
+                    )
         except (FileNotFoundError, RuntimeError):
             console.print(
                 "[yellow]ChromaDB 索引同步失敗，稍後可執行 ai-dev mem reindex 補建[/yellow]"
@@ -425,15 +433,18 @@ def status() -> None:
     console.print(f"[dim]Last pull epoch: {config.get('last_pull_epoch', 0)}[/dim]")
 
 
-@app.command()
-def cleanup() -> None:
-    """掃描並刪除本地 claude-mem 中的重複 observations。"""
+def _cleanup_duplicates() -> int:
+    """掃描並刪除本地 claude-mem 中的重複 observations，回傳移除數量。
+
+    優先保留已被 ChromaDB 索引的記錄；若都未索引則保留最小 ID。
+    """
     observations = query_local_db(
         "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id"
     )
     if not observations:
-        console.print("[green]本地無 observations[/green]")
-        return
+        return 0
+
+    indexed_ids = get_indexed_observation_ids()
 
     hash_groups: dict[str, list[int]] = {}
     for obs in observations:
@@ -442,12 +453,15 @@ def cleanup() -> None:
 
     duplicate_ids: list[int] = []
     for ids in hash_groups.values():
-        if len(ids) > 1:
-            duplicate_ids.extend(ids[1:])
+        if len(ids) <= 1:
+            continue
+        # 優先保留已索引的記錄
+        indexed_in_group = [i for i in ids if i in indexed_ids]
+        keep = indexed_in_group[0] if indexed_in_group else ids[0]
+        duplicate_ids.extend(i for i in ids if i != keep)
 
     if not duplicate_ids:
-        console.print("[green]無重複 observations[/green]")
-        return
+        return 0
 
     conn = sqlite3.connect(str(CLAUDE_MEM_DB_PATH))
     try:
@@ -460,9 +474,19 @@ def cleanup() -> None:
     finally:
         conn.close()
 
-    console.print(
-        f"[bold green]Cleanup 完成[/bold green] 移除 {len(duplicate_ids)} 筆重複"
-    )
+    return len(duplicate_ids)
+
+
+@app.command()
+def cleanup() -> None:
+    """掃描並刪除本地 claude-mem 中的重複 observations。"""
+    removed = _cleanup_duplicates()
+    if removed == 0:
+        console.print("[green]無重複 observations[/green]")
+    else:
+        console.print(
+            f"[bold green]Cleanup 完成[/bold green] 移除 {removed} 筆重複"
+        )
 
 
 @app.command()
@@ -496,6 +520,13 @@ def reindex() -> None:
     if stats["errors"] > 0:
         console.print(
             "[yellow]部分 observations 索引失敗，請確認 worker 正常運作後重試[/yellow]"
+        )
+
+    # reindex 透過 worker /api/memory/save 會建立副本，自動清理
+    removed = _cleanup_duplicates()
+    if removed > 0:
+        console.print(
+            f"[dim]自動清理 {removed} 筆重複 observations[/dim]"
         )
 
 
