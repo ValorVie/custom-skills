@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "bun-development": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "8729b190cc11927a7d4512037fc68fd4b5145b024d89764dcaf85f0ffa760e1d"
+    },
+    "javascript-testing-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "34219092e71607f9257720b3b43ecd37c8af0d3dbf695e3263f4c68ab0b019e2"
+    },
+    "typescript-advanced-types": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "a03a83996ae9d2f4dd6d4db08899d61761c7d5351bce4c695d20a21197742a36"
+    }
+  }
+}

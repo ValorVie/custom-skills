@@ -366,6 +366,11 @@ npx skills add dedalus-erp-pas/foundation-skills@vue-best-practices -y
 
 # Obsidian Visual
 npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -g -y
+
+# Bun 開發
+npx skills add sickn33/antigravity-awesome-skills@bun-development -y
+npx skills add wshobson/agents@typescript-advanced-types -y
+npx skills add wshobson/agents@javascript-testing-patterns -y
 ```
 
 
