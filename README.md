@@ -34,7 +34,20 @@ npm --version
 
 ### 安裝 CLI 工具
 
-**全域安裝（推薦）：**
+**從 Git 安裝（推薦）：**
+
+```bash
+# 使用 Bun（推薦）
+bun add -g github:ValorVie/custom-skills
+
+# 指定版本 tag
+bun add -g github:ValorVie/custom-skills#v2.0.0
+
+# 使用 npm
+npm install -g github:ValorVie/custom-skills
+```
+
+**從 npm registry 安裝：**
 
 ```bash
 # 使用 Bun
@@ -47,6 +60,10 @@ npm install -g @valorvie/ai-dev
 **更新 CLI 工具：**
 
 ```bash
+# Git 安裝方式：重新安裝即可取得最新版
+bun add -g github:ValorVie/custom-skills
+
+# npm registry 安裝方式
 bun update -g @valorvie/ai-dev
 # 或
 npm update -g @valorvie/ai-dev
