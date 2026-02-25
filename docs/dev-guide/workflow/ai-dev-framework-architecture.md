@@ -555,7 +555,7 @@ npm login
 
 # 確認 scope 可用
 npm whoami
-npm access ls-packages
+npm access list packages
 ```
 
 **發佈流程：**
