@@ -61,7 +61,9 @@ describe("core/mem-sync", () => {
     db.run(
       "CREATE TABLE observations (id INTEGER PRIMARY KEY, title TEXT, narrative TEXT, facts TEXT, project TEXT, type TEXT);",
     );
-    db.run("INSERT INTO observations (title, narrative) VALUES ('one', 'text one');");
+    db.run(
+      "INSERT INTO observations (title, narrative) VALUES ('one', 'text one');",
+    );
     db.close();
 
     try {
@@ -101,10 +103,18 @@ describe("core/mem-sync", () => {
       "CREATE TABLE observations (id INTEGER PRIMARY KEY, title TEXT, narrative TEXT, facts TEXT, project TEXT, type TEXT);",
     );
     // Insert 3 rows with same content — id 2 and 3 are duplicates
-    db.run("INSERT INTO observations (id, title, narrative) VALUES (1, 'dup', 'same text');");
-    db.run("INSERT INTO observations (id, title, narrative) VALUES (2, 'dup', 'same text');");
-    db.run("INSERT INTO observations (id, title, narrative) VALUES (3, 'dup', 'same text');");
-    db.run("INSERT INTO observations (id, title, narrative) VALUES (4, 'unique', 'different');");
+    db.run(
+      "INSERT INTO observations (id, title, narrative) VALUES (1, 'dup', 'same text');",
+    );
+    db.run(
+      "INSERT INTO observations (id, title, narrative) VALUES (2, 'dup', 'same text');",
+    );
+    db.run(
+      "INSERT INTO observations (id, title, narrative) VALUES (3, 'dup', 'same text');",
+    );
+    db.run(
+      "INSERT INTO observations (id, title, narrative) VALUES (4, 'unique', 'different');",
+    );
     db.close();
 
     try {
@@ -113,7 +123,9 @@ describe("core/mem-sync", () => {
 
       // Verify only 2 rows remain
       const db2 = new sqlite.Database(dbPath, { readonly: true });
-      const row = db2.query("SELECT COUNT(*) AS count FROM observations").get() as {
+      const row = db2
+        .query("SELECT COUNT(*) AS count FROM observations")
+        .get() as {
         count: number;
       };
       db2.close();

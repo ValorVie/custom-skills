@@ -198,7 +198,10 @@ function computeContentHash(obs: {
     obs.project ?? "",
     obs.type ?? "",
   ];
-  return createHash("sha256").update(parts.join("\n")).digest("hex").slice(0, 32);
+  return createHash("sha256")
+    .update(parts.join("\n"))
+    .digest("hex")
+    .slice(0, 32);
 }
 
 interface ObservationRow {
@@ -214,7 +217,10 @@ function openDb(dbPath: string, readonly = true) {
   // bun:sqlite is available in Bun runtime
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const sqlite = require("bun:sqlite");
-  return new sqlite.Database(dbPath, { readonly, create: false });
+  if (readonly) {
+    return new sqlite.Database(dbPath, { readonly: true, create: false });
+  }
+  return new sqlite.Database(dbPath);
 }
 
 function getIndexedObservationIds(chromaDbPath: string): Set<number> {
@@ -234,7 +240,9 @@ function getIndexedObservationIds(chromaDbPath: string): Set<number> {
         `SELECT DISTINCT int_value FROM embedding_metadata WHERE key='sqlite_id' AND id IN (${placeholders})`,
       )
       .all(...embedIds) as { int_value: number | null }[];
-    return new Set(rows.map((r) => r.int_value).filter((v): v is number => v != null));
+    return new Set(
+      rows.map((r) => r.int_value).filter((v): v is number => v != null),
+    );
   } finally {
     db.close();
   }
@@ -268,7 +276,9 @@ export async function cleanupDuplicates(
   let allObs: ObservationRow[];
   try {
     allObs = db
-      .query("SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id")
+      .query(
+        "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id",
+      )
       .all() as ObservationRow[];
   } finally {
     db.close();
@@ -296,7 +306,10 @@ export async function cleanupDuplicates(
   const writeDb = openDb(dbPath, false);
   try {
     const placeholders = duplicateIds.map(() => "?").join(",");
-    writeDb.run(`DELETE FROM observations WHERE id IN (${placeholders})`, ...duplicateIds);
+    writeDb.run(
+      `DELETE FROM observations WHERE id IN (${placeholders})`,
+      ...duplicateIds,
+    );
   } finally {
     writeDb.close();
   }
@@ -325,7 +338,9 @@ export async function reindexMemData(
   let allObs: ObservationRow[];
   try {
     allObs = db
-      .query("SELECT id, title, narrative, project FROM observations ORDER BY id")
+      .query(
+        "SELECT id, title, narrative, project FROM observations ORDER BY id",
+      )
       .all() as ObservationRow[];
   } finally {
     db.close();

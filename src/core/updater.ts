@@ -4,10 +4,22 @@ import { join } from "node:path";
 import { BUN_PACKAGES, NPM_PACKAGES, REPOS } from "../utils/shared";
 import { commandExists, runCommand } from "../utils/system";
 
+type RepoConfig = (typeof REPOS)[number];
+
+export interface UpdateDependencies {
+  commandExistsFn?: typeof commandExists;
+  runCommandFn?: typeof runCommand;
+  accessFn?: typeof access;
+  npmPackages?: readonly string[];
+  bunPackages?: readonly string[];
+  repos?: readonly RepoConfig[];
+}
+
 export interface UpdateOptions {
   skipNpm?: boolean;
   skipBun?: boolean;
   skipRepos?: boolean;
+  deps?: UpdateDependencies;
 }
 
 export interface UpdateItemResult {
@@ -26,9 +38,16 @@ export interface UpdateResult {
 export async function runUpdate(
   options: UpdateOptions = {},
 ): Promise<UpdateResult> {
+  const deps = options.deps ?? {};
   const skipNpm = options.skipNpm ?? false;
   const skipBun = options.skipBun ?? false;
   const skipRepos = options.skipRepos ?? false;
+  const commandExistsFn = deps.commandExistsFn ?? commandExists;
+  const runCommandFn = deps.runCommandFn ?? runCommand;
+  const accessFn = deps.accessFn ?? access;
+  const npmPackages = deps.npmPackages ?? NPM_PACKAGES;
+  const bunPackages = deps.bunPackages ?? BUN_PACKAGES;
+  const repos = deps.repos ?? REPOS;
 
   const result: UpdateResult = {
     npmPackages: [],
@@ -38,11 +57,11 @@ export async function runUpdate(
   };
 
   if (!skipNpm) {
-    if (!commandExists("npm")) {
+    if (!commandExistsFn("npm")) {
       result.errors.push("npm is not installed");
     } else {
-      for (const pkg of NPM_PACKAGES) {
-        const updateResult = await runCommand(["npm", "install", "-g", pkg], {
+      for (const pkg of npmPackages) {
+        const updateResult = await runCommandFn(["npm", "install", "-g", pkg], {
           check: false,
         });
         result.npmPackages.push({
@@ -56,11 +75,11 @@ export async function runUpdate(
   }
 
   if (!skipBun) {
-    if (!commandExists("bun")) {
+    if (!commandExistsFn("bun")) {
       result.errors.push("bun is not installed");
     } else {
-      for (const pkg of BUN_PACKAGES) {
-        const updateResult = await runCommand(["bun", "install", "-g", pkg], {
+      for (const pkg of bunPackages) {
+        const updateResult = await runCommandFn(["bun", "install", "-g", pkg], {
           check: false,
         });
         result.bunPackages.push({
@@ -74,9 +93,9 @@ export async function runUpdate(
   }
 
   if (!skipRepos) {
-    for (const repo of REPOS) {
+    for (const repo of repos) {
       try {
-        await access(join(repo.dir, ".git"));
+        await accessFn(join(repo.dir, ".git"));
       } catch {
         result.repos.push({
           name: repo.name,
@@ -86,7 +105,7 @@ export async function runUpdate(
         continue;
       }
 
-      const updateResult = await runCommand(
+      const updateResult = await runCommandFn(
         ["git", "-C", repo.dir, "pull", "--ff-only"],
         {
           check: false,

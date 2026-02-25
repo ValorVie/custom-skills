@@ -56,6 +56,7 @@ describe("core/sync-engine", () => {
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
 
       await engine.init("https://example.com/repo.git");
+      await engine.removeDirectory("~/.claude");
       await engine.addDirectory(localDir);
 
       await engine.push();

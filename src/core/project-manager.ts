@@ -19,6 +19,11 @@ export interface ProjectInitResult {
 
 export interface ProjectUpdateOptions {
   only?: "openspec" | "uds";
+  deps?: ProjectUpdateDependencies;
+}
+
+export interface ProjectUpdateDependencies {
+  runCommandFn?: typeof runCommand;
 }
 
 export interface ProjectUpdateResult {
@@ -83,12 +88,15 @@ export async function initProject(
 export async function updateProject(
   options: ProjectUpdateOptions = {},
 ): Promise<ProjectUpdateResult> {
+  const runCommandFn = options.deps?.runCommandFn ?? runCommand;
   const result: ProjectUpdateResult = { errors: [] };
   const shouldRunOpenspec = !options.only || options.only === "openspec";
   const shouldRunUds = !options.only || options.only === "uds";
 
   if (shouldRunOpenspec) {
-    const command = await runCommand(["openspec", "update"], { check: false });
+    const command = await runCommandFn(["openspec", "update"], {
+      check: false,
+    });
     result.openspec = command.exitCode === 0;
     if (!result.openspec) {
       result.errors.push("openspec update failed");
@@ -96,7 +104,7 @@ export async function updateProject(
   }
 
   if (shouldRunUds) {
-    const command = await runCommand(["uds", "update"], { check: false });
+    const command = await runCommandFn(["uds", "update"], { check: false });
     result.uds = command.exitCode === 0;
     if (!result.uds) {
       result.errors.push("uds update failed");

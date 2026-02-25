@@ -4,10 +4,22 @@ import { dirname, join } from "node:path";
 import { BUN_PACKAGES, NPM_PACKAGES, REPOS } from "../utils/shared";
 import { commandExists, getBunVersion, runCommand } from "../utils/system";
 
+type RepoConfig = (typeof REPOS)[number];
+
+export interface InstallDependencies {
+  commandExistsFn?: typeof commandExists;
+  runCommandFn?: typeof runCommand;
+  getBunVersionFn?: typeof getBunVersion;
+  npmPackages?: readonly string[];
+  bunPackages?: readonly string[];
+  repos?: readonly RepoConfig[];
+}
+
 export interface InstallOptions {
   skipNpm?: boolean;
   skipBun?: boolean;
   skipRepos?: boolean;
+  deps?: InstallDependencies;
 }
 
 export interface InstallItemResult {
@@ -30,8 +42,9 @@ export interface InstallResult {
 
 async function installNpmPackage(
   packageName: string,
+  runCommandFn: typeof runCommand,
 ): Promise<InstallItemResult> {
-  const result = await runCommand(["npm", "install", "-g", packageName], {
+  const result = await runCommandFn(["npm", "install", "-g", packageName], {
     check: false,
   });
 
@@ -44,8 +57,9 @@ async function installNpmPackage(
 
 async function installBunPackage(
   packageName: string,
+  runCommandFn: typeof runCommand,
 ): Promise<InstallItemResult> {
-  const result = await runCommand(["bun", "install", "-g", packageName], {
+  const result = await runCommandFn(["bun", "install", "-g", packageName], {
     check: false,
   });
 
@@ -60,6 +74,7 @@ async function ensureRepo(
   repoName: string,
   repoUrl: string,
   repoDir: string,
+  runCommandFn: typeof runCommand,
 ): Promise<InstallItemResult> {
   try {
     await access(join(repoDir, ".git"));
@@ -73,7 +88,7 @@ async function ensureRepo(
   }
 
   await mkdir(dirname(repoDir), { recursive: true });
-  const result = await runCommand(["git", "clone", repoUrl, repoDir], {
+  const result = await runCommandFn(["git", "clone", repoUrl, repoDir], {
     check: false,
   });
 
@@ -87,14 +102,21 @@ async function ensureRepo(
 export async function runInstall(
   options: InstallOptions = {},
 ): Promise<InstallResult> {
+  const deps = options.deps ?? {};
   const skipNpm = options.skipNpm ?? false;
   const skipBun = options.skipBun ?? false;
   const skipRepos = options.skipRepos ?? false;
+  const commandExistsFn = deps.commandExistsFn ?? commandExists;
+  const runCommandFn = deps.runCommandFn ?? runCommand;
+  const getBunVersionFn = deps.getBunVersionFn ?? getBunVersion;
+  const npmPackages = deps.npmPackages ?? NPM_PACKAGES;
+  const bunPackages = deps.bunPackages ?? BUN_PACKAGES;
+  const repos = deps.repos ?? REPOS;
 
   const prerequisites = {
-    node: commandExists("node"),
-    git: commandExists("git"),
-    bun: commandExists("bun"),
+    node: commandExistsFn("node"),
+    git: commandExistsFn("git"),
+    bun: commandExistsFn("bun"),
   };
 
   const result: InstallResult = {
@@ -113,8 +135,8 @@ export async function runInstall(
   }
 
   if (!skipNpm && prerequisites.node) {
-    for (const pkg of NPM_PACKAGES) {
-      result.npmPackages.push(await installNpmPackage(pkg));
+    for (const pkg of npmPackages) {
+      result.npmPackages.push(await installNpmPackage(pkg, runCommandFn));
     }
   }
 
@@ -124,16 +146,18 @@ export async function runInstall(
         "Bun is not installed; skipped Bun package installation",
       );
     } else {
-      await getBunVersion();
-      for (const pkg of BUN_PACKAGES) {
-        result.bunPackages.push(await installBunPackage(pkg));
+      await getBunVersionFn();
+      for (const pkg of bunPackages) {
+        result.bunPackages.push(await installBunPackage(pkg, runCommandFn));
       }
     }
   }
 
   if (!skipRepos && prerequisites.git) {
-    for (const repo of REPOS) {
-      result.repos.push(await ensureRepo(repo.name, repo.url, repo.dir));
+    for (const repo of repos) {
+      result.repos.push(
+        await ensureRepo(repo.name, repo.url, repo.dir, runCommandFn),
+      );
     }
   }
 
