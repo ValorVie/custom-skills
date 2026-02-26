@@ -131,4 +131,98 @@ describe("core/project-manager", () => {
     expect(result.uds).toBe(false);
     expect(result.errors).toEqual(["uds update failed"]);
   });
+
+  test("initProject smart-merges .gitignore and .gitattributes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-project-"));
+    const templateDir = join(root, "project-template");
+    const targetDir = join(root, "target");
+
+    try {
+      await mkdir(templateDir, { recursive: true });
+      await mkdir(targetDir, { recursive: true });
+      await writeFile(join(templateDir, ".gitignore"), "one\ntwo\n", "utf8");
+      await writeFile(
+        join(templateDir, ".gitattributes"),
+        "*.db binary\n",
+        "utf8",
+      );
+      await writeFile(join(targetDir, ".gitignore"), "two\nthree\n", "utf8");
+      await writeFile(
+        join(targetDir, ".gitattributes"),
+        "*.txt text\n",
+        "utf8",
+      );
+
+      await initProject({ targetDir, templateDir, force: false });
+
+      const gitignore = await readFile(join(targetDir, ".gitignore"), "utf8");
+      expect(gitignore).toContain("one");
+      expect(gitignore).toContain("two");
+      expect(gitignore).toContain("three");
+
+      const gitattributes = await readFile(
+        join(targetDir, ".gitattributes"),
+        "utf8",
+      );
+      expect(gitattributes).toContain("*.db binary");
+      expect(gitattributes).toContain("*.txt text");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("initProject creates backup before overwrite when force is false", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-project-"));
+    const templateDir = join(root, "project-template");
+    const targetDir = join(root, "target");
+
+    try {
+      await mkdir(templateDir, { recursive: true });
+      await mkdir(targetDir, { recursive: true });
+      await writeFile(join(templateDir, "README.md"), "template\n", "utf8");
+      await writeFile(join(targetDir, "README.md"), "existing\n", "utf8");
+
+      const result = await initProject({
+        targetDir,
+        templateDir,
+        force: false,
+      });
+      expect(result.success).toBe(true);
+      expect(result.backupDir).toBeDefined();
+
+      const backupContent = await readFile(
+        join(result.backupDir as string, "README.md"),
+        "utf8",
+      );
+      expect(backupContent).toBe("existing\n");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("initProject sets reverseSynced in developer mode", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-project-"));
+    const projectDir = join(root, "custom-skills");
+    const templateDir = join(projectDir, "project-template");
+    const previousCwd = process.cwd();
+
+    try {
+      await mkdir(projectDir, { recursive: true });
+      await mkdir(templateDir, { recursive: true });
+      await writeFile(join(templateDir, "README.md"), "template\n", "utf8");
+      await writeFile(join(projectDir, "README.md"), "project\n", "utf8");
+
+      process.chdir(projectDir);
+      const result = await initProject({
+        targetDir: projectDir,
+        templateDir,
+        force: false,
+      });
+
+      expect(result.reverseSynced).toBe(true);
+    } finally {
+      process.chdir(previousCwd);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });

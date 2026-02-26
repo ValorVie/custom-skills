@@ -10,6 +10,15 @@ describe("core/updater", () => {
       skipNpm: true,
       skipBun: true,
       skipRepos: true,
+      skipPlugins: true,
+      deps: {
+        commandExistsFn: () => true,
+        runCommandFn: async () => ({
+          stdout: "",
+          stderr: "",
+          exitCode: 0,
+        }),
+      },
     });
 
     expect(result.npmPackages.length).toBe(0);
@@ -21,8 +30,14 @@ describe("core/updater", () => {
   test("runUpdate reports missing npm and bun when commands are unavailable", async () => {
     const result = await runUpdate({
       skipRepos: true,
+      skipPlugins: true,
       deps: {
         commandExistsFn: () => false,
+        runCommandFn: async () => ({
+          stdout: "",
+          stderr: "",
+          exitCode: 0,
+        }),
       },
     });
 
@@ -35,6 +50,7 @@ describe("core/updater", () => {
 
   test("runUpdate handles mixed update outcomes", async () => {
     const result = await runUpdate({
+      skipPlugins: true,
       deps: {
         commandExistsFn: () => true,
         npmPackages: ["npm-a"],
@@ -58,6 +74,15 @@ describe("core/updater", () => {
           throw new Error("not found");
         },
         runCommandFn: async (command: string[]) => {
+          if (command[0] === "claude") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          if (command[0] === "uds") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          if (command[0] === "npx" && command[1] === "skills") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
           if (command[0] === "npm") {
             return { stdout: "", stderr: "", exitCode: 0 };
           }
@@ -82,13 +107,17 @@ describe("core/updater", () => {
       { name: "repo-found", success: true, message: undefined },
       { name: "repo-missing", success: false, message: "repository not found" },
     ]);
-    expect(result.errors.length).toBe(0);
+    expect(result.summary.upToDate).toEqual(["repo-found"]);
+    expect(result.summary.missing).toEqual(["repo-missing"]);
+    expect(result.errors).toContain("bun failed");
+    expect(result.errors).toContain("repository not found");
   });
 
   test("runUpdate passes timeoutMs to runCommandFn", async () => {
     const calls: { command: string[]; options: RunCommandOptions }[] = [];
 
     const result = await runUpdate({
+      skipPlugins: true,
       deps: {
         commandExistsFn: () => true,
         npmPackages: ["test-npm"],
@@ -124,5 +153,75 @@ describe("core/updater", () => {
     const gitCall = calls.find((c) => c.command[0] === "git");
     expect(gitCall).toBeDefined();
     expect(gitCall?.options.timeoutMs).toBe(60_000);
+  });
+
+  test("runUpdate backs up local changes before reset", async () => {
+    let backupCalled = false;
+
+    const result = await runUpdate({
+      skipNpm: true,
+      skipBun: true,
+      skipPlugins: true,
+      deps: {
+        commandExistsFn: () => true,
+        repos: [
+          {
+            name: "repo-a",
+            url: "https://example.com/repo-a.git",
+            dir: "/tmp/repo-a",
+          },
+        ],
+        accessFn: async () => {},
+        hasLocalChangesFn: async () => true,
+        backupDirtyFilesFn: async () => {
+          backupCalled = true;
+          return "/tmp/backup";
+        },
+        runCommandFn: async (command: string[]) => {
+          if (command[0] === "uds") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          if (command[0] === "npx" && command[1] === "skills") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          if (
+            command[0] === "git" &&
+            command[command.length - 1].startsWith("HEAD...")
+          ) {
+            return { stdout: "0 1\n", stderr: "", exitCode: 0 };
+          }
+          return { stdout: "", stderr: "", exitCode: 0 };
+        },
+      },
+    });
+
+    expect(backupCalled).toBe(true);
+    expect(result.repos[0]?.success).toBe(true);
+  });
+
+  test("runUpdate supports skipping plugin marketplace update", async () => {
+    const calls: string[][] = [];
+
+    await runUpdate({
+      skipNpm: true,
+      skipBun: true,
+      skipRepos: true,
+      skipPlugins: true,
+      deps: {
+        commandExistsFn: () => true,
+        runCommandFn: async (command: string[]) => {
+          calls.push(command);
+          return { stdout: "", stderr: "", exitCode: 0 };
+        },
+      },
+    });
+
+    expect(
+      calls.some(
+        (command) =>
+          command[0] === "npx" &&
+          command[1] === "@anthropic-ai/plugin-marketplace@latest",
+      ),
+    ).toBe(false);
   });
 });

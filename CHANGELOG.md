@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **v2 CLI 行為對齊（Phase 3 + 收尾）**
+  - `status`/`list`/`toggle` 新增格式化輸出、狀態顯示、來源與驗證邏輯
+  - `add-custom-repo`/`update-custom-repo` 補齊結構驗證、`--fix` 與安全更新摘要流程
+  - `hooks` 補齊 uninstall 確認與實際 plugin 複製；`test`/`coverage` 補齊框架偵測與 `--source`
+  - 補齊對應 i18n 字串、smoke 測試與 Phase 3 整體驗證（tests/lint/tsc）
+
 - **新增 `ai-dev sync` 指令群組（OpenSpec: ai-dev-sync-command）**
   - 新增 `ai-dev sync init/push/pull/status/add/remove` 六個子指令
   - 新增 `~/.config/ai-dev/sync.yaml` 與 `~/.config/ai-dev/sync-repo/` 路徑管理

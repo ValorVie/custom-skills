@@ -1,6 +1,9 @@
+import chalk from "chalk";
 import type { Command } from "commander";
 
 import { checkEnvironment } from "../core/status-checker";
+import { printTable } from "../utils/formatter";
+import { t } from "../utils/i18n";
 
 function mark(installed: boolean): string {
   return installed ? "OK" : "MISSING";
@@ -19,34 +22,85 @@ export function registerStatusCommand(program: Command): void {
         return;
       }
 
-      console.log("Core Tools");
-      console.log(
-        `- Git: ${mark(status.git.installed)} ${status.git.version ?? ""}`.trim(),
-      );
-      console.log(
-        `- Node: ${mark(status.node.installed)} ${status.node.version ?? ""}`.trim(),
-      );
-      console.log(
-        `- Bun: ${mark(status.bun.installed)} ${status.bun.version ?? ""}`.trim(),
-      );
-      console.log(
-        `- gh: ${mark(status.gh.installed)} ${status.gh.version ?? ""}`.trim(),
+      printTable(
+        ["Core Tool", "Status", "Version", "Path"],
+        [
+          [
+            "Git",
+            mark(status.git.installed),
+            status.git.version ?? "",
+            status.git.path ?? "",
+          ],
+          [
+            "Node",
+            mark(status.node.installed),
+            status.node.version ?? "",
+            status.node.path ?? "",
+          ],
+          [
+            "Bun",
+            mark(status.bun.installed),
+            status.bun.version ?? "",
+            status.bun.path ?? "",
+          ],
+          [
+            "gh",
+            mark(status.gh.installed),
+            status.gh.version ?? "",
+            status.gh.path ?? "",
+          ],
+        ],
       );
 
-      console.log("\nNPM Packages");
-      for (const pkg of status.npmPackages) {
-        const suffix = pkg.version ? ` (${pkg.version})` : "";
-        console.log(`- ${pkg.name}: ${mark(pkg.installed)}${suffix}`);
-      }
+      printTable(
+        ["NPM Package", "Status", "Version"],
+        status.npmPackages.map((pkg) => [
+          pkg.name,
+          mark(pkg.installed),
+          pkg.version ?? "",
+        ]),
+      );
 
-      console.log("\nRepositories");
-      for (const repo of status.repos) {
-        const state = repo.exists
-          ? repo.isGitRepo
-            ? "git"
-            : "dir"
-          : "missing";
-        console.log(`- ${repo.name}: ${state} (${repo.path})`);
+      const repoRows = status.repos.map((repo) => {
+        let syncText: string = repo.syncState;
+        if (repo.syncState === "updates-available") {
+          syncText = t("status.updates_available", {
+            count: String(repo.behind),
+          });
+        }
+        if (repo.syncState === "up-to-date") {
+          syncText = chalk.green("up-to-date");
+        }
+
+        return [
+          repo.name,
+          repo.branch ?? "",
+          syncText,
+          String(repo.behind),
+          String(repo.ahead),
+          repo.path,
+        ];
+      });
+
+      printTable(
+        ["Repository", "Branch", "Sync", "Behind", "Ahead", "Path"],
+        repoRows,
+      );
+
+      if (status.upstreamSync.length > 0) {
+        printTable(
+          ["Upstream", "Status", "Behind", "Synced", "Format", "Path"],
+          status.upstreamSync.map((item) => [
+            item.name,
+            item.status === "behind"
+              ? t("status.upstream_behind", { count: String(item.behind) })
+              : item.status,
+            String(item.behind),
+            item.syncedAt ? item.syncedAt.slice(5, 10) : "",
+            item.format ?? "",
+            item.path,
+          ]),
+        );
       }
     });
 }

@@ -1,11 +1,16 @@
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
+import YAML from "yaml";
+
+import { paths } from "../utils/paths";
 import { NPM_PACKAGES, REPOS } from "../utils/shared";
 import {
   commandExists,
   getBunVersion,
   getOS,
+  type RunCommandOptions,
   runCommand,
 } from "../utils/system";
 
@@ -26,6 +31,26 @@ export interface RepoStatus {
   path: string;
   exists: boolean;
   isGitRepo: boolean;
+  branch: string | null;
+  ahead: number;
+  behind: number;
+  syncState:
+    | "missing"
+    | "not-git"
+    | "up-to-date"
+    | "updates-available"
+    | "local-ahead"
+    | "diverged"
+    | "unknown";
+}
+
+export interface UpstreamSyncStatus {
+  name: string;
+  path: string;
+  format: string | null;
+  syncedAt: string | null;
+  status: "synced" | "behind" | "uninstalled" | "unknown";
+  behind: number;
 }
 
 export interface EnvironmentStatus {
@@ -35,6 +60,41 @@ export interface EnvironmentStatus {
   gh: ToolStatus;
   npmPackages: NpmPackageStatus[];
   repos: RepoStatus[];
+  upstreamSync: UpstreamSyncStatus[];
+}
+
+interface UpstreamSourceEntry {
+  repo?: string;
+  branch?: string;
+  local_path?: string;
+  format?: string;
+}
+
+interface LastSyncEntry {
+  commit?: string;
+  synced_at?: string;
+}
+
+export interface StatusCheckerDependencies {
+  commandExistsFn?: typeof commandExists;
+  runCommandFn?: (
+    command: string[],
+    options?: RunCommandOptions,
+  ) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
+  accessFn?: typeof access;
+  resolveCommandPathFn?: (command: string) => Promise<string | null>;
+  resolveVersionFn?: (
+    command: string,
+    args?: string[],
+  ) => Promise<string | null>;
+  npmPackages?: readonly string[];
+  repos?: readonly (typeof REPOS)[number][];
+  upstreamSourcesPath?: string;
+  upstreamLastSyncPath?: string;
+}
+
+export interface CheckEnvironmentOptions {
+  deps?: StatusCheckerDependencies;
 }
 
 function normalizePackageName(packageName: string): string {
@@ -62,8 +122,9 @@ async function resolveCommandPath(command: string): Promise<string | null> {
 async function resolveVersion(
   command: string,
   args: string[] = ["--version"],
+  runCommandFn: StatusCheckerDependencies["runCommandFn"] = runCommand,
 ): Promise<string | null> {
-  const result = await runCommand([command, ...args], {
+  const result = await runCommandFn([command, ...args], {
     check: false,
     timeoutMs: 5000,
   });
@@ -74,24 +135,39 @@ async function resolveVersion(
   return line?.trim() || null;
 }
 
-async function checkTool(command: string): Promise<ToolStatus> {
-  if (!commandExists(command)) {
+async function checkTool(
+  command: string,
+  deps: {
+    commandExistsFn: typeof commandExists;
+    resolveCommandPathFn: (command: string) => Promise<string | null>;
+    resolveVersionFn: (
+      command: string,
+      args?: string[],
+    ) => Promise<string | null>;
+  },
+): Promise<ToolStatus> {
+  if (!deps.commandExistsFn(command)) {
     return { installed: false, version: null, path: null };
   }
 
   const version =
-    command === "bun" ? await getBunVersion() : await resolveVersion(command);
+    command === "bun"
+      ? await getBunVersion()
+      : await deps.resolveVersionFn(command);
 
   return {
     installed: true,
     version,
-    path: await resolveCommandPath(command),
+    path: await deps.resolveCommandPathFn(command),
   };
 }
 
-async function checkNpmPackage(packageName: string): Promise<NpmPackageStatus> {
+async function checkNpmPackage(
+  packageName: string,
+  runCommandFn: NonNullable<StatusCheckerDependencies["runCommandFn"]>,
+): Promise<NpmPackageStatus> {
   const normalized = normalizePackageName(packageName);
-  const result = await runCommand(
+  const result = await runCommandFn(
     ["npm", "list", "-g", normalized, "--depth=0", "--json"],
     {
       check: false,
@@ -118,20 +194,121 @@ async function checkNpmPackage(packageName: string): Promise<NpmPackageStatus> {
   }
 }
 
+async function compareRemote(
+  repoPath: string,
+  branch: string,
+  runCommandFn: NonNullable<StatusCheckerDependencies["runCommandFn"]>,
+): Promise<{ ahead: number; behind: number; ok: boolean }> {
+  const compareWithUpstream = await runCommandFn(
+    [
+      "git",
+      "-C",
+      repoPath,
+      "rev-list",
+      "--left-right",
+      "--count",
+      "HEAD...@{upstream}",
+    ],
+    {
+      check: false,
+      timeoutMs: 60_000,
+    },
+  );
+
+  let compareResult = compareWithUpstream;
+  if (compareWithUpstream.exitCode !== 0) {
+    compareResult = await runCommandFn(
+      [
+        "git",
+        "-C",
+        repoPath,
+        "rev-list",
+        "--left-right",
+        "--count",
+        `HEAD...origin/${branch}`,
+      ],
+      {
+        check: false,
+        timeoutMs: 60_000,
+      },
+    );
+  }
+
+  if (compareResult.exitCode !== 0) {
+    return { ahead: 0, behind: 0, ok: false };
+  }
+
+  const [aheadRaw, behindRaw] = compareResult.stdout.trim().split(/\s+/);
+  const ahead = Number.parseInt(aheadRaw ?? "0", 10);
+  const behind = Number.parseInt(behindRaw ?? "0", 10);
+
+  return {
+    ahead: Number.isFinite(ahead) ? ahead : 0,
+    behind: Number.isFinite(behind) ? behind : 0,
+    ok: true,
+  };
+}
+
 async function checkRepoStatus(
   repoName: string,
   repoPath: string,
+  deps: {
+    accessFn: typeof access;
+    runCommandFn: NonNullable<StatusCheckerDependencies["runCommandFn"]>;
+  },
 ): Promise<RepoStatus> {
   let exists = false;
   let isGitRepo = false;
+  let branch: string | null = null;
+  let ahead = 0;
+  let behind = 0;
+  let syncState: RepoStatus["syncState"] = "missing";
 
   try {
-    await access(repoPath);
+    await deps.accessFn(repoPath);
     exists = true;
-    await access(join(repoPath, ".git"));
+    await deps.accessFn(join(repoPath, ".git"));
     isGitRepo = true;
   } catch {
-    isGitRepo = false;
+    if (!exists) {
+      syncState = "missing";
+    } else {
+      syncState = "not-git";
+    }
+  }
+
+  if (exists && isGitRepo) {
+    const branchResult = await deps.runCommandFn(
+      ["git", "-C", repoPath, "rev-parse", "--abbrev-ref", "HEAD"],
+      {
+        check: false,
+        timeoutMs: 30_000,
+      },
+    );
+
+    if (branchResult.exitCode === 0) {
+      branch = branchResult.stdout.trim() || null;
+    }
+
+    if (branch) {
+      const diff = await compareRemote(repoPath, branch, deps.runCommandFn);
+      ahead = diff.ahead;
+      behind = diff.behind;
+
+      if (!diff.ok) {
+        syncState = "unknown";
+      } else if (ahead > 0 && behind > 0) {
+        syncState = "diverged";
+      } else if (behind > 0) {
+        syncState = "updates-available";
+      } else if (ahead > 0) {
+        syncState = "local-ahead";
+      } else {
+        syncState = "up-to-date";
+      }
+    } else {
+      syncState = "unknown";
+    }
   }
 
   return {
@@ -139,24 +316,222 @@ async function checkRepoStatus(
     path: repoPath,
     exists,
     isGitRepo,
+    branch,
+    ahead,
+    behind,
+    syncState,
   };
 }
 
-export async function checkEnvironment(): Promise<EnvironmentStatus> {
+async function pathExists(
+  accessFn: typeof access,
+  pathValue: string,
+): Promise<boolean> {
+  try {
+    await accessFn(pathValue);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeHomePath(pathValue: string): string {
+  if (pathValue.startsWith("~/")) {
+    return join(homedir(), pathValue.slice(2));
+  }
+  return pathValue;
+}
+
+async function loadUpstreamSources(
+  sourcesPath: string,
+): Promise<Record<string, UpstreamSourceEntry>> {
+  try {
+    const content = await readFile(sourcesPath, "utf8");
+    const parsed =
+      (YAML.parse(content) as {
+        sources?: Record<string, UpstreamSourceEntry>;
+      } | null) ?? {};
+    return parsed.sources ?? {};
+  } catch {
+    return {};
+  }
+}
+
+async function loadLastSync(
+  lastSyncPath: string,
+): Promise<Record<string, LastSyncEntry>> {
+  try {
+    const content = await readFile(lastSyncPath, "utf8");
+    return (YAML.parse(content) as Record<string, LastSyncEntry> | null) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+async function collectUpstreamSyncStatus(deps: {
+  accessFn: typeof access;
+  runCommandFn: NonNullable<StatusCheckerDependencies["runCommandFn"]>;
+  sourcesPath: string;
+  lastSyncPath: string;
+}): Promise<UpstreamSyncStatus[]> {
+  const sources = await loadUpstreamSources(deps.sourcesPath);
+  const lastSync = await loadLastSync(deps.lastSyncPath);
+
+  const result: UpstreamSyncStatus[] = [];
+
+  for (const [name, source] of Object.entries(sources)) {
+    const localPath = normalizeHomePath(source.local_path ?? "");
+    const record = lastSync[name];
+
+    if (
+      !localPath ||
+      !(await pathExists(deps.accessFn, join(localPath, ".git")))
+    ) {
+      result.push({
+        name,
+        path: localPath,
+        format: source.format ?? null,
+        syncedAt: record?.synced_at ?? null,
+        status: "uninstalled",
+        behind: 0,
+      });
+      continue;
+    }
+
+    const commit = record?.commit;
+    if (!commit) {
+      result.push({
+        name,
+        path: localPath,
+        format: source.format ?? null,
+        syncedAt: record?.synced_at ?? null,
+        status: "unknown",
+        behind: 0,
+      });
+      continue;
+    }
+
+    const containsResult = await deps.runCommandFn(
+      ["git", "-C", localPath, "branch", "--contains", commit],
+      {
+        check: false,
+        timeoutMs: 30_000,
+      },
+    );
+
+    if (containsResult.exitCode !== 0) {
+      result.push({
+        name,
+        path: localPath,
+        format: source.format ?? null,
+        syncedAt: record?.synced_at ?? null,
+        status: "unknown",
+        behind: 0,
+      });
+      continue;
+    }
+
+    const behindResult = await deps.runCommandFn(
+      ["git", "-C", localPath, "rev-list", "--count", `${commit}..HEAD`],
+      {
+        check: false,
+        timeoutMs: 30_000,
+      },
+    );
+
+    if (behindResult.exitCode !== 0) {
+      result.push({
+        name,
+        path: localPath,
+        format: source.format ?? null,
+        syncedAt: record?.synced_at ?? null,
+        status: "unknown",
+        behind: 0,
+      });
+      continue;
+    }
+
+    const behind = Number.parseInt(behindResult.stdout.trim() || "0", 10);
+    result.push({
+      name,
+      path: localPath,
+      format: source.format ?? null,
+      syncedAt: record?.synced_at ?? null,
+      status: behind > 0 ? "behind" : "synced",
+      behind: Number.isFinite(behind) ? behind : 0,
+    });
+  }
+
+  return result.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function checkEnvironment(
+  options: CheckEnvironmentOptions = {},
+): Promise<EnvironmentStatus> {
+  const deps = options.deps ?? {};
+  const commandExistsFn = deps.commandExistsFn ?? commandExists;
+  const runCommandFn = deps.runCommandFn ?? runCommand;
+  const accessFn = deps.accessFn ?? access;
+  const resolvePathFn = deps.resolveCommandPathFn ?? resolveCommandPath;
+  const resolveVersionFn =
+    deps.resolveVersionFn ??
+    (async (command: string, args?: string[]) => {
+      return await resolveVersion(command, args, runCommandFn);
+    });
+  const npmPackagesInput = deps.npmPackages ?? NPM_PACKAGES;
+  const reposInput = deps.repos ?? REPOS;
+  const upstreamSourcesPath =
+    deps.upstreamSourcesPath ??
+    join(paths.projectRoot, "upstream", "sources.yaml");
+  const upstreamLastSyncPath =
+    deps.upstreamLastSyncPath ??
+    join(paths.projectRoot, "upstream", "last-sync.yaml");
+
   const [git, node, bun, gh] = await Promise.all([
-    checkTool("git"),
-    checkTool("node"),
-    checkTool("bun"),
-    checkTool("gh"),
+    checkTool("git", {
+      commandExistsFn,
+      resolveCommandPathFn: resolvePathFn,
+      resolveVersionFn,
+    }),
+    checkTool("node", {
+      commandExistsFn,
+      resolveCommandPathFn: resolvePathFn,
+      resolveVersionFn,
+    }),
+    checkTool("bun", {
+      commandExistsFn,
+      resolveCommandPathFn: resolvePathFn,
+      resolveVersionFn,
+    }),
+    checkTool("gh", {
+      commandExistsFn,
+      resolveCommandPathFn: resolvePathFn,
+      resolveVersionFn,
+    }),
   ]);
 
   const npmPackages = await Promise.all(
-    NPM_PACKAGES.map(async (pkg) => await checkNpmPackage(pkg)),
+    npmPackagesInput.map(
+      async (pkg) => await checkNpmPackage(pkg, runCommandFn),
+    ),
   );
 
   const repos = await Promise.all(
-    REPOS.map(async (repo) => await checkRepoStatus(repo.name, repo.dir)),
+    reposInput.map(
+      async (repo) =>
+        await checkRepoStatus(repo.name, repo.dir, {
+          accessFn,
+          runCommandFn,
+        }),
+    ),
   );
+
+  const upstreamSync = await collectUpstreamSyncStatus({
+    accessFn,
+    runCommandFn,
+    sourcesPath: upstreamSourcesPath,
+    lastSyncPath: upstreamLastSyncPath,
+  });
 
   return {
     git,
@@ -165,5 +540,6 @@ export async function checkEnvironment(): Promise<EnvironmentStatus> {
     gh,
     npmPackages,
     repos,
+    upstreamSync,
   };
 }

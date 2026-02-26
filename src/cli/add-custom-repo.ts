@@ -4,7 +4,13 @@ import { join } from "node:path";
 
 import type { Command } from "commander";
 
+import {
+  fixRepoStructure,
+  validateRepoStructure,
+} from "../core/custom-repo-manager";
 import { addCustomRepo, parseRepoUrl } from "../utils/custom-repos";
+import { printSuccess, printTable, printWarning } from "../utils/formatter";
+import { t } from "../utils/i18n";
 import { runCommand } from "../utils/system";
 
 async function exists(path: string): Promise<boolean> {
@@ -24,10 +30,16 @@ export function registerAddCustomRepoCommand(program: Command): void {
     .option("--name <name>", "Custom repo name")
     .option("--branch <branch>", "Tracked branch", "main")
     .option("--no-clone", "Do not clone repository before registering")
+    .option("--fix", "Create missing standard directories")
     .action(
       async (
         repoInput: string,
-        options: { name?: string; branch: string; clone?: boolean },
+        options: {
+          name?: string;
+          branch: string;
+          clone?: boolean;
+          fix?: boolean;
+        },
       ) => {
         const parsed = parseRepoUrl(repoInput);
         const name = options.name ?? parsed.name;
@@ -47,8 +59,41 @@ export function registerAddCustomRepoCommand(program: Command): void {
           }
         }
 
+        let validation = await validateRepoStructure(localPath);
+        let fixedDirs: string[] = [];
+
+        if (!validation.valid && options.fix) {
+          const fixed = await fixRepoStructure(localPath);
+          fixedDirs = fixed.created;
+          validation = await validateRepoStructure(localPath);
+        }
+
         await addCustomRepo(name, parsed.url, options.branch, localPath);
-        console.log(`Custom repo registered: ${name}`);
+
+        printSuccess(t("add_custom.added", { name }));
+        printTable(
+          ["Field", "Value"],
+          [
+            ["Repository", parsed.repoPath],
+            ["Branch", options.branch],
+            ["Path", localPath],
+            ["Structure valid", String(validation.valid)],
+          ],
+        );
+
+        if (fixedDirs.length > 0) {
+          printWarning(
+            t("add_custom.created_dirs", { dirs: fixedDirs.join(", ") }),
+          );
+        }
+
+        if (validation.missing.length > 0) {
+          printWarning(
+            t("add_custom.missing_dirs", {
+              dirs: validation.missing.join(", "),
+            }),
+          );
+        }
       },
     );
 }

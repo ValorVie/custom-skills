@@ -31,6 +31,19 @@ describe("cli smoke", () => {
     expect(result.stdout).toContain("tui");
   });
 
+  test("--help shows global --lang option", () => {
+    const result = runCli(["--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("--lang");
+  });
+
+  test("--lang can be passed globally", () => {
+    const result = runCli(["--lang", "zh-TW", "status", "--json"]);
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed).toHaveProperty("git");
+  });
+
   test("status --json", () => {
     const result = runCli(["status", "--json"]);
     expect(result.exitCode).toBe(0);
@@ -43,18 +56,24 @@ describe("cli smoke", () => {
     const result = runCli(["install", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("install");
+    expect(result.stdout).toContain("--skip-skills");
+    expect(result.stdout).toContain("--sync-project");
   });
 
   test("update --help", () => {
     const result = runCli(["update", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("update");
+    expect(result.stdout).toContain("--skip-plugins");
   });
 
   test("clone --help", () => {
     const result = runCli(["clone", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("clone");
+    expect(result.stdout).toContain("--force");
+    expect(result.stdout).toContain("--skip-conflicts");
+    expect(result.stdout).toContain("--sync-project");
   });
 
   test("list --json", () => {
@@ -62,6 +81,12 @@ describe("cli smoke", () => {
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(Array.isArray(parsed)).toBe(true);
+  });
+
+  test("list --help", () => {
+    const result = runCli(["list", "--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("--hide-disabled");
   });
 
   test("list --target claude --type skills --json", () => {
@@ -78,36 +103,44 @@ describe("cli smoke", () => {
     const result = runCli(["toggle", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("toggle");
+    expect(result.stdout).toContain("--list");
   });
 
   test("add-repo --help", () => {
     const result = runCli(["add-repo", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("add-repo");
+    expect(result.stdout).toContain("--analyze");
   });
 
   test("add-custom-repo --help", () => {
     const result = runCli(["add-custom-repo", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("add-custom-repo");
+    expect(result.stdout).toContain("--fix");
   });
 
   test("update-custom-repo --help", () => {
     const result = runCli(["update-custom-repo", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("update-custom-repo");
+    expect(result.stdout).toContain("--json");
   });
 
   test("test --help", () => {
     const result = runCli(["test", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("test");
+    expect(result.stdout).toContain("--framework");
+    expect(result.stdout).toContain("--source");
   });
 
   test("coverage --help", () => {
     const result = runCli(["coverage", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("coverage");
+    expect(result.stdout).toContain("--framework");
+    expect(result.stdout).toContain("--source");
   });
 
   test("derive-tests --help", () => {
@@ -126,6 +159,14 @@ describe("cli smoke", () => {
     const result = runCli(["project", "init", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("init");
+    expect(result.stdout).toContain("--json");
+  });
+
+  test("project update --help", () => {
+    const result = runCli(["project", "update", "--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("--only");
+    expect(result.stdout).toContain("--json");
   });
 
   test("standards --help", () => {
@@ -144,10 +185,28 @@ describe("cli smoke", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  test("standards overlaps", () => {
+    const result = runCli(["standards", "overlaps"]);
+    expect(result.exitCode).toBe(0);
+  });
+
+  test("standards sync --help", () => {
+    const result = runCli(["standards", "sync", "--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("sync");
+    expect(result.stdout).toContain("--json");
+  });
+
   test("hooks --help", () => {
     const result = runCli(["hooks", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("hooks");
+  });
+
+  test("hooks uninstall --help", () => {
+    const result = runCli(["hooks", "uninstall", "--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("--yes");
   });
 
   test("sync --help", () => {
@@ -161,6 +220,19 @@ describe("cli smoke", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  test("sync push --help", () => {
+    const result = runCli(["sync", "push", "--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("--force");
+  });
+
+  test("sync pull --help", () => {
+    const result = runCli(["sync", "pull", "--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("--force");
+    expect(result.stdout).toContain("--no-delete");
+  });
+
   test("mem --help", () => {
     const result = runCli(["mem", "--help"]);
     expect(result.exitCode).toBe(0);
@@ -170,6 +242,13 @@ describe("cli smoke", () => {
   test("mem status", () => {
     const result = runCli(["mem", "status"]);
     expect(result.exitCode).toBe(0);
+  });
+
+  test("mem auto --help", () => {
+    const result = runCli(["mem", "auto", "--help"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("--enable");
+    expect(result.stdout).toContain("--disable");
   });
 
   test("tui --help", () => {

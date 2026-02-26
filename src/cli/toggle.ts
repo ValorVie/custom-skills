@@ -3,6 +3,8 @@ import { join } from "node:path";
 
 import type { Command } from "commander";
 
+import { printError, printTable } from "../utils/formatter";
+import { t } from "../utils/i18n";
 import {
   COPY_TARGETS,
   type ResourceType,
@@ -10,6 +12,13 @@ import {
 } from "../utils/shared";
 
 const DISABLED_SUFFIX = ".disabled";
+
+type ToggleStateItem = {
+  target: TargetType;
+  type: ResourceType;
+  name: string;
+  enabled: boolean;
+};
 
 async function pathExists(path: string): Promise<boolean> {
   try {
@@ -20,12 +29,46 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
-function resourceBasePath(
-  target: TargetType,
-  type: ResourceType,
-): string | null {
-  const value = COPY_TARGETS[target][type];
-  return value ?? null;
+function isTarget(value: string): value is TargetType {
+  return value in COPY_TARGETS;
+}
+
+function isResourceType(value: string): value is ResourceType {
+  return (
+    value === "skills" ||
+    value === "commands" ||
+    value === "agents" ||
+    value === "workflows"
+  );
+}
+
+function validateTargetType(
+  target: string | undefined,
+  type: string | undefined,
+):
+  | { ok: true; target: TargetType; type: ResourceType; basePath: string }
+  | { ok: false; message: string } {
+  if (!target || !type) {
+    return { ok: false, message: t("toggle.missing_target_type") };
+  }
+
+  if (!isTarget(target)) {
+    return { ok: false, message: t("toggle.invalid_target", { target }) };
+  }
+
+  if (!isResourceType(type)) {
+    return { ok: false, message: t("toggle.invalid_type", { type }) };
+  }
+
+  const basePath = COPY_TARGETS[target][type];
+  if (!basePath) {
+    return {
+      ok: false,
+      message: t("toggle.invalid_combo", { target, type }),
+    };
+  }
+
+  return { ok: true, target, type, basePath };
 }
 
 function resourceFileName(type: ResourceType, name: string): string {
@@ -40,7 +83,7 @@ async function disableResource(
   type: ResourceType,
   name: string,
 ): Promise<boolean> {
-  const base = resourceBasePath(target, type);
+  const base = COPY_TARGETS[target][type];
   if (!base) {
     return false;
   }
@@ -61,7 +104,7 @@ async function enableResource(
   type: ResourceType,
   name: string,
 ): Promise<boolean> {
-  const base = resourceBasePath(target, type);
+  const base = COPY_TARGETS[target][type];
   if (!base) {
     return false;
   }
@@ -77,11 +120,28 @@ async function enableResource(
   return true;
 }
 
-async function listDisabledResources(
+function parseToggleEntry(
+  type: ResourceType,
+  rawName: string,
+): ToggleStateItem["name"] {
+  const withoutDisabled = rawName.endsWith(DISABLED_SUFFIX)
+    ? rawName.slice(0, -DISABLED_SUFFIX.length)
+    : rawName;
+
+  if (type === "skills") {
+    return withoutDisabled;
+  }
+
+  return withoutDisabled.endsWith(".md")
+    ? withoutDisabled.slice(0, -3)
+    : withoutDisabled;
+}
+
+async function listToggleState(
   target: TargetType,
   type: ResourceType,
-): Promise<string[]> {
-  const base = resourceBasePath(target, type);
+): Promise<ToggleStateItem[]> {
+  const base = COPY_TARGETS[target][type];
   if (!base) {
     return [];
   }
@@ -89,68 +149,141 @@ async function listDisabledResources(
   try {
     const entries = await readdir(base, { withFileTypes: true });
     return entries
-      .filter((entry) => entry.name.endsWith(DISABLED_SUFFIX))
-      .map((entry) =>
-        entry.name.replace(DISABLED_SUFFIX, "").replace(/\.md$/, ""),
-      )
-      .sort((a, b) => a.localeCompare(b));
+      .filter((entry) => {
+        if (entry.name.startsWith(".")) {
+          return false;
+        }
+        return type === "skills" ? entry.isDirectory() : entry.isFile();
+      })
+      .map((entry) => ({
+        target,
+        type,
+        name: parseToggleEntry(type, entry.name),
+        enabled: !entry.name.endsWith(DISABLED_SUFFIX),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return [];
   }
+}
+
+async function listAllToggleStates(
+  target?: string,
+  type?: string,
+): Promise<ToggleStateItem[] | { error: string }> {
+  if (target || type) {
+    const validated = validateTargetType(target, type);
+    if (!validated.ok) {
+      return { error: validated.message };
+    }
+    return await listToggleState(validated.target, validated.type);
+  }
+
+  const items: ToggleStateItem[] = [];
+
+  for (const targetKey of Object.keys(COPY_TARGETS) as TargetType[]) {
+    for (const typeKey of [
+      "skills",
+      "commands",
+      "agents",
+      "workflows",
+    ] as const) {
+      if (!COPY_TARGETS[targetKey][typeKey]) {
+        continue;
+      }
+      items.push(...(await listToggleState(targetKey, typeKey)));
+    }
+  }
+
+  return items.sort((a, b) => {
+    const byTarget = a.target.localeCompare(b.target);
+    if (byTarget !== 0) {
+      return byTarget;
+    }
+    const byType = a.type.localeCompare(b.type);
+    if (byType !== 0) {
+      return byType;
+    }
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export function registerToggleCommand(program: Command): void {
   program
     .command("toggle")
     .description("Enable or disable installed resources")
-    .requiredOption("--target <target>", "Target platform")
-    .requiredOption("--type <type>", "Resource type")
+    .option("--target <target>", "Target platform")
+    .option("--type <type>", "Resource type")
     .option("--name <name>", "Resource name")
     .option("--enable", "Enable resource")
     .option("--disable", "Disable resource")
-    .option("--list", "List disabled resources")
+    .option("--list", "List resource toggle state")
     .action(
       async (options: {
-        target: TargetType;
-        type: ResourceType;
+        target?: string;
+        type?: string;
         name?: string;
         enable?: boolean;
         disable?: boolean;
         list?: boolean;
       }) => {
         if (options.list) {
-          const items = await listDisabledResources(
+          const listed = await listAllToggleStates(
             options.target,
             options.type,
           );
-          if (items.length === 0) {
-            console.log("No disabled resources.");
+          if (!Array.isArray(listed)) {
+            printError(listed.error);
+            process.exitCode = 1;
             return;
           }
-          for (const item of items) {
-            console.log(item);
+
+          if (listed.length === 0) {
+            console.log(t("list.no_resources"));
+            return;
           }
+
+          printTable(
+            ["Target", "Type", "Name", "Status"],
+            listed.map((item) => [
+              item.target,
+              item.type,
+              item.name,
+              item.enabled ? "Enabled" : "Disabled",
+            ]),
+          );
+          return;
+        }
+
+        const validated = validateTargetType(options.target, options.type);
+        if (!validated.ok) {
+          printError(validated.message);
+          process.exitCode = 1;
           return;
         }
 
         if (!options.name) {
-          console.error("Missing --name option");
+          printError(t("toggle.missing_name"));
           process.exitCode = 1;
           return;
         }
 
         if (options.enable === options.disable) {
-          console.error("Choose exactly one: --enable or --disable");
+          printError(t("toggle.choose_one"));
           process.exitCode = 1;
           return;
         }
 
         const success = options.enable
-          ? await enableResource(options.target, options.type, options.name)
-          : await disableResource(options.target, options.type, options.name);
+          ? await enableResource(validated.target, validated.type, options.name)
+          : await disableResource(
+              validated.target,
+              validated.type,
+              options.name,
+            );
 
         if (!success) {
-          console.error("Resource toggle failed.");
+          printError(t("toggle.failed"));
           process.exitCode = 1;
           return;
         }

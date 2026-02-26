@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import {
   cleanupDuplicates,
+  configureAutoSync,
   getMemSyncStatus,
   loadMemSyncConfig,
   pullMemData,
@@ -130,6 +131,223 @@ describe("core/mem-sync", () => {
       };
       db2.close();
       expect(row.count).toBe(2);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("pushMemData uses preflight hash dedup and batch push", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const dbPath = join(root, "statsig.db");
+    const originalFetch = globalThis.fetch;
+
+    const sqlite = await import("bun:sqlite");
+    const db = new sqlite.Database(dbPath);
+    db.run(
+      "CREATE TABLE observations (id INTEGER PRIMARY KEY, title TEXT, narrative TEXT, facts TEXT, project TEXT, type TEXT);",
+    );
+    db.run("INSERT INTO observations (title, narrative) VALUES ('one', 'n1');");
+    db.run("INSERT INTO observations (title, narrative) VALUES ('two', 'n2');");
+    db.close();
+
+    await saveMemSyncConfig(
+      {
+        serverUrl: "https://sync.example.com",
+        apiKey: "api-key",
+        deviceName: "device-a",
+        deviceId: "1",
+        lastPushEpoch: 0,
+        lastPullEpoch: 0,
+        autoSync: false,
+        autoSyncIntervalMinutes: 10,
+      },
+      configPath,
+    );
+
+    try {
+      globalThis.fetch = (async (input, init) => {
+        const url = String(input);
+        if (url.endsWith("/api/sync/push-preflight")) {
+          const body = JSON.parse(String(init?.body ?? "{}")) as {
+            hashes?: string[];
+          };
+          const missing = body.hashes?.slice(0, 1) ?? [];
+          return new Response(JSON.stringify({ missing }), { status: 200 });
+        }
+
+        if (url.endsWith("/api/sync/push")) {
+          const body = JSON.parse(String(init?.body ?? "{}")) as {
+            observations?: unknown[];
+          };
+          return new Response(
+            JSON.stringify({
+              stats: {
+                observationsImported: body.observations?.length ?? 0,
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
+      const result = await pushMemData({ configPath, dbPath });
+      expect(result.pushed).toBe(1);
+      expect(result.skipped).toBe(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("pullMemData performs paginated pull and merges observations", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const dbPath = join(root, "statsig.db");
+    const originalFetch = globalThis.fetch;
+    let pullCall = 0;
+
+    await saveMemSyncConfig(
+      {
+        serverUrl: "https://sync.example.com",
+        apiKey: "api-key",
+        deviceName: "device-a",
+        deviceId: "1",
+        lastPushEpoch: 0,
+        lastPullEpoch: 0,
+        autoSync: false,
+        autoSyncIntervalMinutes: 10,
+      },
+      configPath,
+    );
+
+    try {
+      globalThis.fetch = (async (input) => {
+        const url = String(input);
+
+        if (url.includes("/api/sync/pull")) {
+          pullCall += 1;
+          if (pullCall === 1) {
+            return new Response(
+              JSON.stringify({
+                observations: [
+                  { title: "a", narrative: "one", sync_content_hash: "hash-a" },
+                  { title: "b", narrative: "two", sync_content_hash: "hash-b" },
+                ],
+                has_more: true,
+                next_since: 1000,
+              }),
+              { status: 200 },
+            );
+          }
+
+          return new Response(
+            JSON.stringify({
+              observations: [
+                { title: "c", narrative: "three", sync_content_hash: "hash-c" },
+              ],
+              has_more: false,
+              next_since: 2000,
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
+      const result = await pullMemData({ configPath, dbPath });
+      expect(result.pulled).toBe(3);
+
+      const sqlite = await import("bun:sqlite");
+      const db = new sqlite.Database(dbPath, { readonly: true });
+      const row = db
+        .query("SELECT COUNT(*) AS count FROM observations")
+        .get() as {
+        count: number;
+      };
+      db.close();
+      expect(row.count).toBe(3);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("getMemSyncStatus includes pending push and remote status", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const dbPath = join(root, "statsig.db");
+    const originalFetch = globalThis.fetch;
+
+    const sqlite = await import("bun:sqlite");
+    const db = new sqlite.Database(dbPath);
+    db.run(
+      "CREATE TABLE observations (id INTEGER PRIMARY KEY, title TEXT, narrative TEXT, created_at_epoch INTEGER, sync_content_hash TEXT);",
+    );
+    db.run(
+      "INSERT INTO observations (title, narrative, created_at_epoch, sync_content_hash) VALUES ('one', 'n1', 10, 'h1');",
+    );
+    db.run(
+      "INSERT INTO observations (title, narrative, created_at_epoch, sync_content_hash) VALUES ('two', 'n2', 20, 'h2');",
+    );
+    db.close();
+
+    await saveMemSyncConfig(
+      {
+        serverUrl: "https://sync.example.com",
+        apiKey: "api-key",
+        deviceName: "device-a",
+        deviceId: "1",
+        lastPushEpoch: 15,
+        lastPullEpoch: 0,
+        autoSync: false,
+        autoSyncIntervalMinutes: 10,
+      },
+      configPath,
+    );
+
+    try {
+      globalThis.fetch = (async (input) => {
+        const url = String(input);
+        if (url.endsWith("/api/sync/status")) {
+          return new Response(
+            JSON.stringify({ observations: 99, sessions: 1, devices: 2 }),
+            { status: 200 },
+          );
+        }
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
+      const status = await getMemSyncStatus({ configPath, dbPath });
+      expect(status.localObservations).toBe(2);
+      expect(status.pendingPushCount).toBe(1);
+      expect(status.remoteStatus?.observations).toBe(99);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("configureAutoSync can enable and disable", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-"));
+    const configPath = join(root, "mem-sync.yaml");
+
+    try {
+      const enabled = await configureAutoSync({
+        enable: true,
+        intervalMinutes: 15,
+        configPath,
+      });
+      expect(enabled.enabled).toBe(true);
+
+      const status = await configureAutoSync({ status: true, configPath });
+      expect(status.enabled).toBe(true);
+
+      const disabled = await configureAutoSync({ disable: true, configPath });
+      expect(disabled.enabled).toBe(false);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -33,6 +33,20 @@ export interface MemPullResult {
 export interface MemStatus {
   config: MemSyncConfig;
   localObservations: number;
+  pendingPushCount: number;
+  remoteStatus: {
+    sessions?: number;
+    observations?: number;
+    summaries?: number;
+    prompts?: number;
+    devices?: number;
+  } | null;
+}
+
+export interface MemAutoSyncResult {
+  enabled: boolean;
+  scheduler: "launchd" | "systemd" | "cron";
+  message: string;
 }
 
 export interface MemReindexResult {
@@ -96,6 +110,300 @@ export async function saveMemSyncConfig(
   await writeFile(configPath, YAML.stringify(config), "utf8");
 }
 
+function normalizeServerUrl(serverUrl: string): string {
+  return serverUrl.replace(/\/+$/, "");
+}
+
+async function requestJson<T>(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 10_000,
+): Promise<T | null> {
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+function chunkArray<T>(items: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+function readAllObservations(dbPath: string): Record<string, unknown>[] {
+  if (!existsSync(dbPath)) {
+    return [];
+  }
+
+  try {
+    const db = openDb(dbPath, true);
+    try {
+      return db.query("SELECT * FROM observations ORDER BY id").all() as Record<
+        string,
+        unknown
+      >[];
+    } finally {
+      db.close();
+    }
+  } catch {
+    return [];
+  }
+}
+
+function withSyncContentHash(
+  observation: Record<string, unknown>,
+): Record<string, unknown> {
+  if (
+    typeof observation.sync_content_hash === "string" &&
+    observation.sync_content_hash.length > 0
+  ) {
+    return observation;
+  }
+
+  return {
+    ...observation,
+    sync_content_hash: computeContentHash({
+      title: String(observation.title ?? ""),
+      narrative: String(observation.narrative ?? ""),
+      facts: String(observation.facts ?? ""),
+      project: String(observation.project ?? ""),
+      type: String(observation.type ?? ""),
+    }),
+  };
+}
+
+async function fetchMissingHashes(
+  serverUrl: string,
+  apiKey: string,
+  hashes: string[],
+): Promise<Set<string>> {
+  const payload = await requestJson<{ missing?: string[] }>(
+    `${normalizeServerUrl(serverUrl)}/api/sync/push-preflight`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey,
+      },
+      body: JSON.stringify({ hashes }),
+    },
+  );
+
+  if (!payload?.missing) {
+    return new Set(hashes);
+  }
+
+  return new Set(payload.missing);
+}
+
+function ensureObservationsTable(dbPath: string): void {
+  const db = openDb(dbPath, false);
+  try {
+    db.run(
+      `CREATE TABLE IF NOT EXISTS observations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        narrative TEXT,
+        facts TEXT,
+        project TEXT,
+        type TEXT,
+        content_hash TEXT,
+        created_at TEXT,
+        created_at_epoch INTEGER,
+        sync_content_hash TEXT UNIQUE
+      )`,
+    );
+  } finally {
+    db.close();
+  }
+}
+
+function upsertPulledObservations(
+  dbPath: string,
+  observations: Record<string, unknown>[],
+): number {
+  if (observations.length === 0) {
+    return 0;
+  }
+
+  ensureObservationsTable(dbPath);
+
+  const db = openDb(dbPath, false);
+  try {
+    const columnRows = db.query("PRAGMA table_info(observations)").all() as {
+      name: string;
+    }[];
+    const availableColumns = new Set(columnRows.map((row) => row.name));
+    let inserted = 0;
+
+    for (const rawObservation of observations) {
+      const observation = withSyncContentHash(rawObservation);
+      const syncHash = String(observation.sync_content_hash ?? "");
+
+      if (availableColumns.has("sync_content_hash") && syncHash.length > 0) {
+        const existing = db
+          .query(
+            "SELECT 1 FROM observations WHERE sync_content_hash = ? LIMIT 1",
+          )
+          .get(syncHash) as { 1?: number } | null;
+        if (existing) {
+          continue;
+        }
+      }
+
+      const columns = Object.keys(observation).filter(
+        (key) =>
+          key !== "id" &&
+          availableColumns.has(key) &&
+          observation[key] !== undefined,
+      );
+
+      if (columns.length === 0) {
+        continue;
+      }
+
+      const placeholders = columns.map(() => "?").join(", ");
+      const sql = `INSERT OR IGNORE INTO observations (${columns.join(", ")}) VALUES (${placeholders})`;
+      const values = columns.map((column) => observation[column] ?? null);
+      db.run(sql, ...values);
+      inserted += 1;
+    }
+
+    return inserted;
+  } finally {
+    db.close();
+  }
+}
+
+function countPendingObservations(
+  dbPath: string,
+  lastPushEpoch: number,
+): number {
+  if (!existsSync(dbPath)) {
+    return 0;
+  }
+
+  try {
+    const db = openDb(dbPath, true);
+    try {
+      const columnRows = db.query("PRAGMA table_info(observations)").all() as {
+        name: string;
+      }[];
+      const hasEpochColumn = columnRows.some(
+        (row) => row.name === "created_at_epoch",
+      );
+
+      if (!hasEpochColumn) {
+        return (
+          (
+            db.query("SELECT COUNT(*) AS count FROM observations").get() as {
+              count?: number;
+            }
+          ).count ?? 0
+        );
+      }
+
+      return (
+        (
+          db
+            .query(
+              "SELECT COUNT(*) AS count FROM observations WHERE created_at_epoch > ?",
+            )
+            .get(lastPushEpoch) as {
+            count?: number;
+          }
+        ).count ?? 0
+      );
+    } finally {
+      db.close();
+    }
+  } catch {
+    return 0;
+  }
+}
+
+async function fetchRemoteStatus(
+  serverUrl: string,
+  apiKey: string,
+): Promise<MemStatus["remoteStatus"]> {
+  return await requestJson<MemStatus["remoteStatus"]>(
+    `${normalizeServerUrl(serverUrl)}/api/sync/status`,
+    {
+      method: "GET",
+      headers: {
+        "X-API-Key": apiKey,
+      },
+    },
+  );
+}
+
+function resolveScheduler(): "launchd" | "systemd" | "cron" {
+  if (process.platform === "darwin") {
+    return "launchd";
+  }
+  if (process.platform === "linux") {
+    return "systemd";
+  }
+  return "cron";
+}
+
+export async function configureAutoSync(
+  options: {
+    enable?: boolean;
+    disable?: boolean;
+    status?: boolean;
+    intervalMinutes?: number;
+    configPath?: string;
+  } = {},
+): Promise<MemAutoSyncResult> {
+  const config = await loadMemSyncConfig(options.configPath);
+  const scheduler = resolveScheduler();
+
+  if (options.enable) {
+    config.autoSync = true;
+    if (options.intervalMinutes && options.intervalMinutes > 0) {
+      config.autoSyncIntervalMinutes = options.intervalMinutes;
+    }
+    await saveMemSyncConfig(config, options.configPath);
+    return {
+      enabled: true,
+      scheduler,
+      message: `Auto-sync enabled (${scheduler}) every ${config.autoSyncIntervalMinutes} minutes`,
+    };
+  }
+
+  if (options.disable) {
+    config.autoSync = false;
+    await saveMemSyncConfig(config, options.configPath);
+    return {
+      enabled: false,
+      scheduler,
+      message: `Auto-sync disabled (${scheduler})`,
+    };
+  }
+
+  return {
+    enabled: config.autoSync,
+    scheduler,
+    message: config.autoSync
+      ? `Auto-sync is enabled (${scheduler}) every ${config.autoSyncIntervalMinutes} minutes`
+      : `Auto-sync is disabled (${scheduler})`,
+  };
+}
+
 export async function registerDevice(options: {
   server: string;
   name: string;
@@ -103,10 +411,29 @@ export async function registerDevice(options: {
   configPath?: string;
 }): Promise<MemSyncConfig> {
   const config = await loadMemSyncConfig(options.configPath);
-  config.serverUrl = options.server;
+  config.serverUrl = normalizeServerUrl(options.server);
   config.deviceName = options.name;
-  config.deviceId = randomUUID();
-  config.apiKey = `local-${randomUUID()}`;
+
+  const payload = await requestJson<{
+    api_key?: string;
+    device_id?: number | string;
+  }>(`${config.serverUrl}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Secret": options.adminSecret,
+    },
+    body: JSON.stringify({ name: options.name }),
+  });
+
+  if (payload?.api_key) {
+    config.apiKey = payload.api_key;
+    config.deviceId = String(payload.device_id ?? "");
+  } else {
+    config.deviceId = randomUUID();
+    config.apiKey = `local-${randomUUID()}`;
+  }
+
   config.lastPushEpoch = 0;
   config.lastPullEpoch = 0;
 
@@ -148,27 +475,117 @@ export async function pushMemData(
 ): Promise<MemPushResult> {
   const config = await loadMemSyncConfig(options.configPath);
   const dbPath = options.dbPath ?? defaultMemDbPath();
-  const pushed = await countObservations(dbPath);
+  const observations = readAllObservations(dbPath).map(withSyncContentHash);
+  let pushed = 0;
+  let skipped = 0;
+
+  if (!config.serverUrl || !config.apiKey) {
+    pushed = observations.length;
+    skipped = 0;
+  } else {
+    const hashes = observations
+      .map((item) => String(item.sync_content_hash ?? ""))
+      .filter((hash) => hash.length > 0);
+    const missingHashes = await fetchMissingHashes(
+      config.serverUrl,
+      config.apiKey,
+      hashes,
+    );
+
+    const toUpload = observations.filter((item) =>
+      missingHashes.has(String(item.sync_content_hash ?? "")),
+    );
+
+    for (const batch of chunkArray(toUpload, 100)) {
+      const payload = await requestJson<{
+        stats?: { observationsImported?: number };
+      }>(
+        `${normalizeServerUrl(config.serverUrl)}/api/sync/push`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": config.apiKey,
+          },
+          body: JSON.stringify({
+            sessions: [],
+            summaries: [],
+            prompts: [],
+            observations: batch,
+          }),
+        },
+        15_000,
+      );
+
+      if (payload?.stats?.observationsImported !== undefined) {
+        pushed += payload.stats.observationsImported;
+      } else {
+        pushed += batch.length;
+      }
+    }
+
+    skipped = observations.length - toUpload.length;
+  }
 
   config.lastPushEpoch = Math.floor(Date.now() / 1000);
   await saveMemSyncConfig(config, options.configPath);
 
   return {
     pushed,
-    skipped: 0,
+    skipped,
     serverUrl: config.serverUrl,
   };
 }
 
 export async function pullMemData(
-  options: { configPath?: string } = {},
+  options: { configPath?: string; dbPath?: string } = {},
 ): Promise<MemPullResult> {
   const config = await loadMemSyncConfig(options.configPath);
+  const dbPath = options.dbPath ?? defaultMemDbPath();
+
+  let pulled = 0;
+
+  if (config.serverUrl && config.apiKey) {
+    let since = config.lastPullEpoch > 0 ? config.lastPullEpoch * 1000 : 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const payload = await requestJson<{
+        observations?: Record<string, unknown>[];
+        has_more?: boolean;
+        next_since?: number;
+      }>(
+        `${normalizeServerUrl(config.serverUrl)}/api/sync/pull?since=${since}&limit=100`,
+        {
+          method: "GET",
+          headers: {
+            "X-API-Key": config.apiKey,
+          },
+        },
+        15_000,
+      );
+
+      if (!payload) {
+        break;
+      }
+
+      const observations = payload.observations ?? [];
+      pulled += upsertPulledObservations(dbPath, observations);
+
+      hasMore = Boolean(payload.has_more);
+      if (typeof payload.next_since === "number") {
+        since = payload.next_since;
+      } else {
+        hasMore = false;
+      }
+    }
+  }
+
   config.lastPullEpoch = Math.floor(Date.now() / 1000);
   await saveMemSyncConfig(config, options.configPath);
 
   return {
-    pulled: 0,
+    pulled,
     serverUrl: config.serverUrl,
   };
 }
@@ -178,9 +595,17 @@ export async function getMemSyncStatus(
 ): Promise<MemStatus> {
   const config = await loadMemSyncConfig(options.configPath);
   const dbPath = options.dbPath ?? defaultMemDbPath();
+
+  let remoteStatus: MemStatus["remoteStatus"] = null;
+  if (config.serverUrl && config.apiKey) {
+    remoteStatus = await fetchRemoteStatus(config.serverUrl, config.apiKey);
+  }
+
   return {
     config,
     localObservations: await countObservations(dbPath),
+    pendingPushCount: countPendingObservations(dbPath, config.lastPushEpoch),
+    remoteStatus,
   };
 }
 

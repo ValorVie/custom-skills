@@ -1,5 +1,13 @@
-import { access, cp, mkdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import {
+  access,
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  stat,
+  writeFile,
+} from "node:fs/promises";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { runCommand } from "../utils/system";
 
@@ -14,6 +22,8 @@ export interface ProjectInitResult {
   targetDir: string;
   templateDir: string;
   copied: boolean;
+  reverseSynced?: boolean;
+  backupDir?: string;
   message?: string;
 }
 
@@ -36,16 +46,150 @@ function defaultTemplateDir(): string {
   return resolve(process.cwd(), "project-template");
 }
 
+async function pathExists(pathValue: string): Promise<boolean> {
+  try {
+    await access(pathValue);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function collectFiles(rootDir: string): Promise<string[]> {
+  const files: string[] = [];
+
+  async function walk(currentDir: string): Promise<void> {
+    const entries = await readdir(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+
+      if (entry.isFile()) {
+        files.push(fullPath.slice(rootDir.length + 1));
+      }
+    }
+  }
+
+  await walk(rootDir);
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
+async function mergeLineByLine(
+  sourcePath: string,
+  targetPath: string,
+): Promise<boolean> {
+  const sourceContent = await readFile(sourcePath, "utf8");
+  let targetContent = "";
+  try {
+    targetContent = await readFile(targetPath, "utf8");
+  } catch {
+    targetContent = "";
+  }
+
+  const sourceLines = sourceContent
+    .split(/\r?\n/)
+    .filter((line) => line.length > 0);
+  const targetLines = targetContent
+    .split(/\r?\n/)
+    .filter((line) => line.length > 0);
+  const existing = new Set(targetLines);
+  const merged = [...targetLines];
+  let changed = false;
+
+  for (const line of sourceLines) {
+    if (!existing.has(line)) {
+      merged.push(line);
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return false;
+  }
+
+  await mkdir(dirname(targetPath), { recursive: true });
+  await writeFile(targetPath, `${merged.join("\n")}\n`, "utf8");
+  return true;
+}
+
+async function copyIfChanged(
+  sourcePath: string,
+  targetPath: string,
+): Promise<boolean> {
+  if (!(await pathExists(targetPath))) {
+    await mkdir(dirname(targetPath), { recursive: true });
+    await cp(sourcePath, targetPath, { recursive: true, force: true });
+    return true;
+  }
+
+  const sourceContent = await readFile(sourcePath);
+  const targetContent = await readFile(targetPath);
+  if (sourceContent.equals(targetContent)) {
+    return false;
+  }
+
+  await mkdir(dirname(targetPath), { recursive: true });
+  await cp(sourcePath, targetPath, { recursive: true, force: true });
+  return true;
+}
+
+async function backupTargetFile(
+  targetPath: string,
+  backupRoot: string,
+  relativePath: string,
+): Promise<void> {
+  await mkdir(dirname(join(backupRoot, relativePath)), { recursive: true });
+  await cp(targetPath, join(backupRoot, relativePath), {
+    recursive: true,
+    force: true,
+  });
+}
+
+async function reverseSyncProjectToTemplate(
+  targetDir: string,
+  templateDir: string,
+): Promise<void> {
+  const templateEntries = await readdir(templateDir, { withFileTypes: true });
+  for (const entry of templateEntries) {
+    const sourcePath = join(targetDir, entry.name);
+    const destinationPath = join(templateDir, entry.name);
+
+    if (!(await pathExists(sourcePath))) {
+      continue;
+    }
+
+    if (resolve(sourcePath) === resolve(templateDir)) {
+      continue;
+    }
+
+    await cp(sourcePath, destinationPath, {
+      recursive: true,
+      force: true,
+    });
+  }
+}
+
+function shouldReverseSync(targetDir: string): boolean {
+  const cwd = resolve(process.cwd());
+  return basename(cwd) === "custom-skills" && resolve(targetDir) === cwd;
+}
+
 export async function initProject(
   options: ProjectInitOptions = {},
 ): Promise<ProjectInitResult> {
   const targetDir = resolve(options.targetDir ?? process.cwd());
   const templateDir = resolve(options.templateDir ?? defaultTemplateDir());
   const force = options.force ?? false;
+  const backupRoot = join(
+    targetDir,
+    ".ai-dev-backups",
+    new Date().toISOString().replace(/[:.]/g, "-"),
+  );
 
-  try {
-    await access(templateDir);
-  } catch {
+  if (!(await pathExists(templateDir))) {
     return {
       success: false,
       targetDir,
@@ -55,33 +199,55 @@ export async function initProject(
     };
   }
 
-  const standardsPath = join(targetDir, ".standards");
-  if (!force) {
-    try {
-      await access(standardsPath);
-      return {
-        success: true,
-        targetDir,
-        templateDir,
-        copied: false,
-        message: "project already initialized",
-      };
-    } catch {
-      // continue
+  await mkdir(targetDir, { recursive: true });
+  const templateFiles = await collectFiles(templateDir);
+
+  let copied = false;
+  let backupCreated = false;
+
+  for (const relativePath of templateFiles) {
+    const sourcePath = join(templateDir, relativePath);
+    const targetPath = join(targetDir, relativePath);
+    const fileName = relativePath.split(/[\\/]/).pop() ?? "";
+
+    if (
+      (fileName === ".gitignore" || fileName === ".gitattributes") &&
+      !force
+    ) {
+      if (await mergeLineByLine(sourcePath, targetPath)) {
+        copied = true;
+      }
+      continue;
+    }
+
+    if (!force && (await pathExists(targetPath))) {
+      const sourceStat = await stat(sourcePath);
+      const targetStat = await stat(targetPath);
+      if (sourceStat.isFile() && targetStat.isFile()) {
+        await backupTargetFile(targetPath, backupRoot, relativePath);
+        backupCreated = true;
+      }
+    }
+
+    if (await copyIfChanged(sourcePath, targetPath)) {
+      copied = true;
     }
   }
 
-  await mkdir(targetDir, { recursive: true });
-  await cp(templateDir, targetDir, {
-    recursive: true,
-    force,
-  });
+  let reverseSynced = false;
+  if (shouldReverseSync(targetDir)) {
+    await reverseSyncProjectToTemplate(targetDir, templateDir);
+    reverseSynced = true;
+  }
 
   return {
     success: true,
     targetDir,
     templateDir,
-    copied: true,
+    copied,
+    reverseSynced,
+    backupDir: backupCreated ? backupRoot : undefined,
+    message: copied ? undefined : "project already up to date",
   };
 }
 

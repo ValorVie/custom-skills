@@ -98,7 +98,7 @@ describe("core/installer", () => {
       });
 
       expect(result.npmPackages).toEqual([
-        { name: "npm-a", success: false, message: "npm failed" },
+        { name: "npm-a", success: false, message: "npm failed", version: null },
       ]);
       expect(result.bunPackages).toEqual([
         { name: "bun-a", success: true, message: undefined },
@@ -160,5 +160,115 @@ describe("core/installer", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  test("runInstall includes prerequisite details and gh check", async () => {
+    const result = await runInstall({
+      skipNpm: true,
+      skipBun: true,
+      skipRepos: true,
+      deps: {
+        commandExistsFn: (command: string) => command === "node",
+        runCommandFn: async (command: string[]) => {
+          if (command[0] === "node") {
+            return { stdout: "v20.1.0\n", stderr: "", exitCode: 0 };
+          }
+          return { stdout: "", stderr: "", exitCode: 0 };
+        },
+      },
+    });
+
+    expect(result.prerequisites.node).toBe(true);
+    expect(result.prerequisites.git).toBe(false);
+    expect(result.prerequisites.gh).toBe(false);
+    expect(result.prerequisiteDetails.node.hint).toContain("Node.js");
+    expect(result.errors).toContain("GitHub CLI (gh) is required");
+  });
+
+  test("runInstall supports custom repos and skill distribution", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-installer-custom-"));
+    const customRepoDir = join(root, "custom-repo");
+
+    try {
+      const result = await runInstall({
+        skipNpm: true,
+        skipBun: true,
+        deps: {
+          commandExistsFn: () => true,
+          repos: [],
+          loadCustomReposFn: async () => ({
+            repos: {
+              custom: {
+                url: "https://example.com/custom.git",
+                branch: "main",
+                localPath: customRepoDir,
+                addedAt: new Date().toISOString(),
+              },
+            },
+          }),
+          distributeSkillsFn: async () => ({
+            distributed: [
+              {
+                name: "alpha",
+                target: "claude",
+                type: "skills",
+              },
+            ],
+            conflicts: [
+              {
+                name: "beta",
+                target: "claude",
+                type: "skills",
+                sources: ["/tmp/source", "/tmp/destination"],
+              },
+            ],
+            errors: [],
+            unchanged: 0,
+          }),
+          runCommandFn: async (command: string[]) => {
+            if (command[0] === "git" && command[1] === "clone") {
+              await mkdir(join(command[3] as string, ".git"), {
+                recursive: true,
+              });
+            }
+            return { stdout: "", stderr: "", exitCode: 0 };
+          },
+        },
+      });
+
+      expect(result.customRepos).toEqual([
+        { name: "custom", success: true, message: undefined },
+      ]);
+      expect(result.skills.installed).toEqual(["alpha"]);
+      expect(result.skills.conflicts).toEqual(["beta"]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("runInstall respects skipSkills option", async () => {
+    let distributionCalled = false;
+
+    const result = await runInstall({
+      skipNpm: true,
+      skipBun: true,
+      skipRepos: true,
+      skipSkills: true,
+      deps: {
+        commandExistsFn: () => true,
+        distributeSkillsFn: async () => {
+          distributionCalled = true;
+          return {
+            distributed: [],
+            conflicts: [],
+            errors: [],
+            unchanged: 0,
+          };
+        },
+      },
+    });
+
+    expect(distributionCalled).toBe(false);
+    expect(result.skills.installed.length).toBe(0);
   });
 });

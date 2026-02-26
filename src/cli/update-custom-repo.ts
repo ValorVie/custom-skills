@@ -1,38 +1,52 @@
-import { access } from "node:fs/promises";
-
 import type { Command } from "commander";
 
-import { loadCustomRepos } from "../utils/custom-repos";
-import { runCommand } from "../utils/system";
+import { updateCustomRepos } from "../core/custom-repo-updater";
+import { printSuccess, printTable, printWarning } from "../utils/formatter";
+import { t } from "../utils/i18n";
 
 export function registerUpdateCustomRepoCommand(program: Command): void {
   program
     .command("update-custom-repo")
     .description("Update all custom repositories")
-    .action(async () => {
-      const config = await loadCustomRepos();
-      const entries = Object.entries(config.repos);
+    .option("--json", "Output as JSON")
+    .action(async (options: { json?: boolean }) => {
+      const result = await updateCustomRepos();
 
-      if (entries.length === 0) {
-        console.log("No custom repositories configured.");
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
         return;
       }
 
-      for (const [name, repo] of entries) {
-        try {
-          await access(`${repo.localPath}/.git`);
-        } catch {
-          console.log(`- ${name}: skipped (not cloned)`);
-          continue;
-        }
+      if (result.items.length === 0) {
+        printWarning(t("update_custom.no_repos"));
+        return;
+      }
 
-        const pull = await runCommand(
-          ["git", "-C", repo.localPath, "pull", "origin", repo.branch],
-          {
-            check: false,
-          },
+      printSuccess(t("update_custom.done"));
+      printTable(
+        ["Name", "Status", "Backup", "Message"],
+        result.items.map((item) => [
+          item.name,
+          item.status,
+          item.backupDir ?? "",
+          item.message ?? "",
+        ]),
+      );
+
+      printTable(
+        ["Summary", "Repos"],
+        [
+          ["Updated", result.summary.updated.join(", ") || "(none)"],
+          ["Up-to-date", result.summary.upToDate.join(", ") || "(none)"],
+          ["Missing", result.summary.missing.join(", ") || "(none)"],
+        ],
+      );
+
+      if (result.errors.length > 0) {
+        printWarning(
+          t("update_custom.errors", { errors: result.errors.join(" | ") }),
         );
-        console.log(`- ${name}: ${pull.exitCode === 0 ? "OK" : "FAIL"}`);
+        process.exitCode = 1;
       }
     });
 }

@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -65,6 +72,122 @@ describe("core/sync-engine", () => {
 
       const restored = await readFile(join(localDir, "a.txt"), "utf8");
       expect(restored).toBe("hello\n");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("init without remote creates git helper files", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-"));
+    const configPath = join(root, "sync.yaml");
+    const repoDir = join(root, "sync-repo");
+    const engine = new SyncEngine(configPath, repoDir);
+
+    try {
+      const config = await engine.init();
+      expect(config.remote).toBe("");
+
+      const gitignore = await readFile(join(repoDir, ".gitignore"), "utf8");
+      expect(gitignore).toContain("node_modules/");
+
+      const gitattributes = await readFile(
+        join(repoDir, ".gitattributes"),
+        "utf8",
+      );
+      expect(gitattributes).toContain("filter=lfs");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("push supports force option and writes manifest", async () => {
+    const calls: string[][] = [];
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-"));
+    const configPath = join(root, "sync.yaml");
+    const repoDir = join(root, "sync-repo");
+    const localDir = join(root, "local");
+    const engine = new SyncEngine(configPath, repoDir, {
+      runCommandFn: async (command: string[]) => {
+        calls.push(command);
+        return { stdout: "", stderr: "", exitCode: 0 };
+      },
+    });
+
+    try {
+      await mkdir(localDir, { recursive: true });
+      await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
+
+      await engine.init();
+      await engine.removeDirectory("~/.claude");
+      await engine.addDirectory(localDir);
+      await engine.push({ force: true });
+
+      await access(join(repoDir, "plugin-manifest.json"));
+      expect(
+        calls.some(
+          (command) =>
+            command[0] === "git" &&
+            command.includes("push") &&
+            command.includes("--force"),
+        ),
+      ).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("pull supports no-delete and force options", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-"));
+    const configPath = join(root, "sync.yaml");
+    const repoDir = join(root, "sync-repo");
+    const localDir = join(root, "local");
+    const engine = new SyncEngine(configPath, repoDir, {
+      runCommandFn: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+    });
+
+    try {
+      await mkdir(localDir, { recursive: true });
+      await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
+
+      await engine.init();
+      await engine.removeDirectory("~/.claude");
+      await engine.addDirectory(localDir);
+      await engine.push();
+
+      await writeFile(join(localDir, "local-only.txt"), "keep\n", "utf8");
+      await engine.pull({ noDelete: true, force: true });
+
+      const kept = await readFile(join(localDir, "local-only.txt"), "utf8");
+      expect(kept).toBe("keep\n");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("status includes local change count and remote behind count", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-"));
+    const configPath = join(root, "sync.yaml");
+    const repoDir = join(root, "sync-repo");
+    const engine = new SyncEngine(configPath, repoDir, {
+      runCommandFn: async (command: string[]) => {
+        if (command.includes("status")) {
+          return { stdout: " M a.txt\n?? b.txt\n", stderr: "", exitCode: 0 };
+        }
+        if (command.includes("rev-list")) {
+          return { stdout: "0 3\n", stderr: "", exitCode: 0 };
+        }
+        if (command.includes("rev-parse")) {
+          return { stdout: "main\n", stderr: "", exitCode: 0 };
+        }
+        return { stdout: "", stderr: "", exitCode: 0 };
+      },
+    });
+
+    try {
+      await engine.init();
+      const status = await engine.status();
+      expect(status.localChanges).toBe(2);
+      expect(status.remoteBehind).toBe(3);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
