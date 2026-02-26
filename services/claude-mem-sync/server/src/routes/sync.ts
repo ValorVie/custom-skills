@@ -45,27 +45,31 @@ router.post("/api/sync/push", async (req: Request, res: Response) => {
       else stats.sessionsSkipped++;
     }
 
-    // observations
+    // observations (per-row try/catch — 單筆失敗不影響整批)
     for (const o of observations) {
-      const syncContentHash =
-        typeof o.sync_content_hash === "string" && o.sync_content_hash.length > 0
-          ? o.sync_content_hash
-          : computeContentHash(o);
+      try {
+        const syncContentHash =
+          typeof o.sync_content_hash === "string" && o.sync_content_hash.length > 0
+            ? o.sync_content_hash
+            : computeContentHash(o);
 
-      const r = await client.query(
-        `INSERT INTO observations
-          (memory_session_id, project, type, title, subtitle, narrative, text,
-            facts, concepts, files_read, files_modified, prompt_number,
-            content_hash, created_at, created_at_epoch, origin_device_id, sync_content_hash)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-          ON CONFLICT (sync_content_hash) DO NOTHING`,
-        [o.memory_session_id, o.project, o.type, o.title, o.subtitle,
-          o.narrative, o.text, o.facts, o.concepts, o.files_read,
-          o.files_modified, o.prompt_number, o.content_hash,
-          o.created_at, o.created_at_epoch, device.id, syncContentHash]
-      );
-      if (r.rowCount && r.rowCount > 0) stats.observationsImported++;
-      else stats.observationsSkipped++;
+        const r = await client.query(
+          `INSERT INTO observations
+            (memory_session_id, project, type, title, subtitle, narrative, text,
+              facts, concepts, files_read, files_modified, prompt_number,
+              content_hash, created_at, created_at_epoch, origin_device_id, sync_content_hash)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+            ON CONFLICT (sync_content_hash) DO NOTHING`,
+          [o.memory_session_id, o.project, o.type, o.title, o.subtitle,
+            o.narrative, o.text, o.facts, o.concepts, o.files_read,
+            o.files_modified, o.prompt_number, o.content_hash,
+            o.created_at, o.created_at_epoch, device.id, syncContentHash]
+        );
+        if (r.rowCount && r.rowCount > 0) stats.observationsImported++;
+        else stats.observationsSkipped++;
+      } catch {
+        stats.observationsSkipped++;
+      }
     }
 
     // summaries

@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { describe, test, expect } from "bun:test";
 import { computeContentHash } from "../server/src/utils/hash.js";
 
@@ -36,7 +37,7 @@ describe("computeContentHash", () => {
     expect(computeContentHash(a)).not.toBe(computeContentHash(b));
   });
 
-  test("matches Python implementation", () => {
+  test("known hash value", () => {
     const value = computeContentHash({
       title: "Test observation",
       narrative: "This is a test",
@@ -45,6 +46,35 @@ describe("computeContentHash", () => {
       type: "discovery",
     });
 
-    expect(value).toBe("14e05009b56669e285c9338331d18dc7");
+    expect(value).toBe("5d08594de1e6bf6e7a7a23e2b44df26e");
+  });
+
+  test("null/undefined fields normalize to empty string", () => {
+    const a = computeContentHash({});
+    const b = computeContentHash({ title: null, narrative: undefined, facts: null, project: null, type: null });
+
+    expect(a).toBe(b);
+  });
+
+  test("matches client-side algorithm (parts.join newline)", () => {
+    const obs = {
+      title: "Test observation",
+      narrative: "This is a test",
+      facts: '["fact1"]',
+      project: "test-project",
+      type: "discovery",
+    };
+
+    // Client algorithm: parts.join("\n") + SHA256
+    const parts = [
+      String(obs.title ?? ""),
+      String(obs.narrative ?? ""),
+      String(obs.facts ?? ""),
+      String(obs.project ?? ""),
+      String(obs.type ?? ""),
+    ];
+    const clientHash = createHash("sha256").update(parts.join("\n")).digest("hex").slice(0, 32);
+
+    expect(computeContentHash(obs)).toBe(clientHash);
   });
 });

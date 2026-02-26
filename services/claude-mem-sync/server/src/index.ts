@@ -33,6 +33,12 @@ async function applyMigrations() {
     "utf-8"
   );
   await pool.query(migration002);
+
+  const migration003 = readFileSync(
+    join(__dirname, "../migrations/003_drop_legacy_unique_and_rehash.sql"),
+    "utf-8"
+  );
+  await pool.query(migration003);
 }
 
 async function backfillObservationHashes() {
