@@ -63,10 +63,9 @@ function loadConfig() {
   }
 }
 
-function shortPath(cwd) {
+function formatPath(cwd) {
   if (!cwd) return "unknown";
-  const parts = cwd.split(path.sep);
-  return parts.slice(-2).join(path.sep);
+  return cwd;
 }
 
 function truncate(text, maxLen = 200) {
@@ -92,7 +91,7 @@ function buildMessage(eventInfo, detail, cwd) {
     `${eventInfo.emoji} Claude Code 通知`,
     "",
     `📋 事件: ${eventInfo.title}`,
-    `📁 專案: ${shortPath(cwd)}`,
+    `📁 專案: ${formatPath(cwd)}`,
   ];
 
   if (detail) {
@@ -108,7 +107,11 @@ function extractDetail(hookData) {
   const event = hookData.hook_event_name;
 
   if (event === "Stop") {
-    return hookData.last_assistant_message || "Claude 已完成回應";
+    const msg = hookData.last_assistant_message;
+    if (!msg) return "Claude 已完成回應";
+    // 取第一行非空文字作為摘要
+    const firstLine = msg.split("\n").find((l) => l.trim()) || msg;
+    return truncate(firstLine, 100);
   }
 
   if (event === "PostToolUseFailure") {
