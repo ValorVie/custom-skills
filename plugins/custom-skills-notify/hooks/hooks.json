@@ -1,6 +1,18 @@
 {
   "description": "Claude Code 通知系統 — 自動發送 Telegram 通知",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "description": "檢查 Telegram 設定是否完成",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/check-config.js\""
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "*",
