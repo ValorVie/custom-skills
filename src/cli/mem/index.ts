@@ -59,13 +59,37 @@ export function registerMemCommands(program: Command): void {
         return;
       }
 
-      console.log("Memory push complete");
-      console.log(`- Pushed: ${result.pushed}`);
-      console.log(`- Skipped: ${result.skipped}`);
-      if (result.errors > 0) {
-        console.log(`- Errors: ${result.errors}`);
+      if (result.pushed === 0 && result.errors === 0) {
+        console.log(t("mem.push_nothing"));
+        return;
       }
-      console.log(`- Server: ${result.serverUrl || "(not configured)"}`);
+
+      console.log(
+        t("mem.push_sending", {
+          sessions: String(result.sent.sessions),
+          observations: String(result.sent.observations),
+          summaries: String(result.sent.summaries),
+          prompts: String(result.sent.prompts),
+        }),
+      );
+      console.log(
+        t("mem.push_dedup", {
+          pulled: String(result.dedupExcluded.pulled),
+          preflight: String(result.dedupExcluded.preflight),
+        }),
+      );
+      console.log(
+        t("mem.push_done", {
+          si: String(result.imported.sessions),
+          oi: String(result.imported.observations),
+          smi: String(result.imported.summaries),
+          pi: String(result.imported.prompts),
+          ss: String(result.skippedDetail.sessions),
+          os: String(result.skippedDetail.observations),
+          sms: String(result.skippedDetail.summaries),
+          ps: String(result.skippedDetail.prompts),
+        }),
+      );
     });
 
   mem
@@ -80,9 +104,29 @@ export function registerMemCommands(program: Command): void {
         return;
       }
 
-      console.log("Memory pull complete");
-      console.log(`- Pulled: ${result.pulled}`);
-      console.log(`- Server: ${result.serverUrl || "(not configured)"}`);
+      console.log(
+        t("mem.pull_received", {
+          sessions: String(result.received.sessions),
+          observations: String(result.received.observations),
+          summaries: String(result.received.summaries),
+          prompts: String(result.received.prompts),
+        }),
+      );
+      console.log(
+        t("mem.pull_done", {
+          si: String(result.imported.sessions),
+          oi: String(result.imported.observations),
+          smi: String(result.imported.summaries),
+          pi: String(result.imported.prompts),
+          ss: String(result.skippedDetail.sessions),
+          os: String(result.skippedDetail.observations),
+          sms: String(result.skippedDetail.summaries),
+          ps: String(result.skippedDetail.prompts),
+        }),
+      );
+      if (result.pulled > 0) {
+        console.log(t("mem.chromadb_syncing"));
+      }
     });
 
   mem
@@ -97,20 +141,40 @@ export function registerMemCommands(program: Command): void {
         return;
       }
 
-      const rows: string[][] = [
-        [t("mem.device"), result.config.deviceName || t("mem.unregistered")],
-        [t("mem.local_obs"), String(result.localObservations)],
-        [t("mem.pending_push"), String(result.pendingPushCount)],
-      ];
+      const remoteAvailable = result.remoteStatus != null;
+      const r = result.remoteStatus ?? {};
+      const na = t("mem.remote_unavailable");
 
-      if (result.remoteStatus) {
-        rows.push([
+      const rows: string[][] = [
+        // Server section (5 items)
+        [
+          t("mem.remote_sessions"),
+          remoteAvailable ? String(r.sessions ?? 0) : na,
+        ],
+        [
           t("mem.remote_obs"),
-          String(result.remoteStatus.observations ?? 0),
-        ]);
-      } else {
-        rows.push([t("mem.remote_obs"), t("mem.remote_unavailable")]);
-      }
+          remoteAvailable ? String(r.observations ?? 0) : na,
+        ],
+        [
+          t("mem.remote_summaries"),
+          remoteAvailable ? String(r.summaries ?? 0) : na,
+        ],
+        [
+          t("mem.remote_prompts"),
+          remoteAvailable ? String(r.prompts ?? 0) : na,
+        ],
+        [
+          t("mem.remote_devices"),
+          remoteAvailable ? String(r.devices ?? 0) : na,
+        ],
+        // Local section (3 items)
+        [t("mem.local_obs"), String(result.localObservations)],
+        [t("mem.local_dups"), String(result.localDuplicates)],
+        [t("mem.pulled_hashes"), String(result.pulledHashesTracked)],
+        // Epoch info
+        [t("mem.last_push"), String(result.config.lastPushEpoch)],
+        [t("mem.last_pull"), String(result.config.lastPullEpoch)],
+      ];
 
       printTable([t("mem.col_field"), t("mem.col_value")], rows);
     });
@@ -127,11 +191,28 @@ export function registerMemCommands(program: Command): void {
         return;
       }
 
-      console.log("Memory reindex complete");
-      console.log(`- Total: ${result.total}`);
-      console.log(`- Synced: ${result.synced}`);
-      console.log(`- Errors: ${result.errors}`);
-      console.log(`- Duplicates removed: ${result.duplicatesRemoved}`);
+      console.log(t("mem.reindex_scanning"));
+
+      if (result.synced === 0 && result.errors === 0) {
+        console.log(
+          t("mem.reindex_complete", { total: String(result.total) }),
+        );
+      } else {
+        console.log(
+          t("mem.reindex_done", {
+            synced: String(result.synced),
+            errors: String(result.errors),
+            total: String(result.total),
+            missing: String(result.missing),
+          }),
+        );
+      }
+
+      if (result.duplicatesRemoved > 0) {
+        console.log(
+          t("mem.cleanup_auto", { count: String(result.duplicatesRemoved) }),
+        );
+      }
     });
 
   mem

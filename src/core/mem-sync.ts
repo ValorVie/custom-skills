@@ -19,21 +19,43 @@ export interface MemSyncConfig {
   autoSyncIntervalMinutes: number;
 }
 
+export interface MemCategoryStats {
+  sessions: number;
+  observations: number;
+  summaries: number;
+  prompts: number;
+}
+
 export interface MemPushResult {
   pushed: number;
   skipped: number;
   errors: number;
   serverUrl: string;
+  /** Per-category counts sent to server */
+  sent: MemCategoryStats;
+  /** Per-category dedup exclusions */
+  dedupExcluded: { pulled: number; preflight: number };
+  /** Per-category imported/skipped from server response */
+  imported: MemCategoryStats;
+  skippedDetail: MemCategoryStats;
 }
 
 export interface MemPullResult {
   pulled: number;
+  skipped: number;
   serverUrl: string;
+  /** Per-category counts received from server */
+  received: MemCategoryStats;
+  /** Per-category imported/skipped */
+  imported: MemCategoryStats;
+  skippedDetail: MemCategoryStats;
 }
 
 export interface MemStatus {
   config: MemSyncConfig;
   localObservations: number;
+  localDuplicates: number;
+  pulledHashesTracked: number;
   pendingPushCount: number;
   remoteStatus: {
     sessions?: number;
@@ -52,6 +74,7 @@ export interface MemAutoSyncResult {
 
 export interface MemReindexResult {
   total: number;
+  missing: number;
   synced: number;
   errors: number;
   duplicatesRemoved: number;
@@ -481,8 +504,21 @@ export async function pushMemData(
   let skipped = 0;
   let errors = 0;
 
+  const zeroCat = (): MemCategoryStats => ({
+    sessions: 0,
+    observations: 0,
+    summaries: 0,
+    prompts: 0,
+  });
+  const sent = zeroCat();
+  const imported = zeroCat();
+  const skippedDetail = zeroCat();
+  const dedupExcluded = { pulled: 0, preflight: 0 };
+
   if (!config.serverUrl || !config.apiKey) {
     pushed = observations.length;
+    sent.observations = observations.length;
+    imported.observations = observations.length;
   } else {
     const hashes = observations
       .map((item) => String(item.sync_content_hash ?? ""))
@@ -497,9 +533,22 @@ export async function pushMemData(
       missingHashes.has(String(item.sync_content_hash ?? "")),
     );
 
+    dedupExcluded.pulled = observations.length - hashes.length;
+    dedupExcluded.preflight = hashes.length - missingHashes.size;
+    sent.observations = toUpload.length;
+
     for (const batch of chunkArray(toUpload, 100)) {
       const payload = await requestJson<{
-        stats?: { observationsImported?: number };
+        stats?: {
+          sessionsImported?: number;
+          observationsImported?: number;
+          summariesImported?: number;
+          promptsImported?: number;
+          sessionsSkipped?: number;
+          observationsSkipped?: number;
+          summariesSkipped?: number;
+          promptsSkipped?: number;
+        };
       }>(
         `${normalizeServerUrl(config.serverUrl)}/api/sync/push`,
         {
@@ -523,10 +572,20 @@ export async function pushMemData(
         continue;
       }
 
-      if (payload.stats?.observationsImported !== undefined) {
-        pushed += payload.stats.observationsImported;
+      const stats = payload.stats;
+      if (stats?.observationsImported !== undefined) {
+        pushed += stats.observationsImported;
+        imported.sessions += stats.sessionsImported ?? 0;
+        imported.observations += stats.observationsImported;
+        imported.summaries += stats.summariesImported ?? 0;
+        imported.prompts += stats.promptsImported ?? 0;
+        skippedDetail.sessions += stats.sessionsSkipped ?? 0;
+        skippedDetail.observations += stats.observationsSkipped ?? 0;
+        skippedDetail.summaries += stats.summariesSkipped ?? 0;
+        skippedDetail.prompts += stats.promptsSkipped ?? 0;
       } else {
         pushed += batch.length;
+        imported.observations += batch.length;
       }
     }
 
@@ -541,6 +600,10 @@ export async function pushMemData(
     skipped,
     errors,
     serverUrl: config.serverUrl,
+    sent,
+    dedupExcluded,
+    imported,
+    skippedDetail,
   };
 }
 
@@ -551,6 +614,17 @@ export async function pullMemData(
   const dbPath = options.dbPath ?? defaultMemDbPath();
 
   let pulled = 0;
+  let totalReceived = 0;
+
+  const zeroCat = (): MemCategoryStats => ({
+    sessions: 0,
+    observations: 0,
+    summaries: 0,
+    prompts: 0,
+  });
+  const received = zeroCat();
+  const imported = zeroCat();
+  const skippedDetail = zeroCat();
 
   if (config.serverUrl && config.apiKey) {
     let since = config.lastPullEpoch > 0 ? config.lastPullEpoch * 1000 : 0;
@@ -558,7 +632,10 @@ export async function pullMemData(
 
     while (hasMore) {
       const payload = await requestJson<{
+        sessions?: Record<string, unknown>[];
         observations?: Record<string, unknown>[];
+        summaries?: Record<string, unknown>[];
+        prompts?: Record<string, unknown>[];
         has_more?: boolean;
         next_since?: number;
       }>(
@@ -577,7 +654,25 @@ export async function pullMemData(
       }
 
       const observations = payload.observations ?? [];
-      pulled += upsertPulledObservations(dbPath, observations);
+      const sessions = payload.sessions ?? [];
+      const summaries = payload.summaries ?? [];
+      const prompts = payload.prompts ?? [];
+
+      received.sessions += sessions.length;
+      received.observations += observations.length;
+      received.summaries += summaries.length;
+      received.prompts += prompts.length;
+      totalReceived += observations.length;
+
+      const insertedCount = upsertPulledObservations(dbPath, observations);
+      pulled += insertedCount;
+      imported.observations += insertedCount;
+      skippedDetail.observations += observations.length - insertedCount;
+
+      // Sessions, summaries, prompts are tracked but not stored locally
+      imported.sessions += sessions.length;
+      imported.summaries += summaries.length;
+      imported.prompts += prompts.length;
 
       hasMore = Boolean(payload.has_more);
       if (typeof payload.next_since === "number") {
@@ -593,8 +688,59 @@ export async function pullMemData(
 
   return {
     pulled,
+    skipped: totalReceived - pulled,
     serverUrl: config.serverUrl,
+    received,
+    imported,
+    skippedDetail,
   };
+}
+
+function countDuplicates(dbPath: string): number {
+  if (!existsSync(dbPath)) return 0;
+  try {
+    const db = openDb(dbPath, true);
+    try {
+      const allObs = db
+        .query(
+          "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id",
+        )
+        .all() as ObservationRow[];
+
+      const hashGroups = new Map<string, number>();
+      let duplicates = 0;
+      for (const obs of allObs) {
+        const hash = computeContentHash(obs);
+        const count = (hashGroups.get(hash) ?? 0) + 1;
+        hashGroups.set(hash, count);
+        if (count > 1) duplicates++;
+      }
+      return duplicates;
+    } finally {
+      db.close();
+    }
+  } catch {
+    return 0;
+  }
+}
+
+function countPulledHashes(dbPath: string): number {
+  if (!existsSync(dbPath)) return 0;
+  try {
+    const db = openDb(dbPath, true);
+    try {
+      const row = db
+        .query(
+          "SELECT COUNT(*) AS count FROM observations WHERE sync_content_hash IS NOT NULL AND sync_content_hash != ''",
+        )
+        .get() as { count?: number };
+      return row?.count ?? 0;
+    } finally {
+      db.close();
+    }
+  } catch {
+    return 0;
+  }
 }
 
 export async function getMemSyncStatus(
@@ -611,6 +757,8 @@ export async function getMemSyncStatus(
   return {
     config,
     localObservations: await countObservations(dbPath),
+    localDuplicates: countDuplicates(dbPath),
+    pulledHashesTracked: countPulledHashes(dbPath),
     pendingPushCount: countPendingObservations(dbPath, config.lastPushEpoch),
     remoteStatus,
   };
@@ -756,12 +904,12 @@ export async function reindexMemData(
   const chromaDbPath = options.chromaDbPath ?? defaultChromaDbPath();
 
   if (!existsSync(dbPath)) {
-    return { total: 0, synced: 0, errors: 0, duplicatesRemoved: 0 };
+    return { total: 0, missing: 0, synced: 0, errors: 0, duplicatesRemoved: 0 };
   }
 
   if (!(await workerAvailable())) {
     const total = await countObservations(dbPath);
-    return { total, synced: 0, errors: 0, duplicatesRemoved: 0 };
+    return { total, missing: 0, synced: 0, errors: 0, duplicatesRemoved: 0 };
   }
 
   const indexedIds = getIndexedObservationIds(chromaDbPath);
@@ -771,7 +919,7 @@ export async function reindexMemData(
   try {
     allObs = db
       .query(
-        "SELECT id, title, narrative, project FROM observations ORDER BY id",
+        "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id",
       )
       .all() as ObservationRow[];
   } finally {
@@ -787,19 +935,19 @@ export async function reindexMemData(
     if (text) indexedTexts.add(text);
   }
 
-  const missing: ObservationRow[] = [];
+  const missingObs: ObservationRow[] = [];
   for (const obs of allObs) {
     if (indexedIds.has(obs.id)) continue;
     const text = (obs.narrative || obs.title || "").trim();
     if (!text) continue;
     if (indexedTexts.has(text)) continue; // 該內容已透過其他記錄被索引
-    missing.push(obs);
+    missingObs.push(obs);
   }
 
   let synced = 0;
   let errors = 0;
 
-  for (const obs of missing) {
+  for (const obs of missingObs) {
     const text = obs.narrative || obs.title || "";
 
     try {
@@ -813,8 +961,14 @@ export async function reindexMemData(
         }),
         signal: AbortSignal.timeout(30_000),
       });
-      if (resp.ok) synced++;
-      else errors++;
+      if (resp.ok) {
+        synced++;
+        // 將已同步的文字加入 indexedTexts，防止同一 session 內重複偵測
+        // 同時防止跨呼叫循環：worker 建立副本 → cleanup 保留已索引副本 → 原始記錄被刪除
+        indexedTexts.add(text.trim());
+      } else {
+        errors++;
+      }
     } catch {
       errors++;
     }
@@ -823,9 +977,9 @@ export async function reindexMemData(
   // reindex 透過 worker /api/memory/save 會建立副本，自動清理
   let duplicatesRemoved = 0;
   if (synced > 0) {
-    const cleanupResult = await cleanupDuplicates({ dbPath });
+    const cleanupResult = await cleanupDuplicates({ dbPath, chromaDbPath });
     duplicatesRemoved = cleanupResult.duplicatesRemoved;
   }
 
-  return { total: allObs.length, synced, errors, duplicatesRemoved };
+  return { total: allObs.length, missing: missingObs.length, synced, errors, duplicatesRemoved };
 }
