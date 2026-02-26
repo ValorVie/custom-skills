@@ -92,29 +92,21 @@ def _normalize_hash_text(value: Any) -> str:
     return str(value)
 
 
-def _normalize_hash_facts(value: Any) -> str:
-    if value is None:
-        return "[]"
-    if isinstance(value, str):
-        return value
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-
-
 def compute_content_hash(obs: dict[str, Any]) -> str:
-    """計算 observation 的 content hash（SHA-256 前 32 hex chars）。"""
-    payload = json.dumps(
-        {
-            "facts": _normalize_hash_facts(obs.get("facts")),
-            "narrative": _normalize_hash_text(obs.get("narrative")),
-            "project": _normalize_hash_text(obs.get("project")),
-            "title": _normalize_hash_text(obs.get("title")),
-            "type": _normalize_hash_text(obs.get("type")),
-        },
-        sort_keys=True,
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+    """計算 observation 的 content hash（SHA-256 前 32 hex chars）。
+
+    算法與 v2 TypeScript client 及 server 對齊：
+    parts = [title, narrative, facts, project, type]
+    hash = sha256(parts.join("\\n"))[:32]
+    """
+    parts = [
+        _normalize_hash_text(obs.get("title")),
+        _normalize_hash_text(obs.get("narrative")),
+        _normalize_hash_text(obs.get("facts")),
+        _normalize_hash_text(obs.get("project")),
+        _normalize_hash_text(obs.get("type")),
+    ]
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:32]
 
 
 def _get_pulled_hashes_path() -> Path:
