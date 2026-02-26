@@ -3,6 +3,7 @@ import type { Command } from "commander";
 
 import { initProject, updateProject } from "../../core/project-manager";
 import { t } from "../../utils/i18n";
+import { formatProgress } from "../../utils/progress-formatter";
 
 export function registerProjectCommands(program: Command): void {
   const project = program.command("project").description(t("cmd.project"));
@@ -21,6 +22,7 @@ export function registerProjectCommands(program: Command): void {
         const result = await initProject({
           targetDir: target,
           force: options.force,
+          onProgress: options.json ? undefined : formatProgress,
         });
 
         if (options.json) {

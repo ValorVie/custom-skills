@@ -15,6 +15,7 @@ export interface ProjectInitOptions {
   targetDir?: string;
   templateDir?: string;
   force?: boolean;
+  onProgress?: (msg: string) => void;
 }
 
 export interface ProjectInitResult {
@@ -183,6 +184,7 @@ export async function initProject(
   const targetDir = resolve(options.targetDir ?? process.cwd());
   const templateDir = resolve(options.templateDir ?? defaultTemplateDir());
   const force = options.force ?? false;
+  const onProgress = options.onProgress;
   const backupRoot = join(
     targetDir,
     ".ai-dev-backups",
@@ -216,6 +218,9 @@ export async function initProject(
     ) {
       if (await mergeLineByLine(sourcePath, targetPath)) {
         copied = true;
+        onProgress?.(`✓ 合併 ${relativePath}`);
+      } else {
+        onProgress?.(`  無變更 ${relativePath}`);
       }
       continue;
     }
@@ -231,6 +236,9 @@ export async function initProject(
 
     if (await copyIfChanged(sourcePath, targetPath)) {
       copied = true;
+      onProgress?.(`✓ ${relativePath}`);
+    } else {
+      onProgress?.(`  無變更 ${relativePath}`);
     }
   }
 
