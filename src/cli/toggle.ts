@@ -2,12 +2,14 @@ import { access, readdir, rename } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Command } from "commander";
+import chalk from "chalk";
 
 import { printError, printTable } from "../utils/formatter";
 import { t } from "../utils/i18n";
 import {
   COPY_TARGETS,
   type ResourceType,
+  TARGET_NAMES,
   type TargetType,
 } from "../utils/shared";
 
@@ -212,12 +214,13 @@ export function registerToggleCommand(program: Command): void {
   program
     .command("toggle")
     .description(t("cmd.toggle"))
-    .option("--target <target>", t("opt.target"))
-    .option("--type <type>", t("opt.type"))
-    .option("--name <name>", t("opt.name"))
-    .option("--enable", t("opt.enable"))
-    .option("--disable", t("opt.disable"))
-    .option("--list", t("opt.list"))
+    .option("-t, --target <target>", t("opt.target"))
+    .option("-T, --type <type>", t("opt.type"))
+    .option("-n, --name <name>", t("opt.name"))
+    .option("-e, --enable", t("opt.enable"))
+    .option("-d, --disable", t("opt.disable"))
+    .option("-l, --list", t("opt.list"))
+    .option("--all", t("opt.toggle_all"))
     .action(
       async (options: {
         target?: string;
@@ -226,6 +229,7 @@ export function registerToggleCommand(program: Command): void {
         enable?: boolean;
         disable?: boolean;
         list?: boolean;
+        all?: boolean;
       }) => {
         if (options.list) {
           const listed = await listAllToggleStates(
@@ -262,6 +266,35 @@ export function registerToggleCommand(program: Command): void {
           return;
         }
 
+        const targetName = TARGET_NAMES[validated.target] ?? validated.target;
+
+        // --all 批次模式
+        if (options.all && !options.name) {
+          if (options.enable === options.disable) {
+            printError(t("toggle.choose_one"));
+            process.exitCode = 1;
+            return;
+          }
+
+          const resources = await listToggleState(validated.target, validated.type);
+          let count = 0;
+          for (const r of resources) {
+            if (options.enable && !r.enabled) {
+              const ok = await enableResource(validated.target, validated.type, r.name);
+              if (ok) count++;
+            } else if (options.disable && r.enabled) {
+              const ok = await disableResource(validated.target, validated.type, r.name);
+              if (ok) count++;
+            }
+          }
+
+          const action = options.enable ? t("common.enabled") : t("common.disabled");
+          console.log(chalk.green(`✓ ${t("toggle.batch_done", { action, count: String(count), target: targetName, type: validated.type })}`));
+          console.log(chalk.dim(t("toggle.restart_hint", { target: targetName })));
+          return;
+        }
+
+        // 單一資源模式
         if (!options.name) {
           printError(t("toggle.missing_name"));
           process.exitCode = 1;
@@ -276,19 +309,24 @@ export function registerToggleCommand(program: Command): void {
 
         const success = options.enable
           ? await enableResource(validated.target, validated.type, options.name)
-          : await disableResource(
-              validated.target,
-              validated.type,
-              options.name,
-            );
+          : await disableResource(validated.target, validated.type, options.name);
 
         if (!success) {
-          printError(t("toggle.failed"));
-          process.exitCode = 1;
+          // 可能是已經在目標狀態
+          if (options.enable) {
+            console.log(chalk.dim(t("toggle.already_enabled", { name: options.name })));
+          } else {
+            console.log(chalk.dim(t("toggle.already_disabled", { name: options.name })));
+          }
           return;
         }
 
-        console.log(options.enable ? "Enabled" : "Disabled");
+        if (options.enable) {
+          console.log(chalk.green(`✓ ${t("toggle.enabled", { target: targetName, type: validated.type, name: options.name })}`));
+        } else {
+          console.log(chalk.yellow(`✓ ${t("toggle.disabled", { target: targetName, type: validated.type, name: options.name })}`));
+        }
+        console.log(chalk.dim(t("toggle.restart_hint", { target: targetName })));
       },
     );
 }
