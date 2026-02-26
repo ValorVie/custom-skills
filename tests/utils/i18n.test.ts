@@ -2,12 +2,19 @@ import { beforeEach, describe, expect, test } from "bun:test";
 
 import { getLocale, setLocale, t } from "../../src/utils/i18n";
 
+describe("i18n DEFAULT_LOCALE", () => {
+  test("initial locale is zh-TW", () => {
+    expect(getLocale()).toBe("zh-TW");
+    expect(t("install.checking_prerequisites")).toBe("檢查前置需求...");
+  });
+});
+
 describe("utils/i18n", () => {
   beforeEach(() => {
     setLocale("en");
   });
 
-  test("defaults to english locale", () => {
+  test("works with english locale", () => {
     expect(getLocale()).toBe("en");
     expect(t("install.checking_prerequisites")).toBe(
       "Checking prerequisites...",

@@ -17,10 +17,11 @@ function runCli(args: string[], timeoutMs = 5000) {
 }
 
 describe("cli smoke", () => {
-  test("--version outputs 2.0.0", () => {
+  test("--version outputs version from package.json", () => {
+    const pkg = require("../../package.json") as { version: string };
     const result = runCli(["--version"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout.trim()).toBe("2.0.0");
+    expect(result.stdout.trim()).toBe(pkg.version);
   });
 
   test("--help shows zh-TW descriptions by default", () => {

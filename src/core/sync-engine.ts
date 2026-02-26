@@ -41,7 +41,7 @@ export interface SyncEngineDeps {
   pullConflictChoiceFn?: () => Promise<"overwrite" | "backup" | "cancel">;
 }
 
-function defaultDirectories(): SyncDirectory[] {
+export function defaultDirectories(): SyncDirectory[] {
   return [
     {
       path: "~/.claude",
@@ -52,7 +52,7 @@ function defaultDirectories(): SyncDirectory[] {
   ];
 }
 
-function expandHome(pathValue: string): string {
+export function expandHome(pathValue: string): string {
   if (!pathValue.startsWith("~/")) {
     return pathValue;
   }

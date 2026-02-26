@@ -1,11 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
   cleanupDuplicates,
   configureAutoSync,
+  defaultChromaDbPath,
+  defaultMemDbPath,
+  defaultMemSyncConfigPath,
   getMemSyncStatus,
   loadMemSyncConfig,
   pullMemData,
@@ -14,6 +17,28 @@ import {
   reindexMemData,
   saveMemSyncConfig,
 } from "../../src/core/mem-sync";
+
+describe("mem-sync default paths", () => {
+  const home = homedir();
+
+  test("defaultMemSyncConfigPath returns correct path", () => {
+    expect(defaultMemSyncConfigPath()).toBe(
+      join(home, ".config", "ai-dev", "mem-sync.yaml"),
+    );
+  });
+
+  test("defaultMemDbPath returns correct path", () => {
+    expect(defaultMemDbPath()).toBe(
+      join(home, ".claude-mem", "claude-mem.db"),
+    );
+  });
+
+  test("defaultChromaDbPath returns correct path", () => {
+    expect(defaultChromaDbPath()).toBe(
+      join(home, ".claude-mem", "chroma", "chroma.sqlite3"),
+    );
+  });
+});
 
 describe("core/mem-sync", () => {
   test("register/save/load config", async () => {

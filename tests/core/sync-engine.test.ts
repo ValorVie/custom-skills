@@ -7,10 +7,36 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { SyncEngine } from "../../src/core/sync-engine";
+import { createDefaultSyncEngine, defaultDirectories, expandHome, SyncEngine } from "../../src/core/sync-engine";
+
+describe("sync-engine defaults", () => {
+  const home = homedir();
+
+  test("defaultDirectories returns expected structure", () => {
+    const dirs = defaultDirectories();
+    expect(dirs).toHaveLength(1);
+    expect(dirs[0].path).toBe("~/.claude");
+    expect(dirs[0].repoSubdir).toBe("claude");
+    expect(dirs[0].ignoreProfile).toBe("claude");
+    expect(dirs[0].customIgnore).toEqual([]);
+  });
+
+  test("expandHome expands ~ to homedir", () => {
+    expect(expandHome("~/.claude")).toBe(join(home, ".claude"));
+  });
+
+  test("expandHome preserves absolute paths", () => {
+    expect(expandHome("/absolute/path")).toBe("/absolute/path");
+  });
+
+  test("createDefaultSyncEngine returns SyncEngine instance", () => {
+    const engine = createDefaultSyncEngine();
+    expect(engine).toBeInstanceOf(SyncEngine);
+  });
+});
 
 describe("core/sync-engine", () => {
   test("init creates config and default directory", async () => {

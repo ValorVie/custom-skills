@@ -67,7 +67,7 @@ export function defaultMemSyncConfigPath(): string {
 }
 
 export function defaultMemDbPath(): string {
-  return join(paths.home, ".claude", "statsig", "statsig.db");
+  return join(homedir(), ".claude-mem", "claude-mem.db");
 }
 
 export function defaultChromaDbPath(): string {

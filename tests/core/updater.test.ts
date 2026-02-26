@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { PathLike } from "node:fs";
 
 import { runUpdate } from "../../src/core/updater";
+import { BUN_PACKAGES, NPM_PACKAGES, REPOS } from "../../src/utils/shared";
 import type { RunCommandOptions } from "../../src/utils/system";
 
 describe("core/updater", () => {
@@ -246,5 +247,31 @@ describe("core/updater", () => {
 
     expect(result.claudeCode.success).toBe(false);
     expect(result.claudeCode.message).toBe("not installed");
+  });
+});
+
+describe("updater default constants", () => {
+  test("NPM_PACKAGES is a non-empty array of strings", () => {
+    expect(NPM_PACKAGES.length).toBeGreaterThan(0);
+    for (const pkg of NPM_PACKAGES) {
+      expect(typeof pkg).toBe("string");
+    }
+  });
+
+  test("BUN_PACKAGES is a non-empty array of strings", () => {
+    expect(BUN_PACKAGES.length).toBeGreaterThan(0);
+    for (const pkg of BUN_PACKAGES) {
+      expect(typeof pkg).toBe("string");
+    }
+  });
+
+  test("REPOS is a non-empty array with valid structure", () => {
+    expect(REPOS.length).toBeGreaterThan(0);
+    for (const repo of REPOS) {
+      expect(typeof repo.name).toBe("string");
+      expect(typeof repo.url).toBe("string");
+      expect(typeof repo.dir).toBe("string");
+      expect(repo.url.startsWith("https://")).toBe(true);
+    }
   });
 });

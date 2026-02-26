@@ -64,4 +64,19 @@ describe("utils/system", () => {
     }
     expect(version).toBeNull();
   });
+
+  test("runCommand rejects on timeout", async () => {
+    await expect(
+      runCommand(["sleep", "10"], { check: false, timeoutMs: 100 }),
+    ).rejects.toThrow("timed out");
+  });
+
+  test("runCommand defaults to check=true", async () => {
+    const failingCommand =
+      getOS() === "windows"
+        ? ["cmd", "/c", "exit", "1"]
+        : ["bash", "-lc", "exit 1"];
+
+    await expect(runCommand(failingCommand)).rejects.toThrow();
+  });
 });
