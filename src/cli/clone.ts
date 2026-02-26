@@ -6,6 +6,7 @@ import {
   type DistributeResult,
   distributeSkills,
 } from "../core/skill-distributor";
+import { t } from "../utils/i18n";
 
 interface CloneCommandResult extends DistributeResult {
   devMode: boolean;
@@ -69,13 +70,13 @@ async function runClone(options: {
 export function registerCloneCommand(program: Command): void {
   program
     .command("clone")
-    .description("Distribute resources to configured AI tool directories")
-    .option("--force", "Overwrite existing conflicting files")
-    .option("--skip-conflicts", "Skip conflicting files")
-    .option("--backup", "Backup conflicting files before overwrite")
-    .option("--sync-project", "Also sync project-template files")
-    .option("--no-sync-project", "Skip project-template synchronization")
-    .option("--json", "Output result as JSON")
+    .description(t("cmd.clone"))
+    .option("--force", t("opt.force"))
+    .option("--skip-conflicts", t("opt.skip_conflicts"))
+    .option("--backup", t("opt.backup"))
+    .option("--sync-project", t("opt.sync_project"))
+    .option("--no-sync-project", t("opt.no_sync_project"))
+    .option("--json", t("opt.json"))
     .action(
       async (options: {
         force?: boolean;

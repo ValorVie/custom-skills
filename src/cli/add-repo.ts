@@ -12,12 +12,12 @@ import { t } from "../utils/i18n";
 export function registerAddRepoCommand(program: Command): void {
   program
     .command("add-repo")
-    .description("Add and optionally clone a tracked repository")
+    .description(t("cmd.add_repo"))
     .argument("<repo>", "GitHub repo (owner/name) or URL")
-    .option("--name <name>", "Custom repo name")
-    .option("--branch <branch>", "Tracked branch", "main")
-    .option("--skip-clone", "Skip cloning and only register config")
-    .option("--analyze", "Analyze repository structure and suggest approach")
+    .option("--name <name>", t("opt.name"))
+    .option("--branch <branch>", t("opt.branch"), "main")
+    .option("--skip-clone", t("opt.skip_clone"))
+    .option("--analyze", t("opt.analyze"))
     .action(
       async (
         repoInput: string,

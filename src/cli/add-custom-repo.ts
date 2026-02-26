@@ -25,12 +25,12 @@ async function exists(path: string): Promise<boolean> {
 export function registerAddCustomRepoCommand(program: Command): void {
   program
     .command("add-custom-repo")
-    .description("Add custom repository to ~/.config/ai-dev/repos.yaml")
+    .description(t("cmd.add_custom_repo"))
     .argument("<repo>", "GitHub repo (owner/name) or URL")
-    .option("--name <name>", "Custom repo name")
-    .option("--branch <branch>", "Tracked branch", "main")
-    .option("--no-clone", "Do not clone repository before registering")
-    .option("--fix", "Create missing standard directories")
+    .option("--name <name>", t("opt.name"))
+    .option("--branch <branch>", t("opt.branch"), "main")
+    .option("--no-clone", t("opt.no_clone"))
+    .option("--fix", t("opt.fix"))
     .action(
       async (
         repoInput: string,

@@ -15,16 +15,17 @@ import {
   printTable,
   printWarning,
 } from "../../utils/formatter";
+import { t } from "../../utils/i18n";
 
 export function registerStandardsCommands(program: Command): void {
   const standards = program
     .command("standards")
-    .description("Manage standards profiles");
+    .description(t("cmd.standards"));
 
   standards
     .command("status")
-    .description("Show current standards status")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.standards_status"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const status = await getStandardsStatus();
       if (options.json) {
@@ -33,19 +34,28 @@ export function registerStandardsCommands(program: Command): void {
       }
 
       printTable(
-        ["Field", "Value"],
+        [t("standards.col_field"), t("standards.col_value")],
         [
-          ["Initialized", String(status.initialized)],
-          ["Active profile", status.activeProfile ?? "(none)"],
-          ["Available profiles", String(status.availableProfiles.length)],
+          [
+            t("standards.initialized"),
+            status.initialized ? t("standards.yes") : t("standards.no"),
+          ],
+          [
+            t("standards.active_profile"),
+            status.activeProfile ?? t("common.none"),
+          ],
+          [
+            t("standards.available_profiles"),
+            String(status.availableProfiles.length),
+          ],
         ],
       );
     });
 
   standards
     .command("list")
-    .description("List available profiles")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.standards_list"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const profiles = await listProfiles();
       if (options.json) {
@@ -56,17 +66,17 @@ export function registerStandardsCommands(program: Command): void {
       const status = await getStandardsStatus();
       const rows = profiles.map((profile) => [
         profile,
-        status.activeProfile === profile ? "yes" : "",
+        status.activeProfile === profile ? t("standards.active_yes") : "",
       ]);
-      printTable(["Profile", "Active"], rows);
+      printTable([t("standards.col_profile"), t("standards.col_active")], rows);
     });
 
   standards
     .command("switch")
-    .description("Switch active profile")
-    .argument("<profile>", "Profile name")
-    .option("--dry-run", "Preview only")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.standards_switch"))
+    .argument("<profile>", t("standards.arg_profile"))
+    .option("--dry-run", t("opt.dry_run"))
+    .option("--json", t("opt.json"))
     .action(
       async (
         profile: string,
@@ -74,7 +84,7 @@ export function registerStandardsCommands(program: Command): void {
       ) => {
         const result = await switchProfile(profile, { dryRun: options.dryRun });
         if (!result.success) {
-          printError(result.message ?? "switch failed");
+          printError(result.message ?? t("standards.switch_failed"));
           process.exitCode = 1;
           return;
         }
@@ -86,21 +96,32 @@ export function registerStandardsCommands(program: Command): void {
 
         if (result.dryRun) {
           const disabled = await computeDisabledItems(profile);
-          printSuccess(`Dry run complete for profile: ${profile}`);
+          printSuccess(t("standards.dry_run_complete", { profile }));
           printTable(
-            ["Metric", "Value"],
-            [["Disabled standards", String(disabled.standards.length)]],
+            [t("standards.col_metric"), t("standards.col_value")],
+            [
+              [
+                t("standards.metric_disabled"),
+                String(disabled.standards.length),
+              ],
+            ],
           );
           return;
         }
 
-        printSuccess(`Switched to profile: ${profile}`);
+        printSuccess(t("standards.switched_to_profile", { profile }));
         printTable(
-          ["Metric", "Value"],
+          [t("standards.col_metric"), t("standards.col_value")],
           [
-            ["Disabled standards", String(result.disabledCount ?? 0)],
-            ["Moved to .disabled", String(result.movedToDisabled ?? 0)],
-            ["Restored to active", String(result.restoredToActive ?? 0)],
+            [t("standards.metric_disabled"), String(result.disabledCount ?? 0)],
+            [
+              t("standards.metric_moved_disabled"),
+              String(result.movedToDisabled ?? 0),
+            ],
+            [
+              t("standards.metric_restored_active"),
+              String(result.restoredToActive ?? 0),
+            ],
           ],
         );
       },
@@ -108,13 +129,13 @@ export function registerStandardsCommands(program: Command): void {
 
   standards
     .command("show")
-    .description("Show profile content")
-    .argument("<profile>", "Profile name")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.standards_show"))
+    .argument("<profile>", t("standards.arg_profile"))
+    .option("--json", t("opt.json"))
     .action(async (profile: string, options: { json?: boolean }) => {
       const data = await showProfile(profile);
       if (!data) {
-        printError(`profile not found: ${profile}`);
+        printError(t("standards.profile_not_found", { profile }));
         process.exitCode = 1;
         return;
       }
@@ -133,13 +154,13 @@ export function registerStandardsCommands(program: Command): void {
         }
         return [key, String(value)];
       });
-      printTable(["Field", "Value"], rows);
+      printTable([t("standards.col_field"), t("standards.col_value")], rows);
     });
 
   standards
     .command("overlaps")
-    .description("Show overlapping definitions across profiles")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.standards_overlaps"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const overlaps = await detectOverlaps();
 
@@ -151,21 +172,28 @@ export function registerStandardsCommands(program: Command): void {
       const rows = Object.entries(overlaps).map(([item, owners]) => [
         item,
         owners.join(", "),
-        `${owners.length} profiles`,
+        t("standards.conflict_profiles", { count: String(owners.length) }),
       ]);
 
       if (rows.length === 0) {
-        printWarning("No overlaps detected.");
+        printWarning(t("standards.no_overlaps"));
         return;
       }
 
-      printTable(["Item", "Profiles", "Conflict"], rows);
+      printTable(
+        [
+          t("standards.col_item"),
+          t("standards.col_profiles"),
+          t("standards.col_conflict"),
+        ],
+        rows,
+      );
     });
 
   standards
     .command("sync")
-    .description("Sync standards state to .disabled directory")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.standards_sync"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await syncStandards();
 
@@ -174,18 +202,26 @@ export function registerStandardsCommands(program: Command): void {
         return;
       }
 
-      printSuccess("Standards sync complete");
+      printSuccess(t("standards.sync_complete"));
       printTable(
-        ["Metric", "Value"],
+        [t("standards.col_metric"), t("standards.col_value")],
         [
-          ["Moved to .disabled", String(result.movedToDisabled)],
-          ["Restored to active", String(result.restoredToActive)],
-          ["Missing", String(result.missing.length)],
+          [
+            t("standards.metric_moved_disabled"),
+            String(result.movedToDisabled),
+          ],
+          [
+            t("standards.metric_restored_active"),
+            String(result.restoredToActive),
+          ],
+          [t("standards.metric_missing"), String(result.missing.length)],
         ],
       );
 
       if (result.missing.length > 0) {
-        printWarning(`Missing files: ${result.missing.join(", ")}`);
+        printWarning(
+          t("standards.missing_files", { files: result.missing.join(", ") }),
+        );
       }
     });
 }

@@ -211,13 +211,13 @@ async function listAllToggleStates(
 export function registerToggleCommand(program: Command): void {
   program
     .command("toggle")
-    .description("Enable or disable installed resources")
-    .option("--target <target>", "Target platform")
-    .option("--type <type>", "Resource type")
-    .option("--name <name>", "Resource name")
-    .option("--enable", "Enable resource")
-    .option("--disable", "Disable resource")
-    .option("--list", "List resource toggle state")
+    .description(t("cmd.toggle"))
+    .option("--target <target>", t("opt.target"))
+    .option("--type <type>", t("opt.type"))
+    .option("--name <name>", t("opt.name"))
+    .option("--enable", t("opt.enable"))
+    .option("--disable", t("opt.disable"))
+    .option("--list", t("opt.list"))
     .action(
       async (options: {
         target?: string;

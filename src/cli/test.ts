@@ -20,16 +20,13 @@ function isFramework(value: string): value is TestFramework {
 export function registerTestCommand(program: Command): void {
   program
     .command("test")
-    .description("Run Bun tests")
+    .description(t("cmd.test"))
     .argument("[path]", "Optional test path")
-    .option("-v, --verbose", "Verbose output")
-    .option("-x, --fail-fast", "Stop on first failure")
-    .option("-k, --keyword <keyword>", "Filter tests by name")
-    .option(
-      "--framework <framework>",
-      "Test framework (bun|npm|pytest|phpunit)",
-    )
-    .option("--source <path>", "Source path for framework-specific options")
+    .option("-v, --verbose", t("opt.verbose"))
+    .option("-x, --fail-fast", t("opt.fail_fast"))
+    .option("-k, --keyword <keyword>", t("opt.keyword"))
+    .option("--framework <framework>", t("opt.framework"))
+    .option("--source <path>", t("opt.source"))
     .action(
       async (
         path: string | undefined,

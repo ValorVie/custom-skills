@@ -79,7 +79,7 @@ describe("cli phase3 integration", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stdout).toContain("Invalid target/type combination");
+      expect(result.stdout).toContain("無效 target/type 組合");
     } finally {
       await rm(home, { recursive: true, force: true });
     }

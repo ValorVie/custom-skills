@@ -43,6 +43,23 @@ describe("utils/formatter", () => {
     expect(output).toContain("ok");
   });
 
+  test("printTable renders title when provided", () => {
+    const output = captureLogs(() => {
+      printTable(["A", "B"], [["1", "2"]], { title: "Test Title" });
+    }).join("\n");
+
+    expect(output).toContain("Test Title");
+    expect(output).toContain("1");
+  });
+
+  test("printTable renders thick borders by default", () => {
+    const output = captureLogs(() => {
+      printTable(["A"], [["1"]]);
+    }).join("\n");
+
+    expect(output).toContain("━");
+  });
+
   test("print status helpers include message text", () => {
     const output = captureLogs(() => {
       printSuccess("done");

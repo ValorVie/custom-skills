@@ -1,18 +1,17 @@
 import type { Command } from "commander";
 
 import { initProject, updateProject } from "../../core/project-manager";
+import { t } from "../../utils/i18n";
 
 export function registerProjectCommands(program: Command): void {
-  const project = program
-    .command("project")
-    .description("Project template and standards operations");
+  const project = program.command("project").description(t("cmd.project"));
 
   project
     .command("init")
-    .description("Initialize project from template")
+    .description(t("cmd.project_init"))
     .argument("[target]", "Target directory")
-    .option("--force", "Force overwrite existing files")
-    .option("--json", "Output as JSON")
+    .option("--force", t("opt.force"))
+    .option("--json", t("opt.json"))
     .action(
       async (
         target: string | undefined,
@@ -52,9 +51,9 @@ export function registerProjectCommands(program: Command): void {
 
   project
     .command("update")
-    .description("Run project update commands")
-    .option("--only <tool>", "Only run one tool (openspec|uds)")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.project_update"))
+    .option("--only <tool>", t("opt.only"))
+    .option("--json", t("opt.json"))
     .action(async (options: { only?: "openspec" | "uds"; json?: boolean }) => {
       const result = await updateProject({ only: options.only });
 

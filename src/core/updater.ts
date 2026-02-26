@@ -1,11 +1,11 @@
 import { access, mkdir, readlink, rm, symlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
-
 import { backupDirtyFiles, hasLocalChanges } from "../utils/backup";
 import { type CustomRepoConfig, loadCustomRepos } from "../utils/custom-repos";
 import { paths } from "../utils/paths";
 import { BUN_PACKAGES, NPM_PACKAGES, REPOS } from "../utils/shared";
 import { commandExists, runCommand } from "../utils/system";
+import { updateClaudeCode } from "./claude-code-manager";
 
 type RepoConfig = (typeof REPOS)[number];
 
@@ -254,18 +254,16 @@ export async function runUpdate(
     errors: [],
   };
 
-  if (commandExistsFn("claude")) {
-    onProgress("Updating Claude Code...");
-    const claudeUpdate = await runCommandFn(["claude", "update"], {
-      check: false,
-      timeoutMs: 60_000,
-    });
-    result.claudeCode = {
-      name: "claude-code",
-      success: claudeUpdate.exitCode === 0,
-      message: claudeUpdate.exitCode === 0 ? undefined : claudeUpdate.stderr,
-    };
-  }
+  onProgress("更新 Claude Code...");
+  const claudeResult = await updateClaudeCode(onProgress, {
+    commandExistsFn,
+    runCommandFn,
+  });
+  result.claudeCode = {
+    name: "claude-code",
+    success: claudeResult.success,
+    message: claudeResult.message,
+  };
 
   onProgress("Running tools update: uds");
   const udsResult = await runCommandFn(["uds", "update"], {

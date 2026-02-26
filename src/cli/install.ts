@@ -1,17 +1,125 @@
 import type { Command } from "commander";
 
-import { runInstall } from "../core/installer";
+import { type InstallResult, runInstall } from "../core/installer";
+import { printTable } from "../utils/formatter";
+import { t } from "../utils/i18n";
+
+function itemStatus(success: boolean): string {
+  return success ? t("common.success") : t("common.failed");
+}
+
+export function renderInstallSummary(result: InstallResult): void {
+  const claudeStatus = result.claudeCode.installed
+    ? `${t("install.installed")}${result.claudeCode.version ? ` (${result.claudeCode.version})` : ""}`
+    : t("install.missing");
+
+  printTable(
+    [t("sync.col_field"), t("sync.col_value")],
+    [
+      [
+        t("install.prerequisites"),
+        `node=${result.prerequisites.node}, git=${result.prerequisites.git}, gh=${result.prerequisites.gh}, bun=${result.prerequisites.bun}`,
+      ],
+      [t("install.claude_code"), claudeStatus],
+    ],
+    { title: t("install.summary") },
+  );
+
+  if (result.npmPackages.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.npmPackages.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? item.version ?? t("common.none"),
+      ]),
+      { title: t("install.section_npm_packages") },
+    );
+  }
+
+  if (result.bunPackages.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.bunPackages.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("install.section_bun_packages") },
+    );
+  }
+
+  if (result.repos.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.repos.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("install.section_repositories") },
+    );
+  }
+
+  if (result.customRepos.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.customRepos.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("install.section_custom_repositories") },
+    );
+  }
+
+  if (result.skills.installed.length > 0) {
+    printTable(
+      [t("sync.col_field"), t("sync.col_value")],
+      [[t("install.skills_installed"), result.skills.installed.join(", ")]],
+    );
+  }
+
+  if (result.skills.conflicts.length > 0) {
+    printTable(
+      [t("sync.col_field"), t("sync.col_value")],
+      [[t("install.skills_conflicts"), result.skills.conflicts.join(", ")]],
+    );
+  }
+
+  if (result.npmHint) {
+    printTable(
+      [t("sync.col_field"), t("sync.col_value")],
+      [[t("install.hint"), result.npmHint]],
+    );
+  }
+
+  if (result.shellCompletion.message) {
+    printTable(
+      [t("sync.col_field"), t("sync.col_value")],
+      [[t("install.shell_completion"), result.shellCompletion.message]],
+    );
+  }
+
+  if (result.errors.length > 0) {
+    printTable(
+      [t("status.col_status"), t("sync.col_value")],
+      result.errors.map((error) => [t("common.failed"), error]),
+      { title: t("install.errors") },
+    );
+  }
+}
 
 export function registerInstallCommand(program: Command): void {
   program
     .command("install")
-    .description("Install AI development environment")
-    .option("--skip-npm", "Skip global NPM package installation")
-    .option("--skip-bun", "Skip Bun package installation")
-    .option("--skip-repos", "Skip repository cloning")
-    .option("--skip-skills", "Skip skill distribution")
-    .option("--sync-project", "Sync project template files")
-    .option("--json", "Output result as JSON")
+    .description(t("cmd.install"))
+    .option("--skip-npm", t("opt.skip_npm"))
+    .option("--skip-bun", t("opt.skip_bun"))
+    .option("--skip-repos", t("opt.skip_repos"))
+    .option("--skip-skills", t("opt.skip_skills"))
+    .option("--sync-project", t("opt.sync_project"))
+    .option("--json", t("opt.json"))
     .action(
       async (options: {
         skipNpm?: boolean;
@@ -35,76 +143,7 @@ export function registerInstallCommand(program: Command): void {
           return;
         }
 
-        console.log("Install Summary");
-        console.log(
-          `- Prerequisites: node=${result.prerequisites.node}, git=${result.prerequisites.git}, gh=${result.prerequisites.gh}, bun=${result.prerequisites.bun}`,
-        );
-        console.log(
-          `- Claude Code: ${result.claudeCode.installed ? "installed" : "missing"}${result.claudeCode.version ? ` (${result.claudeCode.version})` : ""}`,
-        );
-
-        if (result.npmPackages.length > 0) {
-          console.log("- NPM Packages:");
-          for (const item of result.npmPackages) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.bunPackages.length > 0) {
-          console.log("- Bun Packages:");
-          for (const item of result.bunPackages) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.repos.length > 0) {
-          console.log("- Repositories:");
-          for (const item of result.repos) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.customRepos.length > 0) {
-          console.log("- Custom Repositories:");
-          for (const item of result.customRepos) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.skills.installed.length > 0) {
-          console.log(
-            `- Installed skills: ${result.skills.installed.join(", ")}`,
-          );
-        }
-
-        if (result.skills.conflicts.length > 0) {
-          console.log(
-            `- Skill conflicts: ${result.skills.conflicts.join(", ")}`,
-          );
-        }
-
-        if (result.npmHint) {
-          console.log(`- Hint: ${result.npmHint}`);
-        }
-
-        if (result.shellCompletion.message) {
-          console.log(`- Shell completion: ${result.shellCompletion.message}`);
-        }
-
-        if (result.errors.length > 0) {
-          console.log("- Errors:");
-          for (const error of result.errors) {
-            console.log(`  - ${error}`);
-          }
-        }
+        renderInstallSummary(result);
       },
     );
 }

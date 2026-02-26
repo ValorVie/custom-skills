@@ -142,7 +142,9 @@ describe("core/updater", () => {
 
     expect(result.errors.length).toBe(0);
 
-    const npmCall = calls.find((c) => c.command[0] === "npm");
+    const npmCall = calls.find(
+      (c) => c.command[0] === "npm" && c.command[1] === "install",
+    );
     expect(npmCall).toBeDefined();
     expect(npmCall?.options.timeoutMs).toBe(60_000);
 
@@ -223,5 +225,25 @@ describe("core/updater", () => {
           command[1] === "@anthropic-ai/plugin-marketplace@latest",
       ),
     ).toBe(false);
+  });
+
+  test("runUpdate reports not installed when Claude Code is missing", async () => {
+    const result = await runUpdate({
+      skipNpm: true,
+      skipBun: true,
+      skipRepos: true,
+      skipPlugins: true,
+      deps: {
+        commandExistsFn: () => false,
+        runCommandFn: async () => ({
+          stdout: "",
+          stderr: "",
+          exitCode: 0,
+        }),
+      },
+    });
+
+    expect(result.claudeCode.success).toBe(false);
+    expect(result.claudeCode.message).toBe("not installed");
   });
 });

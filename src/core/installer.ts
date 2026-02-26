@@ -22,6 +22,7 @@ import {
   type TargetType,
 } from "../utils/shared";
 import { commandExists, getBunVersion, runCommand } from "../utils/system";
+import { showClaudeStatus } from "./claude-code-manager";
 
 type RepoConfig = (typeof REPOS)[number];
 
@@ -434,9 +435,15 @@ export async function runInstall(
     errors: [],
   };
 
-  if (result.claudeCode.installed) {
-    result.claudeCode.version = await resolveVersion("claude", runCommandFn);
-  }
+  onProgress("檢查 Claude Code 安裝狀態...");
+  const claudeStatus = await showClaudeStatus(onProgress, {
+    commandExistsFn,
+    runCommandFn,
+  });
+  result.claudeCode = {
+    installed: claudeStatus.type !== null,
+    version: claudeStatus.version,
+  };
 
   if (!prerequisiteDetails.node.installed) {
     result.errors.push("Node.js is required");

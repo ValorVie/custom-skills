@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { isLocale, setLocale } from "../utils/i18n";
+import { isLocale, setLocale, t } from "../utils/i18n";
 import { registerAddCustomRepoCommand } from "./add-custom-repo";
 import { registerAddRepoCommand } from "./add-repo";
 import { registerCloneCommand } from "./clone";
@@ -22,9 +22,9 @@ import { registerUpdateCustomRepoCommand } from "./update-custom-repo";
 export function createProgram(): Command {
   const program = new Command()
     .name("ai-dev")
-    .description("AI development workflow CLI toolkit")
+    .description(t("cli.description"))
     .version("2.0.0")
-    .option("--lang <locale>", "Output language (en|zh-TW)");
+    .option("--lang <locale>", t("opt.lang"));
 
   program.hook("preAction", (command) => {
     const options = command.optsWithGlobals<{ lang?: string }>();

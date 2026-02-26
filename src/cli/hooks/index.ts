@@ -101,11 +101,11 @@ async function confirmUninstall(): Promise<boolean> {
 }
 
 export function registerHooksCommands(program: Command): void {
-  const hooks = program.command("hooks").description("Manage ECC hooks plugin");
+  const hooks = program.command("hooks").description(t("cmd.hooks"));
 
   hooks
     .command("install")
-    .description("Install hooks plugin")
+    .description(t("cmd.hooks_install"))
     .action(async () => {
       const installed = await installHooksPlugin();
       if (!installed.source) {
@@ -120,8 +120,8 @@ export function registerHooksCommands(program: Command): void {
 
   hooks
     .command("uninstall")
-    .description("Uninstall hooks plugin")
-    .option("--yes", "Skip confirmation prompt")
+    .description(t("cmd.hooks_uninstall"))
+    .option("--yes", t("opt.yes"))
     .action(async (options: { yes?: boolean }) => {
       const installed = await pluginInstalled();
       if (!installed) {
@@ -142,7 +142,7 @@ export function registerHooksCommands(program: Command): void {
 
   hooks
     .command("status")
-    .description("Show hooks plugin status")
+    .description(t("cmd.hooks_status"))
     .action(async () => {
       printSuccess(`installed=${await pluginInstalled()}`);
     });

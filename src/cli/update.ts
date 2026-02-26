@@ -1,16 +1,125 @@
 import type { Command } from "commander";
 
-import { runUpdate } from "../core/updater";
+import { runUpdate, type UpdateResult } from "../core/updater";
+import { printTable } from "../utils/formatter";
+import { t } from "../utils/i18n";
+
+function itemStatus(success: boolean): string {
+  return success ? t("common.success") : t("common.failed");
+}
+
+export function renderUpdateSummary(result: UpdateResult): void {
+  printTable(
+    [t("sync.col_field"), t("sync.col_value")],
+    [
+      [
+        t("update.claude_code"),
+        `${itemStatus(result.claudeCode.success)}${result.claudeCode.message ? ` (${result.claudeCode.message})` : ""}`,
+      ],
+      [
+        t("update.plugin_marketplace"),
+        `${itemStatus(result.plugins.success)}${result.plugins.message ? ` (${result.plugins.message})` : ""}`,
+      ],
+    ],
+    { title: t("update.summary") },
+  );
+
+  if (result.tools.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.tools.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("update.section_tools") },
+    );
+  }
+
+  if (result.npmPackages.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.npmPackages.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("update.section_npm_packages") },
+    );
+  }
+
+  if (result.bunPackages.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.bunPackages.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("update.section_bun_packages") },
+    );
+  }
+
+  if (result.repos.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.repos.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("update.section_repositories") },
+    );
+  }
+
+  if (result.customRepos.length > 0) {
+    printTable(
+      [t("status.col_name"), t("status.col_status"), t("sync.col_value")],
+      result.customRepos.map((item) => [
+        item.name,
+        itemStatus(item.success),
+        item.message ?? t("common.none"),
+      ]),
+      { title: t("update.section_custom_repositories") },
+    );
+  }
+
+  printTable(
+    [t("sync.col_field"), t("sync.col_value")],
+    [
+      [
+        t("update.updated_repos"),
+        result.summary.updated.join(", ") || t("common.none"),
+      ],
+      [
+        t("update.up_to_date_repos"),
+        result.summary.upToDate.join(", ") || t("common.none"),
+      ],
+      [
+        t("update.missing_repos"),
+        result.summary.missing.join(", ") || t("common.none"),
+      ],
+    ],
+  );
+
+  if (result.errors.length > 0) {
+    printTable(
+      [t("status.col_status"), t("sync.col_value")],
+      result.errors.map((error) => [t("common.failed"), error]),
+      { title: t("update.errors") },
+    );
+  }
+}
 
 export function registerUpdateCommand(program: Command): void {
   program
     .command("update")
-    .description("Update packages and repositories")
-    .option("--skip-npm", "Skip global NPM package updates")
-    .option("--skip-bun", "Skip Bun package updates")
-    .option("--skip-repos", "Skip repository updates")
-    .option("--skip-plugins", "Skip plugin marketplace update")
-    .option("--json", "Output result as JSON")
+    .description(t("cmd.update"))
+    .option("--skip-npm", t("opt.skip_npm"))
+    .option("--skip-bun", t("opt.skip_bun"))
+    .option("--skip-repos", t("opt.skip_repos"))
+    .option("--skip-plugins", t("opt.skip_plugins"))
+    .option("--json", t("opt.json"))
     .action(
       async (options: {
         skipNpm?: boolean;
@@ -32,79 +141,7 @@ export function registerUpdateCommand(program: Command): void {
           return;
         }
 
-        console.log("Update Summary");
-
-        console.log(
-          `- Claude Code: ${result.claudeCode.success ? "OK" : "FAIL"}${result.claudeCode.message ? ` (${result.claudeCode.message})` : ""}`,
-        );
-
-        if (result.tools.length > 0) {
-          console.log("- Tool Updates:");
-          for (const item of result.tools) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.npmPackages.length > 0) {
-          console.log("- NPM Packages:");
-          for (const item of result.npmPackages) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.bunPackages.length > 0) {
-          console.log("- Bun Packages:");
-          for (const item of result.bunPackages) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.repos.length > 0) {
-          console.log("- Repositories:");
-          for (const item of result.repos) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        if (result.customRepos.length > 0) {
-          console.log("- Custom Repositories:");
-          for (const item of result.customRepos) {
-            const status = item.success ? "OK" : "FAIL";
-            const msg = item.message ? ` (${item.message})` : "";
-            console.log(`  - ${item.name}: ${status}${msg}`);
-          }
-        }
-
-        console.log(
-          `- Plugin marketplace: ${result.plugins.success ? "OK" : "FAIL"}${result.plugins.message ? ` (${result.plugins.message})` : ""}`,
-        );
-
-        if (result.summary.updated.length > 0) {
-          console.log(`- Updated repos: ${result.summary.updated.join(", ")}`);
-        }
-        if (result.summary.upToDate.length > 0) {
-          console.log(
-            `- Up-to-date repos: ${result.summary.upToDate.join(", ")}`,
-          );
-        }
-        if (result.summary.missing.length > 0) {
-          console.log(`- Missing repos: ${result.summary.missing.join(", ")}`);
-        }
-
-        if (result.errors.length > 0) {
-          console.log("- Errors:");
-          for (const error of result.errors) {
-            console.log(`  - ${error}`);
-          }
-        }
+        renderUpdateSummary(result);
       },
     );
 }

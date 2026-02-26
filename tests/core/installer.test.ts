@@ -144,7 +144,9 @@ describe("core/installer", () => {
 
       expect(result.errors.length).toBe(0);
 
-      const npmCall = calls.find((c) => c.command[0] === "npm");
+      const npmCall = calls.find(
+        (c) => c.command[0] === "npm" && c.command[1] === "install",
+      );
       expect(npmCall).toBeDefined();
       expect(npmCall?.options.timeoutMs).toBe(60_000);
 
@@ -270,5 +272,42 @@ describe("core/installer", () => {
 
     expect(distributionCalled).toBe(false);
     expect(result.skills.installed.length).toBe(0);
+  });
+
+  test("runInstall surfaces Claude Code npm installation warning", async () => {
+    const progress: string[] = [];
+
+    const result = await runInstall({
+      skipNpm: true,
+      skipBun: true,
+      skipRepos: true,
+      skipSkills: true,
+      deps: {
+        commandExistsFn: (command: string) =>
+          command === "claude" || command === "npm",
+        runCommandFn: async (command: string[]) => {
+          if (command[0] === "npm" && command[1] === "list") {
+            return {
+              stdout: "@anthropic-ai/claude-code@1.0.0",
+              stderr: "",
+              exitCode: 0,
+            };
+          }
+
+          if (command[0] === "claude" && command[1] === "--version") {
+            return { stdout: "2.2.0\n", stderr: "", exitCode: 0 };
+          }
+
+          return { stdout: "", stderr: "", exitCode: 0 };
+        },
+      },
+      onProgress: (message) => {
+        progress.push(message);
+      },
+    });
+
+    expect(result.claudeCode.installed).toBe(true);
+    expect(result.claudeCode.version).toBe("2.2.0");
+    expect(progress.some((line) => line.includes("npm"))).toBe(true);
   });
 });

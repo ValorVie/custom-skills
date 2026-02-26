@@ -1,0 +1,1236 @@
+===== --version =====
+ai-dev 1.2.5
+
+===== --help =====
+                                                                                
+ Usage: ai-dev [OPTIONS] COMMAND [ARGS]...                                      
+                                                                                
+ AI Development Environment Setup CLI                                           
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --version             -v        顯示版本資訊                                 │
+│ --install-completion            Install completion for the current shell.    │
+│ --show-completion               Show completion for the current shell, to    │
+│                                 copy it or customize the installation.       │
+│ --help                          Show this message and exit.                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ install             首次安裝 AI 開發環境。                                   │
+│ update              更新工具與拉取儲存庫。                                   │
+│ clone               分發 Skills 到各工具目錄。                               │
+│ status              檢查環境狀態與工具版本。                                 │
+│ list                列出已安裝的 Skills、Commands、Agents（包含停用的）。    │
+│ toggle              啟用/停用特定工具的特定資源。                            │
+│ add-repo            新增上游 repo 並開始追蹤。                               │
+│ add-custom-repo     新增自訂 repo 並開始追蹤。                               │
+│ update-custom-repo  更新所有自訂 repo。                                      │
+│ test                執行測試並輸出原始結果。                                 │
+│ coverage            執行覆蓋率分析並輸出原始結果。                           │
+│ derive-tests        讀取 OpenSpec specs 檔案內容。                           │
+│ tui                 啟動互動式 TUI 介面。                                    │
+│ project             專案級別的初始化與更新操作                               │
+│ standards           管理標準體系配置（基於重疊檢測）                         │
+│ hooks               ECC Hooks Plugin management commands                     │
+│ sync                管理跨裝置同步（Git backend）                            │
+│ mem                 管理 claude-mem 跨裝置同步（HTTP API backend）           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== status =====
+AI 開發環境狀態檢查
+                核心工具                 
+┏━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┓
+┃ 工具    ┃ 狀態   ┃ 版本/路徑          ┃
+┡━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━┩
+│ Node.js │ 已安裝 │ v25.2.1            │
+│ Git     │ 已安裝 │ git version 2.47.3 │
+└─────────┴────────┴────────────────────┘
+
+            全域 NPM 套件             
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 套件                      ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ @anthropic-ai/claude-code │ 已安裝 │
+│ @fission-ai/openspec      │ 已安裝 │
+│ @google/gemini-cli        │ 已安裝 │
+│ universal-dev-standards   │ 已安裝 │
+│ opencode-ai               │ 已安裝 │
+│ skills                    │ 已安裝 │
+└───────────────────────────┴────────┘
+
+                設定儲存庫                
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┓
+┃ 名稱                    ┃ 本地狀態     ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━┩
+│ custom-skills           │ ↑ 有可用更新 │
+│ superpowers             │ ✓ 最新       │
+│ universal-dev-standards │ ✓ 最新       │
+│ obsidian-skills         │ ✓ 最新       │
+│ anthropic-skills        │ ✓ 最新       │
+│ everything-claude-code  │ ↑ 有可用更新 │
+│ auto-skill              │ ✓ 最新       │
+└─────────────────────────┴──────────────┘
+
+                       上游同步狀態                        
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 名稱                    ┃ 同步於 ┃ 狀態                 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ anthropic-skills        │ 02-08  │ ⚠ 落後 1 個 commit   │
+│ everything-claude-code  │ 02-08  │ ⚠ 落後 350 個 commit │
+│ obsidian-skills         │ 02-02  │ ⚠ 落後 2 個 commit   │
+│ superpowers             │ 02-08  │ ⚠ 落後 16 個 commit  │
+│ universal-dev-standards │ 02-08  │ ⚠ 落後 43 個 commit  │
+└─────────────────────────┴────────┴──────────────────────┘
+
+===== status --json =====
+Usage: ai-dev status [OPTIONS]
+Try 'ai-dev status --help' for help.
+╭─ Error ──────────────────────────────────────────────────────────────────────╮
+│ No such option: --json                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+===== install --help =====
+                                                                                
+ Usage: ai-dev install [OPTIONS]                                                
+                                                                                
+ 首次安裝 AI 開發環境。                                                         
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --skip-npm                               跳過 NPM 套件安裝                   │
+│ --skip-bun                               跳過 Bun 套件安裝                   │
+│ --skip-repos                             跳過 Git 儲存庫 Clone               │
+│ --skip-skills                            跳過複製 Skills                     │
+│ --sync-project    --no-sync-project      是否同步到專案目錄（預設：是）      │
+│                                          [default: sync-project]             │
+│ --help                                   Show this message and exit.         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== update --help =====
+                                                                                
+ Usage: ai-dev update [OPTIONS]                                                 
+                                                                                
+ 更新工具與拉取儲存庫。                                                         
+                                                                                
+ 此指令負責：                                                                   
+ 1. 更新 Claude Code（除非 --skip-npm）                                         
+ 2. 更新全域 NPM 套件（除非 --skip-npm）                                        
+ 3. 拉取 ~/.config/ 下的所有 repo（除非 --skip-repos）                          
+ 4. 更新 Claude Code Plugin Marketplace（除非 --skip-plugins）                  
+                                                                                
+ 注意：此指令不會分發 Skills 到各工具目錄。                                     
+ 如需分發，請執行 `ai-dev clone`。                                              
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --skip-npm              跳過 NPM 套件更新                                    │
+│ --skip-bun              跳過 Bun 套件更新                                    │
+│ --skip-repos            跳過 Git 儲存庫更新                                  │
+│ --skip-plugins          跳過 Claude Code Plugin Marketplace 更新             │
+│ --help                  Show this message and exit.                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== clone --help =====
+                                                                                
+ Usage: ai-dev clone [OPTIONS]                                                  
+                                                                                
+ 分發 Skills 到各工具目錄。                                                     
+                                                                                
+ 將 ~/.config/custom-skills 的內容分發到：                                      
+ - Claude Code (~/.claude/)                                                     
+ - OpenCode (~/.config/opencode/)                                               
+ - Gemini CLI (~/.gemini/)                                                      
+ - Codex (~/.codex/)                                                            
+ - Antigravity (~/.gemini/antigravity/)                                         
+                                                                                
+ 流程說明：                                                                     
+ - ~/.config/custom-skills 的內容由 git repo 控制                               
+ - 此指令只負責分發，不會整合外部來源到 ~/.config/custom-skills                 
+                                                                                
+ 開發者模式：                                                                   
+ - 在開發目錄執行時，使用 --sync-project 可整合外部來源到開發目錄               
+ - 使用 --no-sync-project 可跳過整合                                            
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --sync-project        --no-sync-project      是否同步到專案目錄（預設：是）… │
+│                                              [default: sync-project]         │
+│ --force           -f                         強制覆蓋所有衝突檔案（不提示）… │
+│ --skip-conflicts  -s                         跳過有衝突的檔案，僅分發無衝突… │
+│ --backup          -b                         備份衝突檔案後再覆蓋。          │
+│ --help                                       Show this message and exit.     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== list =====
+                          Claude Code - Skills                           
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                                ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ agents                              │ custom-skills          │ ✓ 啟用 │
+│ ai                                  │ custom-skills          │ ✓ 啟用 │
+│ ai-collaboration-standards          │ custom-skills          │ ✓ 啟用 │
+│ ai-friendly-architecture            │ custom-skills          │ ✓ 啟用 │
+│ ai-instruction-standards            │ custom-skills          │ ✓ 啟用 │
+│ api-design                          │ everything-claude-code │ ✓ 啟用 │
+│ atdd-assistant                      │ custom-skills          │ ✓ 啟用 │
+│ auto-skill                          │ auto-skill             │ ✓ 啟用 │
+│ backend-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ bdd-assistant                       │ custom-skills          │ ✓ 啟用 │
+│ changelog-guide                     │ custom-skills          │ ✓ 啟用 │
+│ checkin-assistant                   │ custom-skills          │ ✓ 啟用 │
+│ cloud-infrastructure-security       │ custom-skills          │ ✓ 啟用 │
+│ code-review-assistant               │ custom-skills          │ ✓ 啟用 │
+│ coding-standards                    │ everything-claude-code │ ✓ 啟用 │
+│ commands                            │ custom-skills          │ ✓ 啟用 │
+│ commit-standards                    │ custom-skills          │ ✓ 啟用 │
+│ configure-ecc                       │ everything-claude-code │ ✓ 啟用 │
+│ content-hash-cache-pattern          │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning                 │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning-v2              │ everything-claude-code │ ✓ 啟用 │
+│ cost-aware-llm-pipeline             │ everything-claude-code │ ✓ 啟用 │
+│ custom-skills-dev                   │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-updater           │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-writer            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-git-commit            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-plan-analyze          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-tool-overlap-analyzer │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-compare      │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-sync         │ custom-skills          │ ✓ 啟用 │
+│ database-migrations                 │ everything-claude-code │ ✓ 啟用 │
+│ defuddle                            │ obsidian-skills        │ ✓ 啟用 │
+│ deployment-patterns                 │ everything-claude-code │ ✓ 啟用 │
+│ docker-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ docs-generator                      │ custom-skills          │ ✓ 啟用 │
+│ documentation-guide                 │ custom-skills          │ ✓ 啟用 │
+│ e2e-testing                         │ everything-claude-code │ ✓ 啟用 │
+│ error-code-guide                    │ custom-skills          │ ✓ 啟用 │
+│ eval-harness                        │ everything-claude-code │ ✓ 啟用 │
+│ forward-derivation                  │ custom-skills          │ ✓ 啟用 │
+│ foundation-models-on-device         │ everything-claude-code │ ✓ 啟用 │
+│ frontend-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ git-workflow-guide                  │ custom-skills          │ ✓ 啟用 │
+│ iterative-retrieval                 │ everything-claude-code │ ✓ 啟用 │
+│ json-canvas                         │ obsidian-skills        │ ✓ 啟用 │
+│ learned                             │ user                   │ ✓ 啟用 │
+│ liquid-glass-design                 │ everything-claude-code │ ✓ 啟用 │
+│ logging-guide                       │ custom-skills          │ ✓ 啟用 │
+│ methodology-system                  │ custom-skills          │ ✓ 啟用 │
+│ obsidian-bases                      │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-cli                        │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-markdown                   │ obsidian-skills        │ ✓ 啟用 │
+│ postgres-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ project-guidelines-example          │ everything-claude-code │ ✓ 啟用 │
+│ project-structure-guide             │ custom-skills          │ ✓ 啟用 │
+│ python-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ python-testing                      │ everything-claude-code │ ✓ 啟用 │
+│ qdm-doc-updater                     │ user                   │ ✓ 啟用 │
+│ refactoring-assistant               │ custom-skills          │ ✓ 啟用 │
+│ regex-vs-llm-structured-text        │ everything-claude-code │ ✓ 啟用 │
+│ release-standards                   │ custom-skills          │ ✓ 啟用 │
+│ requirement-assistant               │ custom-skills          │ ✓ 啟用 │
+│ reverse-engineer                    │ custom-skills          │ ✓ 啟用 │
+│ search-first                        │ everything-claude-code │ ✓ 啟用 │
+│ security-review                     │ everything-claude-code │ ✓ 啟用 │
+│ security-scan                       │ everything-claude-code │ ✓ 啟用 │
+│ skill-creator                       │ anthropic-skills       │ ✓ 啟用 │
+│ skill-stocktake                     │ everything-claude-code │ ✓ 啟用 │
+│ spec-driven-dev                     │ custom-skills          │ ✓ 啟用 │
+│ strategic-compact                   │ everything-claude-code │ ✓ 啟用 │
+│ swift-concurrency-6-2               │ everything-claude-code │ ✓ 啟用 │
+│ swiftui-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ tdd-workflow                        │ everything-claude-code │ ✓ 啟用 │
+│ test-coverage-assistant             │ custom-skills          │ ✓ 啟用 │
+│ testing-guide                       │ custom-skills          │ ✓ 啟用 │
+│ verification-loop                   │ everything-claude-code │ ✓ 啟用 │
+│ visa-doc-translate                  │ everything-claude-code │ ✓ 啟用 │
+│ workflows                           │ custom-skills          │ ✓ 啟用 │
+└─────────────────────────────────────┴────────────────────────┴────────┘
+
+                        Claude Code - Commands                         
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                              ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ CLAUDE                            │ custom-skills          │ ✓ 啟用 │
+│ COMMAND-FAMILY-OVERVIEW           │ custom-skills          │ ✓ 啟用 │
+│ README                            │ custom-skills          │ ✓ 啟用 │
+│ atdd                              │ custom-skills          │ ✓ 啟用 │
+│ bdd                               │ custom-skills          │ ✓ 啟用 │
+│ build-fix                         │ everything-claude-code │ ✓ 啟用 │
+│ changelog                         │ custom-skills          │ ✓ 啟用 │
+│ check                             │ custom-skills          │ ✓ 啟用 │
+│ checkpoint                        │ everything-claude-code │ ✓ 啟用 │
+│ claw                              │ everything-claude-code │ ✓ 啟用 │
+│ code-review                       │ everything-claude-code │ ✓ 啟用 │
+│ commit                            │ custom-skills          │ ✓ 啟用 │
+│ config                            │ custom-skills          │ ✓ 啟用 │
+│ coverage                          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-git-commit          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-php-coverage        │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-php-derive-tests    │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-php-test            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-python-coverage     │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-python-derive-tests │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-python-test         │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-report              │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-sync       │ custom-skills          │ ✓ 啟用 │
+│ derive-all                        │ custom-skills          │ ✓ 啟用 │
+│ derive-atdd                       │ custom-skills          │ ✓ 啟用 │
+│ derive-bdd                        │ custom-skills          │ ✓ 啟用 │
+│ derive-tdd                        │ custom-skills          │ ✓ 啟用 │
+│ docs                              │ custom-skills          │ ✓ 啟用 │
+│ e2e                               │ everything-claude-code │ ✓ 啟用 │
+│ eval                              │ everything-claude-code │ ✓ 啟用 │
+│ evolve                            │ everything-claude-code │ ✓ 啟用 │
+│ generate-docs                     │ custom-skills          │ ✓ 啟用 │
+│ go-build                          │ everything-claude-code │ ✓ 啟用 │
+│ go-review                         │ everything-claude-code │ ✓ 啟用 │
+│ go-test                           │ everything-claude-code │ ✓ 啟用 │
+│ init                              │ custom-skills          │ ✓ 啟用 │
+│ instinct-export                   │ everything-claude-code │ ✓ 啟用 │
+│ instinct-import                   │ everything-claude-code │ ✓ 啟用 │
+│ instinct-status                   │ everything-claude-code │ ✓ 啟用 │
+│ learn                             │ everything-claude-code │ ✓ 啟用 │
+│ learn-eval                        │ everything-claude-code │ ✓ 啟用 │
+│ methodology                       │ custom-skills          │ ✓ 啟用 │
+│ multi-backend                     │ everything-claude-code │ ✓ 啟用 │
+│ multi-execute                     │ everything-claude-code │ ✓ 啟用 │
+│ multi-frontend                    │ everything-claude-code │ ✓ 啟用 │
+│ multi-plan                        │ everything-claude-code │ ✓ 啟用 │
+│ multi-workflow                    │ everything-claude-code │ ✓ 啟用 │
+│ orchestrate                       │ everything-claude-code │ ✓ 啟用 │
+│ plan                              │ everything-claude-code │ ✓ 啟用 │
+│ pm2                               │ everything-claude-code │ ✓ 啟用 │
+│ python-review                     │ everything-claude-code │ ✓ 啟用 │
+│ refactor                          │ custom-skills          │ ✓ 啟用 │
+│ refactor-clean                    │ everything-claude-code │ ✓ 啟用 │
+│ release                           │ custom-skills          │ ✓ 啟用 │
+│ requirement                       │ custom-skills          │ ✓ 啟用 │
+│ reverse-bdd                       │ custom-skills          │ ✓ 啟用 │
+│ reverse-spec                      │ custom-skills          │ ✓ 啟用 │
+│ reverse-tdd                       │ custom-skills          │ ✓ 啟用 │
+│ review                            │ custom-skills          │ ✓ 啟用 │
+│ sessions                          │ everything-claude-code │ ✓ 啟用 │
+│ setup-pm                          │ everything-claude-code │ ✓ 啟用 │
+│ skill-create                      │ everything-claude-code │ ✓ 啟用 │
+│ spec                              │ custom-skills          │ ✓ 啟用 │
+│ tdd                               │ everything-claude-code │ ✓ 啟用 │
+│ test-coverage                     │ everything-claude-code │ ✓ 啟用 │
+│ update                            │ custom-skills          │ ✓ 啟用 │
+│ update-codemaps                   │ everything-claude-code │ ✓ 啟用 │
+│ update-docs                       │ everything-claude-code │ ✓ 啟用 │
+│ verify                            │ everything-claude-code │ ✓ 啟用 │
+└───────────────────────────────────┴────────────────────────┴────────┘
+
+                   Claude Code - Agents                   
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                 ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ README               │ custom-skills          │ ✓ 啟用 │
+│ architect            │ everything-claude-code │ ✓ 啟用 │
+│ build-error-resolver │ everything-claude-code │ ✓ 啟用 │
+│ code-architect       │ custom-skills          │ ✓ 啟用 │
+│ code-reviewer        │ everything-claude-code │ ✓ 啟用 │
+│ database-reviewer    │ everything-claude-code │ ✓ 啟用 │
+│ doc-updater          │ everything-claude-code │ ✓ 啟用 │
+│ doc-writer           │ custom-skills          │ ✓ 啟用 │
+│ e2e-runner           │ everything-claude-code │ ✓ 啟用 │
+│ go-build-resolver    │ everything-claude-code │ ✓ 啟用 │
+│ go-reviewer          │ everything-claude-code │ ✓ 啟用 │
+│ planner              │ everything-claude-code │ ✓ 啟用 │
+│ python-reviewer      │ everything-claude-code │ ✓ 啟用 │
+│ refactor-cleaner     │ everything-claude-code │ ✓ 啟用 │
+│ reviewer             │ custom-skills          │ ✓ 啟用 │
+│ security-reviewer    │ everything-claude-code │ ✓ 啟用 │
+│ spec-analyst         │ custom-skills          │ ✓ 啟用 │
+│ tdd-guide            │ everything-claude-code │ ✓ 啟用 │
+│ test-specialist      │ custom-skills          │ ✓ 啟用 │
+└──────────────────────┴────────────────────────┴────────┘
+
+ Claude Code - Workflows  
+┏━━━━━━━━┳━━━━━━┳━━━━━━━━┓
+┃ 名稱   ┃ 來源 ┃ 狀態   ┃
+┡━━━━━━━━╇━━━━━━╇━━━━━━━━┩
+│ README │ user │ ✓ 啟用 │
+└────────┴──────┴────────┘
+
+                          Antigravity - Skills                           
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                                ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ agents                              │ custom-skills          │ ✓ 啟用 │
+│ ai                                  │ custom-skills          │ ✓ 啟用 │
+│ ai-collaboration-standards          │ custom-skills          │ ✓ 啟用 │
+│ ai-friendly-architecture            │ custom-skills          │ ✓ 啟用 │
+│ ai-instruction-standards            │ custom-skills          │ ✓ 啟用 │
+│ api-design                          │ everything-claude-code │ ✓ 啟用 │
+│ atdd-assistant                      │ custom-skills          │ ✓ 啟用 │
+│ auto-skill                          │ auto-skill             │ ✓ 啟用 │
+│ backend-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ bdd-assistant                       │ custom-skills          │ ✓ 啟用 │
+│ changelog-guide                     │ custom-skills          │ ✓ 啟用 │
+│ checkin-assistant                   │ custom-skills          │ ✓ 啟用 │
+│ cloud-infrastructure-security       │ custom-skills          │ ✓ 啟用 │
+│ code-review-assistant               │ custom-skills          │ ✓ 啟用 │
+│ coding-standards                    │ everything-claude-code │ ✓ 啟用 │
+│ commands                            │ custom-skills          │ ✓ 啟用 │
+│ commit-standards                    │ custom-skills          │ ✓ 啟用 │
+│ configure-ecc                       │ everything-claude-code │ ✓ 啟用 │
+│ content-hash-cache-pattern          │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning                 │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning-v2              │ everything-claude-code │ ✓ 啟用 │
+│ cost-aware-llm-pipeline             │ everything-claude-code │ ✓ 啟用 │
+│ custom-skills-dev                   │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-updater           │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-writer            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-git-commit            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-plan-analyze          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-tool-overlap-analyzer │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-compare      │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-sync         │ custom-skills          │ ✓ 啟用 │
+│ database-migrations                 │ everything-claude-code │ ✓ 啟用 │
+│ defuddle                            │ obsidian-skills        │ ✓ 啟用 │
+│ deployment-patterns                 │ everything-claude-code │ ✓ 啟用 │
+│ doc-updater                         │ user                   │ ✓ 啟用 │
+│ docker-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ docs-generator                      │ custom-skills          │ ✓ 啟用 │
+│ documentation-guide                 │ custom-skills          │ ✓ 啟用 │
+│ e2e-testing                         │ everything-claude-code │ ✓ 啟用 │
+│ error-code-guide                    │ custom-skills          │ ✓ 啟用 │
+│ eval-harness                        │ everything-claude-code │ ✓ 啟用 │
+│ forward-derivation                  │ custom-skills          │ ✓ 啟用 │
+│ foundation-models-on-device         │ everything-claude-code │ ✓ 啟用 │
+│ frontend-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ git-workflow-guide                  │ custom-skills          │ ✓ 啟用 │
+│ iterative-retrieval                 │ everything-claude-code │ ✓ 啟用 │
+│ json-canvas                         │ obsidian-skills        │ ✓ 啟用 │
+│ liquid-glass-design                 │ everything-claude-code │ ✓ 啟用 │
+│ logging-guide                       │ custom-skills          │ ✓ 啟用 │
+│ methodology-system                  │ custom-skills          │ ✓ 啟用 │
+│ obsidian-bases                      │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-cli                        │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-markdown                   │ obsidian-skills        │ ✓ 啟用 │
+│ postgres-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ project-guidelines-example          │ everything-claude-code │ ✓ 啟用 │
+│ project-structure-guide             │ custom-skills          │ ✓ 啟用 │
+│ python-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ python-testing                      │ everything-claude-code │ ✓ 啟用 │
+│ refactoring-assistant               │ custom-skills          │ ✓ 啟用 │
+│ regex-vs-llm-structured-text        │ everything-claude-code │ ✓ 啟用 │
+│ release-standards                   │ custom-skills          │ ✓ 啟用 │
+│ requirement-assistant               │ custom-skills          │ ✓ 啟用 │
+│ reverse-engineer                    │ custom-skills          │ ✓ 啟用 │
+│ search-first                        │ everything-claude-code │ ✓ 啟用 │
+│ security-review                     │ everything-claude-code │ ✓ 啟用 │
+│ security-scan                       │ everything-claude-code │ ✓ 啟用 │
+│ skill-creator                       │ anthropic-skills       │ ✓ 啟用 │
+│ skill-stocktake                     │ everything-claude-code │ ✓ 啟用 │
+│ spec-driven-dev                     │ custom-skills          │ ✓ 啟用 │
+│ strategic-compact                   │ everything-claude-code │ ✓ 啟用 │
+│ swift-concurrency-6-2               │ everything-claude-code │ ✓ 啟用 │
+│ swiftui-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ tdd-workflow                        │ everything-claude-code │ ✓ 啟用 │
+│ test-coverage-assistant             │ custom-skills          │ ✓ 啟用 │
+│ testing-guide                       │ custom-skills          │ ✓ 啟用 │
+│ upstream-compare                    │ user                   │ ✓ 啟用 │
+│ upstream-sync                       │ user                   │ ✓ 啟用 │
+│ verification-loop                   │ everything-claude-code │ ✓ 啟用 │
+│ visa-doc-translate                  │ everything-claude-code │ ✓ 啟用 │
+│ workflows                           │ custom-skills          │ ✓ 啟用 │
+└─────────────────────────────────────┴────────────────────────┴────────┘
+
+                Antigravity - Workflows                 
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                        ┃ 來源          ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ code-simplifier-antigravity │ custom-skills │ ✓ 啟用 │
+│ custom-skills-git-commit    │ custom-skills │ ✓ 啟用 │
+└─────────────────────────────┴───────────────┴────────┘
+
+                            OpenCode - Skills                            
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                                ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ agents                              │ custom-skills          │ ✓ 啟用 │
+│ ai                                  │ custom-skills          │ ✓ 啟用 │
+│ ai-collaboration-standards          │ custom-skills          │ ✓ 啟用 │
+│ ai-friendly-architecture            │ custom-skills          │ ✓ 啟用 │
+│ ai-instruction-standards            │ custom-skills          │ ✓ 啟用 │
+│ api-design                          │ everything-claude-code │ ✓ 啟用 │
+│ atdd-assistant                      │ custom-skills          │ ✓ 啟用 │
+│ auto-skill                          │ auto-skill             │ ✓ 啟用 │
+│ backend-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ bdd-assistant                       │ custom-skills          │ ✓ 啟用 │
+│ changelog-guide                     │ custom-skills          │ ✓ 啟用 │
+│ checkin-assistant                   │ custom-skills          │ ✓ 啟用 │
+│ cloud-infrastructure-security       │ custom-skills          │ ✓ 啟用 │
+│ code-review-assistant               │ custom-skills          │ ✓ 啟用 │
+│ coding-standards                    │ everything-claude-code │ ✓ 啟用 │
+│ commands                            │ custom-skills          │ ✓ 啟用 │
+│ commit-standards                    │ custom-skills          │ ✓ 啟用 │
+│ configure-ecc                       │ everything-claude-code │ ✓ 啟用 │
+│ content-hash-cache-pattern          │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning                 │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning-v2              │ everything-claude-code │ ✓ 啟用 │
+│ cost-aware-llm-pipeline             │ everything-claude-code │ ✓ 啟用 │
+│ custom-skills-dev                   │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-updater           │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-writer            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-git-commit            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-plan-analyze          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-tool-overlap-analyzer │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-compare      │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-sync         │ custom-skills          │ ✓ 啟用 │
+│ database-migrations                 │ everything-claude-code │ ✓ 啟用 │
+│ defuddle                            │ obsidian-skills        │ ✓ 啟用 │
+│ deployment-patterns                 │ everything-claude-code │ ✓ 啟用 │
+│ docker-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ docs-generator                      │ custom-skills          │ ✓ 啟用 │
+│ documentation-guide                 │ custom-skills          │ ✓ 啟用 │
+│ e2e-testing                         │ everything-claude-code │ ✓ 啟用 │
+│ error-code-guide                    │ custom-skills          │ ✓ 啟用 │
+│ eval-harness                        │ everything-claude-code │ ✓ 啟用 │
+│ forward-derivation                  │ custom-skills          │ ✓ 啟用 │
+│ foundation-models-on-device         │ everything-claude-code │ ✓ 啟用 │
+│ frontend-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ git-workflow-guide                  │ custom-skills          │ ✓ 啟用 │
+│ iterative-retrieval                 │ everything-claude-code │ ✓ 啟用 │
+│ json-canvas                         │ obsidian-skills        │ ✓ 啟用 │
+│ liquid-glass-design                 │ everything-claude-code │ ✓ 啟用 │
+│ logging-guide                       │ custom-skills          │ ✓ 啟用 │
+│ methodology-system                  │ custom-skills          │ ✓ 啟用 │
+│ obsidian-bases                      │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-cli                        │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-markdown                   │ obsidian-skills        │ ✓ 啟用 │
+│ postgres-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ project-guidelines-example          │ everything-claude-code │ ✓ 啟用 │
+│ project-structure-guide             │ custom-skills          │ ✓ 啟用 │
+│ python-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ python-testing                      │ everything-claude-code │ ✓ 啟用 │
+│ refactoring-assistant               │ custom-skills          │ ✓ 啟用 │
+│ regex-vs-llm-structured-text        │ everything-claude-code │ ✓ 啟用 │
+│ release-standards                   │ custom-skills          │ ✓ 啟用 │
+│ requirement-assistant               │ custom-skills          │ ✓ 啟用 │
+│ reverse-engineer                    │ custom-skills          │ ✓ 啟用 │
+│ search-first                        │ everything-claude-code │ ✓ 啟用 │
+│ security-review                     │ everything-claude-code │ ✓ 啟用 │
+│ security-scan                       │ everything-claude-code │ ✓ 啟用 │
+│ skill-creator                       │ anthropic-skills       │ ✓ 啟用 │
+│ skill-stocktake                     │ everything-claude-code │ ✓ 啟用 │
+│ spec-driven-dev                     │ custom-skills          │ ✓ 啟用 │
+│ strategic-compact                   │ everything-claude-code │ ✓ 啟用 │
+│ superpowers                         │ user                   │ ✓ 啟用 │
+│ swift-concurrency-6-2               │ everything-claude-code │ ✓ 啟用 │
+│ swiftui-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ tdd-workflow                        │ everything-claude-code │ ✓ 啟用 │
+│ test-coverage-assistant             │ custom-skills          │ ✓ 啟用 │
+│ testing-guide                       │ custom-skills          │ ✓ 啟用 │
+│ verification-loop                   │ everything-claude-code │ ✓ 啟用 │
+│ visa-doc-translate                  │ everything-claude-code │ ✓ 啟用 │
+│ workflows                           │ custom-skills          │ ✓ 啟用 │
+└─────────────────────────────────────┴────────────────────────┴────────┘
+
+                          OpenCode - Commands                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                              ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ CLAUDE                            │ custom-skills          │ ✓ 啟用 │
+│ COMMAND-FAMILY-OVERVIEW           │ custom-skills          │ ✓ 啟用 │
+│ README                            │ custom-skills          │ ✓ 啟用 │
+│ atdd                              │ custom-skills          │ ✓ 啟用 │
+│ bdd                               │ custom-skills          │ ✓ 啟用 │
+│ build-fix                         │ everything-claude-code │ ✓ 啟用 │
+│ changelog                         │ custom-skills          │ ✓ 啟用 │
+│ check                             │ custom-skills          │ ✓ 啟用 │
+│ checkpoint                        │ everything-claude-code │ ✓ 啟用 │
+│ code-review                       │ everything-claude-code │ ✓ 啟用 │
+│ commit                            │ custom-skills          │ ✓ 啟用 │
+│ config                            │ custom-skills          │ ✓ 啟用 │
+│ coverage                          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-git-commit          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-php-coverage        │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-php-derive-tests    │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-php-test            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-python-coverage     │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-python-derive-tests │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-python-test         │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-report              │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-sync       │ custom-skills          │ ✓ 啟用 │
+│ derive-all                        │ custom-skills          │ ✓ 啟用 │
+│ derive-atdd                       │ custom-skills          │ ✓ 啟用 │
+│ derive-bdd                        │ custom-skills          │ ✓ 啟用 │
+│ derive-tdd                        │ custom-skills          │ ✓ 啟用 │
+│ docs                              │ custom-skills          │ ✓ 啟用 │
+│ e2e                               │ everything-claude-code │ ✓ 啟用 │
+│ eval                              │ everything-claude-code │ ✓ 啟用 │
+│ evolve                            │ everything-claude-code │ ✓ 啟用 │
+│ generate-docs                     │ custom-skills          │ ✓ 啟用 │
+│ go-build                          │ everything-claude-code │ ✓ 啟用 │
+│ go-review                         │ everything-claude-code │ ✓ 啟用 │
+│ go-test                           │ everything-claude-code │ ✓ 啟用 │
+│ init                              │ custom-skills          │ ✓ 啟用 │
+│ instinct-export                   │ everything-claude-code │ ✓ 啟用 │
+│ instinct-import                   │ everything-claude-code │ ✓ 啟用 │
+│ instinct-status                   │ everything-claude-code │ ✓ 啟用 │
+│ learn                             │ everything-claude-code │ ✓ 啟用 │
+│ methodology                       │ custom-skills          │ ✓ 啟用 │
+│ orchestrate                       │ everything-claude-code │ ✓ 啟用 │
+│ plan                              │ everything-claude-code │ ✓ 啟用 │
+│ pm2                               │ everything-claude-code │ ✓ 啟用 │
+│ refactor                          │ custom-skills          │ ✓ 啟用 │
+│ refactor-clean                    │ everything-claude-code │ ✓ 啟用 │
+│ release                           │ custom-skills          │ ✓ 啟用 │
+│ requirement                       │ custom-skills          │ ✓ 啟用 │
+│ reverse-bdd                       │ custom-skills          │ ✓ 啟用 │
+│ reverse-spec                      │ custom-skills          │ ✓ 啟用 │
+│ reverse-tdd                       │ custom-skills          │ ✓ 啟用 │
+│ review                            │ custom-skills          │ ✓ 啟用 │
+│ security                          │ user                   │ ✓ 啟用 │
+│ setup-pm                          │ everything-claude-code │ ✓ 啟用 │
+│ skill-create                      │ everything-claude-code │ ✓ 啟用 │
+│ spec                              │ custom-skills          │ ✓ 啟用 │
+│ tdd                               │ everything-claude-code │ ✓ 啟用 │
+│ test-coverage                     │ everything-claude-code │ ✓ 啟用 │
+│ update                            │ custom-skills          │ ✓ 啟用 │
+│ update-codemaps                   │ everything-claude-code │ ✓ 啟用 │
+│ update-docs                       │ everything-claude-code │ ✓ 啟用 │
+│ verify                            │ everything-claude-code │ ✓ 啟用 │
+└───────────────────────────────────┴────────────────────────┴────────┘
+
+                    OpenCode - Agents                     
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                 ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ README               │ custom-skills          │ ✓ 啟用 │
+│ build-error-resolver │ everything-claude-code │ ✓ 啟用 │
+│ code-architect       │ custom-skills          │ ✓ 啟用 │
+│ database-reviewer    │ everything-claude-code │ ✓ 啟用 │
+│ doc-updater          │ everything-claude-code │ ✓ 啟用 │
+│ doc-writer           │ custom-skills          │ ✓ 啟用 │
+│ e2e-runner           │ everything-claude-code │ ✓ 啟用 │
+│ reviewer             │ custom-skills          │ ✓ 啟用 │
+│ security-reviewer    │ everything-claude-code │ ✓ 啟用 │
+│ spec-analyst         │ custom-skills          │ ✓ 啟用 │
+│ test-specialist      │ custom-skills          │ ✓ 啟用 │
+└──────────────────────┴────────────────────────┴────────┘
+
+                             Codex - Skills                              
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                                ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ agents                              │ custom-skills          │ ✓ 啟用 │
+│ ai                                  │ custom-skills          │ ✓ 啟用 │
+│ ai-collaboration-standards          │ custom-skills          │ ✓ 啟用 │
+│ ai-friendly-architecture            │ custom-skills          │ ✓ 啟用 │
+│ ai-instruction-standards            │ custom-skills          │ ✓ 啟用 │
+│ api-design                          │ everything-claude-code │ ✓ 啟用 │
+│ atdd-assistant                      │ custom-skills          │ ✓ 啟用 │
+│ auto-skill                          │ auto-skill             │ ✓ 啟用 │
+│ backend-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ bdd-assistant                       │ custom-skills          │ ✓ 啟用 │
+│ changelog-guide                     │ custom-skills          │ ✓ 啟用 │
+│ checkin-assistant                   │ custom-skills          │ ✓ 啟用 │
+│ cloud-infrastructure-security       │ custom-skills          │ ✓ 啟用 │
+│ code-review-assistant               │ custom-skills          │ ✓ 啟用 │
+│ coding-standards                    │ everything-claude-code │ ✓ 啟用 │
+│ commands                            │ custom-skills          │ ✓ 啟用 │
+│ commit-standards                    │ custom-skills          │ ✓ 啟用 │
+│ configure-ecc                       │ everything-claude-code │ ✓ 啟用 │
+│ content-hash-cache-pattern          │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning                 │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning-v2              │ everything-claude-code │ ✓ 啟用 │
+│ cost-aware-llm-pipeline             │ everything-claude-code │ ✓ 啟用 │
+│ custom-skills-dev                   │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-updater           │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-writer            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-git-commit            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-plan-analyze          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-tool-overlap-analyzer │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-compare      │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-sync         │ custom-skills          │ ✓ 啟用 │
+│ database-migrations                 │ everything-claude-code │ ✓ 啟用 │
+│ defuddle                            │ obsidian-skills        │ ✓ 啟用 │
+│ deployment-patterns                 │ everything-claude-code │ ✓ 啟用 │
+│ doc-updater                         │ user                   │ ✓ 啟用 │
+│ docker-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ docs-generator                      │ custom-skills          │ ✓ 啟用 │
+│ documentation-guide                 │ custom-skills          │ ✓ 啟用 │
+│ e2e-testing                         │ everything-claude-code │ ✓ 啟用 │
+│ error-code-guide                    │ custom-skills          │ ✓ 啟用 │
+│ eval-harness                        │ everything-claude-code │ ✓ 啟用 │
+│ forward-derivation                  │ custom-skills          │ ✓ 啟用 │
+│ foundation-models-on-device         │ everything-claude-code │ ✓ 啟用 │
+│ frontend-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ git-workflow-guide                  │ custom-skills          │ ✓ 啟用 │
+│ iterative-retrieval                 │ everything-claude-code │ ✓ 啟用 │
+│ json-canvas                         │ obsidian-skills        │ ✓ 啟用 │
+│ liquid-glass-design                 │ everything-claude-code │ ✓ 啟用 │
+│ logging-guide                       │ custom-skills          │ ✓ 啟用 │
+│ methodology-system                  │ custom-skills          │ ✓ 啟用 │
+│ obsidian-bases                      │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-cli                        │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-markdown                   │ obsidian-skills        │ ✓ 啟用 │
+│ postgres-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ project-guidelines-example          │ everything-claude-code │ ✓ 啟用 │
+│ project-structure-guide             │ custom-skills          │ ✓ 啟用 │
+│ python-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ python-testing                      │ everything-claude-code │ ✓ 啟用 │
+│ refactoring-assistant               │ custom-skills          │ ✓ 啟用 │
+│ regex-vs-llm-structured-text        │ everything-claude-code │ ✓ 啟用 │
+│ release-standards                   │ custom-skills          │ ✓ 啟用 │
+│ requirement-assistant               │ custom-skills          │ ✓ 啟用 │
+│ reverse-engineer                    │ custom-skills          │ ✓ 啟用 │
+│ search-first                        │ everything-claude-code │ ✓ 啟用 │
+│ security-review                     │ everything-claude-code │ ✓ 啟用 │
+│ security-scan                       │ everything-claude-code │ ✓ 啟用 │
+│ skill-creator                       │ anthropic-skills       │ ✓ 啟用 │
+│ skill-stocktake                     │ everything-claude-code │ ✓ 啟用 │
+│ spec-driven-dev                     │ custom-skills          │ ✓ 啟用 │
+│ strategic-compact                   │ everything-claude-code │ ✓ 啟用 │
+│ swift-concurrency-6-2               │ everything-claude-code │ ✓ 啟用 │
+│ swiftui-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ tdd-workflow                        │ everything-claude-code │ ✓ 啟用 │
+│ test-coverage-assistant             │ custom-skills          │ ✓ 啟用 │
+│ testing-guide                       │ custom-skills          │ ✓ 啟用 │
+│ upstream-compare                    │ user                   │ ✓ 啟用 │
+│ upstream-sync                       │ user                   │ ✓ 啟用 │
+│ verification-loop                   │ everything-claude-code │ ✓ 啟用 │
+│ visa-doc-translate                  │ everything-claude-code │ ✓ 啟用 │
+│ workflows                           │ custom-skills          │ ✓ 啟用 │
+└─────────────────────────────────────┴────────────────────────┴────────┘
+
+                           Gemini CLI - Skills                           
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ 名稱                                ┃ 來源                   ┃ 狀態   ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ agents                              │ custom-skills          │ ✓ 啟用 │
+│ ai                                  │ custom-skills          │ ✓ 啟用 │
+│ ai-collaboration-standards          │ custom-skills          │ ✓ 啟用 │
+│ ai-friendly-architecture            │ custom-skills          │ ✓ 啟用 │
+│ ai-instruction-standards            │ custom-skills          │ ✓ 啟用 │
+│ api-design                          │ everything-claude-code │ ✓ 啟用 │
+│ atdd-assistant                      │ custom-skills          │ ✓ 啟用 │
+│ auto-skill                          │ auto-skill             │ ✓ 啟用 │
+│ backend-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ bdd-assistant                       │ custom-skills          │ ✓ 啟用 │
+│ changelog-guide                     │ custom-skills          │ ✓ 啟用 │
+│ checkin-assistant                   │ custom-skills          │ ✓ 啟用 │
+│ cloud-infrastructure-security       │ custom-skills          │ ✓ 啟用 │
+│ code-review-assistant               │ custom-skills          │ ✓ 啟用 │
+│ coding-standards                    │ everything-claude-code │ ✓ 啟用 │
+│ commands                            │ custom-skills          │ ✓ 啟用 │
+│ commit-standards                    │ custom-skills          │ ✓ 啟用 │
+│ configure-ecc                       │ everything-claude-code │ ✓ 啟用 │
+│ content-hash-cache-pattern          │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning                 │ everything-claude-code │ ✓ 啟用 │
+│ continuous-learning-v2              │ everything-claude-code │ ✓ 啟用 │
+│ cost-aware-llm-pipeline             │ everything-claude-code │ ✓ 啟用 │
+│ custom-skills-dev                   │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-updater           │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-doc-writer            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-git-commit            │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-plan-analyze          │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-tool-overlap-analyzer │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-compare      │ custom-skills          │ ✓ 啟用 │
+│ custom-skills-upstream-sync         │ custom-skills          │ ✓ 啟用 │
+│ database-migrations                 │ everything-claude-code │ ✓ 啟用 │
+│ defuddle                            │ obsidian-skills        │ ✓ 啟用 │
+│ deployment-patterns                 │ everything-claude-code │ ✓ 啟用 │
+│ doc-updater                         │ user                   │ ✓ 啟用 │
+│ docker-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ docs-generator                      │ custom-skills          │ ✓ 啟用 │
+│ documentation-guide                 │ custom-skills          │ ✓ 啟用 │
+│ e2e-testing                         │ everything-claude-code │ ✓ 啟用 │
+│ error-code-guide                    │ custom-skills          │ ✓ 啟用 │
+│ eval-harness                        │ everything-claude-code │ ✓ 啟用 │
+│ forward-derivation                  │ custom-skills          │ ✓ 啟用 │
+│ foundation-models-on-device         │ everything-claude-code │ ✓ 啟用 │
+│ frontend-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ git-workflow-guide                  │ custom-skills          │ ✓ 啟用 │
+│ iterative-retrieval                 │ everything-claude-code │ ✓ 啟用 │
+│ json-canvas                         │ obsidian-skills        │ ✓ 啟用 │
+│ liquid-glass-design                 │ everything-claude-code │ ✓ 啟用 │
+│ logging-guide                       │ custom-skills          │ ✓ 啟用 │
+│ methodology-system                  │ custom-skills          │ ✓ 啟用 │
+│ obsidian-bases                      │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-cli                        │ obsidian-skills        │ ✓ 啟用 │
+│ obsidian-markdown                   │ obsidian-skills        │ ✓ 啟用 │
+│ postgres-patterns                   │ everything-claude-code │ ✓ 啟用 │
+│ project-guidelines-example          │ everything-claude-code │ ✓ 啟用 │
+│ project-structure-guide             │ custom-skills          │ ✓ 啟用 │
+│ python-patterns                     │ everything-claude-code │ ✓ 啟用 │
+│ python-testing                      │ everything-claude-code │ ✓ 啟用 │
+│ refactoring-assistant               │ custom-skills          │ ✓ 啟用 │
+│ regex-vs-llm-structured-text        │ everything-claude-code │ ✓ 啟用 │
+│ release-standards                   │ custom-skills          │ ✓ 啟用 │
+│ requirement-assistant               │ custom-skills          │ ✓ 啟用 │
+│ reverse-engineer                    │ custom-skills          │ ✓ 啟用 │
+│ search-first                        │ everything-claude-code │ ✓ 啟用 │
+│ security-review                     │ everything-claude-code │ ✓ 啟用 │
+│ security-scan                       │ everything-claude-code │ ✓ 啟用 │
+│ skill-creator                       │ anthropic-skills       │ ✓ 啟用 │
+│ skill-stocktake                     │ everything-claude-code │ ✓ 啟用 │
+│ spec-driven-dev                     │ custom-skills          │ ✓ 啟用 │
+│ strategic-compact                   │ everything-claude-code │ ✓ 啟用 │
+│ swift-concurrency-6-2               │ everything-claude-code │ ✓ 啟用 │
+│ swiftui-patterns                    │ everything-claude-code │ ✓ 啟用 │
+│ tdd-workflow                        │ everything-claude-code │ ✓ 啟用 │
+│ test-coverage-assistant             │ custom-skills          │ ✓ 啟用 │
+│ testing-guide                       │ custom-skills          │ ✓ 啟用 │
+│ upstream-compare                    │ user                   │ ✓ 啟用 │
+│ upstream-sync                       │ user                   │ ✓ 啟用 │
+│ verification-loop                   │ everything-claude-code │ ✓ 啟用 │
+│ visa-doc-translate                  │ everything-claude-code │ ✓ 啟用 │
+│ workflows                           │ custom-skills          │ ✓ 啟用 │
+└─────────────────────────────────────┴────────────────────────┴────────┘
+
+
+===== list --json =====
+Usage: ai-dev list [OPTIONS]
+Try 'ai-dev list --help' for help.
+╭─ Error ──────────────────────────────────────────────────────────────────────╮
+│ No such option: --json                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+===== list --help =====
+                                                                                
+ Usage: ai-dev list [OPTIONS]                                                   
+                                                                                
+ 列出已安裝的 Skills、Commands、Agents（包含停用的）。                          
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --target         -t      TEXT  目標工具：claude, antigravity, opencode,      │
+│                                codex, gemini                                 │
+│ --type           -T      TEXT  資源類型：skills, commands, agents, workflows │
+│ --hide-disabled  -H            隱藏已停用的資源                              │
+│ --help                         Show this message and exit.                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== toggle --help =====
+                                                                                
+ Usage: ai-dev toggle [OPTIONS]                                                 
+                                                                                
+ 啟用/停用特定工具的特定資源。                                                  
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --target   -t      TEXT  目標工具：claude, antigravity, opencode, codex,     │
+│                          gemini                                              │
+│ --type     -T      TEXT  資源類型：skills, commands, agents, workflows       │
+│ --name     -n      TEXT  資源名稱                                            │
+│ --enable   -e            啟用資源                                            │
+│ --disable  -d            停用資源                                            │
+│ --list     -l            列出目前的開關狀態                                  │
+│ --help                   Show this message and exit.                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== add-repo --help =====
+                                                                                
+ Usage: ai-dev add-repo [OPTIONS] REMOTE_PATH                                   
+                                                                                
+ 新增上游 repo 並開始追蹤。                                                     
+                                                                                
+ 此指令會：                                                                     
+ 1. Clone repo 到 ~/.config/<repo-name>/                                        
+ 2. 將 repo 資訊加入 upstream/sources.yaml                                      
+ 3. [可選] 執行 custom-skills-upstream-sync 分析                                
+                                                                                
+ 範例：                                                                         
+     ai-dev add-repo owner/repo                                                 
+     ai-dev add-repo https://github.com/owner/repo                              
+     ai-dev add-repo owner/repo --name my-custom-name                           
+     ai-dev add-repo owner/repo --analyze                                       
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    remote_path      TEXT  遠端 repo 路徑 (例如: owner/repo 或完整 URL)     │
+│                             [required]                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --name        -n      TEXT  自訂名稱（預設使用 repo 名稱）                   │
+│ --branch      -b      TEXT  追蹤的分支 [default: main]                       │
+│ --skip-clone                跳過 clone（僅加入 sources.yaml）                │
+│ --analyze     -a            加入後立即執行分析                               │
+│ --help                      Show this message and exit.                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== add-custom-repo --help =====
+                                                                                
+ Usage: ai-dev add-custom-repo [OPTIONS] REMOTE_PATH                            
+                                                                                
+ 新增自訂 repo 並開始追蹤。                                                     
+                                                                                
+ 此指令會：                                                                     
+ 1. Clone repo 到 ~/.config/<repo-name>/                                        
+ 2. 驗證 repo 目錄結構                                                          
+ 3. 將 repo 資訊寫入 ~/.config/ai-dev/repos.yaml                                
+                                                                                
+ 範例：                                                                         
+     ai-dev add-custom-repo owner/repo                                          
+     ai-dev add-custom-repo https://github.com/owner/repo                       
+     ai-dev add-custom-repo git@github.com:owner/repo.git                       
+     ai-dev add-custom-repo owner/repo --name my-custom-name                    
+     ai-dev add-custom-repo owner/repo --branch develop                         
+     ai-dev add-custom-repo owner/repo --fix                                    
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    remote_path      TEXT  遠端 repo 路徑 (例如: owner/repo 或完整 URL)     │
+│                             [required]                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --name    -n      TEXT  自訂名稱（預設使用 repo 名稱）                       │
+│ --branch  -b      TEXT  追蹤的分支 [default: main]                           │
+│ --fix                   自動建立缺少的目錄（含 .gitkeep）                    │
+│ --help                  Show this message and exit.                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== update-custom-repo --help =====
+                                                                                
+ Usage: ai-dev update-custom-repo [OPTIONS]                                     
+                                                                                
+ 更新所有自訂 repo。                                                            
+                                                                                
+ 從 ~/.config/ai-dev/repos.yaml 讀取自訂 repo 清單，                            
+ 對每個 repo 執行 git fetch + reset 更新。                                      
+                                                                                
+ 注意：此指令不會分發 Skills 到各工具目錄。                                     
+ 如需分發，請執行 `ai-dev clone`。                                              
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== test --help =====
+                                                                                
+ Usage: ai-dev test [OPTIONS] [PATH]                                            
+                                                                                
+ 執行測試並輸出原始結果。                                                       
+                                                                                
+ 自動偵測專案的測試框架並執行測試。                                             
+ 目前支援 Python (pytest)。                                                     
+                                                                                
+ 範例：                                                                         
+     ai-dev test                    # 執行所有測試                              
+     ai-dev test tests/             # 執行指定目錄                              
+     ai-dev test -v                 # 詳細輸出                                  
+     ai-dev test -x                 # 失敗即停                                  
+     ai-dev test -k "test_name"     # 過濾測試                                  
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   path      [PATH]  測試路徑（檔案或目錄）                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --verbose    -v            顯示詳細輸出                                      │
+│ --fail-fast  -x            失敗時立即停止                                    │
+│              -k      TEXT  過濾測試名稱                                      │
+│ --help                     Show this message and exit.                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== coverage --help =====
+                                                                                
+ Usage: ai-dev coverage [OPTIONS] [PATH]                                        
+                                                                                
+ 執行覆蓋率分析並輸出原始結果。                                                 
+                                                                                
+ 使用 pytest-cov 執行測試並生成覆蓋率報告。                                     
+                                                                                
+ 範例：                                                                         
+     ai-dev coverage                      # 分析整個專案                        
+     ai-dev coverage --source script/     # 僅分析指定目錄                      
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   path      [PATH]  測試路徑（檔案或目錄）                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --source  -s      TEXT  原始碼路徑                                           │
+│ --help                  Show this message and exit.                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== derive-tests --help =====
+                                                                                
+ Usage: ai-dev derive-tests [OPTIONS] PATH                                      
+                                                                                
+ 讀取 OpenSpec specs 檔案內容。                                                 
+                                                                                
+ 此命令讀取並輸出 specs 內容，供 AI 理解場景語義並生成測試程式碼。              
+                                                                                
+ 範例：                                                                         
+     ai-dev derive-tests specs/                     # 讀取目錄下所有 specs      
+     ai-dev derive-tests specs/feature/spec.md     # 讀取單一 spec 檔案         
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    path      TEXT  specs 路徑（檔案或目錄） [required]                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== project --help =====
+                                                                                
+ Usage: ai-dev project [OPTIONS] COMMAND [ARGS]...                              
+                                                                                
+ 專案級別的初始化與更新操作                                                     
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ init    初始化專案（從 project-template 複製模板）。                         │
+│ update  更新專案配置（整合 openspec update + uds update）。                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== project init --help =====
+                                                                                
+ Usage: ai-dev project init [OPTIONS] [TARGET]                                  
+                                                                                
+ 初始化專案（從 project-template 複製模板）。                                   
+                                                                                
+ 此指令會將 custom-skills/project-template 中的檔案複製到目標專案，             
+ 包含 .standards、CLAUDE.md、AGENTS.md 等配置目錄和標準文件模板。               
+                                                                                
+ 特殊行為：                                                                     
+ - 在 custom-skills 專案中使用 --force 時，會反向同步（專案 →                   
+ project-template/）                                                            
+ - 這允許開發者更新模板後同步回 project-template/ 目錄                          
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   target      [TARGET]  目標目錄（預設為當前目錄）                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --force  -f        強制重新初始化（覆蓋現有檔案）；在 custom-skills          │
+│                    專案中會反向同步到 project-template                       │
+│ --help             Show this message and exit.                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== project update --help =====
+                                                                                
+ Usage: ai-dev project update [OPTIONS]                                         
+                                                                                
+ 更新專案配置（整合 openspec update + uds update）。                            
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --only  -o      TEXT  只更新特定工具：openspec, uds                          │
+│ --help                Show this message and exit.                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== standards --help =====
+                                                                                
+ Usage: ai-dev standards [OPTIONS] COMMAND [ARGS]...                            
+                                                                                
+ 管理標準體系配置（基於重疊檢測）                                               
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ status    顯示目前狀態（含停用項目統計）                                     │
+│ list      列出所有可用的 profiles（含重疊偏好）                              │
+│ switch    切換到指定的 profile（基於重疊檢測）                               │
+│ show      顯示指定 profile 的詳細內容（含重疊分析）                          │
+│ overlaps  顯示重疊定義摘要                                                   │
+│ sync      根據 disabled.yaml 同步實際的檔案狀態                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== standards status =====
+⚠️  專案尚未初始化標準體系
+請執行 'ai-dev project init' 初始化專案
+
+===== standards list =====
+⚠️  專案尚未初始化標準體系
+請執行 'ai-dev project init' 初始化專案
+
+===== standards overlaps =====
+╭────────────────────────── 重疊定義 (overlaps.yaml) ──────────────────────────╮
+│ 版本: 1.2.0                                                                  │
+│ 定義 UDS、ECC、Minimal 體系間的功能差異                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+重疊群組 (6):
+  testing-standards: 測試相關規範（UDS 較完整，Minimal 基本）
+    體系: uds, ecc, minimal
+  review-standards: 程式碼審查規範
+    體系: uds, ecc, minimal
+  doc-standards: 文件撰寫規範
+    體系: uds, ecc, minimal
+  commit-standards: 提交訊息規範（UDS 繁中，ECC 英文）
+    體系: uds, ecc, minimal
+  ecc-commands: ECC 特有命令
+    體系: uds, ecc, minimal
+  ecc-hooks: ECC 特有 Hooks
+    體系: uds, ecc, minimal
+
+獨有項目:
+  uds: 0 個項目
+  ecc: 0 個項目
+  minimal: 0 個項目
+
+===== standards sync --help =====
+                                                                                
+ Usage: ai-dev standards sync [OPTIONS]                                         
+                                                                                
+ 根據 disabled.yaml 同步實際的檔案狀態                                          
+                                                                                
+ 此命令會：                                                                     
+ 1. 讀取 disabled.yaml 中的停用項目                                             
+ 2. 將對應的 skills/commands 移動到 disabled 目錄                               
+ 3. 將不在停用列表中的項目從 disabled 目錄還原                                  
+                                                                                
+ 注意：standards (*.ai.yaml) 是專案內檔案，無法透過此命令同步。                 
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --dry-run  -n            只顯示變更，不實際執行                              │
+│ --target   -t      TEXT  目標工具 (claude, opencode, etc.) [default: claude] │
+│ --help                   Show this message and exit.                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== hooks --help =====
+                                                                                
+ Usage: ai-dev hooks [OPTIONS] COMMAND [ARGS]...                                
+                                                                                
+ ECC Hooks Plugin management commands                                           
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ install    Install or update ECC Hooks Plugin.                               │
+│ uninstall  Remove ECC Hooks Plugin.                                          │
+│ status     Display ECC Hooks Plugin installation status.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== hooks uninstall --help =====
+                                                                                
+ Usage: ai-dev hooks uninstall [OPTIONS]                                        
+                                                                                
+ Remove ECC Hooks Plugin.                                                       
+                                                                                
+ Delete ~/.claude/plugins/ecc-hooks/ directory                                  
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== sync --help =====
+                                                                                
+ Usage: ai-dev sync [OPTIONS] COMMAND [ARGS]...                                 
+                                                                                
+ 管理跨裝置同步（Git backend）                                                  
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ init    初始化 sync repo 與 sync.yaml 設定。                                 │
+│ push    同步本機變更到遠端。                                                 │
+│ pull    從遠端拉取並同步到本機。                                             │
+│ status  顯示同步狀態。                                                       │
+│ add     新增同步目錄。                                                       │
+│ remove  移除同步目錄。                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== sync status =====
+                               Sync Status                               
+┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Path      ┃ Local Changes ┃ Remote ┃ Last Sync                        ┃
+┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ ~/.claude │ 500           │ 最新   │ 2026-02-24T08:13:20.729833+00:00 │
+└───────────┴───────────────┴────────┴──────────────────────────────────┘
+
+===== sync push --help =====
+                                                                                
+ Usage: ai-dev sync push [OPTIONS]                                              
+                                                                                
+ 同步本機變更到遠端。                                                           
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --force          強制推送，覆蓋遠端歷史（用於修復遠端被搞亂的情況）          │
+│ --help           Show this message and exit.                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== sync pull --help =====
+                                                                                
+ Usage: ai-dev sync pull [OPTIONS]                                              
+                                                                                
+ 從遠端拉取並同步到本機。                                                       
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --no-delete          拉取後同步到本機時，不刪除本機多出的檔案                │
+│ --force              跳過本機變更偵測，直接執行 pull                         │
+│ --help               Show this message and exit.                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== mem --help =====
+                                                                                
+ Usage: ai-dev mem [OPTIONS] COMMAND [ARGS]...                                  
+                                                                                
+ 管理 claude-mem 跨裝置同步（HTTP API backend）                                 
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ register  向 sync server 註冊本裝置。                                        │
+│ push      推送本地 claude-mem 新資料到 sync server。                         │
+│ pull      從 sync server 拉取其他裝置的新資料。                              │
+│ status    顯示 sync server 同步狀態。                                        │
+│ cleanup   掃描並刪除本地 claude-mem 中的重複 observations。                  │
+│ reindex   重建 ChromaDB 搜尋索引（修復 pull 匯入後搜尋不到的問題）。         │
+│ auto      切換 claude-mem 自動同步排程。                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== mem status =====
+    claude-mem Sync Status     
+┏━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━┓
+┃ 項目                  ┃ 值  ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━┩
+│ Server sessions       │ 37  │
+│ Server observations   │ 283 │
+│ Server summaries      │ 10  │
+│ Server prompts        │ 88  │
+│ Server devices        │ 7   │
+│ ───                   │ ─── │
+│ Local observations    │ 400 │
+│ Local duplicates      │ 0   │
+│ Pulled hashes tracked │ 4   │
+└───────────────────────┴─────┘
+Last push epoch: 1771998877953
+Last pull epoch: 1772010728511
+
+===== mem auto --help =====
+                                                                                
+ Usage: ai-dev mem auto [OPTIONS]                                               
+                                                                                
+ 切換 claude-mem 自動同步排程。                                                 
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --on      --off      啟用或停用自動同步                                      │
+│ --help               Show this message and exit.                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+===== tui --help =====
+                                                                                
+ Usage: ai-dev tui [OPTIONS]                                                    
+                                                                                
+ 啟動互動式 TUI 介面。                                                          
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

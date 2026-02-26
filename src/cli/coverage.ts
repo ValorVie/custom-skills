@@ -20,13 +20,10 @@ function isFramework(value: string): value is TestFramework {
 export function registerCoverageCommand(program: Command): void {
   program
     .command("coverage")
-    .description("Run tests with coverage")
+    .description(t("cmd.coverage"))
     .argument("[path]", "Optional test path")
-    .option(
-      "--framework <framework>",
-      "Test framework (bun|npm|pytest|phpunit)",
-    )
-    .option("--source <path>", "Coverage source path")
+    .option("--framework <framework>", t("opt.framework"))
+    .option("--source <path>", t("opt.source"))
     .action(
       async (
         path: string | undefined,

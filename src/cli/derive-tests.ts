@@ -3,6 +3,8 @@ import { basename, extname, join } from "node:path";
 
 import type { Command } from "commander";
 
+import { t } from "../utils/i18n";
+
 async function collectMarkdownFiles(path: string): Promise<string[]> {
   const stats = await Bun.file(path).stat();
 
@@ -34,7 +36,7 @@ async function collectMarkdownFiles(path: string): Promise<string[]> {
 export function registerDeriveTestsCommand(program: Command): void {
   program
     .command("derive-tests")
-    .description("Read spec markdown files for test derivation")
+    .description(t("cmd.derive_tests"))
     .argument("<path>", "Spec file or directory")
     .action(async (path: string) => {
       const files = await collectMarkdownFiles(path);

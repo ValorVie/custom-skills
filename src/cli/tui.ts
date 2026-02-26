@@ -1,11 +1,12 @@
 import type { Command } from "commander";
 
 import { runTui } from "../tui/index";
+import { t } from "../utils/i18n";
 
 export function registerTuiCommand(program: Command): void {
   program
     .command("tui")
-    .description("Launch interactive TUI")
+    .description(t("cmd.tui"))
     .action(() => {
       runTui();
     });

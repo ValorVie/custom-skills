@@ -46,6 +46,38 @@ function createSourceIndex(): SourceIndex {
   };
 }
 
+function formatTargetLabel(target: TargetType): string {
+  switch (target) {
+    case "claude":
+      return "Claude Code";
+    case "antigravity":
+      return "Antigravity";
+    case "opencode":
+      return "OpenCode";
+    case "codex":
+      return "Codex";
+    case "gemini":
+      return "Gemini";
+    default:
+      return target;
+  }
+}
+
+function formatTypeLabel(type: ResourceType): string {
+  switch (type) {
+    case "skills":
+      return "Skills";
+    case "commands":
+      return "Commands";
+    case "agents":
+      return "Agents";
+    case "workflows":
+      return "Workflows";
+    default:
+      return type;
+  }
+}
+
 async function listFilesRecursive(
   baseDir: string,
   relativeDir = "",
@@ -203,11 +235,11 @@ async function collectSourceIndex(): Promise<SourceIndex> {
 export function registerListCommand(program: Command): void {
   program
     .command("list")
-    .description("List installed resources")
-    .option("--target <target>", "Target platform")
-    .option("--type <type>", "Resource type: skills|commands|agents|workflows")
-    .option("--hide-disabled", "Hide disabled resources")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.list"))
+    .option("--target <target>", t("opt.target"))
+    .option("--type <type>", t("opt.type"))
+    .option("--hide-disabled", t("opt.hide_disabled"))
+    .option("--json", t("opt.json"))
     .action(
       async (options: {
         target?: TargetType;
@@ -279,18 +311,30 @@ export function registerListCommand(program: Command): void {
           return;
         }
 
-        printTable(
-          ["Target", "Type", "Name", "Status", "Source"],
-          output.map((item) => [
-            item.target,
-            item.type,
-            item.name,
-            item.enabled
-              ? chalk.green(t("list.status_enabled"))
-              : chalk.red(t("list.status_disabled")),
-            item.source,
-          ]),
-        );
+        const groups = new Map<string, ResourceItem[]>();
+        for (const item of output) {
+          const key = `${item.target}:${item.type}`;
+          const items = groups.get(key) ?? [];
+          items.push(item);
+          groups.set(key, items);
+        }
+
+        for (const [key, items] of groups) {
+          const [target, type] = key.split(":") as [TargetType, ResourceType];
+          const title = `${formatTargetLabel(target)} - ${formatTypeLabel(type)}`;
+
+          printTable(
+            [t("list.col_name"), t("list.col_source"), t("list.col_status")],
+            items.map((item) => [
+              item.name,
+              item.source,
+              item.enabled
+                ? chalk.green(t("list.status_enabled"))
+                : chalk.red(t("list.status_disabled")),
+            ]),
+            { title },
+          );
+        }
       },
     );
 }

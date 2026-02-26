@@ -9,17 +9,19 @@ import {
   registerDevice,
   reindexMemData,
 } from "../../core/mem-sync";
+import { printTable } from "../../utils/formatter";
+import { t } from "../../utils/i18n";
 
 export function registerMemCommands(program: Command): void {
-  const mem = program.command("mem").description("Manage claude-mem sync");
+  const mem = program.command("mem").description(t("cmd.mem"));
 
   mem
     .command("register")
-    .description("Register this device to sync server")
-    .requiredOption("--server <url>", "Sync server URL")
-    .requiredOption("--name <name>", "Device name")
-    .requiredOption("--admin-secret <secret>", "Admin secret")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.mem_register"))
+    .requiredOption("--server <url>", t("opt.server"))
+    .requiredOption("--name <name>", t("opt.device_name"))
+    .requiredOption("--admin-secret <secret>", t("opt.admin_secret"))
+    .option("--json", t("opt.json"))
     .action(
       async (options: {
         server: string;
@@ -47,8 +49,8 @@ export function registerMemCommands(program: Command): void {
 
   mem
     .command("push")
-    .description("Push local data to sync server")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.mem_push"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await pushMemData();
 
@@ -65,8 +67,8 @@ export function registerMemCommands(program: Command): void {
 
   mem
     .command("pull")
-    .description("Pull remote data from sync server")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.mem_pull"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await pullMemData();
 
@@ -82,8 +84,8 @@ export function registerMemCommands(program: Command): void {
 
   mem
     .command("status")
-    .description("Show mem sync status")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.mem_status"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await getMemSyncStatus();
 
@@ -92,23 +94,28 @@ export function registerMemCommands(program: Command): void {
         return;
       }
 
-      console.log("Memory sync status");
-      console.log(`- Device: ${result.config.deviceName || "(unregistered)"}`);
-      console.log(`- Local observations: ${result.localObservations}`);
-      console.log(`- Pending push: ${result.pendingPushCount}`);
+      const rows: string[][] = [
+        [t("mem.device"), result.config.deviceName || t("mem.unregistered")],
+        [t("mem.local_obs"), String(result.localObservations)],
+        [t("mem.pending_push"), String(result.pendingPushCount)],
+      ];
+
       if (result.remoteStatus) {
-        console.log(
-          `- Remote observations: ${result.remoteStatus.observations ?? 0}`,
-        );
+        rows.push([
+          t("mem.remote_obs"),
+          String(result.remoteStatus.observations ?? 0),
+        ]);
       } else {
-        console.log("- Remote status: unavailable");
+        rows.push([t("mem.remote_obs"), t("mem.remote_unavailable")]);
       }
+
+      printTable([t("mem.col_field"), t("mem.col_value")], rows);
     });
 
   mem
     .command("reindex")
-    .description("Reindex local observations (auto-cleans duplicates)")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.mem_reindex"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await reindexMemData();
 
@@ -126,8 +133,8 @@ export function registerMemCommands(program: Command): void {
 
   mem
     .command("cleanup")
-    .description("Remove duplicate observations from local database")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.mem_cleanup"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await cleanupDuplicates();
 
@@ -142,12 +149,12 @@ export function registerMemCommands(program: Command): void {
 
   mem
     .command("auto")
-    .description("Configure automatic memory sync")
-    .option("--enable", "Enable automatic sync")
-    .option("--disable", "Disable automatic sync")
-    .option("--status", "Show auto-sync status")
-    .option("--interval <minutes>", "Auto-sync interval in minutes")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.mem_auto"))
+    .option("--enable", t("opt.enable"))
+    .option("--disable", t("opt.disable"))
+    .option("--status", t("opt.status"))
+    .option("--interval <minutes>", t("opt.interval"))
+    .option("--json", t("opt.json"))
     .action(
       async (options: {
         enable?: boolean;

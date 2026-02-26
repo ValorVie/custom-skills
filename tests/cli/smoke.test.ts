@@ -23,12 +23,15 @@ describe("cli smoke", () => {
     expect(result.stdout.trim()).toBe("2.0.0");
   });
 
-  test("--help shows top-level commands", () => {
+  test("--help shows zh-TW descriptions by default", () => {
     const result = runCli(["--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("install");
     expect(result.stdout).toContain("status");
     expect(result.stdout).toContain("tui");
+    expect(result.stdout).toContain("首次安裝 AI 開發環境");
+    expect(result.stdout).toContain("更新工具與拉取儲存庫");
+    expect(result.stdout).toContain("分發 Skills 到各工具目錄");
   });
 
   test("--help shows global --lang option", () => {
@@ -50,6 +53,15 @@ describe("cli smoke", () => {
     const parsed = JSON.parse(result.stdout);
     expect(parsed).toHaveProperty("git");
     expect(parsed).toHaveProperty("repos");
+  });
+
+  test("status shows grouped Chinese tables", () => {
+    const result = runCli(["status"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("AI 開發環境狀態檢查");
+    expect(result.stdout).toContain("核心工具");
+    expect(result.stdout).toContain("全域 NPM 套件");
+    expect(result.stdout).toContain("設定儲存庫");
   });
 
   test("install --help", () => {
@@ -87,6 +99,15 @@ describe("cli smoke", () => {
     const result = runCli(["list", "--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("--hide-disabled");
+  });
+
+  test("list groups by target and type with Chinese columns", () => {
+    const result = runCli(["list", "--target", "claude", "--type", "skills"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Claude Code - Skills");
+    expect(result.stdout).toContain("名稱");
+    expect(result.stdout).toContain("來源");
+    expect(result.stdout).toContain("狀態");
   });
 
   test("list --target claude --type skills --json", () => {
@@ -218,6 +239,8 @@ describe("cli smoke", () => {
   test("sync status", () => {
     const result = runCli(["sync", "status"]);
     expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("項目");
+    expect(result.stdout).toContain("值");
   });
 
   test("sync push --help", () => {
@@ -242,6 +265,8 @@ describe("cli smoke", () => {
   test("mem status", () => {
     const result = runCli(["mem", "status"]);
     expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("項目");
+    expect(result.stdout).toContain("值");
   });
 
   test("mem auto --help", () => {

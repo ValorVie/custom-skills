@@ -2,11 +2,47 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import ora, { type Ora } from "ora";
 
-export function printTable(headers: string[], rows: string[][]): void {
-  const table = new Table({ head: headers });
+const RICH_CHARS: Table.TableConstructorOptions["chars"] = {
+  top: "━",
+  "top-mid": "┳",
+  "top-left": "┏",
+  "top-right": "┓",
+  bottom: "━",
+  "bottom-mid": "┻",
+  "bottom-left": "┗",
+  "bottom-right": "┛",
+  left: "┃",
+  "left-mid": "┣",
+  mid: "━",
+  "mid-mid": "╋",
+  right: "┃",
+  "right-mid": "┫",
+  middle: "┃",
+};
+
+export interface TableOptions {
+  title?: string;
+}
+
+export function printTable(
+  headers: string[],
+  rows: string[][],
+  options?: TableOptions,
+): void {
+  if (options?.title) {
+    console.log(chalk.bold(options.title));
+  }
+
+  const table = new Table({
+    head: headers,
+    chars: RICH_CHARS,
+    style: { head: ["bold"] },
+  });
+
   for (const row of rows) {
     table.push(row);
   }
+
   console.log(table.toString());
 }
 

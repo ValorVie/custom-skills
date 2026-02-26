@@ -7,8 +7,8 @@ import { t } from "../utils/i18n";
 export function registerUpdateCustomRepoCommand(program: Command): void {
   program
     .command("update-custom-repo")
-    .description("Update all custom repositories")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.update_custom_repo"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await updateCustomRepos();
 

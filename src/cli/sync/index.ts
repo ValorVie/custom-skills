@@ -1,16 +1,18 @@
 import type { Command } from "commander";
 
 import { createDefaultSyncEngine } from "../../core/sync-engine";
+import { printTable } from "../../utils/formatter";
+import { t } from "../../utils/i18n";
 
 export function registerSyncCommands(program: Command): void {
-  const sync = program.command("sync").description("Manage cross-device sync");
+  const sync = program.command("sync").description(t("cmd.sync"));
   const engine = createDefaultSyncEngine();
 
   sync
     .command("init")
-    .description("Initialize sync config")
-    .option("--remote <url>", "Remote git URL")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.sync_init"))
+    .option("--remote <url>", t("opt.remote"))
+    .option("--json", t("opt.json"))
     .action(async (options: { remote?: string; json?: boolean }) => {
       const config = await engine.init(options.remote ?? "");
 
@@ -26,9 +28,9 @@ export function registerSyncCommands(program: Command): void {
 
   sync
     .command("push")
-    .description("Push local sync directories into repo dir")
-    .option("--force", "Force push to remote")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.sync_push"))
+    .option("--force", t("opt.force"))
+    .option("--json", t("opt.json"))
     .action(async (options: { force?: boolean; json?: boolean }) => {
       const summary = await engine.push({ force: options.force });
 
@@ -45,10 +47,10 @@ export function registerSyncCommands(program: Command): void {
 
   sync
     .command("pull")
-    .description("Pull from repo dir into local directories")
-    .option("--no-delete", "Keep local extra files")
-    .option("--force", "Overwrite local changes without prompt")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.sync_pull"))
+    .option("--no-delete", t("opt.no_delete"))
+    .option("--force", t("opt.force"))
+    .option("--json", t("opt.json"))
     .action(
       async (options: {
         delete?: boolean;
@@ -75,8 +77,8 @@ export function registerSyncCommands(program: Command): void {
 
   sync
     .command("status")
-    .description("Show sync status")
-    .option("--json", "Output as JSON")
+    .description(t("cmd.sync_status"))
+    .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const status = await engine.status();
 
@@ -85,25 +87,32 @@ export function registerSyncCommands(program: Command): void {
         return;
       }
 
-      console.log("Sync status");
-      console.log(`- Initialized: ${status.initialized}`);
-      console.log(`- Repo: ${status.repoDir}`);
-      console.log(`- Local changes: ${status.localChanges}`);
-      console.log(`- Remote behind: ${status.remoteBehind}`);
-      if (status.config) {
-        console.log(
-          `- Tracked directories: ${status.config.directories.length}`,
-        );
-      }
+      printTable(
+        [t("sync.col_field"), t("sync.col_value")],
+        [
+          [t("sync.initialized"), String(status.initialized)],
+          [t("sync.repo_dir"), status.repoDir],
+          [t("sync.local_changes"), String(status.localChanges)],
+          [t("sync.remote_behind"), String(status.remoteBehind)],
+          ...(status.config
+            ? [
+                [
+                  t("sync.tracked_dirs"),
+                  String(status.config.directories.length),
+                ],
+              ]
+            : []),
+        ],
+      );
     });
 
   sync
     .command("add")
-    .description("Add a directory to sync")
+    .description(t("cmd.sync_add"))
     .argument("<path>", "Directory path")
-    .option("--profile <profile>", "Ignore profile", "custom")
-    .option("--ignore <pattern...>", "Custom ignore patterns")
-    .option("--json", "Output as JSON")
+    .option("--profile <profile>", t("opt.profile"), "custom")
+    .option("--ignore <pattern...>", t("opt.ignore"))
+    .option("--json", t("opt.json"))
     .action(
       async (
         path: string,
@@ -132,9 +141,9 @@ export function registerSyncCommands(program: Command): void {
 
   sync
     .command("remove")
-    .description("Remove directory from sync")
+    .description(t("cmd.sync_remove"))
     .argument("<path>", "Directory path")
-    .option("--json", "Output as JSON")
+    .option("--json", t("opt.json"))
     .action(async (path: string, options: { json?: boolean }) => {
       const config = await engine.removeDirectory(path);
 
