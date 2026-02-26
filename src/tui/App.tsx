@@ -7,6 +7,10 @@ import { ConfirmScreen } from "./screens/ConfirmScreen";
 import { MainScreen } from "./screens/MainScreen";
 import { PreviewScreen } from "./screens/PreviewScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import {
+  StandardsScreen,
+  performSwitchProfile,
+} from "./screens/StandardsScreen";
 
 export function App() {
   const { exit } = useApp();
@@ -14,6 +18,7 @@ export function App() {
   const [screen, setScreen] = useState<Screen>("main");
   const [confirmMessage, setConfirmMessage] =
     useState<string>("No pending action.");
+  const [standardsIndex, setStandardsIndex] = useState(0);
 
   const focusedIndex = useMemo(() => {
     if (resources.visibleResources.length === 0) {
@@ -55,9 +60,30 @@ export function App() {
       setScreen("confirm");
     },
     onSettings: () => setScreen("settings"),
+    onStandards: () => {
+      setStandardsIndex(0);
+      setScreen("standards");
+    },
     onSwitchTarget: () => resources.switchTarget(),
-    onNext: () => resources.moveNext(),
-    onPrevious: () => resources.movePrev(),
+    onNext: () => {
+      if (screen === "standards") {
+        setStandardsIndex((prev) => prev + 1);
+      } else {
+        resources.moveNext();
+      }
+    },
+    onPrevious: () => {
+      if (screen === "standards") {
+        setStandardsIndex((prev) => Math.max(0, prev - 1));
+      } else {
+        resources.movePrev();
+      }
+    },
+    onConfirmEnter: () => {
+      if (screen === "standards") {
+        // handled via performSwitchProfile - need profile name
+      }
+    },
     onBack: () => {
       if (screen !== "main") {
         setScreen("main");
@@ -71,6 +97,10 @@ export function App() {
 
   if (screen === "confirm") {
     return <ConfirmScreen message={confirmMessage} />;
+  }
+
+  if (screen === "standards") {
+    return <StandardsScreen selectedIndex={standardsIndex} />;
   }
 
   if (screen === "settings") {

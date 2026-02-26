@@ -14,10 +14,17 @@ export interface KeyBindingHandlers {
   onNext: () => void;
   onPrevious: () => void;
   onBack: () => void;
+  onStandards: () => void;
+  onConfirmEnter: () => void;
 }
 
 export function useKeyBindings(handlers: KeyBindingHandlers): void {
   useInput((input, key) => {
+    if (key.return) {
+      handlers.onConfirmEnter();
+      return;
+    }
+
     if (key.escape || key.backspace) {
       handlers.onBack();
       return;
@@ -63,6 +70,9 @@ export function useKeyBindings(handlers: KeyBindingHandlers): void {
         break;
       case "t":
         handlers.onSwitchTarget();
+        break;
+      case "S":
+        handlers.onStandards();
         break;
       default:
         break;

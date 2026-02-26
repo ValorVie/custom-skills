@@ -7,7 +7,9 @@ export function ActionBar() {
         q quit | space toggle | a toggle-all | p preview | c settings | t
         switch-target
       </Text>
-      <Text dimColor>n add | s save | e editor | f files | esc back</Text>
+      <Text dimColor>
+        n add | s save | e editor | f files | S standards | esc back
+      </Text>
     </Box>
   );
 }

@@ -3,10 +3,29 @@ import { useEffect, useMemo, useReducer } from "react";
 
 import { COPY_TARGETS, type TargetType } from "../../utils/shared";
 
-export type Screen = "main" | "preview" | "confirm" | "settings";
+export type Screen = "main" | "preview" | "confirm" | "settings" | "standards";
 export type Target = "claude" | "opencode" | "codex" | "gemini";
 export type ResourceType = "skill" | "command" | "agent" | "workflow";
-export type ResourceSource = "custom-skills" | "external";
+export type ResourceSource =
+  | "custom-skills"
+  | "universal-dev-standards"
+  | "obsidian-skills"
+  | "anthropic-skills"
+  | "everything-claude-code"
+  | "auto-skill"
+  | "user-custom"
+  | "external";
+
+export const SOURCE_LABELS: Record<string, string> = {
+  all: "\u5168\u90e8",
+  "custom-skills": "Custom Skills",
+  "universal-dev-standards": "UDS",
+  "obsidian-skills": "Obsidian Skills",
+  "anthropic-skills": "Anthropic Skills",
+  "everything-claude-code": "Everything Claude Code",
+  "auto-skill": "Auto Skill",
+  "user-custom": "User Custom",
+};
 export type TypeFilter = ResourceType | "all";
 export type SourceFilter = ResourceSource | "all";
 
