@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/../skills/custom-notify/scripts/notify.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.js\"",
             "async": true
           }
         ]
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/../skills/custom-notify/scripts/notify.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.js\"",
             "async": true
           }
         ]
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/../skills/custom-notify/scripts/notify.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.js\"",
             "async": true
           }
         ]

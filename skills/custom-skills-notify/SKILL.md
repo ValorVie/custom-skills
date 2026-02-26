@@ -1,5 +1,5 @@
 ---
-name: custom-notify
+name: custom-skills-notify
 description: 發送通知到 Telegram。支援手動發送、初始化設定、測試連線。長時間任務時搭配 plugin hooks 自動通知。
 ---
 
