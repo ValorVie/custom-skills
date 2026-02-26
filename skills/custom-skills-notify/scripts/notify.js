@@ -109,9 +109,7 @@ function extractDetail(hookData) {
   if (event === "Stop") {
     const msg = hookData.last_assistant_message;
     if (!msg) return "Claude 已完成回應";
-    // 取第一行非空文字作為摘要
-    const firstLine = msg.split("\n").find((l) => l.trim()) || msg;
-    return truncate(firstLine, 100);
+    return truncate(msg, 300);
   }
 
   if (event === "PostToolUseFailure") {
