@@ -841,6 +841,11 @@ async function workerAvailable(): Promise<boolean> {
 
 /**
  * 清理本地 claude-mem 中的重複 observations，回傳移除數量。
+ *
+ * 兩輪去重：
+ * 1. content hash 分組（精確重複）
+ * 2. text+project 分組（抓原始 vs worker 副本，因副本缺少 facts/type 導致 hash 不同）
+ *
  * 優先保留已被 ChromaDB 索引的記錄；若都未索引則保留最小 ID。
  */
 export async function cleanupDuplicates(
@@ -853,17 +858,27 @@ export async function cleanupDuplicates(
   const indexedIds = getIndexedObservationIds(chromaDbPath);
 
   const db = openDb(dbPath, true);
-  let allObs: ObservationRow[];
+  let allObs: Array<ObservationRow & { text?: string }>;
   try {
-    allObs = db
-      .query(
-        "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id",
-      )
-      .all() as ObservationRow[];
+    try {
+      allObs = db
+        .query(
+          "SELECT id, title, narrative, text, facts, project, type FROM observations ORDER BY id",
+        )
+        .all() as Array<ObservationRow & { text?: string }>;
+    } catch {
+      // text 欄位可能不存在（舊版 schema）
+      allObs = db
+        .query(
+          "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id",
+        )
+        .all() as Array<ObservationRow & { text?: string }>;
+    }
   } finally {
     db.close();
   }
 
+  // Phase 1: content hash 分組（精確重複）
   const hashGroups = new Map<string, number[]>();
   for (const obs of allObs) {
     const hash = computeContentHash(obs);
@@ -875,7 +890,30 @@ export async function cleanupDuplicates(
   const duplicateIds: number[] = [];
   for (const ids of hashGroups.values()) {
     if (ids.length <= 1) continue;
-    // 優先保留已索引的記錄
+    const indexedInGroup = ids.filter((id) => indexedIds.has(id));
+    const keep = indexedInGroup.length > 0 ? indexedInGroup[0] : ids[0];
+    duplicateIds.push(...ids.filter((id) => id !== keep));
+  }
+
+  // Phase 2: text+project 分組（原始 vs worker 副本）
+  // Worker save 建立的副本只有 text/title/project，缺少 facts/type，
+  // 導致 content hash 不同。用主文字內容 + project 做二次分組。
+  const deleteSet = new Set(duplicateIds);
+  const textGroups = new Map<string, number[]>();
+  for (const obs of allObs) {
+    if (deleteSet.has(obs.id)) continue;
+    const text = (
+      (obs as any).narrative || (obs as any).text || obs.title || ""
+    ).trim();
+    if (!text) continue;
+    const key = `${text}\0${obs.project ?? ""}`;
+    const group = textGroups.get(key);
+    if (group) group.push(obs.id);
+    else textGroups.set(key, [obs.id]);
+  }
+
+  for (const ids of textGroups.values()) {
+    if (ids.length <= 1) continue;
     const indexedInGroup = ids.filter((id) => indexedIds.has(id));
     const keep = indexedInGroup.length > 0 ? indexedInGroup[0] : ids[0];
     duplicateIds.push(...ids.filter((id) => id !== keep));
@@ -915,13 +953,21 @@ export async function reindexMemData(
   const indexedIds = getIndexedObservationIds(chromaDbPath);
 
   const db = openDb(dbPath, true);
-  let allObs: ObservationRow[];
+  let allObs: Array<ObservationRow & { text?: string }>;
   try {
-    allObs = db
-      .query(
-        "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id",
-      )
-      .all() as ObservationRow[];
+    try {
+      allObs = db
+        .query(
+          "SELECT id, title, narrative, text, facts, project, type FROM observations ORDER BY id",
+        )
+        .all() as Array<ObservationRow & { text?: string }>;
+    } catch {
+      allObs = db
+        .query(
+          "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id",
+        )
+        .all() as Array<ObservationRow & { text?: string }>;
+    }
   } finally {
     db.close();
   }
@@ -931,14 +977,14 @@ export async function reindexMemData(
   const indexedTexts = new Set<string>();
   for (const obs of allObs) {
     if (!indexedIds.has(obs.id)) continue;
-    const text = (obs.narrative || obs.title || "").trim();
+    const text = ((obs as any).narrative || (obs as any).text || obs.title || "").trim();
     if (text) indexedTexts.add(text);
   }
 
-  const missingObs: ObservationRow[] = [];
+  const missingObs: typeof allObs = [];
   for (const obs of allObs) {
     if (indexedIds.has(obs.id)) continue;
-    const text = (obs.narrative || obs.title || "").trim();
+    const text = ((obs as any).narrative || (obs as any).text || obs.title || "").trim();
     if (!text) continue;
     if (indexedTexts.has(text)) continue; // 該內容已透過其他記錄被索引
     missingObs.push(obs);
@@ -948,7 +994,7 @@ export async function reindexMemData(
   let errors = 0;
 
   for (const obs of missingObs) {
-    const text = obs.narrative || obs.title || "";
+    const text = (obs as any).narrative || (obs as any).text || obs.title || "";
 
     try {
       const resp = await fetch(`${WORKER_URL}/api/memory/save`, {
