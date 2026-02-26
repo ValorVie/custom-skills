@@ -22,6 +22,7 @@ export interface MemSyncConfig {
 export interface MemPushResult {
   pushed: number;
   skipped: number;
+  errors: number;
   serverUrl: string;
 }
 
@@ -478,10 +479,10 @@ export async function pushMemData(
   const observations = readAllObservations(dbPath).map(withSyncContentHash);
   let pushed = 0;
   let skipped = 0;
+  let errors = 0;
 
   if (!config.serverUrl || !config.apiKey) {
     pushed = observations.length;
-    skipped = 0;
   } else {
     const hashes = observations
       .map((item) => String(item.sync_content_hash ?? ""))
@@ -517,7 +518,12 @@ export async function pushMemData(
         15_000,
       );
 
-      if (payload?.stats?.observationsImported !== undefined) {
+      if (!payload) {
+        errors += batch.length;
+        continue;
+      }
+
+      if (payload.stats?.observationsImported !== undefined) {
         pushed += payload.stats.observationsImported;
       } else {
         pushed += batch.length;
@@ -533,6 +539,7 @@ export async function pushMemData(
   return {
     pushed,
     skipped,
+    errors,
     serverUrl: config.serverUrl,
   };
 }

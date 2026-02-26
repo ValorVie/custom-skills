@@ -101,7 +101,9 @@ describe("core/mem-sync", () => {
       });
 
       const pushed = await pushMemData({ configPath, dbPath });
-      expect(pushed.pushed).toBe(1);
+      // fake server returns null → counted as errors, not pushed
+      expect(pushed.errors).toBe(1);
+      expect(pushed.pushed).toBe(0);
 
       const pulled = await pullMemData({ configPath });
       expect(pulled.pulled).toBe(0);

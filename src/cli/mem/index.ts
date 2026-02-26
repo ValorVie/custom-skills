@@ -62,6 +62,9 @@ export function registerMemCommands(program: Command): void {
       console.log("Memory push complete");
       console.log(`- Pushed: ${result.pushed}`);
       console.log(`- Skipped: ${result.skipped}`);
+      if (result.errors > 0) {
+        console.log(`- Errors: ${result.errors}`);
+      }
       console.log(`- Server: ${result.serverUrl || "(not configured)"}`);
     });
 

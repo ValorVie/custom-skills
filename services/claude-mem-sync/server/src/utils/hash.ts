@@ -18,24 +18,14 @@ function normalizeText(value: unknown): string {
   return String(value);
 }
 
-function normalizeFacts(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "[]";
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  return JSON.stringify(value);
-}
-
 export function computeContentHash(obs: ObservationLike): string {
-  const payload = JSON.stringify({
-    facts: normalizeFacts(obs.facts),
-    narrative: normalizeText(obs.narrative),
-    project: normalizeText(obs.project),
-    title: normalizeText(obs.title),
-    type: normalizeText(obs.type),
-  });
+  const parts = [
+    normalizeText(obs.title),
+    normalizeText(obs.narrative),
+    normalizeText(obs.facts),
+    normalizeText(obs.project),
+    normalizeText(obs.type),
+  ];
 
-  return createHash("sha256").update(payload, "utf-8").digest("hex").slice(0, 32);
+  return createHash("sha256").update(parts.join("\n"), "utf-8").digest("hex").slice(0, 32);
 }
