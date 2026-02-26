@@ -69,6 +69,14 @@ export const REPOS: RepoDefinition[] = [
   },
 ];
 
+export const TARGET_NAMES: Record<TargetType, string> = {
+  claude: "Claude Code",
+  antigravity: "Antigravity",
+  opencode: "OpenCode",
+  codex: "Codex",
+  gemini: "Gemini CLI",
+};
+
 export const COPY_TARGETS: Record<TargetType, CopyTarget> = {
   claude: {
     skills: paths.claudeSkills,

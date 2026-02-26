@@ -232,7 +232,21 @@ export function registerCloneCommand(program: Command): void {
             syncProject: options.syncProject,
             onProgress: options.json
               ? undefined
-              : (msg) => console.log(chalk.dim(`  ${msg}`)),
+              : (msg) => {
+                  // Resource-level headers: "type → Target Name"
+                  const headerMatch = msg.match(/^(skills|commands|agents|workflows) → (.+)$/);
+                  if (headerMatch) {
+                    console.log(`  ${chalk.green(headerMatch[1])} → ${chalk.cyan(headerMatch[2])}`);
+                    return;
+                  }
+                  // Conflict skip: "  跳過（衝突）: name"
+                  if (msg.startsWith("  跳過")) {
+                    console.log(`  ${chalk.yellow(msg.trim())}`);
+                    return;
+                  }
+                  // Source → dest paths and other messages
+                  console.log(chalk.dim(`  ${msg}`));
+                },
           });
         } catch (error) {
           const message =
@@ -264,15 +278,6 @@ export function registerCloneCommand(program: Command): void {
         }
 
         console.log(chalk.bold.blue("\n分發 Skills 到各工具目錄..."));
-
-        // Distribution results
-        if (result.distributed.length > 0) {
-          for (const item of result.distributed) {
-            console.log(
-              chalk.green(`  ✓ ${item.target}/${item.type}: ${item.name}`),
-            );
-          }
-        }
 
         console.log(
           chalk.bold.green(

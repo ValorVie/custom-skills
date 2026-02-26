@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { access, cp, mkdir, readdir, rm, symlink } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 import {
@@ -19,6 +20,7 @@ import { paths } from "../utils/paths";
 import {
   COPY_TARGETS,
   type ResourceType,
+  TARGET_NAMES,
   type TargetType,
 } from "../utils/shared";
 
@@ -59,6 +61,11 @@ const RESOURCE_TYPES: ResourceType[] = [
   "agents",
   "workflows",
 ];
+
+function shortenPath(p: string): string {
+  const home = homedir();
+  return p.startsWith(home) ? p.replace(home, "~") : p;
+}
 
 async function pathExists(pathValue: string): Promise<boolean> {
   try {
@@ -301,6 +308,7 @@ export async function distributeSkills(
 
       // Step 6: Execute copies and build new manifest tracker
       const copyTracker = new ManifestTracker(target);
+      const targetName = TARGET_NAMES[target] ?? target;
 
       for (const type of RESOURCE_TYPES) {
         const destinationBase = targetMap[type];
@@ -310,6 +318,10 @@ export async function distributeSkills(
         const resources = await listResources(sourceDir, type);
 
         if (resources.length === 0) continue;
+
+        // Emit resource-level progress (v1 format: type → target name, source → dest)
+        onProgress(`${type} → ${targetName}`);
+        onProgress(`  ${shortenPath(sourceDir)} → ${shortenPath(destinationBase)}`);
 
         await mkdir(destinationBase, { recursive: true });
 
@@ -321,6 +333,7 @@ export async function distributeSkills(
           try {
             // If this resource has a conflict and we're not forcing, skip copy
             if (conflictSet.has(key) && !force) {
+              onProgress(`  跳過（衝突）: ${name}`);
               // Record source hash in tracker anyway (for manifest)
               await recordResource(copyTracker, type, name, sourcePath);
               continue;
@@ -348,7 +361,6 @@ export async function distributeSkills(
 
             await mkdir(join(destinationPath, ".."), { recursive: true });
             await linkOrCopy(sourcePath, destinationPath, type, devMode);
-            onProgress(`Distributed ${target}/${type}: ${name}`);
 
             // Record source hash in tracker
             await recordResource(copyTracker, type, name, sourcePath);
@@ -399,7 +411,7 @@ export async function distributeSkills(
       if (removed > 0) {
         for (const type of RESOURCE_TYPES) {
           for (const name of orphans[type]) {
-            onProgress(`Removed orphan ${target}/${type}: ${name}`);
+            onProgress(`移除孤兒 ${targetName}/${type}: ${name}`);
           }
         }
       }
