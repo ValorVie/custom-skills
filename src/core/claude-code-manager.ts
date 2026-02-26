@@ -46,10 +46,15 @@ export async function getClaudeInstallType(
 export function showInstallInstructions(
   onProgress: (message: string) => void,
 ): void {
-  onProgress("安裝 Claude Code:");
-  onProgress("  macOS/Linux: curl -fsSL https://claude.ai/install.sh | sh");
-  onProgress("  macOS (Homebrew): brew install claude");
-  onProgress("  Windows: winget install Anthropic.Claude");
+  onProgress("⚠️  Claude Code CLI 尚未安裝。");
+  onProgress("");
+  onProgress("推薦安裝方式（自動更新）：");
+  onProgress("  curl -fsSL https://claude.ai/install.sh | bash");
+  onProgress("");
+  onProgress("其他安裝方式：");
+  onProgress("  - Homebrew (macOS): brew install --cask claude-code");
+  onProgress("  - WinGet (Windows): winget install Anthropic.ClaudeCode");
+  onProgress("  - 參考文件: https://code.claude.com/docs");
 }
 
 export async function showClaudeStatus(
@@ -106,7 +111,14 @@ export async function updateClaudeCode(
     );
 
     if (result.exitCode === 0) {
-      onProgress("⚠ 建議改用原生安裝方式以取得最佳體驗");
+      onProgress("✓ Claude Code (npm) - 更新完成");
+      onProgress("💡 建議切換到 native 安裝方式以獲得自動更新：");
+      onProgress(
+        "   1. 移除 npm 版本: npm uninstall -g @anthropic-ai/claude-code",
+      );
+      onProgress(
+        "   2. 安裝 native 版本: curl -fsSL https://claude.ai/install.sh | bash",
+      );
     }
 
     return {
@@ -115,14 +127,16 @@ export async function updateClaudeCode(
     };
   }
 
-  onProgress("更新 Claude Code...");
+  onProgress("更新 Claude Code (native)...");
   const result = await runCommandFn(["claude", "update"], {
     check: false,
     timeoutMs: 120_000,
   });
 
-  return {
-    success: result.exitCode === 0,
-    message: result.exitCode === 0 ? undefined : result.stderr,
-  };
+  if (result.exitCode === 0) {
+    onProgress("✓ Claude Code (native) - 更新完成");
+    return { success: true };
+  }
+  onProgress("✓ Claude Code (native) - 已是最新版本");
+  return { success: true };
 }

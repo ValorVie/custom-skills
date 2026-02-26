@@ -43,7 +43,7 @@ describe("core/updater", () => {
     });
 
     expect(result.errors).toContain("npm is not installed");
-    expect(result.errors).toContain("bun is not installed");
+    // bun not installed is now a warning (onProgress), not an error — aligned with v1
     expect(result.npmPackages.length).toBe(0);
     expect(result.bunPackages.length).toBe(0);
     expect(result.repos.length).toBe(0);
@@ -229,7 +229,7 @@ describe("core/updater", () => {
     ).toBe(false);
   });
 
-  test("runUpdate reports not installed when Claude Code is missing", async () => {
+  test("runUpdate skips Claude Code when skipNpm is true (aligned with v1)", async () => {
     const result = await runUpdate({
       skipNpm: true,
       skipBun: true,
@@ -245,8 +245,9 @@ describe("core/updater", () => {
       },
     });
 
-    expect(result.claudeCode.success).toBe(false);
-    expect(result.claudeCode.message).toBe("not installed");
+    // skipNpm=true now skips Claude Code update entirely (v1 behavior)
+    expect(result.claudeCode.success).toBe(true);
+    expect(result.claudeCode.message).toBe("skipped");
   });
 });
 

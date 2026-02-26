@@ -191,15 +191,20 @@ const messages: Record<Locale, Record<string, string>> = {
     "mem.last_pull": "Last Pull Epoch",
     "mem.remote_unavailable": "unavailable",
     "mem.unregistered": "(unregistered)",
-    "mem.push_sending": "Pushing: {sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
+    "mem.push_sending":
+      "Pushing: {sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
     "mem.push_dedup": "Dedup excluded: {pulled} pulled + {preflight} preflight",
-    "mem.push_done": "Push done imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
+    "mem.push_done":
+      "Push done imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
     "mem.push_nothing": "No new data to push",
-    "mem.pull_received": "Pulled: {sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
-    "mem.pull_done": "Pull done (SQLite) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
+    "mem.pull_received":
+      "Pulled: {sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
+    "mem.pull_done":
+      "Pull done (SQLite) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
     "mem.reindex_scanning": "Scanning missing ChromaDB indices...",
     "mem.reindex_complete": "Index complete ({total} observations)",
-    "mem.reindex_done": "Reindex done synced={synced} errors={errors} (total {total}, originally missing {missing})",
+    "mem.reindex_done":
+      "Reindex done synced={synced} errors={errors} (total {total}, originally missing {missing})",
     "mem.cleanup_auto": "Auto cleanup {count} duplicate observations",
     "mem.chromadb_syncing": "Syncing ChromaDB search index...",
     "mem.chromadb_done": "Index sync done synced={synced} errors={errors}",
@@ -447,15 +452,20 @@ const messages: Record<Locale, Record<string, string>> = {
     "mem.last_pull": "上次拉取 Epoch",
     "mem.remote_unavailable": "無法取得",
     "mem.unregistered": "（未註冊）",
-    "mem.push_sending": "推送中：{sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
+    "mem.push_sending":
+      "推送中：{sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
     "mem.push_dedup": "去重排除：{pulled} pulled + {preflight} preflight",
-    "mem.push_done": "Push 完成 imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
+    "mem.push_done":
+      "Push 完成 imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
     "mem.push_nothing": "無新資料需要推送",
-    "mem.pull_received": "拉取到：{sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
-    "mem.pull_done": "Pull 完成 (SQLite) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
+    "mem.pull_received":
+      "拉取到：{sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
+    "mem.pull_done":
+      "Pull 完成 (SQLite) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
     "mem.reindex_scanning": "正在掃描缺失的 ChromaDB 索引...",
     "mem.reindex_complete": "索引已完整（共 {total} 筆 observations）",
-    "mem.reindex_done": "Reindex 完成 synced={synced} errors={errors} （共 {total} 筆，原缺 {missing} 筆）",
+    "mem.reindex_done":
+      "Reindex 完成 synced={synced} errors={errors} （共 {total} 筆，原缺 {missing} 筆）",
     "mem.cleanup_auto": "自動清理 {count} 筆重複 observations",
     "mem.chromadb_syncing": "正在同步 ChromaDB 搜尋索引...",
     "mem.chromadb_done": "索引同步完成 synced={synced} errors={errors}",

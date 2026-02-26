@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
-import { cp, mkdir, readdir, readFile, rm, stat } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { basename, join, relative } from "node:path";
+import YAML from "yaml";
 
 const IGNORED_DIRS = new Set([".git", "node_modules", "__pycache__"]);
 const IGNORED_FILE_SUFFIXES = new Set([".pyc", ".pyo"]);
@@ -332,7 +334,62 @@ export async function backupFile(
   }
 }
 
+function getManifestDir(): string {
+  return join(homedir(), ".config", "ai-dev", "manifests");
+}
+
+function getManifestPath(target: string): string {
+  return join(getManifestDir(), `${target}.yaml`);
+}
+
+function toSnakeCaseManifest(manifest: ManifestData): Record<string, unknown> {
+  return {
+    managed_by: manifest.managedBy,
+    version: manifest.version,
+    last_sync: manifest.lastSync,
+    target: manifest.target,
+    files: manifest.files,
+  };
+}
+
+function fromSnakeCaseManifest(raw: Record<string, unknown>): ManifestData {
+  return {
+    managedBy: (raw.managed_by ?? raw.managedBy) as "ai-dev",
+    version: raw.version as string,
+    lastSync: (raw.last_sync ?? raw.lastSync) as string,
+    target: raw.target as string,
+    files: raw.files as ManifestFiles,
+  };
+}
+
+export async function readManifest(
+  target: string,
+): Promise<ManifestData | null> {
+  try {
+    const content = await readFile(getManifestPath(target), "utf8");
+    const raw = YAML.parse(content);
+    if (!raw || typeof raw !== "object" || !raw.files) {
+      return null;
+    }
+    return fromSnakeCaseManifest(raw as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
+export async function writeManifest(
+  target: string,
+  manifest: ManifestData,
+): Promise<void> {
+  const dir = getManifestDir();
+  await mkdir(dir, { recursive: true });
+  const content = YAML.stringify(toSnakeCaseManifest(manifest));
+  await writeFile(getManifestPath(target), content, "utf8");
+}
+
 export const detect_conflicts = detectConflicts;
 export const find_orphans = findOrphans;
 export const cleanup_orphans = cleanupOrphans;
 export const backup_file = backupFile;
+export const read_manifest = readManifest;
+export const write_manifest = writeManifest;

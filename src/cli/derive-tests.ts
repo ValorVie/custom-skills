@@ -49,7 +49,8 @@ export function registerDeriveTestsCommand(program: Command): void {
 
       for (const filePath of files.sort((a, b) => a.localeCompare(b))) {
         const content = await readFile(filePath, "utf8");
-        const relativePath = relative(resolve(path), filePath) || basename(filePath);
+        const relativePath =
+          relative(resolve(path), filePath) || basename(filePath);
         console.log(`\n--- ${relativePath} ---\n`);
         console.log(content);
       }

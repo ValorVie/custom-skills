@@ -474,7 +474,9 @@ export async function runInstall(
     for (let index = 0; index < total; index += 1) {
       const pkg = npmPackages[index];
       onProgress(`[${index + 1}/${total}] Installing npm package: ${pkg}...`);
-      result.npmPackages.push(await installNpmPackage(pkg, runCommandFn, stream));
+      result.npmPackages.push(
+        await installNpmPackage(pkg, runCommandFn, stream),
+      );
     }
   }
 
@@ -488,7 +490,9 @@ export async function runInstall(
       for (let index = 0; index < total; index += 1) {
         const pkg = bunPackages[index];
         onProgress(`[${index + 1}/${total}] Installing bun package: ${pkg}...`);
-        result.bunPackages.push(await installBunPackage(pkg, runCommandFn, stream));
+        result.bunPackages.push(
+          await installBunPackage(pkg, runCommandFn, stream),
+        );
       }
     }
   }

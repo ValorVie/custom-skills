@@ -376,15 +376,46 @@ export class SyncEngine {
     return config;
   }
 
-  async removeDirectory(pathValue: string): Promise<SyncConfig> {
+  async removeDirectory(
+    pathValue: string,
+    options: { skipMinCheck?: boolean } = {},
+  ): Promise<SyncConfig> {
     const config = await this.loadConfig();
     if (!config) {
       throw new Error("sync not initialized");
     }
 
-    config.directories = config.directories.filter(
-      (item) => item.path !== pathValue,
+    // Minimum 1 directory validation (v1 parity)
+    if (!options.skipMinCheck && config.directories.length <= 1) {
+      throw new Error("至少保留一個同步目錄");
+    }
+
+    const targetIndex = config.directories.findIndex(
+      (item) => item.path === pathValue,
     );
+    if (targetIndex === -1) {
+      throw new Error("該目錄不在同步清單中");
+    }
+
+    const removed = config.directories[targetIndex];
+    config.directories.splice(targetIndex, 1);
+
+    // Attempt to clean up repo subdirectory
+    const repoSubdirPath = join(this.repoDir, removed.repoSubdir);
+    if (await pathExists(repoSubdirPath)) {
+      try {
+        await rm(repoSubdirPath, { recursive: true, force: true });
+      } catch {
+        // ignore cleanup failures
+      }
+    }
+
+    // Update gitignore to reflect current directories
+    await ensureFileContains(join(this.repoDir, ".gitignore"), [
+      ".DS_Store",
+      "*.swp",
+    ]);
+
     await this.saveConfig(config);
     return config;
   }

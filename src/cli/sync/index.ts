@@ -145,14 +145,23 @@ export function registerSyncCommands(program: Command): void {
     .argument("<path>", "Directory path")
     .option("--json", t("opt.json"))
     .action(async (path: string, options: { json?: boolean }) => {
-      const config = await engine.removeDirectory(path);
+      try {
+        const config = await engine.removeDirectory(path);
 
-      if (options.json) {
-        console.log(JSON.stringify(config, null, 2));
-        return;
+        if (options.json) {
+          console.log(JSON.stringify(config, null, 2));
+          return;
+        }
+
+        console.log(`Removed sync directory: ${path}`);
+        console.log(
+          `- Total tracked directories: ${config.directories.length}`,
+        );
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        console.error(message);
+        process.exitCode = 1;
       }
-
-      console.log(`Removed sync directory: ${path}`);
-      console.log(`- Total tracked directories: ${config.directories.length}`);
     });
 }

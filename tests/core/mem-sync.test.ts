@@ -28,9 +28,7 @@ describe("mem-sync default paths", () => {
   });
 
   test("defaultMemDbPath returns correct path", () => {
-    expect(defaultMemDbPath()).toBe(
-      join(home, ".claude-mem", "claude-mem.db"),
-    );
+    expect(defaultMemDbPath()).toBe(join(home, ".claude-mem", "claude-mem.db"));
   });
 
   test("defaultChromaDbPath returns correct path", () => {

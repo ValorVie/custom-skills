@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import type { Command } from "commander";
 
 import { runUpdate, type UpdateResult } from "../core/updater";
@@ -150,6 +151,12 @@ export function registerUpdateCommand(program: Command): void {
         }
 
         renderUpdateSummary(result);
+
+        console.log(chalk.bold.green("更新完成！"));
+        console.log("");
+        console.log(
+          chalk.dim("提示：如需分發 Skills 到各工具目錄，請執行：ai-dev clone"),
+        );
       },
     );
 }

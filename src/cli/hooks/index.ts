@@ -5,7 +5,12 @@ import { join } from "node:path";
 import type { Command } from "commander";
 import inquirer from "inquirer";
 
-import { printError, printSuccess, printTable, printWarning } from "../../utils/formatter";
+import {
+  printError,
+  printSuccess,
+  printTable,
+  printWarning,
+} from "../../utils/formatter";
 import { t } from "../../utils/i18n";
 
 function hooksPluginDir(): string {

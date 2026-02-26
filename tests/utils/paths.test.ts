@@ -64,27 +64,55 @@ describe("utils/paths", () => {
 
   test("home-based paths start with homedir()", () => {
     const homeBased = [
-      "home", "claudeConfig", "claudeSkills", "claudeCommands", "claudeAgents",
-      "claudeWorkflows", "antigravityConfig", "codexConfig", "codexSkills",
-      "geminiConfig", "geminiSkills", "geminiCommands", "geminiAgents",
+      "home",
+      "claudeConfig",
+      "claudeSkills",
+      "claudeCommands",
+      "claudeAgents",
+      "claudeWorkflows",
+      "antigravityConfig",
+      "codexConfig",
+      "codexSkills",
+      "geminiConfig",
+      "geminiSkills",
+      "geminiCommands",
+      "geminiAgents",
     ] as const;
 
     for (const key of homeBased) {
-      expect(paths[key].startsWith(home), `paths.${key} should start with homedir()`).toBe(true);
+      expect(
+        paths[key].startsWith(home),
+        `paths.${key} should start with homedir()`,
+      ).toBe(true);
     }
   });
 
   test("config-based paths start with homedir()/.config", () => {
     const configBased = [
-      "config", "customSkills", "aiDevConfig", "syncConfig", "syncRepo",
-      "opencodeConfig", "opencodeSkills", "opencodeCommands", "opencodeAgents",
-      "opencodePlugins", "opencodeSuperpowers", "superpowersRepo", "udsRepo",
-      "obsidianSkillsRepo", "anthropicSkillsRepo", "everythingClaudeCodeRepo",
+      "config",
+      "customSkills",
+      "aiDevConfig",
+      "syncConfig",
+      "syncRepo",
+      "opencodeConfig",
+      "opencodeSkills",
+      "opencodeCommands",
+      "opencodeAgents",
+      "opencodePlugins",
+      "opencodeSuperpowers",
+      "superpowersRepo",
+      "udsRepo",
+      "obsidianSkillsRepo",
+      "anthropicSkillsRepo",
+      "everythingClaudeCodeRepo",
       "autoSkillRepo",
     ] as const;
 
     for (const key of configBased) {
-      expect(paths[key].startsWith(config), `paths.${key} should start with .config`).toBe(true);
+      expect(
+        paths[key].startsWith(config),
+        `paths.${key} should start with .config`,
+      ).toBe(true);
     }
   });
 });

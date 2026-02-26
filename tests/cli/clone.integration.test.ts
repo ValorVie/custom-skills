@@ -92,6 +92,11 @@ describe("cli/clone integration", () => {
         "alpha\n",
         "utf8",
       );
+      await writeFile(
+        join(cwd, "package.json"),
+        JSON.stringify({ name: "ai-dev" }),
+        "utf8",
+      );
 
       redirectTargets(root);
       process.chdir(cwd);
@@ -143,6 +148,11 @@ describe("cli/clone integration", () => {
         "new\n",
         "utf8",
       );
+      await writeFile(
+        join(cwd, "package.json"),
+        JSON.stringify({ name: "ai-dev" }),
+        "utf8",
+      );
       await mkdir(join(root, "targets", "claude", "skills", "alpha"), {
         recursive: true,
       });
@@ -184,6 +194,11 @@ describe("cli/clone integration", () => {
       await writeFile(
         join(cwd, "skills", "alpha", "SKILL.md"),
         "new\n",
+        "utf8",
+      );
+      await writeFile(
+        join(cwd, "package.json"),
+        JSON.stringify({ name: "ai-dev" }),
         "utf8",
       );
       await mkdir(join(root, "targets", "claude", "skills", "alpha"), {

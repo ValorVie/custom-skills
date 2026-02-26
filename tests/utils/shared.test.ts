@@ -47,14 +47,23 @@ describe("utils/shared", () => {
   describe("REPOS", () => {
     test("all repos have dir starting with config path", () => {
       for (const repo of REPOS) {
-        expect(repo.dir.startsWith(config), `${repo.name} dir should start with .config`).toBe(true);
+        expect(
+          repo.dir.startsWith(config),
+          `${repo.name} dir should start with .config`,
+        ).toBe(true);
       }
     });
 
     test("all repos have valid GitHub URL", () => {
       for (const repo of REPOS) {
-        expect(repo.url.startsWith("https://github.com/"), `${repo.name} url should be GitHub`).toBe(true);
-        expect(repo.url.endsWith(".git"), `${repo.name} url should end with .git`).toBe(true);
+        expect(
+          repo.url.startsWith("https://github.com/"),
+          `${repo.name} url should be GitHub`,
+        ).toBe(true);
+        expect(
+          repo.url.endsWith(".git"),
+          `${repo.name} url should end with .git`,
+        ).toBe(true);
       }
     });
 
@@ -74,7 +83,9 @@ describe("utils/shared", () => {
       expect(repoByName["uds"]).toBe(paths.udsRepo);
       expect(repoByName["obsidian-skills"]).toBe(paths.obsidianSkillsRepo);
       expect(repoByName["anthropic-skills"]).toBe(paths.anthropicSkillsRepo);
-      expect(repoByName["everything-claude-code"]).toBe(paths.everythingClaudeCodeRepo);
+      expect(repoByName["everything-claude-code"]).toBe(
+        paths.everythingClaudeCodeRepo,
+      );
       expect(repoByName["auto-skill"]).toBe(paths.autoSkillRepo);
     });
   });
@@ -88,8 +99,12 @@ describe("utils/shared", () => {
     });
 
     test("antigravity target paths match paths.*", () => {
-      expect(COPY_TARGETS.antigravity.skills).toBe(`${paths.antigravityConfig}/global_skills`);
-      expect(COPY_TARGETS.antigravity.workflows).toBe(`${paths.antigravityConfig}/global_workflows`);
+      expect(COPY_TARGETS.antigravity.skills).toBe(
+        `${paths.antigravityConfig}/global_skills`,
+      );
+      expect(COPY_TARGETS.antigravity.workflows).toBe(
+        `${paths.antigravityConfig}/global_workflows`,
+      );
     });
 
     test("opencode target paths match paths.*", () => {

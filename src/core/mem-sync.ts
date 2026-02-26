@@ -1,6 +1,7 @@
+import { execSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -384,6 +385,109 @@ function resolveScheduler(): "launchd" | "systemd" | "cron" {
   return "cron";
 }
 
+// ---------------------------------------------------------------------------
+// Scheduler installation helpers (launchd / cron) — parity with v1
+// ---------------------------------------------------------------------------
+
+const LAUNCHD_LABEL = "com.ai-dev.mem-sync";
+const CRON_MARKER = "# ai-dev-mem-sync";
+
+function launchdPlistPath(): string {
+  return join(homedir(), "Library", "LaunchAgents", `${LAUNCHD_LABEL}.plist`);
+}
+
+function findAiDev(): string {
+  try {
+    return execSync("which ai-dev", { encoding: "utf-8" }).trim() || "ai-dev";
+  } catch {
+    return "ai-dev";
+  }
+}
+
+async function installLaunchd(intervalMinutes: number): Promise<void> {
+  const aiDev = findAiDev();
+  const plist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>${LAUNCHD_LABEL}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>${aiDev} mem push &amp;&amp; ${aiDev} mem pull</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>${intervalMinutes * 60}</integer>
+    <key>StandardOutPath</key>
+    <string>/tmp/ai-dev-mem-sync.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/ai-dev-mem-sync.log</string>
+</dict>
+</plist>
+`;
+  const plistPath = launchdPlistPath();
+  await mkdir(join(plistPath, ".."), { recursive: true });
+  await writeFile(plistPath, plist, "utf-8");
+  try {
+    execSync(`launchctl unload "${plistPath}"`, { stdio: "ignore" });
+  } catch {
+    // ignore if not loaded
+  }
+  try {
+    execSync(`launchctl load "${plistPath}"`, { stdio: "ignore" });
+  } catch {
+    // ignore load errors
+  }
+}
+
+async function removeLaunchd(): Promise<void> {
+  const plistPath = launchdPlistPath();
+  try {
+    execSync(`launchctl unload "${plistPath}"`, { stdio: "ignore" });
+  } catch {
+    // ignore if not loaded
+  }
+  try {
+    await unlink(plistPath);
+  } catch {
+    // ignore if not exists
+  }
+}
+
+function installCron(intervalMinutes: number): void {
+  const aiDev = findAiDev();
+  const job = `*/${intervalMinutes} * * * * ${aiDev} mem push && ${aiDev} mem pull ${CRON_MARKER}`;
+  let existing = "";
+  try {
+    existing = execSync("crontab -l", { encoding: "utf-8" });
+  } catch {
+    // no crontab
+  }
+  const lines = existing
+    .split("\n")
+    .filter((line) => !line.includes(CRON_MARKER));
+  lines.push(job);
+  const newCrontab = `${lines.join("\n")}\n`;
+  execSync("crontab -", { input: newCrontab, encoding: "utf-8" });
+}
+
+function removeCron(): void {
+  let existing = "";
+  try {
+    existing = execSync("crontab -l", { encoding: "utf-8" });
+  } catch {
+    return;
+  }
+  const lines = existing
+    .split("\n")
+    .filter((line) => !line.includes(CRON_MARKER));
+  const newCrontab = `${lines.join("\n")}\n`;
+  execSync("crontab -", { input: newCrontab, encoding: "utf-8" });
+}
+
 export async function configureAutoSync(
   options: {
     enable?: boolean;
@@ -401,6 +505,12 @@ export async function configureAutoSync(
     if (options.intervalMinutes && options.intervalMinutes > 0) {
       config.autoSyncIntervalMinutes = options.intervalMinutes;
     }
+    // Actually install the scheduler (launchd or cron)
+    if (scheduler === "launchd") {
+      await installLaunchd(config.autoSyncIntervalMinutes);
+    } else {
+      installCron(config.autoSyncIntervalMinutes);
+    }
     await saveMemSyncConfig(config, options.configPath);
     return {
       enabled: true,
@@ -411,6 +521,12 @@ export async function configureAutoSync(
 
   if (options.disable) {
     config.autoSync = false;
+    // Actually remove the scheduler (launchd or cron)
+    if (scheduler === "launchd") {
+      await removeLaunchd();
+    } else {
+      removeCron();
+    }
     await saveMemSyncConfig(config, options.configPath);
     return {
       enabled: false,
@@ -903,7 +1019,10 @@ export async function cleanupDuplicates(
   for (const obs of allObs) {
     if (deleteSet.has(obs.id)) continue;
     const text = (
-      (obs as any).narrative || (obs as any).text || obs.title || ""
+      (obs as any).narrative ||
+      (obs as any).text ||
+      obs.title ||
+      ""
     ).trim();
     if (!text) continue;
     const key = `${text}\0${obs.project ?? ""}`;
@@ -977,14 +1096,24 @@ export async function reindexMemData(
   const indexedTexts = new Set<string>();
   for (const obs of allObs) {
     if (!indexedIds.has(obs.id)) continue;
-    const text = ((obs as any).narrative || (obs as any).text || obs.title || "").trim();
+    const text = (
+      (obs as any).narrative ||
+      (obs as any).text ||
+      obs.title ||
+      ""
+    ).trim();
     if (text) indexedTexts.add(text);
   }
 
   const missingObs: typeof allObs = [];
   for (const obs of allObs) {
     if (indexedIds.has(obs.id)) continue;
-    const text = ((obs as any).narrative || (obs as any).text || obs.title || "").trim();
+    const text = (
+      (obs as any).narrative ||
+      (obs as any).text ||
+      obs.title ||
+      ""
+    ).trim();
     if (!text) continue;
     if (indexedTexts.has(text)) continue; // 該內容已透過其他記錄被索引
     missingObs.push(obs);
@@ -1027,5 +1156,11 @@ export async function reindexMemData(
     duplicatesRemoved = cleanupResult.duplicatesRemoved;
   }
 
-  return { total: allObs.length, missing: missingObs.length, synced, errors, duplicatesRemoved };
+  return {
+    total: allObs.length,
+    missing: missingObs.length,
+    synced,
+    errors,
+    duplicatesRemoved,
+  };
 }

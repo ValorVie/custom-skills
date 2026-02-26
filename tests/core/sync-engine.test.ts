@@ -10,7 +10,12 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createDefaultSyncEngine, defaultDirectories, expandHome, SyncEngine } from "../../src/core/sync-engine";
+import {
+  createDefaultSyncEngine,
+  defaultDirectories,
+  expandHome,
+  SyncEngine,
+} from "../../src/core/sync-engine";
 
 describe("sync-engine defaults", () => {
   const home = homedir();
@@ -89,7 +94,7 @@ describe("core/sync-engine", () => {
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
 
       await engine.init("https://example.com/repo.git");
-      await engine.removeDirectory("~/.claude");
+      await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
 
       await engine.push();
@@ -144,7 +149,7 @@ describe("core/sync-engine", () => {
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
 
       await engine.init();
-      await engine.removeDirectory("~/.claude");
+      await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
       await engine.push({ force: true });
 
@@ -176,7 +181,7 @@ describe("core/sync-engine", () => {
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
 
       await engine.init();
-      await engine.removeDirectory("~/.claude");
+      await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
       await engine.push();
 

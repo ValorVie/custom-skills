@@ -194,9 +194,7 @@ export function registerMemCommands(program: Command): void {
       console.log(t("mem.reindex_scanning"));
 
       if (result.synced === 0 && result.errors === 0) {
-        console.log(
-          t("mem.reindex_complete", { total: String(result.total) }),
-        );
+        console.log(t("mem.reindex_complete", { total: String(result.total) }));
       } else {
         console.log(
           t("mem.reindex_done", {
