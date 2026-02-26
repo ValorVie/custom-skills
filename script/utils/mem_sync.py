@@ -299,18 +299,20 @@ def reindex_observations() -> dict[str, Any]:
     conn.row_factory = sqlite3.Row
     try:
         all_obs = conn.execute(
-            "SELECT id, title, narrative, project FROM observations ORDER BY id"
+            "SELECT id, text, title, narrative, project FROM observations ORDER BY id"
         ).fetchall()
     finally:
         conn.close()
 
     # 用「reindex 實際送出的 text」做 hash，判斷該內容是否已有索引
     # 防止 narrative=None 的原始記錄和 narrative=title 的副本被視為不同
+    # 同時檢查 text 欄位，因為 worker /api/memory/save 建立的副本
+    # 可能將內容存在 text 而非 narrative
     indexed_texts: set[str] = set()
     for r in all_obs:
         obs = dict(r)
         if obs["id"] in indexed_ids:
-            text = obs.get("narrative") or obs.get("title") or ""
+            text = obs.get("narrative") or obs.get("text") or obs.get("title") or ""
             if text.strip():
                 indexed_texts.add(text.strip())
 
@@ -319,7 +321,7 @@ def reindex_observations() -> dict[str, Any]:
         obs = dict(r)
         if obs["id"] in indexed_ids:
             continue
-        text = obs.get("narrative") or obs.get("title") or ""
+        text = obs.get("narrative") or obs.get("text") or obs.get("title") or ""
         if not text.strip():
             continue
         if text.strip() in indexed_texts:
@@ -338,7 +340,7 @@ def reindex_observations() -> dict[str, Any]:
         return stats
 
     for obs in missing:
-        text = obs.get("narrative") or obs.get("title") or ""
+        text = obs.get("narrative") or obs.get("text") or obs.get("title") or ""
 
         payload = json.dumps(
             {
@@ -358,6 +360,9 @@ def reindex_observations() -> dict[str, Any]:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 resp.read()
             stats["synced"] += 1
+            # 將已同步的文字加入 indexed_texts，避免同批次或後續呼叫重複同步
+            if text.strip():
+                indexed_texts.add(text.strip())
         except (urllib.error.URLError, OSError):
             stats["errors"] += 1
 
