@@ -3,6 +3,8 @@ import { join, resolve } from "node:path";
 
 import YAML from "yaml";
 
+import { COPY_TARGETS, type ResourceType, type TargetType } from "../utils/shared";
+
 export interface StandardsStatus {
   initialized: boolean;
   activeProfile: string | null;
@@ -21,6 +23,9 @@ export interface SwitchProfileResult {
 
 export interface DisabledItems {
   standards: string[];
+  skills?: string[];
+  commands?: string[];
+  agents?: string[];
 }
 
 export interface SyncStandardsResult {
@@ -231,7 +236,12 @@ async function readDisabledYaml(projectRoot: string): Promise<DisabledItems> {
     const content = await readFile(disabledYamlPath(projectRoot), "utf8");
     const parsed =
       (YAML.parse(content) as Record<string, unknown> | null) ?? {};
-    return { standards: toStringArray(parsed.standards) };
+    return {
+      standards: toStringArray(parsed.standards),
+      skills: toStringArray(parsed.skills),
+      commands: toStringArray(parsed.commands),
+      agents: toStringArray(parsed.agents),
+    };
   } catch {
     return { standards: [] };
   }
@@ -276,7 +286,18 @@ export async function computeDisabledItems(
     .filter((path) => !effectiveEnabled.has(path))
     .sort((a, b) => a.localeCompare(b));
 
-  return { standards: disabledStandards };
+  // Read profile for resource-level disabled items
+  const profile = await loadProfileConfig(profileName, root);
+  const disabledSkills = toStringArray(profile.disabled_skills);
+  const disabledCommands = toStringArray(profile.disabled_commands);
+  const disabledAgents = toStringArray(profile.disabled_agents);
+
+  return {
+    standards: disabledStandards,
+    ...(disabledSkills.length > 0 ? { skills: disabledSkills } : {}),
+    ...(disabledCommands.length > 0 ? { commands: disabledCommands } : {}),
+    ...(disabledAgents.length > 0 ? { agents: disabledAgents } : {}),
+  };
 }
 
 export async function syncStandards(
@@ -316,6 +337,46 @@ export async function syncStandards(
     const restored = await moveRelativeFile(disabledRoot, standardsRoot, item);
     if (restored) {
       restoredToActive += 1;
+    }
+  }
+
+  // Sync resources (skills/commands/agents) across all targets
+  const resourceTypes: ResourceType[] = ["skills", "commands", "agents"];
+  for (const type of resourceTypes) {
+    const disabledNames = new Set(
+      (disabled[type as keyof DisabledItems] as string[] | undefined) ?? [],
+    );
+    if (disabledNames.size === 0) continue;
+
+    for (const target of Object.keys(COPY_TARGETS) as TargetType[]) {
+      const basePath = COPY_TARGETS[target][type];
+      if (!basePath) continue;
+
+      try {
+        const entries = await readdir(basePath, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.name.startsWith(".")) continue;
+          const rawName = entry.name
+            .replace(/\.disabled$/, "")
+            .replace(/\.md$/, "");
+          const isDisabled = entry.name.endsWith(".disabled");
+
+          if (disabledNames.has(rawName) && !isDisabled) {
+            // Should be disabled but is active -> disable it
+            const activePath = join(basePath, entry.name);
+            await rename(activePath, `${activePath}.disabled`);
+            movedToDisabled += 1;
+          } else if (!disabledNames.has(rawName) && isDisabled) {
+            // Should be active but is disabled -> enable it
+            const disabledPath = join(basePath, entry.name);
+            const activeName = entry.name.slice(0, -".disabled".length);
+            await rename(disabledPath, join(basePath, activeName));
+            restoredToActive += 1;
+          }
+        }
+      } catch {
+        // target directory may not exist
+      }
     }
   }
 
@@ -423,9 +484,16 @@ export async function switchProfile(
   );
 
   const disabled = await computeDisabledItems(profileName, projectRoot);
+  const disabledYamlData: Record<string, string[]> = {
+    standards: disabled.standards,
+  };
+  if (disabled.skills?.length) disabledYamlData.skills = disabled.skills;
+  if (disabled.commands?.length) disabledYamlData.commands = disabled.commands;
+  if (disabled.agents?.length) disabledYamlData.agents = disabled.agents;
+
   await writeFile(
     disabledYamlPath(projectRoot),
-    YAML.stringify({ standards: disabled.standards }),
+    YAML.stringify(disabledYamlData),
     "utf8",
   );
 
