@@ -78,7 +78,7 @@ describe("cli summary output", () => {
       bunPackages: [],
       repos: [],
       customRepos: [],
-      plugins: { name: "plugin-marketplace", success: true },
+      plugins: [],
       summary: { updated: [], upToDate: [], missing: [] },
       errors: [],
     };

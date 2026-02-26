@@ -7,6 +7,7 @@ export interface RunCommandOptions {
   check?: boolean;
   env?: NodeJS.ProcessEnv;
   timeoutMs?: number;
+  stream?: boolean;
 }
 
 export interface CommandResult {
@@ -39,13 +40,13 @@ export async function runCommand(
     throw new Error("Command cannot be empty");
   }
 
-  const { cwd, check = true, env, timeoutMs } = options;
+  const { cwd, check = true, env, timeoutMs, stream = false } = options;
 
   return await new Promise<CommandResult>((resolve, reject) => {
     const child = spawn(command[0], command.slice(1), {
       cwd,
       env,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: stream ? "inherit" : ["ignore", "pipe", "pipe"],
       shell: false,
     });
 
@@ -53,13 +54,15 @@ export async function runCommand(
     let stderr = "";
     let killedByTimeout = false;
 
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
+    if (!stream) {
+      child.stdout!.on("data", (chunk) => {
+        stdout += chunk.toString();
+      });
 
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
+      child.stderr!.on("data", (chunk) => {
+        stderr += chunk.toString();
+      });
+    }
 
     let timer: NodeJS.Timeout | undefined;
     if (timeoutMs && timeoutMs > 0) {

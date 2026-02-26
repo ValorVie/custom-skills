@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { basename, extname, join } from "node:path";
+import { basename, extname, join, relative, resolve } from "node:path";
 
 import type { Command } from "commander";
 
@@ -49,7 +49,8 @@ export function registerDeriveTestsCommand(program: Command): void {
 
       for (const filePath of files.sort((a, b) => a.localeCompare(b))) {
         const content = await readFile(filePath, "utf8");
-        console.log(`\n--- ${basename(filePath)} ---\n`);
+        const relativePath = relative(resolve(path), filePath) || basename(filePath);
+        console.log(`\n--- ${relativePath} ---\n`);
         console.log(content);
       }
     });

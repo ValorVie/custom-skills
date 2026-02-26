@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { Command } from "commander";
 import inquirer from "inquirer";
 
-import { printError, printSuccess, printWarning } from "../../utils/formatter";
+import { printError, printSuccess, printTable, printWarning } from "../../utils/formatter";
 import { t } from "../../utils/i18n";
 
 function hooksPluginDir(): string {
@@ -144,6 +144,18 @@ export function registerHooksCommands(program: Command): void {
     .command("status")
     .description(t("cmd.hooks_status"))
     .action(async () => {
-      printSuccess(`installed=${await pluginInstalled()}`);
+      const installed = await pluginInstalled();
+      const source = await resolvePluginSource();
+      const dir = hooksPluginDir();
+
+      printTable(
+        [t("sync.col_field"), t("sync.col_value")],
+        [
+          [t("hooks.status_installed"), installed ? "✓" : "✗"],
+          [t("hooks.status_path"), dir],
+          [t("hooks.status_source"), source ?? t("common.none")],
+        ],
+        { title: t("hooks.status_title") },
+      );
     });
 }

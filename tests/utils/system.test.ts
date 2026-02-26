@@ -32,6 +32,29 @@ describe("utils/system", () => {
     await expect(runCommand(failingCommand, { check: true })).rejects.toThrow();
   });
 
+  test("runCommand stream mode returns exitCode with empty stdout/stderr", async () => {
+    const result = await runCommand(["echo", "hello"], { stream: true });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
+  });
+
+  test("runCommand stream mode respects check option", async () => {
+    const failingCommand =
+      getOS() === "windows"
+        ? ["cmd", "/c", "exit", "1"]
+        : ["bash", "-lc", "exit 1"];
+
+    await expect(
+      runCommand(failingCommand, { stream: true, check: true }),
+    ).rejects.toThrow();
+  });
+
+  test("runCommand stream=false (default) captures output", async () => {
+    const result = await runCommand(["echo", "streamed"]);
+    expect(result.stdout).toContain("streamed");
+  });
+
   test("getBunVersion returns semver when bun exists", async () => {
     const version = await getBunVersion();
     if (commandExists("bun")) {

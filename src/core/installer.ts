@@ -45,6 +45,7 @@ export interface InstallOptions {
   skipRepos?: boolean;
   skipSkills?: boolean;
   syncProject?: boolean;
+  stream?: boolean;
   deps?: InstallDependencies;
   onProgress?: (message: string) => void;
 }
@@ -214,11 +215,13 @@ async function getNpmPackageVersion(
 async function installNpmPackage(
   packageName: string,
   runCommandFn: typeof runCommand,
+  stream = false,
 ): Promise<InstallItemResult> {
   const beforeVersion = await getNpmPackageVersion(packageName, runCommandFn);
   const result = await runCommandFn(["npm", "install", "-g", packageName], {
     check: false,
     timeoutMs: 60_000,
+    stream,
   });
   const afterVersion = await getNpmPackageVersion(packageName, runCommandFn);
 
@@ -233,10 +236,12 @@ async function installNpmPackage(
 async function installBunPackage(
   packageName: string,
   runCommandFn: typeof runCommand,
+  stream = false,
 ): Promise<InstallItemResult> {
   const result = await runCommandFn(["bun", "install", "-g", packageName], {
     check: false,
     timeoutMs: 60_000,
+    stream,
   });
 
   return {
@@ -251,6 +256,7 @@ async function ensureRepo(
   repoUrl: string,
   repoDir: string,
   runCommandFn: typeof runCommand,
+  stream = false,
 ): Promise<InstallItemResult> {
   try {
     await access(join(repoDir, ".git"));
@@ -267,6 +273,7 @@ async function ensureRepo(
   const result = await runCommandFn(["git", "clone", repoUrl, repoDir], {
     check: false,
     timeoutMs: 120_000,
+    stream,
   });
 
   return {
@@ -386,6 +393,7 @@ export async function runInstall(
   const skipRepos = options.skipRepos ?? false;
   const skipSkills = options.skipSkills ?? false;
   const syncProject = options.syncProject ?? false;
+  const stream = options.stream ?? false;
   const commandExistsFn = deps.commandExistsFn ?? commandExists;
   const runCommandFn = deps.runCommandFn ?? runCommand;
   const getBunVersionFn = deps.getBunVersionFn ?? getBunVersion;
@@ -466,7 +474,7 @@ export async function runInstall(
     for (let index = 0; index < total; index += 1) {
       const pkg = npmPackages[index];
       onProgress(`[${index + 1}/${total}] Installing npm package: ${pkg}...`);
-      result.npmPackages.push(await installNpmPackage(pkg, runCommandFn));
+      result.npmPackages.push(await installNpmPackage(pkg, runCommandFn, stream));
     }
   }
 
@@ -480,7 +488,7 @@ export async function runInstall(
       for (let index = 0; index < total; index += 1) {
         const pkg = bunPackages[index];
         onProgress(`[${index + 1}/${total}] Installing bun package: ${pkg}...`);
-        result.bunPackages.push(await installBunPackage(pkg, runCommandFn));
+        result.bunPackages.push(await installBunPackage(pkg, runCommandFn, stream));
       }
     }
   }
@@ -489,7 +497,7 @@ export async function runInstall(
     for (const repo of repos) {
       onProgress(`Cloning repository: ${repo.name}...`);
       result.repos.push(
-        await ensureRepo(repo.name, repo.url, repo.dir, runCommandFn),
+        await ensureRepo(repo.name, repo.url, repo.dir, runCommandFn, stream),
       );
     }
 
@@ -497,7 +505,7 @@ export async function runInstall(
     for (const [name, repo] of Object.entries(customRepos)) {
       onProgress(`Cloning custom repository: ${name}...`);
       result.customRepos.push(
-        await ensureRepo(name, repo.url, repo.localPath, runCommandFn),
+        await ensureRepo(name, repo.url, repo.localPath, runCommandFn, stream),
       );
     }
 

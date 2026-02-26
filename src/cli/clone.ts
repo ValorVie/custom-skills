@@ -1,5 +1,6 @@
 import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
+import chalk from "chalk";
 import type { Command } from "commander";
 
 import {
@@ -44,6 +45,7 @@ async function runClone(options: {
   skipConflicts?: boolean;
   backup?: boolean;
   syncProject?: boolean;
+  onProgress?: (message: string) => void;
 }): Promise<CloneCommandResult> {
   const cwd = process.cwd();
   const devMode = await detectDeveloperMode(cwd);
@@ -53,6 +55,7 @@ async function runClone(options: {
     backup: options.backup,
     devMode,
     sourceRoot: cwd,
+    onProgress: options.onProgress,
   });
 
   return {
@@ -90,6 +93,7 @@ export function registerCloneCommand(program: Command): void {
           skipConflicts: options.skipConflicts,
           backup: options.backup,
           syncProject: options.syncProject,
+          onProgress: options.json ? undefined : (msg) => console.log(chalk.dim(`  ${msg}`)),
         });
 
         if (options.json) {
@@ -97,35 +101,46 @@ export function registerCloneCommand(program: Command): void {
           return;
         }
 
-        console.log("Clone Summary");
-        console.log(
-          `- Developer mode: ${result.devMode ? "enabled" : "disabled"}`,
-        );
-        console.log(
-          `- Metadata: updated=${result.metadata.updated}, unchanged=${result.metadata.unchanged}`,
-        );
+        // Dev mode hints
+        if (result.devMode && result.syncProject) {
+          console.log(chalk.bold.blue("開發者模式：整合外部來源到開發目錄"));
+        } else if (result.devMode) {
+          console.log(chalk.dim("提示：使用 --sync-project 可整合外部來源到開發目錄"));
+        }
 
+        console.log(chalk.bold.blue("\n分發 Skills 到各工具目錄..."));
+
+        // Distribution results
         if (result.distributed.length > 0) {
-          console.log("- Distributed:");
           for (const item of result.distributed) {
-            console.log(`  - ${item.target}/${item.type}: ${item.name}`);
+            console.log(chalk.green(`  ✓ ${item.target}/${item.type}: ${item.name}`));
           }
         }
 
+        console.log(chalk.bold.green(`\n分發完成！共 ${result.metadata.updated} 項更新，${result.metadata.unchanged} 項未變更`));
+
+        // Conflicts
         if (result.conflicts.length > 0) {
-          console.log("- Conflicts:");
+          console.log(chalk.yellow("\n衝突："));
           for (const conflict of result.conflicts) {
-            console.log(
-              `  - ${conflict.target}/${conflict.type}: ${conflict.name}`,
-            );
+            console.log(chalk.yellow(`  ! ${conflict.target}/${conflict.type}: ${conflict.name}`));
           }
         }
 
+        // Errors
         if (result.errors.length > 0) {
-          console.log("- Errors:");
+          console.log(chalk.red("\n錯誤："));
           for (const error of result.errors) {
-            console.log(`  - ${error}`);
+            console.log(chalk.red(`  ✗ ${error}`));
           }
+        }
+
+        // TODO placeholders for future features
+        if (result.devMode && result.syncProject) {
+          console.log(chalk.dim("\n[TODO] integrate_to_dev_project: 外部來源整合功能尚未實作"));
+        }
+        if (result.devMode) {
+          console.log(chalk.dim("[TODO] detect_metadata_changes: metadata 變更偵測功能尚未實作"));
         }
       },
     );

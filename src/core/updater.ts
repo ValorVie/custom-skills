@@ -1,4 +1,5 @@
-import { access, mkdir, readlink, rm, symlink } from "node:fs/promises";
+import { access, mkdir, readdir, readlink, rm, symlink } from "node:fs/promises";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { backupDirtyFiles, hasLocalChanges } from "../utils/backup";
 import { type CustomRepoConfig, loadCustomRepos } from "../utils/custom-repos";
@@ -26,6 +27,7 @@ export interface UpdateOptions {
   skipBun?: boolean;
   skipRepos?: boolean;
   skipPlugins?: boolean;
+  stream?: boolean;
   deps?: UpdateDependencies;
   onProgress?: (message: string) => void;
 }
@@ -43,7 +45,7 @@ export interface UpdateResult {
   bunPackages: UpdateItemResult[];
   repos: UpdateItemResult[];
   customRepos: UpdateItemResult[];
-  plugins: UpdateItemResult;
+  plugins: UpdateItemResult[];
   summary: {
     updated: string[];
     upToDate: string[];
@@ -147,6 +149,7 @@ async function updateRepository(
     accessFn: typeof access;
     hasLocalChangesFn: typeof hasLocalChanges;
     backupDirtyFilesFn: typeof backupDirtyFiles;
+    stream?: boolean;
   },
 ): Promise<{
   item: UpdateItemResult;
@@ -170,6 +173,7 @@ async function updateRepository(
     {
       check: false,
       timeoutMs: 60_000,
+      stream: deps.stream,
     },
   );
 
@@ -197,6 +201,7 @@ async function updateRepository(
     {
       check: false,
       timeoutMs: 60_000,
+      stream: deps.stream,
     },
   );
 
@@ -219,6 +224,7 @@ export async function runUpdate(
   const skipBun = options.skipBun ?? false;
   const skipRepos = options.skipRepos ?? false;
   const skipPlugins = options.skipPlugins ?? false;
+  const stream = options.stream ?? false;
   const commandExistsFn = deps.commandExistsFn ?? commandExists;
   const runCommandFn = deps.runCommandFn ?? runCommand;
   const accessFn = deps.accessFn ?? access;
@@ -241,11 +247,7 @@ export async function runUpdate(
     bunPackages: [],
     repos: [],
     customRepos: [],
-    plugins: {
-      name: "plugin-marketplace",
-      success: true,
-      message: "skipped",
-    },
+    plugins: [],
     summary: {
       updated: [],
       upToDate: [],
@@ -269,6 +271,7 @@ export async function runUpdate(
   const udsResult = await runCommandFn(["uds", "update"], {
     check: false,
     timeoutMs: 60_000,
+    stream,
   });
   result.tools.push({
     name: "uds",
@@ -280,6 +283,7 @@ export async function runUpdate(
   const skillsResult = await runCommandFn(["npx", "skills", "update"], {
     check: false,
     timeoutMs: 60_000,
+    stream,
   });
   result.tools.push({
     name: "skills",
@@ -298,6 +302,7 @@ export async function runUpdate(
         const updateResult = await runCommandFn(["npm", "install", "-g", pkg], {
           check: false,
           timeoutMs: 60_000,
+          stream,
         });
         result.npmPackages.push({
           name: pkg,
@@ -320,6 +325,7 @@ export async function runUpdate(
         const updateResult = await runCommandFn(["bun", "install", "-g", pkg], {
           check: false,
           timeoutMs: 60_000,
+          stream,
         });
         result.bunPackages.push({
           name: pkg,
@@ -344,6 +350,7 @@ export async function runUpdate(
           accessFn,
           hasLocalChangesFn,
           backupDirtyFilesFn,
+          stream,
         },
       );
 
@@ -371,6 +378,7 @@ export async function runUpdate(
           accessFn,
           hasLocalChangesFn,
           backupDirtyFilesFn,
+          stream,
         },
       );
       result.customRepos.push(updated.item);
@@ -380,25 +388,44 @@ export async function runUpdate(
   }
 
   if (!skipPlugins) {
-    onProgress("Updating plugin marketplace...");
-    const pluginResult = await runCommandFn(
-      ["npx", "@anthropic-ai/plugin-marketplace@latest", "update"],
-      {
-        check: false,
-        timeoutMs: 60_000,
-      },
-    );
-    result.plugins = {
-      name: "plugin-marketplace",
-      success: pluginResult.exitCode === 0,
-      message: pluginResult.exitCode === 0 ? undefined : pluginResult.stderr,
-    };
+    const marketplacesDir = join(homedir(), ".claude", "plugins", "marketplaces");
+    let marketplaceNames: string[] = [];
+
+    try {
+      const entries = await readdir(marketplacesDir, { withFileTypes: true });
+      marketplaceNames = entries
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name);
+    } catch {
+      // directory does not exist
+    }
+
+    if (marketplaceNames.length === 0) {
+      onProgress("未偵測到已安裝的 Plugin Marketplace");
+    } else {
+      for (const name of marketplaceNames) {
+        onProgress(`Updating marketplace: ${name}...`);
+        const pluginResult = await runCommandFn(
+          ["claude", "plugin", "marketplace", "update", name],
+          {
+            check: false,
+            timeoutMs: 60_000,
+            stream,
+          },
+        );
+        result.plugins.push({
+          name,
+          success: pluginResult.exitCode === 0,
+          message: pluginResult.exitCode === 0 ? undefined : pluginResult.stderr,
+        });
+      }
+    }
   }
 
   for (const toolResult of [
     result.claudeCode,
     ...result.tools,
-    result.plugins,
+    ...result.plugins,
   ]) {
     if (!toolResult.success && toolResult.message) {
       result.errors.push(toolResult.message);

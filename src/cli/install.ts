@@ -135,6 +135,7 @@ export function registerInstallCommand(program: Command): void {
           skipRepos: options.skipRepos,
           skipSkills: options.skipSkills,
           syncProject: options.syncProject,
+          stream: !options.json,
           onProgress: options.json ? undefined : (msg) => console.log(msg),
         });
 

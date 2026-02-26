@@ -221,8 +221,9 @@ describe("core/updater", () => {
     expect(
       calls.some(
         (command) =>
-          command[0] === "npx" &&
-          command[1] === "@anthropic-ai/plugin-marketplace@latest",
+          command[0] === "claude" &&
+          command[1] === "plugin" &&
+          command[2] === "marketplace",
       ),
     ).toBe(false);
   });

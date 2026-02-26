@@ -119,6 +119,10 @@ const messages: Record<Locale, Record<string, string>> = {
     "hooks.installed": "Installed: {path}",
     "hooks.removed": "Removed: {path}",
     "hooks.source": "Source: {path}",
+    "hooks.status_title": "ECC Hooks Plugin Status",
+    "hooks.status_installed": "Installed",
+    "hooks.status_path": "Path",
+    "hooks.status_source": "Source",
 
     "add_repo.added": "Tracked repo added: {name} ({repo})",
     "add_repo.duplicate": "Repository already tracked",
@@ -351,6 +355,10 @@ const messages: Record<Locale, Record<string, string>> = {
     "hooks.installed": "已安裝：{path}",
     "hooks.removed": "已移除：{path}",
     "hooks.source": "來源：{path}",
+    "hooks.status_title": "ECC Hooks Plugin 狀態",
+    "hooks.status_installed": "已安裝",
+    "hooks.status_path": "路徑",
+    "hooks.status_source": "來源",
 
     "add_repo.added": "已加入追蹤 repo：{name} ({repo})",
     "add_repo.duplicate": "此 repo 已存在於追蹤清單",

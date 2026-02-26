@@ -9,6 +9,16 @@ function itemStatus(success: boolean): string {
 }
 
 export function renderUpdateSummary(result: UpdateResult): void {
+  const pluginsSummary =
+    result.plugins.length === 0
+      ? t("common.none")
+      : result.plugins
+          .map(
+            (p) =>
+              `${p.name}: ${itemStatus(p.success)}${p.message ? ` (${p.message})` : ""}`,
+          )
+          .join(", ");
+
   printTable(
     [t("sync.col_field"), t("sync.col_value")],
     [
@@ -16,10 +26,7 @@ export function renderUpdateSummary(result: UpdateResult): void {
         t("update.claude_code"),
         `${itemStatus(result.claudeCode.success)}${result.claudeCode.message ? ` (${result.claudeCode.message})` : ""}`,
       ],
-      [
-        t("update.plugin_marketplace"),
-        `${itemStatus(result.plugins.success)}${result.plugins.message ? ` (${result.plugins.message})` : ""}`,
-      ],
+      [t("update.plugin_marketplace"), pluginsSummary],
     ],
     { title: t("update.summary") },
   );
@@ -133,6 +140,7 @@ export function registerUpdateCommand(program: Command): void {
           skipBun: options.skipBun,
           skipRepos: options.skipRepos,
           skipPlugins: options.skipPlugins,
+          stream: !options.json,
           onProgress: options.json ? undefined : (msg) => console.log(msg),
         });
 
