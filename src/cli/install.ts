@@ -3,6 +3,7 @@ import type { Command } from "commander";
 import { type InstallResult, runInstall } from "../core/installer";
 import { printTable } from "../utils/formatter";
 import { t } from "../utils/i18n";
+import { formatProgress } from "../utils/progress-formatter";
 
 function itemStatus(success: boolean): string {
   return success ? t("common.success") : t("common.failed");
@@ -136,7 +137,7 @@ export function registerInstallCommand(program: Command): void {
           skipSkills: options.skipSkills,
           syncProject: options.syncProject,
           stream: !options.json,
-          onProgress: options.json ? undefined : (msg) => console.log(msg),
+          onProgress: options.json ? undefined : formatProgress,
         });
 
         if (options.json) {

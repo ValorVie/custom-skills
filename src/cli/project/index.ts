@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import type { Command } from "commander";
 
 import { initProject, updateProject } from "../../core/project-manager";
@@ -10,7 +11,7 @@ export function registerProjectCommands(program: Command): void {
     .command("init")
     .description(t("cmd.project_init"))
     .argument("[target]", "Target directory")
-    .option("--force", t("opt.force"))
+    .option("-f, --force", t("opt.force"))
     .option("--json", t("opt.json"))
     .action(
       async (
@@ -33,18 +34,18 @@ export function registerProjectCommands(program: Command): void {
           return;
         }
 
-        console.log("Project init complete");
-        console.log(`- Target: ${result.targetDir}`);
-        console.log(`- Template: ${result.templateDir}`);
-        console.log(`- Copied: ${result.copied}`);
+        console.log(chalk.bold.green("專案初始化完成！"));
+        console.log(chalk.dim(`  目標：${result.targetDir}`));
+        console.log(chalk.dim(`  模板：${result.templateDir}`));
+        console.log(chalk.dim(`  複製：${result.copied} 項`));
         if (result.backupDir) {
-          console.log(`- Backup: ${result.backupDir}`);
+          console.log(chalk.dim(`  備份：${result.backupDir}`));
         }
         if (result.reverseSynced) {
-          console.log("- Reverse sync: enabled");
+          console.log(chalk.dim("  反向同步：已啟用"));
         }
         if (result.message) {
-          console.log(`- Note: ${result.message}`);
+          console.log(chalk.yellow(`  注意：${result.message}`));
         }
       },
     );
@@ -52,7 +53,7 @@ export function registerProjectCommands(program: Command): void {
   project
     .command("update")
     .description(t("cmd.project_update"))
-    .option("--only <tool>", t("opt.only"))
+    .option("-o, --only <tool>", t("opt.only"))
     .option("--json", t("opt.json"))
     .action(async (options: { only?: "openspec" | "uds"; json?: boolean }) => {
       const result = await updateProject({ only: options.only });
@@ -60,15 +61,17 @@ export function registerProjectCommands(program: Command): void {
       if (options.json) {
         console.log(JSON.stringify(result, null, 2));
       } else {
-        console.log("Project update complete");
+        console.log(chalk.bold.green("專案更新完成！"));
         if (result.openspec !== undefined) {
-          console.log(`- openspec: ${result.openspec ? "OK" : "FAIL"}`);
+          const status = result.openspec ? chalk.green("OK") : chalk.red("FAIL");
+          console.log(`  openspec: ${status}`);
         }
         if (result.uds !== undefined) {
-          console.log(`- uds: ${result.uds ? "OK" : "FAIL"}`);
+          const status = result.uds ? chalk.green("OK") : chalk.red("FAIL");
+          console.log(`  uds: ${status}`);
         }
         if (result.errors.length > 0) {
-          console.log(`- Errors: ${result.errors.join(", ")}`);
+          console.log(chalk.red(`  錯誤：${result.errors.join(", ")}`));
         }
       }
 

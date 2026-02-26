@@ -75,7 +75,7 @@ export function registerStandardsCommands(program: Command): void {
     .command("switch")
     .description(t("cmd.standards_switch"))
     .argument("<profile>", t("standards.arg_profile"))
-    .option("--dry-run", t("opt.dry_run"))
+    .option("-n, --dry-run", t("opt.dry_run"))
     .option("--json", t("opt.json"))
     .action(
       async (

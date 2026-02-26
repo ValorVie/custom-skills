@@ -2,6 +2,7 @@ import { access, cp, mkdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import chalk from "chalk";
 import type { Command } from "commander";
 import inquirer from "inquirer";
 
@@ -112,6 +113,7 @@ export function registerHooksCommands(program: Command): void {
     .command("install")
     .description(t("cmd.hooks_install"))
     .action(async () => {
+      console.log(chalk.bold.blue("Installing ECC Hooks Plugin..."));
       const installed = await installHooksPlugin();
       if (!installed.source) {
         printError(t("hooks.source_not_found"));
@@ -156,7 +158,7 @@ export function registerHooksCommands(program: Command): void {
       printTable(
         [t("sync.col_field"), t("sync.col_value")],
         [
-          [t("hooks.status_installed"), installed ? "✓" : "✗"],
+          [t("hooks.status_installed"), installed ? chalk.green("✓") : chalk.red("✗")],
           [t("hooks.status_path"), dir],
           [t("hooks.status_source"), source ?? t("common.none")],
         ],

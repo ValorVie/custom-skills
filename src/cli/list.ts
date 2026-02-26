@@ -236,9 +236,9 @@ export function registerListCommand(program: Command): void {
   program
     .command("list")
     .description(t("cmd.list"))
-    .option("--target <target>", t("opt.target"))
-    .option("--type <type>", t("opt.type"))
-    .option("--hide-disabled", t("opt.hide_disabled"))
+    .option("-t, --target <target>", t("opt.target"))
+    .option("-T, --type <type>", t("opt.type"))
+    .option("-H, --hide-disabled", t("opt.hide_disabled"))
     .option("--json", t("opt.json"))
     .action(
       async (options: {

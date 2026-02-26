@@ -134,6 +134,7 @@ const messages: Record<Locale, Record<string, string>> = {
     "add_repo.added": "Tracked repo added: {name} ({repo})",
     "add_repo.duplicate": "Repository already tracked",
     "add_repo.failed": "Failed to add upstream repository",
+    "add_repo.next_steps": "Next steps:\n  1. Run 'ai-dev update' to fetch the repository\n  2. Run 'ai-dev clone' to distribute resources",
 
     "add_custom.added": "Custom repo registered: {name}",
     "add_custom.created_dirs": "Created missing directories: {dirs}",
@@ -402,6 +403,7 @@ const messages: Record<Locale, Record<string, string>> = {
     "add_repo.added": "已加入追蹤 repo：{name} ({repo})",
     "add_repo.duplicate": "此 repo 已存在於追蹤清單",
     "add_repo.failed": "新增上游 repo 失敗",
+    "add_repo.next_steps": "下一步：\n  1. 執行 'ai-dev update' 以拉取儲存庫\n  2. 執行 'ai-dev clone' 以分發資源",
 
     "add_custom.added": "已註冊自訂 repo：{name}",
     "add_custom.created_dirs": "已建立缺少目錄：{dirs}",

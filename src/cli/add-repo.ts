@@ -1,5 +1,7 @@
 import type { Command } from "commander";
 
+import chalk from "chalk";
+
 import { addUpstreamRepo } from "../core/upstream-repo-manager";
 import {
   printError,
@@ -14,10 +16,10 @@ export function registerAddRepoCommand(program: Command): void {
     .command("add-repo")
     .description(t("cmd.add_repo"))
     .argument("<repo>", "GitHub repo (owner/name) or URL")
-    .option("--name <name>", t("opt.name"))
-    .option("--branch <branch>", t("opt.branch"), "main")
+    .option("-n, --name <name>", t("opt.name"))
+    .option("-b, --branch <branch>", t("opt.branch"), "main")
     .option("--skip-clone", t("opt.skip_clone"))
-    .option("--analyze", t("opt.analyze"))
+    .option("-a, --analyze", t("opt.analyze"))
     .action(
       async (
         repoInput: string,
@@ -71,6 +73,9 @@ export function registerAddRepoCommand(program: Command): void {
             ],
           );
         }
+
+        console.log("");
+        console.log(chalk.dim(t("add_repo.next_steps")));
       },
     );
 }
