@@ -109,7 +109,7 @@ function extractDetail(hookData) {
   if (event === "Stop") {
     const msg = hookData.last_assistant_message;
     if (!msg) return "Claude 已完成回應";
-    return truncate(msg, 300);
+    return truncate(msg, 2000);
   }
 
   if (event === "PostToolUseFailure") {
@@ -162,18 +162,69 @@ async function sendTelegram(botToken, chatId, text) {
   }
 }
 
+async function sendDiscord(webhookUrl, text) {
+  // Discord content 上限 2000 字元
+  const content = text.length > 2000 ? text.slice(0, 1997) + "..." : text;
+  const res = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Discord API error ${res.status}: ${body}`);
+  }
+}
+
+async function sendToAllChannels(config, text) {
+  const errors = [];
+
+  // Telegram
+  const telegram = config.channels?.telegram;
+  if (telegram?.enabled && telegram?.bot_token && telegram?.chat_id) {
+    try {
+      await sendTelegram(telegram.bot_token, telegram.chat_id, text);
+    } catch (err) {
+      errors.push(`Telegram: ${err.message}`);
+    }
+  }
+
+  // Discord
+  const discord = config.channels?.discord;
+  if (discord?.enabled && discord?.webhook_url) {
+    try {
+      await sendDiscord(discord.webhook_url, text);
+    } catch (err) {
+      errors.push(`Discord: ${err.message}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(errors.join("; "));
+  }
+}
+
+function hasAnyChannel(config) {
+  const telegram = config.channels?.telegram;
+  const discord = config.channels?.discord;
+  const hasTelegram =
+    telegram?.enabled && telegram?.bot_token && telegram?.chat_id;
+  const hasDiscord = discord?.enabled && discord?.webhook_url;
+  return hasTelegram || hasDiscord;
+}
+
 async function handleHookMode(hookData) {
   const config = loadConfig();
   if (!config) {
     process.stderr.write(
-      "[custom-notify] 設定檔不存在，請執行 /notify init\n"
+      "[custom-notify] 設定檔不存在，請執行 /custom-skills-notify init\n"
     );
     return;
   }
 
-  const telegram = config.channels?.telegram;
-  if (!telegram?.enabled || !telegram?.bot_token || !telegram?.chat_id) {
-    process.stderr.write("[custom-notify] Telegram 未啟用或設定不完整\n");
+  if (!hasAnyChannel(config)) {
+    process.stderr.write("[custom-notify] 沒有啟用任何通知頻道\n");
     return;
   }
 
@@ -186,31 +237,30 @@ async function handleHookMode(hookData) {
   const detail = extractDetail(hookData);
   const message = buildMessage(eventInfo, detail, hookData.cwd);
 
-  await sendTelegram(telegram.bot_token, telegram.chat_id, message);
+  await sendToAllChannels(config, message);
 }
 
-function requireTelegramConfig() {
+function requireConfig() {
   const config = loadConfig();
   if (!config) {
     process.stderr.write(
-      `[custom-notify] 設定檔不存在: ${CONFIG_PATH}\n請執行 /notify init 建立設定檔\n`
+      `[custom-notify] 設定檔不存在: ${CONFIG_PATH}\n請執行 /custom-skills-notify init 建立設定檔\n`
     );
     process.exit(1);
   }
 
-  const telegram = config.channels?.telegram;
-  if (!telegram?.bot_token || !telegram?.chat_id) {
+  if (!hasAnyChannel(config)) {
     process.stderr.write(
-      "[custom-notify] Telegram 設定不完整，缺少 bot_token 或 chat_id\n"
+      "[custom-notify] 沒有啟用任何通知頻道，請執行 /custom-skills-notify init\n"
     );
     process.exit(1);
   }
 
-  return telegram;
+  return config;
 }
 
 async function handleTestMode() {
-  const telegram = requireTelegramConfig();
+  const config = requireConfig();
 
   const message = buildMessage(
     { emoji: "🧪", title: "連線測試" },
@@ -218,12 +268,12 @@ async function handleTestMode() {
     process.cwd()
   );
 
-  await sendTelegram(telegram.bot_token, telegram.chat_id, message);
+  await sendToAllChannels(config, message);
   process.stderr.write("[custom-notify] 測試訊息已發送！\n");
 }
 
 async function handleManualMode(text) {
-  const telegram = requireTelegramConfig();
+  const config = requireConfig();
 
   const message = buildMessage(
     { emoji: "📢", title: "手動通知" },
@@ -231,7 +281,7 @@ async function handleManualMode(text) {
     process.cwd()
   );
 
-  await sendTelegram(telegram.bot_token, telegram.chat_id, message);
+  await sendToAllChannels(config, message);
   process.stderr.write("[custom-notify] 訊息已發送！\n");
 }
 

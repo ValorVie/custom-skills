@@ -3,7 +3,7 @@
 /**
  * custom-skills-notify — SessionStart 設定檢查
  *
- * 檢查 config.json 是否存在且完整，若未設定則輸出提醒。
+ * 檢查 config.json 是否存在且至少有一個頻道設定完整，若未設定則輸出提醒。
  * 使用 <important-reminder> 標籤確保 AI 會在第一次回覆時轉達給使用者。
  */
 
@@ -27,26 +27,25 @@ function check() {
   try {
     const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
     const config = JSON.parse(raw);
+
     const telegram = config.channels?.telegram;
+    const discord = config.channels?.discord;
 
-    if (!telegram?.bot_token || !telegram?.chat_id) {
+    const hasTelegram =
+      telegram?.enabled && telegram?.bot_token && telegram?.chat_id;
+    const hasDiscord = discord?.enabled && discord?.webhook_url;
+
+    if (!hasTelegram && !hasDiscord) {
       remind(
-        "⚠️ custom-skills-notify Telegram 設定不完整，請執行 /custom-skills-notify init 完成設定"
+        "⚠️ custom-skills-notify 沒有啟用任何通知頻道，請執行 /custom-skills-notify init 完成設定"
       );
       return;
     }
 
-    if (!telegram?.enabled) {
-      remind(
-        "ℹ️ custom-skills-notify Telegram 通知已停用，如需啟用請執行 /custom-skills-notify config"
-      );
-      return;
-    }
-
-    // 設定完整，靜默通過
+    // 至少有一個頻道設定完整，靜默通過
   } catch {
     remind(
-      "⚠️ custom-skills-notify 尚未設定，請執行 /custom-skills-notify init 完成 Telegram 設定"
+      "⚠️ custom-skills-notify 尚未設定，請執行 /custom-skills-notify init 完成通知設定"
     );
   }
 }
