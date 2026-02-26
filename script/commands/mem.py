@@ -436,16 +436,21 @@ def status() -> None:
 def _cleanup_duplicates() -> int:
     """掃描並刪除本地 claude-mem 中的重複 observations，回傳移除數量。
 
+    兩輪去重：
+    1. content hash 分組（精確重複）
+    2. text+project 分組（抓原始 vs worker 副本，因副本缺少 facts/type 導致 hash 不同）
+
     優先保留已被 ChromaDB 索引的記錄；若都未索引則保留最小 ID。
     """
     observations = query_local_db(
-        "SELECT id, title, narrative, facts, project, type FROM observations ORDER BY id"
+        "SELECT id, title, narrative, text, facts, project, type FROM observations ORDER BY id"
     )
     if not observations:
         return 0
 
     indexed_ids = get_indexed_observation_ids()
 
+    # Phase 1: content hash 分組（精確重複）
     hash_groups: dict[str, list[int]] = {}
     for obs in observations:
         content_hash = compute_content_hash(obs)
@@ -455,7 +460,30 @@ def _cleanup_duplicates() -> int:
     for ids in hash_groups.values():
         if len(ids) <= 1:
             continue
-        # 優先保留已索引的記錄
+        indexed_in_group = [i for i in ids if i in indexed_ids]
+        keep = indexed_in_group[0] if indexed_in_group else ids[0]
+        duplicate_ids.extend(i for i in ids if i != keep)
+
+    # Phase 2: text+project 分組（原始 vs worker 副本）
+    # Worker save 建立的副本只有 text/title/project，缺少 facts/type，
+    # 導致 content hash 不同。用主文字內容 + project 做二次分組。
+    delete_set = set(duplicate_ids)
+    obs_by_id = {obs["id"]: obs for obs in observations}
+    text_groups: dict[tuple[str, str], list[int]] = {}
+    for obs in observations:
+        if obs["id"] in delete_set:
+            continue
+        text = (
+            obs.get("narrative") or obs.get("text") or obs.get("title") or ""
+        ).strip()
+        if not text:
+            continue
+        key = (text, obs.get("project") or "")
+        text_groups.setdefault(key, []).append(obs["id"])
+
+    for ids in text_groups.values():
+        if len(ids) <= 1:
+            continue
         indexed_in_group = [i for i in ids if i in indexed_ids]
         keep = indexed_in_group[0] if indexed_in_group else ids[0]
         duplicate_ids.extend(i for i in ids if i != keep)
