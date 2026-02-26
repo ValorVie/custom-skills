@@ -1,0 +1,56 @@
+{
+  "description": "Claude Code 通知系統 — 自動發送 Telegram 通知",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "description": "檢查 Telegram 設定是否完成",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/check-config.js\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "description": "通知事件（權限請求、閒置提示等）→ Telegram",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.js\"",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "description": "任務完成 → Telegram",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.js\"",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "description": "工具執行失敗 → Telegram",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/notify.js\"",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
