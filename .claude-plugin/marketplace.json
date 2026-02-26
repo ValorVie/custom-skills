@@ -22,6 +22,15 @@
       "author": {
         "name": "custom-skills"
       }
+    },
+    {
+      "name": "custom-skills-notify",
+      "source": "./plugins/custom-skills-notify",
+      "description": "Claude Code 通知系統 — 透過 Telegram 接收長時間任務的狀態通知",
+      "version": "1.0.0",
+      "author": {
+        "name": "custom-skills"
+      }
     }
   ]
 }
