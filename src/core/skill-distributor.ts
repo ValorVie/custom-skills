@@ -24,6 +24,8 @@ import {
   type TargetType,
 } from "../utils/shared";
 
+export type ConflictAction = "force" | "skip" | "backup" | "abort";
+
 export interface DistributeOptions {
   force?: boolean;
   skipConflicts?: boolean;
@@ -32,6 +34,7 @@ export interface DistributeOptions {
   sourceRoot?: string;
   targets?: TargetType[];
   onProgress?: (message: string) => void;
+  onConflict?: (conflicts: ConflictInfo[]) => Promise<ConflictAction>;
 }
 
 export interface DistributedItem {
@@ -53,6 +56,7 @@ export interface DistributeResult {
   errors: string[];
   unchanged: number;
   orphansRemoved: number;
+  aborted?: boolean;
 }
 
 const RESOURCE_TYPES: ResourceType[] = [
@@ -259,51 +263,62 @@ export async function distributeSkills(
       // A conflict means the user modified the destination file after our last distribution
       const conflicts = detectConflicts(oldManifest, prescanTracker);
 
-      // Build a set of conflicting resource names for quick lookup
-      const conflictSet = new Set(
-        conflicts.map((c) => `${c.resourceType}:${c.name}`),
-      );
       // Track which conflicts were skipped (to preserve old hash in new manifest)
       const skippedConflicts = new Map<string, ConflictInfo>();
 
       // Step 5: Handle conflicts
-      for (const conflict of conflicts) {
-        const key = `${conflict.resourceType}:${conflict.name}`;
+      if (conflicts.length > 0) {
+        let action: ConflictAction;
 
-        if (!force) {
+        if (force) {
+          action = "force";
+        } else if (skipConflicts) {
+          action = "skip";
+        } else if (backup) {
+          action = "backup";
+        } else if (options.onConflict) {
+          action = await options.onConflict(conflicts);
+        } else {
+          // No callback and no flag → default skip (CLI should provide onConflict)
+          action = "skip";
+        }
+
+        if (action === "abort") {
+          result.aborted = true;
+          continue; // Skip this target, proceed to next
+        }
+
+        for (const conflict of conflicts) {
+          const key = `${conflict.resourceType}:${conflict.name}`;
           const sourceDir = sourceDirectory(
             sourceRoot,
             target,
             conflict.resourceType,
           );
+
           result.conflicts.push({
             name: conflict.name,
             target,
             type: conflict.resourceType,
             sources: [
               join(sourceDir, conflict.name),
-              join(
-                targetMap[conflict.resourceType] ?? "",
-                conflict.name,
-              ),
+              join(targetMap[conflict.resourceType] ?? "", conflict.name),
             ],
           });
 
-          if (skipConflicts) {
+          if (action === "skip") {
             skippedConflicts.set(key, conflict);
-          } else {
-            skippedConflicts.set(key, conflict);
+          } else if (action === "backup") {
+            const destinationBase = targetMap[conflict.resourceType];
+            if (destinationBase) {
+              await backupFile(
+                join(destinationBase, conflict.name),
+                join(paths.aiDevConfig, "backups", target, conflict.resourceType),
+              );
+            }
           }
-        } else if (backup) {
-          const destinationBase = targetMap[conflict.resourceType];
-          if (destinationBase) {
-            await backupFile(
-              join(destinationBase, conflict.name),
-              join(paths.aiDevConfig, "backups", target, conflict.resourceType),
-            );
-          }
+          // action === "force": do nothing, copy phase will overwrite
         }
-        // If force=true, conflict is resolved by overwriting (no skip)
       }
 
       // Step 6: Execute copies and build new manifest tracker
@@ -331,8 +346,8 @@ export async function distributeSkills(
           const destinationPath = join(destinationBase, name);
 
           try {
-            // If this resource has a conflict and we're not forcing, skip copy
-            if (conflictSet.has(key) && !force) {
+            // If this resource was marked as skipped conflict, skip copy
+            if (skippedConflicts.has(key)) {
               onProgress(`  跳過（衝突）: ${name}`);
               // Record source hash in tracker anyway (for manifest)
               await recordResource(copyTracker, type, name, sourcePath);

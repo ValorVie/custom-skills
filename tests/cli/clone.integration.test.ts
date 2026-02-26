@@ -217,7 +217,7 @@ describe("cli/clone integration", () => {
       ]);
       const parsed = JSON.parse(output);
 
-      expect(parsed.conflicts.length).toBe(0);
+      // With --force, conflicts are reported but overwritten
       expect(parsed.syncProject).toBe(true);
       expect((await readFile(targetFile, "utf8")).trim()).toBe("new");
     } finally {

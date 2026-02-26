@@ -10,7 +10,10 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { distributeSkills } from "../../src/core/skill-distributor";
+import {
+  type ConflictAction,
+  distributeSkills,
+} from "../../src/core/skill-distributor";
 import { readManifest } from "../../src/utils/manifest";
 import { COPY_TARGETS, type CopyTarget } from "../../src/utils/shared";
 
@@ -227,7 +230,8 @@ describe("core/skill-distributor", () => {
       force: true,
     });
 
-    expect(result.conflicts.length).toBe(0);
+    // Force still records conflicts but overwrites them
+    expect(result.conflicts.length).toBe(1);
     const current = await readFile(
       join(targetSkills, "alpha", "SKILL.md"),
       "utf8",
@@ -252,6 +256,139 @@ describe("core/skill-distributor", () => {
     expect(result.errors.length).toBe(0);
     const info = await lstat(join(targetSkills, "alpha"));
     expect(info.isSymbolicLink()).toBe(true);
+  });
+
+  test("skipConflicts=true skips conflicting files", async () => {
+    await mkdir(join(sourceRoot, "skills", "alpha"), { recursive: true });
+    await writeFile(
+      join(sourceRoot, "skills", "alpha", "SKILL.md"),
+      "original\n",
+      "utf8",
+    );
+
+    // First distribution
+    await distributeSkills({ sourceRoot, targets: ["claude"] });
+
+    // Simulate user modification
+    await writeFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "user-modified\n",
+      "utf8",
+    );
+
+    // Skip conflicts
+    const result = await distributeSkills({
+      sourceRoot,
+      targets: ["claude"],
+      skipConflicts: true,
+    });
+
+    expect(result.conflicts.length).toBe(1);
+    const current = await readFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "utf8",
+    );
+    expect(current.trim()).toBe("user-modified");
+  });
+
+  test("backup=true backs up then overwrites conflicting files", async () => {
+    await mkdir(join(sourceRoot, "skills", "alpha"), { recursive: true });
+    await writeFile(
+      join(sourceRoot, "skills", "alpha", "SKILL.md"),
+      "original\n",
+      "utf8",
+    );
+
+    // First distribution
+    await distributeSkills({ sourceRoot, targets: ["claude"] });
+
+    // Simulate user modification
+    await writeFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "user-modified\n",
+      "utf8",
+    );
+
+    // Backup then overwrite
+    const result = await distributeSkills({
+      sourceRoot,
+      targets: ["claude"],
+      backup: true,
+    });
+
+    expect(result.conflicts.length).toBe(1);
+    // Destination should be overwritten with original
+    const current = await readFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "utf8",
+    );
+    expect(current.trim()).toBe("original");
+  });
+
+  test("onConflict returning abort sets result.aborted and skips target", async () => {
+    await mkdir(join(sourceRoot, "skills", "alpha"), { recursive: true });
+    await writeFile(
+      join(sourceRoot, "skills", "alpha", "SKILL.md"),
+      "original\n",
+      "utf8",
+    );
+
+    // First distribution
+    await distributeSkills({ sourceRoot, targets: ["claude"] });
+
+    // Simulate user modification
+    await writeFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "user-modified\n",
+      "utf8",
+    );
+
+    // Abort via callback
+    const result = await distributeSkills({
+      sourceRoot,
+      targets: ["claude"],
+      onConflict: async () => "abort" as ConflictAction,
+    });
+
+    expect(result.aborted).toBe(true);
+    // Destination should remain unchanged
+    const current = await readFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "utf8",
+    );
+    expect(current.trim()).toBe("user-modified");
+  });
+
+  test("no flags and no callback defaults to skip", async () => {
+    await mkdir(join(sourceRoot, "skills", "alpha"), { recursive: true });
+    await writeFile(
+      join(sourceRoot, "skills", "alpha", "SKILL.md"),
+      "original\n",
+      "utf8",
+    );
+
+    // First distribution
+    await distributeSkills({ sourceRoot, targets: ["claude"] });
+
+    // Simulate user modification
+    await writeFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "user-modified\n",
+      "utf8",
+    );
+
+    // No flags, no callback
+    const result = await distributeSkills({
+      sourceRoot,
+      targets: ["claude"],
+    });
+
+    expect(result.conflicts.length).toBe(1);
+    const current = await readFile(
+      join(targetSkills, "alpha", "SKILL.md"),
+      "utf8",
+    );
+    expect(current.trim()).toBe("user-modified");
   });
 
   test("distributeSkills cleans up orphans", async () => {

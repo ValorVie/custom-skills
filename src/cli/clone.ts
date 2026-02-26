@@ -2,13 +2,16 @@ import { existsSync } from "node:fs";
 import { cp, mkdir, readdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { createInterface } from "node:readline";
 import chalk from "chalk";
 import type { Command } from "commander";
 
 import {
+  type ConflictAction,
   type DistributeResult,
   distributeSkills,
 } from "../core/skill-distributor";
+import type { ConflictInfo } from "../utils/manifest";
 import {
   detectMetadataChanges,
   handleMetadataChanges,
@@ -160,11 +163,52 @@ async function integrateToDevProject(
   }
 }
 
+function displayConflicts(conflicts: ConflictInfo[]): void {
+  console.log();
+  console.log(chalk.bold.yellow(t("conflict.detected")));
+  console.log();
+  for (const c of conflicts) {
+    console.log(`  ${chalk.yellow("•")} ${c.resourceType}/${c.name}`);
+    console.log(chalk.dim(`    ${t("conflict.hash_old")}: ${c.oldHash.slice(0, 20)}...`));
+    console.log(chalk.dim(`    ${t("conflict.hash_new")}: ${c.newHash.slice(0, 20)}...`));
+  }
+  console.log();
+}
+
+async function promptConflictAction(): Promise<ConflictAction> {
+  console.log(chalk.bold(t("conflict.prompt")));
+  console.log(`  ${chalk.cyan("1")}. ${t("conflict.force")}`);
+  console.log(`  ${chalk.cyan("2")}. ${t("conflict.skip")}`);
+  console.log(`  ${chalk.cyan("3")}. ${t("conflict.backup")}`);
+  console.log(`  ${chalk.cyan("4")}. ${t("conflict.abort")}`);
+  console.log();
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    while (true) {
+      const answer = await new Promise<string>((resolve) =>
+        rl.question(t("conflict.input"), resolve),
+      );
+      const choice = answer.trim();
+      if (choice === "1") return "force";
+      if (choice === "2") return "skip";
+      if (choice === "3") return "backup";
+      if (choice === "4") return "abort";
+      console.log(chalk.red(t("conflict.invalid")));
+    }
+  } catch {
+    return "abort";
+  } finally {
+    rl.close();
+  }
+}
+
 async function runClone(options: {
   force?: boolean;
   skipConflicts?: boolean;
   backup?: boolean;
   syncProject?: boolean;
+  json?: boolean;
   onProgress?: (message: string) => void;
 }): Promise<CloneCommandResult> {
   const cwd = process.cwd();
@@ -191,6 +235,12 @@ async function runClone(options: {
     devMode,
     sourceRoot: devMode ? cwd : customSkillsDir,
     onProgress: options.onProgress,
+    onConflict: options.json
+      ? undefined
+      : async (conflicts) => {
+          displayConflicts(conflicts);
+          return promptConflictAction();
+        },
   });
 
   return {
@@ -230,6 +280,7 @@ export function registerCloneCommand(program: Command): void {
             skipConflicts: options.skipConflicts,
             backup: options.backup,
             syncProject: options.syncProject,
+            json: options.json,
             onProgress: options.json
               ? undefined
               : (msg) => {
@@ -262,6 +313,11 @@ export function registerCloneCommand(program: Command): void {
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        if (result.aborted) {
+          console.log(chalk.yellow(t("conflict.aborted")));
           return;
         }
 
