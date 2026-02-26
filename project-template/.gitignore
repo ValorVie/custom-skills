@@ -39,3 +39,5 @@ IDENTITY.md
 USER.md
 TOOLS.md
 BOOTSTRAP.md
+.spectra/
+openspec/.vector-search.db
