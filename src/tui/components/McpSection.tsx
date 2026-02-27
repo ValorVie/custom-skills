@@ -1,22 +1,10 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
-
 import { Box, Text } from "ink";
 
-interface McpSectionProps {
-  target: string;
-}
+import { getMcpConfigPath } from "../utils/openers";
+import type { Target } from "../hooks/useResources";
 
-function getMcpConfigPath(target: string): string | null {
-  const home = homedir();
-  switch (target) {
-    case "claude":
-      return join(home, ".claude", "claude_desktop_config.json");
-    case "opencode":
-      return join(home, ".config", "opencode", "config.json");
-    default:
-      return null;
-  }
+interface McpSectionProps {
+  target: Target;
 }
 
 export function McpSection({ target }: McpSectionProps) {
@@ -33,6 +21,7 @@ export function McpSection({ target }: McpSectionProps) {
         <Text dimColor>N/A for target: {target}</Text>
       )}
       <Text dimColor>e: open in editor</Text>
+      <Text dimColor>f: open config folder</Text>
     </Box>
   );
 }

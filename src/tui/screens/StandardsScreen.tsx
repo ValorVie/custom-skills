@@ -9,17 +9,24 @@ import {
 
 interface StandardsScreenProps {
   selectedIndex: number;
+  message?: string | null;
+  reloadToken?: number;
+  onProfilesLoaded?: (profiles: ProfileEntry[]) => void;
 }
 
-interface ProfileEntry {
+export interface ProfileEntry {
   name: string;
   active: boolean;
 }
 
-export function StandardsScreen({ selectedIndex }: StandardsScreenProps) {
+export function StandardsScreen({
+  selectedIndex,
+  message = null,
+  reloadToken = 0,
+  onProfilesLoaded,
+}: StandardsScreenProps) {
   const [profiles, setProfiles] = useState<ProfileEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,20 +39,21 @@ export function StandardsScreen({ selectedIndex }: StandardsScreenProps) {
 
       if (cancelled) return;
 
-      setProfiles(
-        allProfiles.map((name) => ({
-          name,
-          active: name === status.activeProfile,
-        })),
-      );
+      const nextProfiles = allProfiles.map((name) => ({
+        name,
+        active: name === status.activeProfile,
+      }));
+
+      setProfiles(nextProfiles);
+      onProfilesLoaded?.(nextProfiles);
       setLoading(false);
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken, onProfilesLoaded]);
 
   if (loading) {
     return (

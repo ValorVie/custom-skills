@@ -17,6 +17,21 @@ export interface ClaudeUpdateResult {
   message?: string;
 }
 
+async function getClaudeVersion(
+  runCommandFn: typeof runCommand,
+): Promise<string | null> {
+  const versionResult = await runCommandFn(["claude", "--version"], {
+    check: false,
+    timeoutMs: 10_000,
+  });
+
+  if (versionResult.exitCode !== 0) {
+    return null;
+  }
+
+  return versionResult.stdout.trim().split(/\r?\n/)[0] ?? null;
+}
+
 export async function getClaudeInstallType(
   deps: ClaudeManagerDeps = {},
 ): Promise<ClaudeInstallType> {
@@ -69,14 +84,7 @@ export async function showClaudeStatus(
     return { type: null, version: null };
   }
 
-  const versionResult = await runCommandFn(["claude", "--version"], {
-    check: false,
-    timeoutMs: 10_000,
-  });
-  const version =
-    versionResult.exitCode === 0
-      ? (versionResult.stdout.trim().split(/\r?\n/)[0] ?? null)
-      : null;
+  const version = await getClaudeVersion(runCommandFn);
 
   if (type === "npm") {
     onProgress("⚠ Claude Code 透過 npm 安裝，建議改用原生安裝方式");
@@ -134,9 +142,13 @@ export async function updateClaudeCode(
   });
 
   if (result.exitCode === 0) {
-    onProgress("✓ Claude Code (native) - 更新完成");
+    const version = await getClaudeVersion(runCommandFn);
+    const suffix = version ? ` (${version})` : "";
+    onProgress(`✓ Claude Code (native) - 更新完成${suffix}`);
     return { success: true };
   }
-  onProgress("✓ Claude Code (native) - 已是最新版本");
+  const version = await getClaudeVersion(runCommandFn);
+  const suffix = version ? ` (${version})` : "";
+  onProgress(`✓ Claude Code (native) - 已是最新版本${suffix}`);
   return { success: true };
 }

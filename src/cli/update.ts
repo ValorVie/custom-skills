@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import type { Command } from "commander";
 
 import { runUpdate, type UpdateResult } from "../core/updater";
@@ -120,6 +119,49 @@ export function renderUpdateSummary(result: UpdateResult): void {
   }
 }
 
+export interface UpdateCommandOptions {
+  skipNpm?: boolean;
+  skipBun?: boolean;
+  skipRepos?: boolean;
+  skipPlugins?: boolean;
+  json?: boolean;
+}
+
+interface UpdateCommandDependencies {
+  runUpdateFn?: typeof runUpdate;
+  formatProgressFn?: typeof formatProgress;
+  logFn?: typeof console.log;
+}
+
+export async function handleUpdateCommand(
+  options: UpdateCommandOptions,
+  dependencies: UpdateCommandDependencies = {},
+): Promise<void> {
+  const runUpdateFn = dependencies.runUpdateFn ?? runUpdate;
+  const formatProgressFn =
+    dependencies.formatProgressFn ?? formatProgress;
+  const logFn = dependencies.logFn ?? console.log;
+  const onProgress = options.json ? undefined : formatProgressFn;
+
+  const result = await runUpdateFn({
+    skipNpm: options.skipNpm,
+    skipBun: options.skipBun,
+    skipRepos: options.skipRepos,
+    skipPlugins: options.skipPlugins,
+    stream: !options.json,
+    onProgress,
+  });
+
+  if (options.json) {
+    logFn(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  renderUpdateSummary(result);
+  formatProgressFn("更新完成！");
+  formatProgressFn("提示：如需分發 Skills 到各工具目錄，請執行：ai-dev clone");
+}
+
 export function registerUpdateCommand(program: Command): void {
   program
     .command("update")
@@ -129,35 +171,7 @@ export function registerUpdateCommand(program: Command): void {
     .option("--skip-repos", t("opt.skip_repos"))
     .option("--skip-plugins", t("opt.skip_plugins"))
     .option("--json", t("opt.json"))
-    .action(
-      async (options: {
-        skipNpm?: boolean;
-        skipBun?: boolean;
-        skipRepos?: boolean;
-        skipPlugins?: boolean;
-        json?: boolean;
-      }) => {
-        const result = await runUpdate({
-          skipNpm: options.skipNpm,
-          skipBun: options.skipBun,
-          skipRepos: options.skipRepos,
-          skipPlugins: options.skipPlugins,
-          stream: !options.json,
-          onProgress: options.json ? undefined : formatProgress,
-        });
-
-        if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
-          return;
-        }
-
-        renderUpdateSummary(result);
-
-        console.log(chalk.bold.green("更新完成！"));
-        console.log("");
-        console.log(
-          chalk.dim("提示：如需分發 Skills 到各工具目錄，請執行：ai-dev clone"),
-        );
-      },
-    );
+    .action(async (options: UpdateCommandOptions) => {
+      await handleUpdateCommand(options);
+    });
 }

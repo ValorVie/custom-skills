@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import inquirer from "inquirer";
 
 import { createDefaultSyncEngine } from "../../core/sync-engine";
 import { printTable } from "../../utils/formatter";
@@ -11,10 +12,10 @@ export function registerSyncCommands(program: Command): void {
   sync
     .command("init")
     .description(t("cmd.sync_init"))
-    .option("--remote <url>", t("opt.remote"))
+    .requiredOption("--remote <url>", t("opt.remote"))
     .option("--json", t("opt.json"))
-    .action(async (options: { remote?: string; json?: boolean }) => {
-      const config = await engine.init(options.remote ?? "");
+    .action(async (options: { remote: string; json?: boolean }) => {
+      const config = await engine.init(options.remote);
 
       if (options.json) {
         console.log(JSON.stringify(config, null, 2));
@@ -146,7 +147,17 @@ export function registerSyncCommands(program: Command): void {
     .option("--json", t("opt.json"))
     .action(async (path: string, options: { json?: boolean }) => {
       try {
-        const config = await engine.removeDirectory(path);
+        const answer = await inquirer.prompt<{ deleteRepoSubdir: boolean }>([
+          {
+            type: "confirm",
+            name: "deleteRepoSubdir",
+            message: "是否刪除 sync repo 的對應子目錄？",
+            default: false,
+          },
+        ]);
+        const config = await engine.removeDirectory(path, {
+          deleteRepoSubdir: Boolean(answer.deleteRepoSubdir),
+        });
 
         if (options.json) {
           console.log(JSON.stringify(config, null, 2));

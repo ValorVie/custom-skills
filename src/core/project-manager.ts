@@ -173,7 +173,11 @@ async function reverseSyncProjectToTemplate(
   }
 }
 
-function shouldReverseSync(targetDir: string): boolean {
+function shouldReverseSync(targetDir: string, force: boolean): boolean {
+  if (!force) {
+    return false;
+  }
+
   const cwd = resolve(process.cwd());
   return basename(cwd) === "custom-skills" && resolve(targetDir) === cwd;
 }
@@ -243,7 +247,7 @@ export async function initProject(
   }
 
   let reverseSynced = false;
-  if (shouldReverseSync(targetDir)) {
+  if (shouldReverseSync(targetDir, force)) {
     await reverseSyncProjectToTemplate(targetDir, templateDir);
     reverseSynced = true;
   }

@@ -111,6 +111,50 @@ export function renderInstallSummary(result: InstallResult): void {
   }
 }
 
+export interface InstallCommandOptions {
+  skipNpm?: boolean;
+  skipBun?: boolean;
+  skipRepos?: boolean;
+  skipSkills?: boolean;
+  syncProject?: boolean;
+  json?: boolean;
+}
+
+interface InstallCommandDependencies {
+  runInstallFn?: typeof runInstall;
+  formatProgressFn?: typeof formatProgress;
+  logFn?: typeof console.log;
+}
+
+export async function handleInstallCommand(
+  options: InstallCommandOptions,
+  dependencies: InstallCommandDependencies = {},
+): Promise<void> {
+  const runInstallFn = dependencies.runInstallFn ?? runInstall;
+  const formatProgressFn =
+    dependencies.formatProgressFn ?? formatProgress;
+  const logFn = dependencies.logFn ?? console.log;
+  const onProgress = options.json ? undefined : formatProgressFn;
+
+  const result = await runInstallFn({
+    skipNpm: options.skipNpm,
+    skipBun: options.skipBun,
+    skipRepos: options.skipRepos,
+    skipSkills: options.skipSkills,
+    syncProject: options.syncProject,
+    stream: !options.json,
+    onProgress,
+  });
+
+  if (options.json) {
+    logFn(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  renderInstallSummary(result);
+  formatProgressFn("安裝完成！");
+}
+
 export function registerInstallCommand(program: Command): void {
   program
     .command("install")
@@ -121,31 +165,7 @@ export function registerInstallCommand(program: Command): void {
     .option("--skip-skills", t("opt.skip_skills"))
     .option("--sync-project", t("opt.sync_project"))
     .option("--json", t("opt.json"))
-    .action(
-      async (options: {
-        skipNpm?: boolean;
-        skipBun?: boolean;
-        skipRepos?: boolean;
-        skipSkills?: boolean;
-        syncProject?: boolean;
-        json?: boolean;
-      }) => {
-        const result = await runInstall({
-          skipNpm: options.skipNpm,
-          skipBun: options.skipBun,
-          skipRepos: options.skipRepos,
-          skipSkills: options.skipSkills,
-          syncProject: options.syncProject,
-          stream: !options.json,
-          onProgress: options.json ? undefined : formatProgress,
-        });
-
-        if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
-          return;
-        }
-
-        renderInstallSummary(result);
-      },
-    );
+    .action(async (options: InstallCommandOptions) => {
+      await handleInstallCommand(options);
+    });
 }

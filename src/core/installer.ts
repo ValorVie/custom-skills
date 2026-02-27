@@ -404,6 +404,8 @@ export async function runInstall(
   const repos = deps.repos ?? REPOS;
   const onProgress = options.onProgress ?? (() => {});
 
+  onProgress("開始安裝...");
+
   const prerequisiteDetails = await buildPrerequisiteDetails(
     commandExistsFn,
     runCommandFn,

@@ -68,14 +68,16 @@ describe("core/sync-engine", () => {
 
     try {
       await engine.init("https://example.com/repo.git");
-      const added = await engine.addDirectory("~/workspace/project");
+      const trackedDir = join(root, "workspace", "project");
+      await mkdir(trackedDir, { recursive: true });
+      const added = await engine.addDirectory(trackedDir);
       expect(
-        added.directories.some((dir) => dir.path === "~/workspace/project"),
+        added.directories.some((dir) => dir.path === trackedDir),
       ).toBe(true);
 
-      const removed = await engine.removeDirectory("~/workspace/project");
+      const removed = await engine.removeDirectory(trackedDir);
       expect(
-        removed.directories.some((dir) => dir.path === "~/workspace/project"),
+        removed.directories.some((dir) => dir.path === trackedDir),
       ).toBe(false);
     } finally {
       await rm(root, { recursive: true, force: true });

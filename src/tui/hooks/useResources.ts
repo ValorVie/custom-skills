@@ -1,33 +1,42 @@
 import { readdir } from "node:fs/promises";
 import { useEffect, useMemo, useReducer } from "react";
 
-import { COPY_TARGETS, type TargetType } from "../../utils/shared";
+import {
+  COPY_TARGETS,
+  type ResourceType as SourceResourceType,
+  type TargetType,
+} from "../../utils/shared";
+import { collectSourceIndex, resolveResourceSource } from "../utils/source-index";
 
 export type Screen = "main" | "preview" | "confirm" | "settings" | "standards";
 export type Target = "claude" | "opencode" | "codex" | "gemini";
 export type ResourceType = "skill" | "command" | "agent" | "workflow";
 export type ResourceSource =
   | "custom-skills"
+  | "superpowers"
   | "universal-dev-standards"
   | "obsidian-skills"
   | "anthropic-skills"
   | "everything-claude-code"
   | "auto-skill"
   | "user-custom"
-  | "external";
+  | "external"
+  | (string & {});
 
 export const SOURCE_LABELS: Record<string, string> = {
   all: "\u5168\u90e8",
   "custom-skills": "Custom Skills",
+  superpowers: "Superpowers",
   "universal-dev-standards": "UDS",
   "obsidian-skills": "Obsidian Skills",
   "anthropic-skills": "Anthropic Skills",
   "everything-claude-code": "Everything Claude Code",
   "auto-skill": "Auto Skill",
   "user-custom": "User Custom",
+  external: "External",
 };
 export type TypeFilter = ResourceType | "all";
-export type SourceFilter = ResourceSource | "all";
+export type SourceFilter = keyof typeof SOURCE_LABELS;
 
 export interface Resource {
   id: string;
@@ -68,13 +77,65 @@ const RESOURCE_TYPE_MAP: Record<string, ResourceType> = {
   workflows: "workflow",
 };
 
-async function scanDirectory(dirPath: string): Promise<string[]> {
+const RESOURCE_SOURCE_TYPE_MAP: Record<ResourceType, SourceResourceType> = {
+  skill: "skills",
+  command: "commands",
+  agent: "agents",
+  workflow: "workflows",
+};
+
+const DISABLED_SUFFIX = ".disabled";
+
+interface ScannedResource {
+  name: string;
+  enabled: boolean;
+}
+
+function parseScannedResource(
+  rawName: string,
+  resourceType: ResourceType,
+): ScannedResource | null {
+  if (resourceType === "skill") {
+    return {
+      name: rawName,
+      enabled: true,
+    };
+  }
+
+  const enabled = !rawName.endsWith(DISABLED_SUFFIX);
+  const withoutDisabled = enabled
+    ? rawName
+    : rawName.slice(0, -DISABLED_SUFFIX.length);
+
+  if (!withoutDisabled.endsWith(".md")) {
+    return null;
+  }
+
+  return {
+    name: withoutDisabled.slice(0, -3),
+    enabled,
+  };
+}
+
+async function scanDirectory(
+  dirPath: string,
+  resourceType: ResourceType,
+): Promise<ScannedResource[]> {
   try {
     const entries = await readdir(dirPath, { withFileTypes: true });
     return entries
-      .filter((e) => !e.name.startsWith("."))
-      .map((e) => e.name.replace(/\.[^.]+$/, ""))
-      .sort();
+      .filter((entry) => {
+        if (entry.name.startsWith(".")) {
+          return false;
+        }
+        if (resourceType === "skill") {
+          return entry.isDirectory();
+        }
+        return entry.isFile();
+      })
+      .map((entry) => parseScannedResource(entry.name, resourceType))
+      .filter((entry): entry is ScannedResource => Boolean(entry))
+      .sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return [];
   }
@@ -86,6 +147,7 @@ export async function loadResources(target: Target): Promise<Resource[]> {
     return [];
   }
 
+  const sourceIndex = await collectSourceIndex();
   const resources: Resource[] = [];
 
   for (const [dirKey, dirPath] of Object.entries(targetConfig)) {
@@ -94,14 +156,15 @@ export async function loadResources(target: Target): Promise<Resource[]> {
       continue;
     }
 
-    const names = await scanDirectory(dirPath);
-    for (const name of names) {
+    const sourceType = RESOURCE_SOURCE_TYPE_MAP[resourceType];
+    const entries = await scanDirectory(dirPath, resourceType);
+    for (const entry of entries) {
       resources.push({
-        id: `${dirKey}-${name}`,
-        name,
+        id: `${dirKey}-${entry.name}`,
+        name: entry.name,
         type: resourceType,
-        source: "custom-skills",
-        enabled: true,
+        source: resolveResourceSource(sourceIndex, sourceType, entry.name),
+        enabled: entry.enabled,
         selected: false,
         content: "",
       });

@@ -5,6 +5,29 @@
 > **分析範圍**: 全部 20 個指令 + TUI
 > **注意**: v1 原始碼在 main 分支 `script/commands/`，build/lib 為舊版建置輸出
 
+## 🔄 最新修復狀態（2026-02-26，多代理執行）
+
+> 本段為最新執行結果。下方章節為較早盤點內容，部分狀態已過時。
+
+| 範圍 | 最新狀態 | 備註 |
+|------|----------|------|
+| clone short options | ✅ 已修復 | 補齊 `-f/-s/-b` |
+| add-custom-repo short options | ✅ 已修復 | 補齊 `-n/-b` |
+| standards sync short options | ✅ 已修復 | 補齊 `-n/-t` |
+| standards sync target/dry-run 行為 | ✅ 已修復 | `--target` 限定目標，`--dry-run` 不改檔 |
+| sync init/add/remove parity | ✅ 已修復 | `--remote` 必填、add 先驗證目錄、remove 新增刪除子目錄確認 |
+| project init reverse-sync 條件 | ✅ 已修復 | 僅 `--force` 才觸發反向同步 |
+| toggle list/toggle-config 相容 | ✅ 已修復 | `--list` 輸出「整體啟用/停用項目」並同步 `toggle-config.yaml` |
+| install/update 開頭與收尾輸出 | ✅ 已修復 | 補齊「開始安裝/更新」與完成提示 |
+| TUI standards Enter / MCP e,f / source | ✅ 已修復 | Enter 切換 profile、e/f 可開啟設定、來源改為真實來源 |
+
+### 驗證摘要（本次）
+
+- 針對本次修復相關測試集合：`51 pass / 0 fail`
+- `bun run build`：通過（exit code 0）
+- `bun test` 全量仍有環境相關失敗（主要為 sandbox 權限與外部命令限制），不屬本次 parity 修復邏輯回歸
+
+
 ## 總覽
 
 | 狀態 | 數量 | 指令 |

@@ -216,7 +216,7 @@ describe("core/project-manager", () => {
       const result = await initProject({
         targetDir: projectDir,
         templateDir,
-        force: false,
+        force: true,
       });
 
       expect(result.reverseSynced).toBe(true);

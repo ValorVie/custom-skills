@@ -259,9 +259,9 @@ export function registerCloneCommand(program: Command): void {
   program
     .command("clone")
     .description(t("cmd.clone"))
-    .option("--force", t("opt.force"))
-    .option("--skip-conflicts", t("opt.skip_conflicts"))
-    .option("--backup", t("opt.backup"))
+    .option("-f, --force", t("opt.force"))
+    .option("-s, --skip-conflicts", t("opt.skip_conflicts"))
+    .option("-b, --backup", t("opt.backup"))
     .option("--sync-project", t("opt.sync_project"), true)
     .option("--no-sync-project", t("opt.no_sync_project"))
     .option("--json", t("opt.json"))

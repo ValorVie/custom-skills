@@ -9,6 +9,7 @@ import {
   switchProfile,
   syncStandards,
 } from "../../core/standards-manager";
+import type { TargetType } from "../../utils/shared";
 import {
   printError,
   printSuccess,
@@ -16,6 +17,14 @@ import {
   printWarning,
 } from "../../utils/formatter";
 import { t } from "../../utils/i18n";
+
+const STANDARD_SYNC_TARGETS: TargetType[] = [
+  "claude",
+  "opencode",
+  "codex",
+  "gemini",
+  "antigravity",
+];
 
 export function registerStandardsCommands(program: Command): void {
   const standards = program
@@ -193,9 +202,23 @@ export function registerStandardsCommands(program: Command): void {
   standards
     .command("sync")
     .description(t("cmd.standards_sync"))
+    .option("-n, --dry-run", t("opt.dry_run"))
+    .option("-t, --target <claude|opencode|codex|gemini|antigravity>", t("opt.target"))
     .option("--json", t("opt.json"))
-    .action(async (options: { json?: boolean }) => {
-      const result = await syncStandards();
+    .action(async (options: { dryRun?: boolean; target?: string; json?: boolean }) => {
+      if (
+        options.target &&
+        !STANDARD_SYNC_TARGETS.includes(options.target as TargetType)
+      ) {
+        printError(`Invalid target: ${options.target}`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const result = await syncStandards(process.cwd(), {
+        dryRun: options.dryRun,
+        target: options.target as TargetType | undefined,
+      });
 
       if (options.json) {
         console.log(JSON.stringify(result, null, 2));

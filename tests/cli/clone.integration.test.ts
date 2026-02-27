@@ -153,13 +153,14 @@ describe("cli/clone integration", () => {
         JSON.stringify({ name: "ai-dev" }),
         "utf8",
       );
-      await mkdir(join(root, "targets", "claude", "skills", "alpha"), {
-        recursive: true,
-      });
-      await writeFile(targetFile, "old\n", "utf8");
-
       redirectTargets(root);
       process.chdir(cwd);
+
+      // First run establishes baseline manifest/hash.
+      await runClone(["--json"]);
+
+      // Simulate user modification after distribution.
+      await writeFile(targetFile, "old\n", "utf8");
 
       const output = await runClone(["--json", "--skip-conflicts"]);
       const parsed = JSON.parse(output);

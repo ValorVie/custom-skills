@@ -35,6 +35,11 @@ export interface SyncStandardsResult {
   missing: string[];
 }
 
+export interface SyncStandardsOptions {
+  dryRun?: boolean;
+  target?: TargetType;
+}
+
 function standardsDir(projectRoot: string): string {
   return join(projectRoot, ".standards");
 }
@@ -251,6 +256,7 @@ async function moveRelativeFile(
   fromBase: string,
   toBase: string,
   relativePath: string,
+  options: { dryRun?: boolean } = {},
 ): Promise<boolean> {
   const normalized = normalizeRelativePath(relativePath);
   const from = join(fromBase, normalized);
@@ -258,6 +264,10 @@ async function moveRelativeFile(
 
   if (!(await pathExists(from))) {
     return false;
+  }
+
+  if (options.dryRun) {
+    return true;
   }
 
   const parent = resolve(to, "..");
@@ -302,11 +312,15 @@ export async function computeDisabledItems(
 
 export async function syncStandards(
   projectRoot = process.cwd(),
+  options: SyncStandardsOptions = {},
 ): Promise<SyncStandardsResult> {
   const root = resolve(projectRoot);
+  const dryRun = options.dryRun ?? false;
   const standardsRoot = standardsDir(root);
   const disabledRoot = disabledStandardsDir(root);
-  await mkdir(disabledRoot, { recursive: true });
+  if (!dryRun) {
+    await mkdir(disabledRoot, { recursive: true });
+  }
 
   const disabled = await readDisabledYaml(root);
   const disabledSet = new Set(
@@ -318,7 +332,9 @@ export async function syncStandards(
   const missing: string[] = [];
 
   for (const item of disabledSet) {
-    const moved = await moveRelativeFile(standardsRoot, disabledRoot, item);
+    const moved = await moveRelativeFile(standardsRoot, disabledRoot, item, {
+      dryRun,
+    });
     const existsInDisabled = await pathExists(join(disabledRoot, item));
     if (moved) {
       movedToDisabled += 1;
@@ -334,13 +350,18 @@ export async function syncStandards(
     if (disabledSet.has(item)) {
       continue;
     }
-    const restored = await moveRelativeFile(disabledRoot, standardsRoot, item);
+    const restored = await moveRelativeFile(disabledRoot, standardsRoot, item, {
+      dryRun,
+    });
     if (restored) {
       restoredToActive += 1;
     }
   }
 
-  // Sync resources (skills/commands/agents) across all targets
+  // Sync resources (skills/commands/agents), optionally scoped to one target.
+  const targets = options.target
+    ? [options.target]
+    : (Object.keys(COPY_TARGETS) as TargetType[]);
   const resourceTypes: ResourceType[] = ["skills", "commands", "agents"];
   for (const type of resourceTypes) {
     const disabledNames = new Set(
@@ -348,7 +369,7 @@ export async function syncStandards(
     );
     if (disabledNames.size === 0) continue;
 
-    for (const target of Object.keys(COPY_TARGETS) as TargetType[]) {
+    for (const target of targets) {
       const basePath = COPY_TARGETS[target][type];
       if (!basePath) continue;
 
@@ -364,13 +385,17 @@ export async function syncStandards(
           if (disabledNames.has(rawName) && !isDisabled) {
             // Should be disabled but is active -> disable it
             const activePath = join(basePath, entry.name);
-            await rename(activePath, `${activePath}.disabled`);
+            if (!dryRun) {
+              await rename(activePath, `${activePath}.disabled`);
+            }
             movedToDisabled += 1;
           } else if (!disabledNames.has(rawName) && isDisabled) {
             // Should be active but is disabled -> enable it
             const disabledPath = join(basePath, entry.name);
             const activeName = entry.name.slice(0, -".disabled".length);
-            await rename(disabledPath, join(basePath, activeName));
+            if (!dryRun) {
+              await rename(disabledPath, join(basePath, activeName));
+            }
             restoredToActive += 1;
           }
         }

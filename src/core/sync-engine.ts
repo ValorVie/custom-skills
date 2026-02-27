@@ -359,6 +359,15 @@ export class SyncEngine {
     const normalizedPath = pathValue.startsWith("~")
       ? pathValue
       : expandHome(pathValue);
+    const resolvedPath = expandHome(normalizedPath);
+    try {
+      const stats = await stat(resolvedPath);
+      if (!stats.isDirectory()) {
+        throw new Error("目錄不存在");
+      }
+    } catch {
+      throw new Error("目錄不存在");
+    }
     const existingSubdirs = new Set(
       config.directories.map((item) => item.repoSubdir),
     );
@@ -378,7 +387,7 @@ export class SyncEngine {
 
   async removeDirectory(
     pathValue: string,
-    options: { skipMinCheck?: boolean } = {},
+    options: { skipMinCheck?: boolean; deleteRepoSubdir?: boolean } = {},
   ): Promise<SyncConfig> {
     const config = await this.loadConfig();
     if (!config) {
@@ -401,12 +410,15 @@ export class SyncEngine {
     config.directories.splice(targetIndex, 1);
 
     // Attempt to clean up repo subdirectory
-    const repoSubdirPath = join(this.repoDir, removed.repoSubdir);
-    if (await pathExists(repoSubdirPath)) {
-      try {
-        await rm(repoSubdirPath, { recursive: true, force: true });
-      } catch {
-        // ignore cleanup failures
+    const shouldDeleteRepoSubdir = options.deleteRepoSubdir ?? true;
+    if (shouldDeleteRepoSubdir) {
+      const repoSubdirPath = join(this.repoDir, removed.repoSubdir);
+      if (await pathExists(repoSubdirPath)) {
+        try {
+          await rm(repoSubdirPath, { recursive: true, force: true });
+        } catch {
+          // ignore cleanup failures
+        }
       }
     }
 

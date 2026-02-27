@@ -27,8 +27,8 @@ export function registerAddCustomRepoCommand(program: Command): void {
     .command("add-custom-repo")
     .description(t("cmd.add_custom_repo"))
     .argument("<repo>", "GitHub repo (owner/name) or URL")
-    .option("--name <name>", t("opt.name"))
-    .option("--branch <branch>", t("opt.branch"), "main")
+    .option("-n, --name <name>", t("opt.name"))
+    .option("-b, --branch <branch>", t("opt.branch"), "main")
     .option("--no-clone", t("opt.no_clone"))
     .option("--fix", t("opt.fix"))
     .action(

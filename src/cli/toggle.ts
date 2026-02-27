@@ -12,6 +12,13 @@ import {
   TARGET_NAMES,
   type TargetType,
 } from "../utils/shared";
+import {
+  applyAllToggleConfig,
+  applySingleToggleConfig,
+  getToggleConfigSection,
+  loadToggleConfig,
+  saveToggleConfig,
+} from "../utils/toggle-config";
 
 const DISABLED_SUFFIX = ".disabled";
 
@@ -21,6 +28,20 @@ type ToggleStateItem = {
   name: string;
   enabled: boolean;
 };
+
+type ToggleListRow = {
+  target: TargetType;
+  type: ResourceType;
+  enabled: boolean;
+  disabled: string[];
+};
+
+const RESOURCE_TYPES: ResourceType[] = [
+  "skills",
+  "commands",
+  "agents",
+  "workflows",
+];
 
 async function pathExists(path: string): Promise<boolean> {
   try {
@@ -169,44 +190,57 @@ async function listToggleState(
   }
 }
 
-async function listAllToggleStates(
+async function listToggleRows(
   target?: string,
   type?: string,
-): Promise<ToggleStateItem[] | { error: string }> {
+): Promise<ToggleListRow[] | { error: string }> {
+  const config = await loadToggleConfig();
+
   if (target || type) {
     const validated = validateTargetType(target, type);
     if (!validated.ok) {
       return { error: validated.message };
     }
-    return await listToggleState(validated.target, validated.type);
+
+    const section = getToggleConfigSection(
+      config,
+      validated.target,
+      validated.type,
+    );
+    return [
+      {
+        target: validated.target,
+        type: validated.type,
+        enabled: section.enabled,
+        disabled: section.disabled,
+      },
+    ];
   }
 
-  const items: ToggleStateItem[] = [];
+  const rows: ToggleListRow[] = [];
 
   for (const targetKey of Object.keys(COPY_TARGETS) as TargetType[]) {
-    for (const typeKey of [
-      "skills",
-      "commands",
-      "agents",
-      "workflows",
-    ] as const) {
+    for (const typeKey of RESOURCE_TYPES) {
       if (!COPY_TARGETS[targetKey][typeKey]) {
         continue;
       }
-      items.push(...(await listToggleState(targetKey, typeKey)));
+
+      const section = getToggleConfigSection(config, targetKey, typeKey);
+      rows.push({
+        target: targetKey,
+        type: typeKey,
+        enabled: section.enabled,
+        disabled: section.disabled,
+      });
     }
   }
 
-  return items.sort((a, b) => {
+  return rows.sort((a, b) => {
     const byTarget = a.target.localeCompare(b.target);
     if (byTarget !== 0) {
       return byTarget;
     }
-    const byType = a.type.localeCompare(b.type);
-    if (byType !== 0) {
-      return byType;
-    }
-    return a.name.localeCompare(b.name);
+    return a.type.localeCompare(b.type);
   });
 }
 
@@ -232,10 +266,7 @@ export function registerToggleCommand(program: Command): void {
         all?: boolean;
       }) => {
         if (options.list) {
-          const listed = await listAllToggleStates(
-            options.target,
-            options.type,
-          );
+          const listed = await listToggleRows(options.target, options.type);
           if (!Array.isArray(listed)) {
             printError(listed.error);
             process.exitCode = 1;
@@ -248,12 +279,12 @@ export function registerToggleCommand(program: Command): void {
           }
 
           printTable(
-            ["Target", "Type", "Name", "Status"],
+            ["目標", "類型", "整體啟用", "停用項目"],
             listed.map((item) => [
               item.target,
               item.type,
-              item.name,
-              item.enabled ? "Enabled" : "Disabled",
+              item.enabled ? "✓" : "✗",
+              item.disabled.length > 0 ? item.disabled.join(", ") : "-",
             ]),
           );
           return;
@@ -288,6 +319,15 @@ export function registerToggleCommand(program: Command): void {
             }
           }
 
+          const toggleConfig = await loadToggleConfig();
+          applyAllToggleConfig(
+            toggleConfig,
+            validated.target,
+            validated.type,
+            Boolean(options.enable),
+          );
+          await saveToggleConfig(toggleConfig);
+
           const action = options.enable ? t("common.enabled") : t("common.disabled");
           console.log(chalk.green(`✓ ${t("toggle.batch_done", { action, count: String(count), target: targetName, type: validated.type })}`));
           console.log(chalk.dim(t("toggle.restart_hint", { target: targetName })));
@@ -310,6 +350,16 @@ export function registerToggleCommand(program: Command): void {
         const success = options.enable
           ? await enableResource(validated.target, validated.type, options.name)
           : await disableResource(validated.target, validated.type, options.name);
+
+        const toggleConfig = await loadToggleConfig();
+        applySingleToggleConfig(
+          toggleConfig,
+          validated.target,
+          validated.type,
+          options.name,
+          Boolean(options.enable),
+        );
+        await saveToggleConfig(toggleConfig);
 
         if (!success) {
           // 可能是已經在目標狀態

@@ -1,19 +1,15 @@
 import { readdir } from "node:fs/promises";
-import { join } from "node:path";
 
 import chalk from "chalk";
 import type { Command } from "commander";
 
-import { loadCustomRepos } from "../utils/custom-repos";
+import {
+  collectSourceIndex,
+  resolveResourceSource,
+} from "../tui/utils/source-index";
 import { printTable } from "../utils/formatter";
 import { t } from "../utils/i18n";
-import { paths } from "../utils/paths";
-import {
-  COPY_TARGETS,
-  REPOS,
-  type ResourceType,
-  type TargetType,
-} from "../utils/shared";
+import { COPY_TARGETS, type ResourceType, type TargetType } from "../utils/shared";
 
 type ResourceItem = {
   name: string;
@@ -23,28 +19,12 @@ type ResourceItem = {
   source: string;
 };
 
-type SourceIndex = Record<ResourceType, Map<string, string>>;
-
 const DISABLED_SUFFIX = ".disabled";
-
-type SourceRoot = {
-  source: string;
-  root: string;
-};
 
 type ResourceEntry = {
   name: string;
   enabled: boolean;
 };
-
-function createSourceIndex(): SourceIndex {
-  return {
-    skills: new Map<string, string>(),
-    commands: new Map<string, string>(),
-    agents: new Map<string, string>(),
-    workflows: new Map<string, string>(),
-  };
-}
 
 function formatTargetLabel(target: TargetType): string {
   switch (target) {
@@ -76,34 +56,6 @@ function formatTypeLabel(type: ResourceType): string {
     default:
       return type;
   }
-}
-
-async function listFilesRecursive(
-  baseDir: string,
-  relativeDir = "",
-): Promise<string[]> {
-  const currentDir = relativeDir ? join(baseDir, relativeDir) : baseDir;
-  const entries = await readdir(currentDir, { withFileTypes: true });
-  const files: string[] = [];
-
-  for (const entry of entries) {
-    if (entry.name.startsWith(".")) {
-      continue;
-    }
-
-    const relativePath = relativeDir
-      ? `${relativeDir}/${entry.name}`
-      : entry.name;
-
-    if (entry.isDirectory()) {
-      files.push(...(await listFilesRecursive(baseDir, relativePath)));
-      continue;
-    }
-
-    files.push(relativePath);
-  }
-
-  return files;
 }
 
 function parseResourceEntry(
@@ -150,86 +102,6 @@ async function getResourceEntries(
   } catch {
     return [];
   }
-}
-
-function addToIndex(
-  index: SourceIndex,
-  resourceType: ResourceType,
-  name: string,
-  source: string,
-): void {
-  if (!index[resourceType].has(name)) {
-    index[resourceType].set(name, source);
-  }
-}
-
-async function indexSourceRoot(
-  index: SourceIndex,
-  sourceRoot: SourceRoot,
-): Promise<void> {
-  const skillDir = join(sourceRoot.root, "skills");
-  try {
-    const skillEntries = await readdir(skillDir, { withFileTypes: true });
-    for (const entry of skillEntries) {
-      if (entry.isDirectory() && !entry.name.startsWith(".")) {
-        addToIndex(index, "skills", entry.name, sourceRoot.source);
-      }
-    }
-  } catch {
-    // ignore missing skills
-  }
-
-  for (const type of ["commands", "agents", "workflows"] as const) {
-    const typeDir = join(sourceRoot.root, type);
-    try {
-      const files = await listFilesRecursive(typeDir);
-      for (const file of files) {
-        if (!file.endsWith(".md")) {
-          continue;
-        }
-        const name = file.split("/").at(-1)?.replace(/\.md$/, "");
-        if (!name) {
-          continue;
-        }
-        addToIndex(index, type, name, sourceRoot.source);
-      }
-    } catch {
-      // ignore missing type directories
-    }
-  }
-}
-
-async function collectSourceIndex(): Promise<SourceIndex> {
-  const index = createSourceIndex();
-  const roots: SourceRoot[] = [
-    { source: "custom-skills", root: process.cwd() },
-  ];
-
-  for (const repo of REPOS) {
-    if (repo.dir === process.cwd()) {
-      continue;
-    }
-    roots.push({ source: repo.name, root: repo.dir });
-  }
-
-  const custom = await loadCustomRepos();
-  for (const [name, repo] of Object.entries(custom.repos)) {
-    roots.push({ source: name, root: repo.localPath });
-  }
-
-  roots.push({
-    source: "everything-claude-code",
-    root: paths.everythingClaudeCodeRepo,
-  });
-  roots.push({ source: "anthropic-skills", root: paths.anthropicSkillsRepo });
-  roots.push({ source: "obsidian-skills", root: paths.obsidianSkillsRepo });
-  roots.push({ source: "auto-skill", root: paths.autoSkillRepo });
-
-  for (const root of roots) {
-    await indexSourceRoot(index, root);
-  }
-
-  return index;
 }
 
 export function registerListCommand(program: Command): void {
@@ -282,8 +154,11 @@ export function registerListCommand(program: Command): void {
                 target,
                 type: resourceType,
                 enabled: entry.enabled,
-                source:
-                  sourceIndex[resourceType].get(entry.name) ?? "user-custom",
+                source: resolveResourceSource(
+                  sourceIndex,
+                  resourceType,
+                  entry.name,
+                ),
               });
             }
           }

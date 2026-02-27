@@ -107,4 +107,35 @@ describe("core/claude-code-manager", () => {
       ),
     ).toBe(true);
   });
+
+  test("updateClaudeCode reports native version after successful update", async () => {
+    const progress: string[] = [];
+
+    const result = await updateClaudeCode(
+      (message: string) => {
+        progress.push(message);
+      },
+      {
+        commandExistsFn: (command: string) =>
+          command === "claude" || command === "npm",
+        runCommandFn: async (command: string[]) => {
+          if (command[0] === "npm" && command[1] === "list") {
+            return { exitCode: 1, stdout: "", stderr: "" };
+          }
+          if (command[0] === "claude" && command[1] === "update") {
+            return { exitCode: 0, stdout: "", stderr: "" };
+          }
+          if (command[0] === "claude" && command[1] === "--version") {
+            return { exitCode: 0, stdout: "2.1.0\n", stderr: "" };
+          }
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(
+      progress.some((line) => line.includes("更新完成") && line.includes("2.1.0")),
+    ).toBe(true);
+  });
 });
