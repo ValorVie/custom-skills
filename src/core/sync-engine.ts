@@ -1,5 +1,5 @@
 import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 
 import inquirer from "inquirer";
 import YAML from "yaml";
@@ -189,10 +189,136 @@ async function pathExists(pathValue: string): Promise<boolean> {
   }
 }
 
+const GLOBAL_IGNORE_PATTERNS = [".DS_Store", "Thumbs.db", "desktop.ini"];
+const CLAUDE_IGNORE_PATTERNS = [
+  "debug/",
+  "cache/",
+  "paste-cache/",
+  "downloads/",
+  "shell-snapshots/",
+  "session-env/",
+  "ide/",
+  "statsig/",
+  "telemetry/",
+  "stats-cache.json",
+  "plugins/cache/",
+  "plugins/marketplaces/",
+  "plugins/repos/",
+  "plugins/install-counts-cache.json",
+  "plugins/installed_plugins.json",
+  "plugins/known_marketplaces.json",
+  ".credentials.json",
+];
+
+function normalizePathForMatch(value: string): string {
+  return value
+    .replace(/\\/g, "/")
+    .replace(/^\.\/+/, "")
+    .replace(/^\/+/, "")
+    .replace(/\/+/g, "/")
+    .replace(/\/$/, "");
+}
+
+function escapeForRegExp(value: string): string {
+  return value.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+}
+
+function globToRegExp(glob: string): RegExp {
+  let pattern = "";
+  for (let index = 0; index < glob.length; index += 1) {
+    const char = glob[index];
+    if (char === "*") {
+      if (glob[index + 1] === "*") {
+        pattern += ".*";
+        index += 1;
+      } else {
+        pattern += "[^/]*";
+      }
+      continue;
+    }
+    if (char === "?") {
+      pattern += "[^/]";
+      continue;
+    }
+    pattern += escapeForRegExp(char);
+  }
+  return new RegExp(`^${pattern}$`);
+}
+
+function matchesIgnorePattern(relativePath: string, rawPattern: string): boolean {
+  const pathValue = normalizePathForMatch(relativePath);
+  const normalizedPattern = normalizePathForMatch(rawPattern.trim());
+  if (!pathValue || !normalizedPattern) {
+    return false;
+  }
+
+  if (rawPattern.trim().endsWith("/")) {
+    const dirPattern = normalizePathForMatch(normalizedPattern);
+    if (!dirPattern.includes("/")) {
+      return pathValue.split("/").includes(dirPattern);
+    }
+    return pathValue === dirPattern || pathValue.startsWith(`${dirPattern}/`);
+  }
+
+  const hasGlob = /[*?]/.test(normalizedPattern);
+  if (!hasGlob) {
+    if (!normalizedPattern.includes("/")) {
+      return pathValue.split("/").includes(normalizedPattern);
+    }
+    return pathValue === normalizedPattern;
+  }
+
+  const matcher = globToRegExp(normalizedPattern);
+  if (!normalizedPattern.includes("/")) {
+    return pathValue.split("/").some((segment) => matcher.test(segment));
+  }
+  return matcher.test(pathValue);
+}
+
+function resolveIgnorePatterns(
+  profile: SyncDirectory["ignoreProfile"],
+  customIgnore: string[],
+): string[] {
+  const patterns = new Set<string>(GLOBAL_IGNORE_PATTERNS);
+  if (profile === "claude") {
+    for (const pattern of CLAUDE_IGNORE_PATTERNS) {
+      patterns.add(pattern);
+    }
+  }
+  for (const pattern of customIgnore) {
+    if (pattern.trim().length > 0) {
+      patterns.add(pattern.trim());
+    }
+  }
+  return [...patterns];
+}
+
+function shouldIgnorePath(
+  sourceRoot: string,
+  currentSourcePath: string,
+  ignorePatterns: string[],
+): boolean {
+  if (ignorePatterns.length === 0) {
+    return false;
+  }
+
+  const relativePath = normalizePathForMatch(
+    relative(sourceRoot, currentSourcePath),
+  );
+  if (!relativePath || relativePath === ".") {
+    return false;
+  }
+
+  return ignorePatterns.some((pattern) =>
+    matchesIgnorePattern(relativePath, pattern),
+  );
+}
+
 async function syncDirectory(
   sourcePath: string,
   destinationPath: string,
   deleteExtra: boolean,
+  ignorePatterns: string[] = [],
 ): Promise<SyncSummary> {
   if (!(await pathExists(sourcePath))) {
     return { added: 0, updated: 0, deleted: 0 };
@@ -208,7 +334,12 @@ async function syncDirectory(
   }
 
   await mkdir(destinationPath, { recursive: true });
-  await cp(sourcePath, destinationPath, { recursive: true, force: true });
+  await cp(sourcePath, destinationPath, {
+    recursive: true,
+    force: true,
+    filter: (currentSourcePath) =>
+      !shouldIgnorePath(sourcePath, currentSourcePath, ignorePatterns),
+  });
 
   return { added: 1, updated: 1, deleted };
 }
@@ -314,8 +445,8 @@ export class SyncEngine {
           timeoutMs: 120_000,
         },
       );
-      if (cloneResult.exitCode !== 0 && !(await pathExists(this.repoDir))) {
-        await mkdir(this.repoDir, { recursive: true });
+      if (cloneResult.exitCode !== 0) {
+        throw new Error("git clone 失敗");
       }
     } else {
       await mkdir(this.repoDir, { recursive: true });
@@ -582,7 +713,12 @@ export class SyncEngine {
     for (const directory of config.directories) {
       const sourcePath = expandHome(directory.path);
       const destinationPath = join(this.repoDir, directory.repoSubdir);
-      const summary = await syncDirectory(sourcePath, destinationPath, true);
+      const summary = await syncDirectory(
+        sourcePath,
+        destinationPath,
+        true,
+        resolveIgnorePatterns(directory.ignoreProfile, directory.customIgnore),
+      );
       total.added += summary.added;
       total.updated += summary.updated;
       total.deleted += summary.deleted;
@@ -709,6 +845,7 @@ export class SyncEngine {
         sourcePath,
         destinationPath,
         deleteExtra,
+        resolveIgnorePatterns(directory.ignoreProfile, directory.customIgnore),
       );
       total.added += summary.added;
       total.updated += summary.updated;

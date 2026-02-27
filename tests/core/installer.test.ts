@@ -257,6 +257,7 @@ describe("core/installer", () => {
       skipBun: true,
       skipRepos: true,
       skipSkills: true,
+      syncProject: false,
       deps: {
         commandExistsFn: () => true,
         distributeSkillsFn: async () => {
@@ -275,6 +276,36 @@ describe("core/installer", () => {
     expect(result.skills.installed.length).toBe(0);
   });
 
+  test("runInstall enables syncProject by default and triggers sync flow", async () => {
+    let distributionCalls = 0;
+    const progress: string[] = [];
+
+    await runInstall({
+      skipNpm: true,
+      skipBun: true,
+      skipRepos: true,
+      skipSkills: true,
+      deps: {
+        commandExistsFn: () => true,
+        distributeSkillsFn: async () => {
+          distributionCalls += 1;
+          return {
+            distributed: [],
+            conflicts: [],
+            errors: [],
+            unchanged: 0,
+          };
+        },
+      },
+      onProgress: (message) => {
+        progress.push(message);
+      },
+    });
+
+    expect(distributionCalls).toBe(1);
+    expect(progress).toContain("sync-project completed");
+  });
+
   test("runInstall surfaces Claude Code npm installation warning", async () => {
     const progress: string[] = [];
 
@@ -283,6 +314,7 @@ describe("core/installer", () => {
       skipBun: true,
       skipRepos: true,
       skipSkills: true,
+      syncProject: false,
       deps: {
         commandExistsFn: (command: string) =>
           command === "claude" || command === "npm",

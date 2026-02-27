@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -1054,13 +1054,11 @@ export async function registerDevice(options: {
     body: JSON.stringify({ name: options.name }),
   });
 
-  if (payload?.api_key) {
-    config.apiKey = payload.api_key;
-    config.deviceId = String(payload.device_id ?? "");
-  } else {
-    config.deviceId = randomUUID();
-    config.apiKey = `local-${randomUUID()}`;
+  if (!payload?.api_key) {
+    throw new Error("裝置註冊失敗，請檢查 server 與 admin secret");
   }
+  config.apiKey = payload.api_key;
+  config.deviceId = String(payload.device_id ?? "");
 
   config.lastPushEpoch = 0;
   config.lastPullEpoch = 0;
@@ -1277,7 +1275,7 @@ export async function pullMemData(
   };
 
   if (config.serverUrl && config.apiKey) {
-    let since = config.lastPullEpoch > 0 ? config.lastPullEpoch * 1000 : 0;
+    let since = config.lastPullEpoch > 0 ? config.lastPullEpoch : 0;
     let hasMore = true;
 
     while (hasMore) {

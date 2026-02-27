@@ -392,7 +392,7 @@ export async function runInstall(
   const skipBun = options.skipBun ?? false;
   const skipRepos = options.skipRepos ?? false;
   const skipSkills = options.skipSkills ?? false;
-  const syncProject = options.syncProject ?? false;
+  const syncProject = options.syncProject ?? true;
   const stream = options.stream ?? false;
   const commandExistsFn = deps.commandExistsFn ?? commandExists;
   const runCommandFn = deps.runCommandFn ?? runCommand;
@@ -518,9 +518,10 @@ export async function runInstall(
     await syncSuperpowersSymlink();
   }
 
-  if (!skipSkills) {
+  let distribution: DistributeResult | null = null;
+  if (!skipSkills || syncProject) {
     const sourceRoot = await detectDistributionSourceRoot();
-    const distribution = await distributeSkillsFn({
+    distribution = await distributeSkillsFn({
       sourceRoot,
       force: true,
       skipConflicts: false,
@@ -528,7 +529,9 @@ export async function runInstall(
       devMode: false,
       onProgress,
     });
+  }
 
+  if (!skipSkills && distribution) {
     result.skills.installed = distribution.distributed
       .filter((item) => item.type === "skills")
       .map((item) => item.name)
@@ -545,7 +548,12 @@ export async function runInstall(
   }
 
   if (syncProject) {
-    onProgress("sync-project requested");
+    if (skipSkills && distribution) {
+      for (const error of distribution.errors) {
+        result.errors.push(`sync-project: ${error}`);
+      }
+    }
+    onProgress("sync-project completed");
   }
 
   result.shellCompletion = await installShellCompletion();

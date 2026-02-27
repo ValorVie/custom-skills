@@ -56,8 +56,24 @@ describe("core/mem-sync", () => {
   test("register/save/load config", async () => {
     const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-"));
     const configPath = join(root, "mem-sync.yaml");
+    const originalFetch = globalThis.fetch;
 
     try {
+      globalThis.fetch = (async (input) => {
+        const url = String(input);
+        if (url.endsWith("/api/auth/register")) {
+          return new Response(
+            JSON.stringify({
+              api_key: "server-key",
+              device_id: "device-1",
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
       await saveMemSyncConfig(
         {
           serverUrl: "https://example.com",
@@ -83,8 +99,34 @@ describe("core/mem-sync", () => {
       });
       expect(registered.serverUrl).toBe("https://server.test");
       expect(registered.deviceName).toBe("device-a");
-      expect(registered.apiKey.startsWith("local-")).toBe(true);
+      expect(registered.apiKey).toBe("server-key");
+      expect(registered.deviceId).toBe("device-1");
     } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("registerDevice throws when server registration fails", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const originalFetch = globalThis.fetch;
+
+    try {
+      globalThis.fetch = (async () => {
+        return new Response("{}", { status: 500 });
+      }) as typeof fetch;
+
+      await expect(
+        registerDevice({
+          server: "https://server.test",
+          name: "device-fail",
+          adminSecret: "bad-secret",
+          configPath,
+        }),
+      ).rejects.toThrow("裝置註冊失敗");
+    } finally {
+      globalThis.fetch = originalFetch;
       await rm(root, { recursive: true, force: true });
     }
   });
@@ -93,6 +135,7 @@ describe("core/mem-sync", () => {
     const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-"));
     const configPath = join(root, "mem-sync.yaml");
     const dbPath = join(root, "statsig.db");
+    const originalFetch = globalThis.fetch;
 
     const sqlite = await import("bun:sqlite");
     const db = new sqlite.Database(dbPath);
@@ -105,6 +148,20 @@ describe("core/mem-sync", () => {
     db.close();
 
     try {
+      globalThis.fetch = (async (input) => {
+        const url = String(input);
+        if (url.endsWith("/api/auth/register")) {
+          return new Response(
+            JSON.stringify({
+              api_key: "server-key",
+              device_id: "device-b",
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
       await registerDevice({
         server: "https://server.test",
         name: "device-b",
@@ -129,6 +186,7 @@ describe("core/mem-sync", () => {
       expect(reindex.synced).toBe(0);
       expect(reindex.duplicatesRemoved).toBe(0);
     } finally {
+      globalThis.fetch = originalFetch;
       await rm(root, { recursive: true, force: true });
     }
   });
