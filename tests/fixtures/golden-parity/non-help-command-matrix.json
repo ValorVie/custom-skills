@@ -1,0 +1,6 @@
+[
+  { "id": "version-long", "args": ["--version"] },
+  { "id": "version-short", "args": ["-v"] },
+  { "id": "derive-tests-single-file", "args": ["derive-tests", "__SPEC_FILE__"] },
+  { "id": "derive-tests-missing-path", "args": ["derive-tests", "__MISSING_SPEC__"] }
+]

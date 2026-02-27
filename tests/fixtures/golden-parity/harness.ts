@@ -21,9 +21,21 @@ const MATRIX_PATH = join(
   "golden-parity",
   "command-matrix.json",
 );
+const NON_HELP_MATRIX_PATH = join(
+  process.cwd(),
+  "tests",
+  "fixtures",
+  "golden-parity",
+  "non-help-command-matrix.json",
+);
 
 export async function loadCommandMatrix(): Promise<GoldenCase[]> {
   const raw = await readFile(MATRIX_PATH, "utf8");
+  return JSON.parse(raw) as GoldenCase[];
+}
+
+export async function loadNonHelpCommandMatrix(): Promise<GoldenCase[]> {
+  const raw = await readFile(NON_HELP_MATRIX_PATH, "utf8");
   return JSON.parse(raw) as GoldenCase[];
 }
 
@@ -44,6 +56,7 @@ export async function prepareGoldenHome(home: string): Promise<void> {
   ];
 
   await Promise.all(dirs.map((dir) => mkdir(dir, { recursive: true })));
+  await mkdir(join(home, "specs"), { recursive: true });
 
   await Promise.all([
     writeFile(
@@ -77,6 +90,11 @@ export async function prepareGoldenHome(home: string): Promise<void> {
       "{}\n",
       "utf8",
     ),
+    writeFile(
+      join(home, "specs", "sample.md"),
+      ["# Sample Spec", "", "Golden parity sample file.", ""].join("\n"),
+      "utf8",
+    ),
   ]);
 }
 
@@ -98,17 +116,29 @@ export function buildGoldenEnv(home: string): Record<string, string> {
   } as Record<string, string>;
 }
 
-const ANSI_ESCAPE = /\u001b\[[0-9;]*[A-Za-z]/g;
-
 export function normalizeOutput(text: string, home: string): string {
   const normalized = text
     .replace(/\r\n/g, "\n")
-    .replace(ANSI_ESCAPE, "")
     .replace(/python -m script\.main/g, "ai-dev")
+    .replace(/ai-dev\s+\d+\.\d+\.\d+/g, "ai-dev __VERSION__")
     .replaceAll(home, "__HOME__")
     .replace(/\s+$/g, "");
 
   return normalized;
+}
+
+export function materializeGoldenArgs(args: string[], home: string): string[] {
+  return args.map((arg) => {
+    if (arg === "__SPEC_FILE__") {
+      return join(home, "specs", "sample.md");
+    }
+
+    if (arg === "__MISSING_SPEC__") {
+      return join(home, "specs", "missing.md");
+    }
+
+    return arg;
+  });
 }
 
 export async function saveSnapshot(

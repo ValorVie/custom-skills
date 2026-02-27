@@ -1,0 +1,40 @@
+[
+  {
+    "id": "version-long",
+    "args": [
+      "--version"
+    ],
+    "exitCode": 0,
+    "stdout": "ai-dev __VERSION__",
+    "stderr": ""
+  },
+  {
+    "id": "version-short",
+    "args": [
+      "-v"
+    ],
+    "exitCode": 0,
+    "stdout": "ai-dev __VERSION__",
+    "stderr": ""
+  },
+  {
+    "id": "derive-tests-single-file",
+    "args": [
+      "derive-tests",
+      "__SPEC_FILE__"
+    ],
+    "exitCode": 0,
+    "stdout": "\n--- __HOME__/specs/sample.md ---\n\n# Sample Spec\n\nGolden parity sample file.",
+    "stderr": ""
+  },
+  {
+    "id": "derive-tests-missing-path",
+    "args": [
+      "derive-tests",
+      "__MISSING_SPEC__"
+    ],
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "Error: 路徑不存在: __HOME__/specs/missing.md"
+  }
+]

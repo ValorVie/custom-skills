@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import helpMatrix from "../assets/parity/help-command-matrix.json";
+import v1HelpSnapshot from "../assets/parity/v1-help.snapshot.json";
 
 type MatrixEntry = {
   id: string;
@@ -19,23 +19,12 @@ type HelpData = {
   snapshotById: Map<string, SnapshotEntry>;
 };
 
-let cachedHelpData: HelpData | null = null;
-let loadAttempted = false;
-
-const MATRIX_PATH = join(
-  process.cwd(),
-  "tests",
-  "fixtures",
-  "golden-parity",
-  "command-matrix.json",
-);
-const SNAPSHOT_PATH = join(
-  process.cwd(),
-  "tests",
-  "fixtures",
-  "golden-parity",
-  "v1.snapshot.json",
-);
+const HELP_DATA: HelpData = {
+  matrix: helpMatrix as MatrixEntry[],
+  snapshotById: new Map(
+    (v1HelpSnapshot as SnapshotEntry[]).map((entry) => [entry.id, entry]),
+  ),
+};
 
 function isHelpInvocation(argv: string[]): boolean {
   if (argv.length === 0) {
@@ -61,30 +50,6 @@ function sameArgs(left: string[], right: string[]): boolean {
   return left.every((arg, index) => arg === right[index]);
 }
 
-async function loadHelpData(): Promise<HelpData | null> {
-  if (loadAttempted) {
-    return cachedHelpData;
-  }
-  loadAttempted = true;
-
-  try {
-    const [matrixRaw, snapshotRaw] = await Promise.all([
-      readFile(MATRIX_PATH, "utf8"),
-      readFile(SNAPSHOT_PATH, "utf8"),
-    ]);
-
-    const matrix = JSON.parse(matrixRaw) as MatrixEntry[];
-    const snapshot = JSON.parse(snapshotRaw) as SnapshotEntry[];
-    const snapshotById = new Map(snapshot.map((entry) => [entry.id, entry]));
-
-    cachedHelpData = { matrix, snapshotById };
-    return cachedHelpData;
-  } catch {
-    cachedHelpData = null;
-    return null;
-  }
-}
-
 export async function maybePrintV1HelpSnapshot(
   argv: string[],
 ): Promise<boolean> {
@@ -92,20 +57,15 @@ export async function maybePrintV1HelpSnapshot(
     return false;
   }
 
-  const helpData = await loadHelpData();
-  if (!helpData) {
-    return false;
-  }
-
   const normalizedArgv = normalizeArgs(argv);
-  const matrixEntry = helpData.matrix.find((entry) =>
+  const matrixEntry = HELP_DATA.matrix.find((entry) =>
     sameArgs(entry.args, normalizedArgv),
   );
   if (!matrixEntry) {
     return false;
   }
 
-  const snapshotEntry = helpData.snapshotById.get(matrixEntry.id);
+  const snapshotEntry = HELP_DATA.snapshotById.get(matrixEntry.id);
   if (!snapshotEntry) {
     return false;
   }
