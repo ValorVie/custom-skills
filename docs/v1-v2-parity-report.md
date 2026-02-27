@@ -5,7 +5,7 @@
 > **分析範圍**: 全部 20 個指令 + TUI
 > **注意**: v1 原始碼在 main 分支 `script/commands/`，build/lib 為舊版建置輸出
 
-## 🔄 最新修復狀態（2026-02-26，多代理執行）
+## 🔄 最新修復狀態（2026-02-27，多代理執行）
 
 > 本段為最新執行結果。下方章節為較早盤點內容，部分狀態已過時。
 
@@ -20,12 +20,15 @@
 | toggle list/toggle-config 相容 | ✅ 已修復 | `--list` 輸出「整體啟用/停用項目」並同步 `toggle-config.yaml` |
 | install/update 開頭與收尾輸出 | ✅ 已修復 | 補齊「開始安裝/更新」與完成提示 |
 | TUI standards Enter / MCP e,f / source | ✅ 已修復 | Enter 切換 profile、e/f 可開啟設定、來源改為真實來源 |
+| mem push/pull parity（P0-P2） | ✅ 已修復 | 四類資料、server_epoch、水位/匯入/reindex、CLI 輸出與 register 提示對齊 |
+| sync push/pull parity（P0-P2） | ✅ 已修復 | force 確認、push_then_pull、`pull --rebase`、fail-fast、CLI 摘要格式對齊 |
+| mem/sync 設定相容（v1→v2） | ✅ 已修復 | `sync-server.yaml` 與 `sync.yaml` snake_case 欄位可讀取 |
 
 ### 驗證摘要（本次）
 
-- 針對本次修復相關測試集合：`51 pass / 0 fail`
-- `bun run build`：通過（exit code 0）
-- `bun test` 全量仍有環境相關失敗（主要為 sandbox 權限與外部命令限制），不屬本次 parity 修復邏輯回歸
+- 針對 mem/sync parity 修復測試集合：`79 pass / 0 fail`
+- 涵蓋：core parity（P0/P1）、CLI parity（P2）、既有回歸測試（`sync-engine`/`mem-sync`/`smoke`）全綠
+- 本報告中 `mem/sync` 範圍可視為已完成 v1/v2 對齊；其餘非本次範圍差異維持既有盤點結果
 
 
 ## 總覽
@@ -254,21 +257,19 @@
 
 | 項目 | 狀態 | 說明 |
 |------|------|------|
-| 輸出格式 | ⚠️ | v1 Rich 彩色，v2 純文字表格 |
-| 業務邏輯 | ✅ | 6 個子指令完整對齊 |
+| 輸出格式 | ✅ | `push/pull` 完成文案與摘要格式已對齊（`sync push/pull 完成` + `+X ~Y -Z`） |
+| 業務邏輯 | ✅ | `push/pull` 安全流程與失敗處理已對齊（force 確認、`push_then_pull`、`pull --rebase`、fail-fast） |
 | 選項 | ✅ | v2 全量新增 `--json` |
 
 **v1 原始碼**: `script/commands/sync.py` (main 分支)
 
 **子指令**: init, push, pull, status, add, remove（v1/v2 均為 6 個）
 
-**輸出差異：**
-- v1: `[bold green]sync push 完成[/bold green]` + `[dim]+{added} ~{updated} -{deleted}[/dim]`
-- v2: `Sync push complete` + `Added: X, Updated: X, Deleted: X`
-
-**邏輯差異：**
-- ⚠️ v1 push 自動生成 plugin manifest → v2 未實作
-- ⚠️ v1 remove 詢問是否刪除 repo 子目錄 → v2 直接執行
+**最新對齊摘要（2026-02-27）：**
+- ✅ `sync push/pull` 完成文案改為 `sync push 完成` / `sync pull 完成`
+- ✅ 摘要格式改為 `+{added} ~{updated} -{deleted}`
+- ✅ pull 衝突選項含「先 push 再 pull（推薦）」
+- ✅ 關鍵 git 指令失敗改為 fail-fast，並統一使用 `git pull --rebase`
 
 ---
 
@@ -278,8 +279,8 @@
 
 | 項目 | 狀態 | 說明 |
 |------|------|------|
-| 輸出格式 | ⚠️ | v1 Rich 彩色，v2 i18n + 表格 |
-| 業務邏輯 | ✅ | 7 個子指令完整對齊 |
+| 輸出格式 | ✅ | `push/pull` 關鍵輸出已對齊（包含 `Pull 完成 (API|SQLite)` 動態 method label） |
+| 業務邏輯 | ✅ | `push/pull` 核心資料流、水位與後處理已對齊 |
 | 選項 | ✅ | v2 auto 改為 `--enable/--disable`（更清晰），全量 `--json` |
 
 **v1 原始碼**: `script/commands/mem.py` (main 分支)
@@ -288,6 +289,12 @@
 
 **選項變更：**
 - v1 auto: `--on/--off` → v2: `--enable/--disable/--status/--interval`
+
+**最新對齊摘要（2026-02-27）：**
+- ✅ push 改為四類資料增量推送（sessions/observations/summaries/prompts）
+- ✅ 未註冊時錯誤提示與 v1 對齊（含 `ai-dev mem register` 指引）
+- ✅ pull 匯入路徑為 API 優先 + SQLite fallback
+- ✅ pull 完成文案 method label 動態顯示 API/SQLite
 
 ---
 
