@@ -697,100 +697,98 @@ export async function pushMemData(
   const imported = zeroCat();
   const skippedDetail = zeroCat();
   const dedupExcluded = { pulled: 0, preflight: 0 };
+  let latestServerEpoch: number | null = null;
 
   if (!config.serverUrl || !config.apiKey) {
-    pushed = observations.length;
-    sent.sessions = sessions.length;
-    sent.observations = observations.length;
-    sent.summaries = summaries.length;
-    sent.prompts = prompts.length;
-    imported.sessions = sessions.length;
-    imported.observations = observations.length;
-    imported.summaries = summaries.length;
-    imported.prompts = prompts.length;
-  } else {
-    const hashes = observations
-      .map((item) => String(item.sync_content_hash ?? ""))
-      .filter((hash) => hash.length > 0);
-    const missingHashes = await fetchMissingHashes(
-      config.serverUrl,
-      config.apiKey,
-      hashes,
-    );
-
-    const toUpload = observations.filter((item) =>
-      missingHashes.has(String(item.sync_content_hash ?? "")),
-    );
-
-    dedupExcluded.pulled = observations.length - hashes.length;
-    dedupExcluded.preflight = hashes.length - missingHashes.size;
-    sent.sessions = sessions.length;
-    sent.observations = toUpload.length;
-    sent.summaries = summaries.length;
-    sent.prompts = prompts.length;
-
-    const batches = chunkArray(toUpload, 100);
-    if (batches.length === 0) {
-      batches.push([]);
-    }
-
-    for (const [index, batch] of batches.entries()) {
-      const payload = await requestJson<{
-        server_epoch?: number;
-        stats?: {
-          sessionsImported?: number;
-          observationsImported?: number;
-          summariesImported?: number;
-          promptsImported?: number;
-          sessionsSkipped?: number;
-          observationsSkipped?: number;
-          summariesSkipped?: number;
-          promptsSkipped?: number;
-        };
-      }>(
-        `${normalizeServerUrl(config.serverUrl)}/api/sync/push`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-Key": config.apiKey,
-          },
-          body: JSON.stringify({
-            sessions: index === 0 ? sessions : [],
-            summaries: index === 0 ? summaries : [],
-            prompts: index === 0 ? prompts : [],
-            observations: batch,
-          }),
-        },
-        15_000,
-      );
-
-      if (!payload) {
-        errors += batch.length;
-        continue;
-      }
-
-      const stats = payload.stats;
-      if (stats?.observationsImported !== undefined) {
-        pushed += stats.observationsImported;
-        imported.sessions += stats.sessionsImported ?? 0;
-        imported.observations += stats.observationsImported;
-        imported.summaries += stats.summariesImported ?? 0;
-        imported.prompts += stats.promptsImported ?? 0;
-        skippedDetail.sessions += stats.sessionsSkipped ?? 0;
-        skippedDetail.observations += stats.observationsSkipped ?? 0;
-        skippedDetail.summaries += stats.summariesSkipped ?? 0;
-        skippedDetail.prompts += stats.promptsSkipped ?? 0;
-      } else {
-        pushed += batch.length;
-        imported.observations += batch.length;
-      }
-    }
-
-    skipped = observations.length - toUpload.length;
+    throw new Error("找不到 sync server 設定，請先執行 `ai-dev mem register`");
   }
 
-  config.lastPushEpoch = Math.floor(Date.now() / 1000);
+  const hashes = observations
+    .map((item) => String(item.sync_content_hash ?? ""))
+    .filter((hash) => hash.length > 0);
+  const missingHashes = await fetchMissingHashes(
+    config.serverUrl,
+    config.apiKey,
+    hashes,
+  );
+
+  const toUpload = observations.filter((item) =>
+    missingHashes.has(String(item.sync_content_hash ?? "")),
+  );
+
+  dedupExcluded.pulled = observations.length - hashes.length;
+  dedupExcluded.preflight = hashes.length - missingHashes.size;
+  sent.sessions = sessions.length;
+  sent.observations = toUpload.length;
+  sent.summaries = summaries.length;
+  sent.prompts = prompts.length;
+
+  const batches = chunkArray(toUpload, 100);
+  if (batches.length === 0) {
+    batches.push([]);
+  }
+
+  for (const [index, batch] of batches.entries()) {
+    const payload = await requestJson<{
+      server_epoch?: number;
+      stats?: {
+        sessionsImported?: number;
+        observationsImported?: number;
+        summariesImported?: number;
+        promptsImported?: number;
+        sessionsSkipped?: number;
+        observationsSkipped?: number;
+        summariesSkipped?: number;
+        promptsSkipped?: number;
+      };
+    }>(
+      `${normalizeServerUrl(config.serverUrl)}/api/sync/push`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": config.apiKey,
+        },
+        body: JSON.stringify({
+          sessions: index === 0 ? sessions : [],
+          summaries: index === 0 ? summaries : [],
+          prompts: index === 0 ? prompts : [],
+          observations: batch,
+        }),
+      },
+      15_000,
+    );
+
+    if (!payload) {
+      errors += batch.length;
+      continue;
+    }
+
+    if (typeof payload.server_epoch === "number") {
+      latestServerEpoch = payload.server_epoch;
+    }
+
+    const stats = payload.stats;
+    if (stats?.observationsImported !== undefined) {
+      pushed += stats.observationsImported;
+      imported.sessions += stats.sessionsImported ?? 0;
+      imported.observations += stats.observationsImported;
+      imported.summaries += stats.summariesImported ?? 0;
+      imported.prompts += stats.promptsImported ?? 0;
+      skippedDetail.sessions += stats.sessionsSkipped ?? 0;
+      skippedDetail.observations += stats.observationsSkipped ?? 0;
+      skippedDetail.summaries += stats.summariesSkipped ?? 0;
+      skippedDetail.prompts += stats.promptsSkipped ?? 0;
+    } else {
+      pushed += batch.length;
+      imported.observations += batch.length;
+    }
+  }
+
+  skipped = observations.length - toUpload.length;
+  if (latestServerEpoch !== null) {
+    config.lastPushEpoch = latestServerEpoch;
+  }
   await saveMemSyncConfig(config, options.configPath);
 
   return {

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  loadMemSyncConfig,
   pushMemData,
   saveMemSyncConfig,
 } from "../../src/core/mem-sync";
@@ -132,6 +133,107 @@ describe("core/mem-sync push parity", () => {
       );
       expect((capturedPushPayload?.summaries as unknown[]) ?? []).toHaveLength(1);
       expect((capturedPushPayload?.prompts as unknown[]) ?? []).toHaveLength(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("pushMemData throws when server config is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-push-parity-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const dbPath = join(root, "claude-mem.db");
+
+    const sqlite = await import("bun:sqlite");
+    const db = new sqlite.Database(dbPath);
+    db.run(
+      "CREATE TABLE observations (id INTEGER PRIMARY KEY, title TEXT, narrative TEXT, facts TEXT, project TEXT, type TEXT, created_at_epoch INTEGER, sync_content_hash TEXT);",
+    );
+    db.run(
+      "INSERT INTO observations (title, narrative, facts, project, type, created_at_epoch, sync_content_hash) VALUES ('new', 'n-new', 'f-new', 'proj', 'note', 101, 'hash-new');",
+    );
+    db.close();
+
+    try {
+      await expect(pushMemData({ configPath, dbPath })).rejects.toThrow(
+        "ai-dev mem register",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("pushMemData updates lastPushEpoch from server_epoch", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-push-parity-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const dbPath = join(root, "claude-mem.db");
+    const originalFetch = globalThis.fetch;
+
+    const sqlite = await import("bun:sqlite");
+    const db = new sqlite.Database(dbPath);
+    db.run(
+      "CREATE TABLE observations (id INTEGER PRIMARY KEY, title TEXT, narrative TEXT, facts TEXT, project TEXT, type TEXT, created_at_epoch INTEGER, sync_content_hash TEXT);",
+    );
+    db.run(
+      "INSERT INTO observations (title, narrative, facts, project, type, created_at_epoch, sync_content_hash) VALUES ('new', 'n-new', 'f-new', 'proj', 'note', 101, 'hash-new');",
+    );
+    db.close();
+
+    await saveMemSyncConfig(
+      {
+        serverUrl: "https://sync.example.com",
+        apiKey: "api-key",
+        deviceName: "device-a",
+        deviceId: "1",
+        lastPushEpoch: 100,
+        lastPullEpoch: 0,
+        autoSync: false,
+        autoSyncIntervalMinutes: 10,
+      },
+      configPath,
+    );
+
+    try {
+      globalThis.fetch = (async (input, init) => {
+        const url = String(input);
+
+        if (url.endsWith("/api/sync/push-preflight")) {
+          const body = JSON.parse(String(init?.body ?? "{}")) as {
+            hashes?: string[];
+          };
+          return new Response(
+            JSON.stringify({
+              missing: body.hashes ?? [],
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith("/api/sync/push")) {
+          return new Response(
+            JSON.stringify({
+              server_epoch: 1234567890,
+              stats: {
+                sessionsImported: 0,
+                observationsImported: 1,
+                summariesImported: 0,
+                promptsImported: 0,
+                sessionsSkipped: 0,
+                observationsSkipped: 0,
+                summariesSkipped: 0,
+                promptsSkipped: 0,
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
+      await pushMemData({ configPath, dbPath });
+      const config = await loadMemSyncConfig(configPath);
+      expect(config.lastPushEpoch).toBe(1234567890);
     } finally {
       globalThis.fetch = originalFetch;
       await rm(root, { recursive: true, force: true });
