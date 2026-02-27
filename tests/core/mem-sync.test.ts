@@ -1,9 +1,23 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
+const execSyncMock = mock((command: string) => {
+  if (command === "which ai-dev") {
+    return "/usr/local/bin/ai-dev\n";
+  }
+  if (command === "crontab -l" || command === "crontab -") {
+    return "";
+  }
+  return "";
+});
+
+mock.module("node:child_process", () => ({
+  execSync: execSyncMock,
+}));
+
+const {
   cleanupDuplicates,
   configureAutoSync,
   defaultChromaDbPath,
@@ -16,7 +30,7 @@ import {
   registerDevice,
   reindexMemData,
   saveMemSyncConfig,
-} from "../../src/core/mem-sync";
+} = await import("../../src/core/mem-sync");
 
 describe("mem-sync default paths", () => {
   const home = homedir();

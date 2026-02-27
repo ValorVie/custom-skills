@@ -89,7 +89,9 @@ describe("core/sync-engine", () => {
     const configPath = join(root, "sync.yaml");
     const repoDir = join(root, "sync-repo");
     const localDir = join(root, "local");
-    const engine = new SyncEngine(configPath, repoDir);
+    const engine = new SyncEngine(configPath, repoDir, {
+      runCommandFn: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+    });
 
     try {
       await mkdir(localDir, { recursive: true });
@@ -144,6 +146,7 @@ describe("core/sync-engine", () => {
         calls.push(command);
         return { stdout: "", stderr: "", exitCode: 0 };
       },
+      confirmForcePushFn: async () => true,
     });
 
     try {
