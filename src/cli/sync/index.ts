@@ -40,6 +40,25 @@ export function registerSyncCommands(program: Command): void {
         return;
       }
 
+      if (summary.skipped) {
+        if (options.force) {
+          console.log("Sync push cancelled");
+        } else {
+          console.log("No changes to sync");
+        }
+        return;
+      }
+
+      if (
+        !options.force &&
+        summary.added === 0 &&
+        summary.updated === 0 &&
+        summary.deleted === 0
+      ) {
+        console.log("No changes to sync");
+        return;
+      }
+
       console.log("Sync push complete");
       console.log(
         `- Added: ${summary.added}, Updated: ${summary.updated}, Deleted: ${summary.deleted}`,
@@ -58,21 +77,28 @@ export function registerSyncCommands(program: Command): void {
         force?: boolean;
         json?: boolean;
       }) => {
-        const summary = await engine.pull({
-          deleteExtra: options.delete,
-          noDelete: options.delete === false,
-          force: options.force,
-        });
+        try {
+          const summary = await engine.pull({
+            deleteExtra: options.delete,
+            noDelete: options.delete === false,
+            force: options.force,
+          });
 
-        if (options.json) {
-          console.log(JSON.stringify(summary, null, 2));
-          return;
+          if (options.json) {
+            console.log(JSON.stringify(summary, null, 2));
+            return;
+          }
+
+          console.log("Sync pull complete");
+          console.log(
+            `- Added: ${summary.added}, Updated: ${summary.updated}, Deleted: ${summary.deleted}`,
+          );
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          console.error(message);
+          process.exitCode = 1;
         }
-
-        console.log("Sync pull complete");
-        console.log(
-          `- Added: ${summary.added}, Updated: ${summary.updated}, Deleted: ${summary.deleted}`,
-        );
       },
     );
 
