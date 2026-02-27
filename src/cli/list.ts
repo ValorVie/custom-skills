@@ -7,7 +7,7 @@ import {
   collectSourceIndex,
   resolveResourceSource,
 } from "../tui/utils/source-index";
-import { printTable } from "../utils/formatter";
+import { printError, printTable } from "../utils/formatter";
 import { t } from "../utils/i18n";
 import { COPY_TARGETS, type ResourceType, type TargetType } from "../utils/shared";
 
@@ -56,6 +56,40 @@ function formatTypeLabel(type: ResourceType): string {
     default:
       return type;
   }
+}
+
+function isTarget(value: string): value is TargetType {
+  return value in COPY_TARGETS;
+}
+
+function isResourceType(value: string): value is ResourceType {
+  return (
+    value === "skills" ||
+    value === "commands" ||
+    value === "agents" ||
+    value === "workflows"
+  );
+}
+
+function validateListOptions(
+  target: string | undefined,
+  type: string | undefined,
+):
+  | { ok: true; target?: TargetType; type?: ResourceType }
+  | { ok: false; message: string } {
+  if (target && !isTarget(target)) {
+    return { ok: false, message: t("toggle.invalid_target", { target }) };
+  }
+
+  if (type && !isResourceType(type)) {
+    return { ok: false, message: t("toggle.invalid_type", { type }) };
+  }
+
+  if (target && type && !COPY_TARGETS[target][type]) {
+    return { ok: false, message: t("toggle.invalid_combo", { target, type }) };
+  }
+
+  return { ok: true, target, type };
 }
 
 function parseResourceEntry(
@@ -114,13 +148,20 @@ export function registerListCommand(program: Command): void {
     .option("--json", t("opt.json"))
     .action(
       async (options: {
-        target?: TargetType;
-        type?: ResourceType;
+        target?: string;
+        type?: string;
         hideDisabled?: boolean;
         json?: boolean;
       }) => {
-        const targets = options.target
-          ? [options.target]
+        const validated = validateListOptions(options.target, options.type);
+        if (!validated.ok) {
+          printError(validated.message);
+          process.exitCode = 1;
+          return;
+        }
+
+        const targets = validated.target
+          ? [validated.target]
           : (Object.keys(COPY_TARGETS) as TargetType[]);
 
         const output: ResourceItem[] = [];
@@ -128,8 +169,8 @@ export function registerListCommand(program: Command): void {
 
         for (const target of targets) {
           const targetMap = COPY_TARGETS[target];
-          const resourceTypes = options.type
-            ? [options.type]
+          const resourceTypes = validated.type
+            ? [validated.type]
             : (["skills", "commands", "agents", "workflows"] as const).filter(
                 (type) => Boolean(targetMap[type]),
               );

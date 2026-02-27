@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import pkg from "../../package.json";
 import { isLocale, setLocale, t } from "../utils/i18n";
 import { registerAddCustomRepoCommand } from "./add-custom-repo";
 import { registerAddRepoCommand } from "./add-repo";
@@ -23,7 +24,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("ai-dev")
     .description(t("cli.description"))
-    .version("2.0.0")
+    .version(pkg.version)
     .option("--lang <locale>", t("opt.lang"));
 
   program.hook("preAction", (command) => {

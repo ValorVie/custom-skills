@@ -29,7 +29,9 @@ async function getClaudeVersion(
     return null;
   }
 
-  return versionResult.stdout.trim().split(/\r?\n/)[0] ?? null;
+  const output = versionResult.stdout.trim() || versionResult.stderr.trim();
+  const firstLine = output.split(/\r?\n/)[0]?.trim() ?? "";
+  return firstLine.length > 0 ? firstLine : null;
 }
 
 export async function getClaudeInstallType(

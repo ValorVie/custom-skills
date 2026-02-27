@@ -78,6 +78,25 @@ describe("core/claude-code-manager", () => {
     expect(progress.some((line) => line.includes("Claude Code"))).toBe(true);
   });
 
+  test("showClaudeStatus falls back to stderr for version output", async () => {
+    const result = await showClaudeStatus(() => {}, {
+      commandExistsFn: (command: string) => command === "claude",
+      runCommandFn: async (command: string[]) => {
+        if (command[0] === "npm" && command[1] === "list") {
+          return { exitCode: 1, stdout: "", stderr: "" };
+        }
+        if (command[0] === "claude" && command[1] === "--version") {
+          return { exitCode: 0, stdout: "", stderr: "2.2.0\n" };
+        }
+
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    expect(result.type).toBe("native");
+    expect(result.version).toBe("2.2.0");
+  });
+
   test("updateClaudeCode uses npm update path for npm installs", async () => {
     const commands: string[][] = [];
 

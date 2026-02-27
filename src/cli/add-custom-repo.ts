@@ -9,7 +9,12 @@ import {
   validateRepoStructure,
 } from "../core/custom-repo-manager";
 import { addCustomRepo, parseRepoUrl } from "../utils/custom-repos";
-import { printSuccess, printTable, printWarning } from "../utils/formatter";
+import {
+  printError,
+  printSuccess,
+  printTable,
+  printWarning,
+} from "../utils/formatter";
 import { t } from "../utils/i18n";
 import { runCommand } from "../utils/system";
 
@@ -68,7 +73,18 @@ export function registerAddCustomRepoCommand(program: Command): void {
           validation = await validateRepoStructure(localPath);
         }
 
-        await addCustomRepo(name, parsed.url, options.branch, localPath);
+        try {
+          await addCustomRepo(name, parsed.url, options.branch, localPath);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (message.toLowerCase().includes("already")) {
+            printWarning(message);
+          } else {
+            printError(message);
+          }
+          process.exitCode = 1;
+          return;
+        }
 
         printSuccess(t("add_custom.added", { name }));
         printTable(

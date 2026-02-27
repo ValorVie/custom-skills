@@ -132,6 +132,24 @@ export async function addCustomRepo(
   localPath: string,
 ): Promise<void> {
   const config = await loadCustomRepos();
+
+  if (config.repos[name]) {
+    throw new Error(`Custom repository already exists: ${name}`);
+  }
+
+  const newRepoPath = normalizeRepoPath(url);
+  const duplicate = Object.values(config.repos).some((entry) => {
+    const existingRepoPath = normalizeRepoPath(entry.url);
+    if (newRepoPath && existingRepoPath) {
+      return existingRepoPath === newRepoPath;
+    }
+    return entry.url === url;
+  });
+
+  if (duplicate) {
+    throw new Error(`Custom repository already tracked: ${url}`);
+  }
+
   config.repos[name] = {
     url,
     branch,
@@ -139,4 +157,12 @@ export async function addCustomRepo(
     addedAt: new Date().toISOString(),
   };
   await saveCustomRepos(config);
+}
+
+function normalizeRepoPath(input: string): string | null {
+  try {
+    return parseRepoUrl(input).repoPath.toLowerCase();
+  } catch {
+    return null;
+  }
 }
