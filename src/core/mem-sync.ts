@@ -357,6 +357,339 @@ function upsertPulledObservations(
   }
 }
 
+interface MemImportStats {
+  sessionsImported: number;
+  sessionsSkipped: number;
+  observationsImported: number;
+  observationsSkipped: number;
+  summariesImported: number;
+  summariesSkipped: number;
+  promptsImported: number;
+  promptsSkipped: number;
+}
+
+interface MemPullPayload {
+  sessions: Record<string, unknown>[];
+  observations: Record<string, unknown>[];
+  summaries: Record<string, unknown>[];
+  prompts: Record<string, unknown>[];
+}
+
+function zeroImportStats(): MemImportStats {
+  return {
+    sessionsImported: 0,
+    sessionsSkipped: 0,
+    observationsImported: 0,
+    observationsSkipped: 0,
+    summariesImported: 0,
+    summariesSkipped: 0,
+    promptsImported: 0,
+    promptsSkipped: 0,
+  };
+}
+
+function normalizeImportStats(
+  stats: Partial<MemImportStats> | undefined,
+): MemImportStats {
+  const base = zeroImportStats();
+  if (!stats) {
+    return base;
+  }
+
+  return {
+    sessionsImported:
+      typeof stats.sessionsImported === "number" ? stats.sessionsImported : 0,
+    sessionsSkipped:
+      typeof stats.sessionsSkipped === "number" ? stats.sessionsSkipped : 0,
+    observationsImported:
+      typeof stats.observationsImported === "number"
+        ? stats.observationsImported
+        : 0,
+    observationsSkipped:
+      typeof stats.observationsSkipped === "number"
+        ? stats.observationsSkipped
+        : 0,
+    summariesImported:
+      typeof stats.summariesImported === "number" ? stats.summariesImported : 0,
+    summariesSkipped:
+      typeof stats.summariesSkipped === "number" ? stats.summariesSkipped : 0,
+    promptsImported:
+      typeof stats.promptsImported === "number" ? stats.promptsImported : 0,
+    promptsSkipped:
+      typeof stats.promptsSkipped === "number" ? stats.promptsSkipped : 0,
+  };
+}
+
+function ensurePullImportTables(dbPath: string): void {
+  const db = openDb(dbPath, false);
+  try {
+    db.run(
+      `CREATE TABLE IF NOT EXISTS sdk_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content_session_id TEXT UNIQUE,
+        memory_session_id TEXT,
+        project TEXT,
+        user_prompt TEXT,
+        custom_title TEXT,
+        started_at TEXT,
+        started_at_epoch INTEGER,
+        completed_at TEXT,
+        completed_at_epoch INTEGER,
+        status TEXT,
+        worker_port INTEGER,
+        prompt_counter INTEGER
+      )`,
+    );
+    db.run(
+      `CREATE TABLE IF NOT EXISTS session_summaries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT UNIQUE,
+        memory_session_id TEXT,
+        project TEXT,
+        request TEXT,
+        investigated TEXT,
+        learned TEXT,
+        completed TEXT,
+        next_steps TEXT,
+        files_read TEXT,
+        files_edited TEXT,
+        notes TEXT,
+        prompt_number INTEGER,
+        discovery_tokens INTEGER,
+        created_at TEXT,
+        created_at_epoch INTEGER
+      )`,
+    );
+    db.run(
+      `CREATE TABLE IF NOT EXISTS user_prompts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content_session_id TEXT,
+        project TEXT,
+        prompt_number INTEGER,
+        prompt_text TEXT,
+        created_at TEXT,
+        created_at_epoch INTEGER,
+        UNIQUE(content_session_id, prompt_number)
+      )`,
+    );
+  } finally {
+    db.close();
+  }
+}
+
+function tableColumns(db: ReturnType<typeof openDb>, tableName: string): Set<string> {
+  try {
+    const rows = db.query(`PRAGMA table_info(${tableName})`).all() as {
+      name: string;
+    }[];
+    return new Set(rows.map((row) => row.name));
+  } catch {
+    return new Set();
+  }
+}
+
+function insertRowWithAvailableColumns(
+  db: ReturnType<typeof openDb>,
+  tableName: string,
+  row: Record<string, unknown>,
+  availableColumns: Set<string>,
+): boolean {
+  const columns = Object.keys(row).filter(
+    (key) => key !== "id" && availableColumns.has(key) && row[key] !== undefined,
+  );
+  if (columns.length === 0) {
+    return false;
+  }
+
+  const placeholders = columns.map(() => "?").join(", ");
+  const values = columns.map((column) => row[column] ?? null);
+  try {
+    db.run(
+      `INSERT OR IGNORE INTO ${tableName} (${columns.join(", ")}) VALUES (${placeholders})`,
+      ...values,
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function rowExists(
+  db: ReturnType<typeof openDb>,
+  tableName: string,
+  clauses: Array<{ column: string; value: unknown }>,
+): boolean {
+  const filtered = clauses.filter(
+    ({ column, value }) =>
+      column.trim().length > 0 && value !== undefined && value !== null,
+  );
+  if (filtered.length === 0) {
+    return false;
+  }
+
+  const where = filtered.map(({ column }) => `${column} = ?`).join(" AND ");
+  const values = filtered.map(({ value }) => value);
+  try {
+    const existing = db
+      .query(`SELECT 1 FROM ${tableName} WHERE ${where} LIMIT 1`)
+      .get(...values) as { 1?: number } | null;
+    return existing !== null;
+  } catch {
+    return false;
+  }
+}
+
+function importPulledDataWithSqlite(
+  dbPath: string,
+  payload: MemPullPayload,
+): MemImportStats {
+  ensurePullImportTables(dbPath);
+  const stats = zeroImportStats();
+
+  const db = openDb(dbPath, false);
+  try {
+    const sessionColumns = tableColumns(db, "sdk_sessions");
+    const summaryColumns = tableColumns(db, "session_summaries");
+    const promptColumns = tableColumns(db, "user_prompts");
+
+    for (const rawSession of payload.sessions) {
+      const session = rawSession as Record<string, unknown>;
+      const sessionId = session.content_session_id;
+      if (
+        sessionColumns.has("content_session_id") &&
+        rowExists(db, "sdk_sessions", [
+          { column: "content_session_id", value: sessionId },
+        ])
+      ) {
+        stats.sessionsSkipped += 1;
+        continue;
+      }
+
+      if (insertRowWithAvailableColumns(db, "sdk_sessions", session, sessionColumns)) {
+        stats.sessionsImported += 1;
+      } else {
+        stats.sessionsSkipped += 1;
+      }
+    }
+
+    const importedObservations = upsertPulledObservations(
+      dbPath,
+      payload.observations,
+    );
+    stats.observationsImported += importedObservations;
+    stats.observationsSkipped += payload.observations.length - importedObservations;
+
+    for (const rawSummary of payload.summaries) {
+      const summary = { ...rawSummary } as Record<string, unknown>;
+      const summarySessionId =
+        summary.session_id ?? summary.memory_session_id ?? null;
+
+      if (summarySessionId !== null && summary.session_id === undefined) {
+        summary.session_id = summarySessionId;
+      }
+      if (summarySessionId !== null && summary.memory_session_id === undefined) {
+        summary.memory_session_id = summarySessionId;
+      }
+
+      const summaryChecks: Array<{ column: string; value: unknown }> = [];
+      if (summaryColumns.has("session_id")) {
+        summaryChecks.push({
+          column: "session_id",
+          value: summary.session_id,
+        });
+      }
+      if (summaryChecks.length === 0 && summaryColumns.has("memory_session_id")) {
+        summaryChecks.push({
+          column: "memory_session_id",
+          value: summary.memory_session_id,
+        });
+      }
+
+      if (rowExists(db, "session_summaries", summaryChecks)) {
+        stats.summariesSkipped += 1;
+        continue;
+      }
+
+      if (
+        insertRowWithAvailableColumns(
+          db,
+          "session_summaries",
+          summary,
+          summaryColumns,
+        )
+      ) {
+        stats.summariesImported += 1;
+      } else {
+        stats.summariesSkipped += 1;
+      }
+    }
+
+    for (const rawPrompt of payload.prompts) {
+      const prompt = rawPrompt as Record<string, unknown>;
+      const promptChecks: Array<{ column: string; value: unknown }> = [];
+      if (
+        promptColumns.has("content_session_id") &&
+        promptColumns.has("prompt_number")
+      ) {
+        promptChecks.push({
+          column: "content_session_id",
+          value: prompt.content_session_id,
+        });
+        promptChecks.push({
+          column: "prompt_number",
+          value: prompt.prompt_number,
+        });
+      }
+
+      if (rowExists(db, "user_prompts", promptChecks)) {
+        stats.promptsSkipped += 1;
+        continue;
+      }
+
+      if (
+        insertRowWithAvailableColumns(db, "user_prompts", prompt, promptColumns)
+      ) {
+        stats.promptsImported += 1;
+      } else {
+        stats.promptsSkipped += 1;
+      }
+    }
+  } finally {
+    db.close();
+  }
+
+  return stats;
+}
+
+async function importPulledData(
+  dbPath: string,
+  payload: MemPullPayload,
+): Promise<{ method: "api" | "sqlite"; stats: MemImportStats }> {
+  const apiPayload = await requestJson<{ stats?: Partial<MemImportStats> }>(
+    `${WORKER_URL}/api/import`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    120_000,
+  );
+
+  if (apiPayload) {
+    return {
+      method: "api",
+      stats: normalizeImportStats(apiPayload.stats),
+    };
+  }
+
+  return {
+    method: "sqlite",
+    stats: importPulledDataWithSqlite(dbPath, payload),
+  };
+}
+
 function countPendingObservations(
   dbPath: string,
   lastPushEpoch: number,
@@ -821,6 +1154,12 @@ export async function pullMemData(
   const received = zeroCat();
   const imported = zeroCat();
   const skippedDetail = zeroCat();
+  const pulledData: MemPullPayload = {
+    sessions: [],
+    observations: [],
+    summaries: [],
+    prompts: [],
+  };
 
   if (config.serverUrl && config.apiKey) {
     let since = config.lastPullEpoch > 0 ? config.lastPullEpoch * 1000 : 0;
@@ -860,15 +1199,10 @@ export async function pullMemData(
       received.prompts += prompts.length;
       totalReceived += observations.length;
 
-      const insertedCount = upsertPulledObservations(dbPath, observations);
-      pulled += insertedCount;
-      imported.observations += insertedCount;
-      skippedDetail.observations += observations.length - insertedCount;
-
-      // Sessions, summaries, prompts are tracked but not stored locally
-      imported.sessions += sessions.length;
-      imported.summaries += summaries.length;
-      imported.prompts += prompts.length;
+      pulledData.sessions.push(...sessions);
+      pulledData.observations.push(...observations);
+      pulledData.summaries.push(...summaries);
+      pulledData.prompts.push(...prompts);
 
       hasMore = Boolean(payload.has_more);
       if (typeof payload.next_since === "number") {
@@ -876,6 +1210,25 @@ export async function pullMemData(
       } else {
         hasMore = false;
       }
+    }
+
+    if (
+      pulledData.sessions.length > 0 ||
+      pulledData.observations.length > 0 ||
+      pulledData.summaries.length > 0 ||
+      pulledData.prompts.length > 0
+    ) {
+      const importResult = await importPulledData(dbPath, pulledData);
+      const stats = importResult.stats;
+      pulled += stats.observationsImported;
+      imported.sessions += stats.sessionsImported;
+      imported.observations += stats.observationsImported;
+      imported.summaries += stats.summariesImported;
+      imported.prompts += stats.promptsImported;
+      skippedDetail.sessions += stats.sessionsSkipped;
+      skippedDetail.observations += stats.observationsSkipped;
+      skippedDetail.summaries += stats.summariesSkipped;
+      skippedDetail.prompts += stats.promptsSkipped;
     }
   }
 
