@@ -77,7 +77,10 @@ export function registerAddCustomRepoCommand(program: Command): void {
           await addCustomRepo(name, parsed.url, options.branch, localPath);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          if (message.toLowerCase().includes("already")) {
+          if (
+            message.toLowerCase().includes("already") ||
+            message.includes("已存在")
+          ) {
             printWarning(message);
           } else {
             printError(message);

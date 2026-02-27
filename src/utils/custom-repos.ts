@@ -134,7 +134,7 @@ export async function addCustomRepo(
   const config = await loadCustomRepos();
 
   if (config.repos[name]) {
-    throw new Error(`Custom repository already exists: ${name}`);
+    throw new Error(`${name} 已存在於 repos.yaml`);
   }
 
   const newRepoPath = normalizeRepoPath(url);
@@ -147,7 +147,7 @@ export async function addCustomRepo(
   });
 
   if (duplicate) {
-    throw new Error(`Custom repository already tracked: ${url}`);
+    throw new Error(`此 repo 已存在於 repos.yaml：${url}`);
   }
 
   config.repos[name] = {

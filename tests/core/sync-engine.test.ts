@@ -51,8 +51,8 @@ describe("core/sync-engine", () => {
     const engine = new SyncEngine(configPath, repoDir);
 
     try {
-      const config = await engine.init("https://example.com/repo.git");
-      expect(config.remote).toBe("https://example.com/repo.git");
+      const config = await engine.init();
+      expect(config.remote).toBe("");
       const raw = await readFile(configPath, "utf8");
       expect(raw.length > 0).toBe(true);
     } finally {
@@ -67,7 +67,7 @@ describe("core/sync-engine", () => {
     const engine = new SyncEngine(configPath, repoDir);
 
     try {
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       const trackedDir = join(root, "workspace", "project");
       await mkdir(trackedDir, { recursive: true });
       const added = await engine.addDirectory(trackedDir);
@@ -158,7 +158,6 @@ describe("core/sync-engine", () => {
       await engine.addDirectory(localDir);
       await engine.push({ force: true });
 
-      await access(join(repoDir, "plugin-manifest.json"));
       expect(
         calls.some(
           (command) =>

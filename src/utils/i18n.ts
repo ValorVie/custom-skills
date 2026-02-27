@@ -115,6 +115,9 @@ const messages: Record<Locale, Record<string, string>> = {
     "list.no_resources": "No resources found.",
     "list.status_enabled": "✓ Enabled",
     "list.status_disabled": "✗ Disabled",
+    "list.invalid_target": "Invalid target: {target}",
+    "list.invalid_type": "Invalid type: {type}",
+    "list.invalid_combo": "Invalid target/type combination: {target}/{type}",
 
     "toggle.invalid_target": "Invalid target: {target}",
     "toggle.invalid_type": "Invalid type: {type}",
@@ -401,6 +404,9 @@ const messages: Record<Locale, Record<string, string>> = {
     "list.no_resources": "找不到資源。",
     "list.status_enabled": "✓ 已啟用",
     "list.status_disabled": "✗ 已停用",
+    "list.invalid_target": "無效的目標：{target}",
+    "list.invalid_type": "無效的類型：{type}",
+    "list.invalid_combo": "無效的 target/type 組合：{target}/{type}",
 
     "toggle.invalid_target": "無效 target: {target}",
     "toggle.invalid_type": "無效 type: {type}",

@@ -15,16 +15,23 @@ export function registerSyncCommands(program: Command): void {
     .requiredOption("--remote <url>", t("opt.remote"))
     .option("--json", t("opt.json"))
     .action(async (options: { remote: string; json?: boolean }) => {
-      const config = await engine.init(options.remote);
+      try {
+        const config = await engine.init(options.remote);
 
-      if (options.json) {
-        console.log(JSON.stringify(config, null, 2));
-        return;
+        if (options.json) {
+          console.log(JSON.stringify(config, null, 2));
+          return;
+        }
+
+        console.log("Sync initialized");
+        console.log(`- Remote: ${config.remote || "(local)"}`);
+        console.log(`- Directories: ${config.directories.length}`);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        console.error(message);
+        process.exitCode = 1;
       }
-
-      console.log("Sync initialized");
-      console.log(`- Remote: ${config.remote || "(local)"}`);
-      console.log(`- Directories: ${config.directories.length}`);
     });
 
   sync

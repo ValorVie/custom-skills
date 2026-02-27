@@ -26,9 +26,10 @@
 
 ### 驗證摘要（本次）
 
-- 針對 mem/sync parity 修復測試集合：`79 pass / 0 fail`
-- 涵蓋：core parity（P0/P1）、CLI parity（P2）、既有回歸測試（`sync-engine`/`mem-sync`/`smoke`）全綠
-- 本報告中 `mem/sync` 範圍可視為已完成 v1/v2 對齊；其餘非本次範圍差異維持既有盤點結果
+- 針對 mem/sync parity 修復測試集合：`104 pass / 0 fail`
+- 補充跨指令 parity/整合測試集合：`36 pass / 0 fail`
+- 涵蓋：core parity（P0/P1）、CLI parity（P2）、既有回歸測試（`sync-engine`/`mem-sync`/`smoke`）與 standards/project/tui/clone/phase3 測試全綠
+- `HOME=/tmp bun test` 全量測試仍有 `plugins/ecc-hooks` integration 既有失敗（非 v1/v2 parity 範圍）
 
 
 ## 總覽

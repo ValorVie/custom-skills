@@ -27,7 +27,7 @@ describe("core/sync-engine pull parity", () => {
       await mkdir(localDir, { recursive: true });
       await writeFile(join(localDir, "a.txt"), "local\n", "utf8");
 
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       const config = await engine.addDirectory(localDir);
       const tracked = config.directories.find((item) => item.path === localDir);
@@ -88,7 +88,7 @@ describe("core/sync-engine pull parity", () => {
     try {
       await mkdir(localDir, { recursive: true });
       await writeFile(join(localDir, "a.txt"), "local\n", "utf8");
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
 

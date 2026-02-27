@@ -1,4 +1,12 @@
-import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { basename, dirname, join, relative } from "node:path";
 
 import inquirer from "inquirer";
@@ -43,6 +51,7 @@ export interface SyncEngineDeps {
   runCommandFn?: typeof runCommand;
   pullConflictChoiceFn?: () => Promise<PullConflictChoice>;
   confirmForcePushFn?: () => Promise<boolean>;
+  confirmReinitFn?: () => Promise<boolean>;
 }
 
 export function defaultDirectories(): SyncDirectory[] {
@@ -184,6 +193,15 @@ async function pathExists(pathValue: string): Promise<boolean> {
   try {
     await stat(pathValue);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+async function directoryHasContents(pathValue: string): Promise<boolean> {
+  try {
+    const entries = await readdir(pathValue);
+    return entries.length > 0;
   } catch {
     return false;
   }
@@ -344,6 +362,226 @@ async function syncDirectory(
   return { added: 1, updated: 1, deleted };
 }
 
+type PluginManifest = {
+  version: number;
+  marketplaces: Record<string, unknown>;
+  plugins: Array<Record<string, unknown>>;
+  enabledPlugins: string[];
+};
+
+async function readJsonObject(
+  pathValue: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const raw = await readFile(pathValue, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+async function generatePluginManifest(
+  localClaudePath: string,
+): Promise<PluginManifest | null> {
+  const installedPath = join(localClaudePath, "plugins", "installed_plugins.json");
+  const marketplacesPath = join(
+    localClaudePath,
+    "plugins",
+    "known_marketplaces.json",
+  );
+  const settingsPath = join(localClaudePath, "settings.json");
+
+  const [installed, marketplaces, settings] = await Promise.all([
+    readJsonObject(installedPath),
+    readJsonObject(marketplacesPath),
+    readJsonObject(settingsPath),
+  ]);
+
+  if (!installed && !marketplaces) {
+    return null;
+  }
+
+  const manifest: PluginManifest = {
+    version: 1,
+    marketplaces: {},
+    plugins: [],
+    enabledPlugins: [],
+  };
+
+  if (marketplaces) {
+    for (const [name, info] of Object.entries(marketplaces)) {
+      if (!info || typeof info !== "object" || Array.isArray(info)) {
+        continue;
+      }
+      const source = (info as Record<string, unknown>).source;
+      manifest.marketplaces[name] = source ?? {};
+    }
+  }
+
+  const pluginsField = installed?.plugins;
+  if (
+    pluginsField &&
+    typeof pluginsField === "object" &&
+    !Array.isArray(pluginsField)
+  ) {
+    for (const [pluginName, entries] of Object.entries(pluginsField)) {
+      if (!Array.isArray(entries) || entries.length === 0) {
+        continue;
+      }
+      const latest = entries[entries.length - 1];
+      if (!latest || typeof latest !== "object" || Array.isArray(latest)) {
+        continue;
+      }
+      const latestRecord = latest as Record<string, unknown>;
+      manifest.plugins.push({
+        name: pluginName,
+        version:
+          typeof latestRecord.version === "string" ? latestRecord.version : "",
+        scope: typeof latestRecord.scope === "string" ? latestRecord.scope : "user",
+      });
+    }
+  }
+
+  const enabled = settings?.enabledPlugins;
+  if (enabled && typeof enabled === "object" && !Array.isArray(enabled)) {
+    manifest.enabledPlugins = Object.keys(enabled);
+  }
+
+  return manifest;
+}
+
+async function restorePluginsFromManifest(
+  manifestPath: string,
+  localClaudePath: string,
+  runCommandFn: typeof runCommand = runCommand,
+): Promise<void> {
+  const manifest = await readJsonObject(manifestPath);
+  if (!manifest) {
+    return;
+  }
+
+  const knownMarketplaces: Record<
+    string,
+    { source: Record<string, unknown>; path: string }
+  > = {};
+  const marketplaces = manifest.marketplaces;
+  if (marketplaces && typeof marketplaces === "object" && !Array.isArray(marketplaces)) {
+    for (const [name, sourceValue] of Object.entries(marketplaces)) {
+      if (!sourceValue || typeof sourceValue !== "object" || Array.isArray(sourceValue)) {
+        continue;
+      }
+
+      const source = sourceValue as Record<string, unknown>;
+      const sourceType = typeof source.source === "string" ? source.source : "";
+      let cloneUrl = "";
+      if (sourceType === "github") {
+        const owner = typeof source.owner === "string" ? source.owner : "";
+        const repo = typeof source.repo === "string" ? source.repo : "";
+        if (owner && repo) {
+          cloneUrl = `https://github.com/${owner}/${repo}.git`;
+        }
+      } else if (sourceType === "git") {
+        cloneUrl = typeof source.url === "string" ? source.url : "";
+      }
+
+      const marketplaceDir = join(localClaudePath, "plugins", "marketplaces", name);
+      if (cloneUrl && !(await pathExists(marketplaceDir))) {
+        await mkdir(dirname(marketplaceDir), { recursive: true });
+        const cloneResult = await runCommandFn(
+          ["git", "clone", "--depth", "1", cloneUrl, marketplaceDir],
+          {
+            check: false,
+            timeoutMs: 120_000,
+          },
+        );
+        if (cloneResult.exitCode !== 0) {
+          continue;
+        }
+      }
+
+      if (await pathExists(marketplaceDir)) {
+        knownMarketplaces[name] = {
+          source,
+          path: marketplaceDir,
+        };
+      }
+    }
+  }
+
+  if (Object.keys(knownMarketplaces).length > 0) {
+    const knownMarketplacesPath = join(
+      localClaudePath,
+      "plugins",
+      "known_marketplaces.json",
+    );
+    await mkdir(dirname(knownMarketplacesPath), { recursive: true });
+    await writeFile(
+      knownMarketplacesPath,
+      `${JSON.stringify(knownMarketplaces, null, 2)}\n`,
+      "utf8",
+    );
+  }
+
+  const pluginsValue = manifest.plugins;
+  const plugins = Array.isArray(pluginsValue) ? pluginsValue : [];
+  for (const plugin of plugins) {
+    if (!plugin || typeof plugin !== "object" || Array.isArray(plugin)) {
+      continue;
+    }
+    const record = plugin as Record<string, unknown>;
+    const pluginName = typeof record.name === "string" ? record.name : "";
+    if (!pluginName) {
+      continue;
+    }
+
+    const pluginDir = join(localClaudePath, "plugins", pluginName);
+    if (!(await pathExists(pluginDir))) {
+      await mkdir(pluginDir, { recursive: true });
+    }
+
+    const metadata = {
+      name: pluginName,
+      version: typeof record.version === "string" ? record.version : "",
+      scope: typeof record.scope === "string" ? record.scope : "user",
+    };
+    await writeFile(
+      join(pluginDir, ".claude-plugin"),
+      JSON.stringify(metadata, null, 2),
+      "utf8",
+    );
+  }
+
+  const settingsPath = join(localClaudePath, "settings.json");
+  const settings = (await readJsonObject(settingsPath)) ?? {};
+  const enabledRaw = manifest.enabledPlugins;
+  const enabledPlugins = Array.isArray(enabledRaw)
+    ? enabledRaw.filter(
+        (item): item is string => typeof item === "string" && item.length > 0,
+      )
+    : [];
+
+  if (enabledPlugins.length > 0) {
+    const existingEnabled = settings.enabledPlugins;
+    const enabledRecord =
+      existingEnabled &&
+      typeof existingEnabled === "object" &&
+      !Array.isArray(existingEnabled)
+        ? ({ ...existingEnabled } as Record<string, unknown>)
+        : {};
+
+    for (const pluginName of enabledPlugins) {
+      enabledRecord[pluginName] = {};
+    }
+    settings.enabledPlugins = enabledRecord;
+    await mkdir(dirname(settingsPath), { recursive: true });
+    await writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+  }
+}
+
 async function ensureFileContains(
   pathValue: string,
   lines: string[],
@@ -401,12 +639,27 @@ async function defaultForcePushConfirmation(): Promise<boolean> {
   return Boolean(answer.confirmed);
 }
 
+async function defaultReinitConfirmation(): Promise<boolean> {
+  const answer = await inquirer.prompt<{ confirmed: boolean }>([
+    {
+      type: "confirm",
+      name: "confirmed",
+      message: "已存在 sync.yaml，是否重新初始化（覆蓋設定）？",
+      default: false,
+    },
+  ]);
+
+  return Boolean(answer.confirmed);
+}
+
 export class SyncEngine {
   private readonly runCommandFn: typeof runCommand;
 
   private readonly pullConflictChoiceFn: () => Promise<PullConflictChoice>;
 
   private readonly confirmForcePushFn: () => Promise<boolean>;
+
+  private readonly confirmReinitFn: () => Promise<boolean>;
 
   constructor(
     private readonly configPath: string = paths.syncConfig,
@@ -418,6 +671,7 @@ export class SyncEngine {
       deps.pullConflictChoiceFn ?? defaultPullConflictChoice;
     this.confirmForcePushFn =
       deps.confirmForcePushFn ?? defaultForcePushConfirmation;
+    this.confirmReinitFn = deps.confirmReinitFn ?? defaultReinitConfirmation;
   }
 
   async loadConfig(): Promise<SyncConfig | null> {
@@ -435,18 +689,62 @@ export class SyncEngine {
   }
 
   async init(remote = ""): Promise<SyncConfig> {
+    const existingConfig = await this.loadConfig();
+    if (existingConfig) {
+      const confirmed = await this.confirmReinitFn();
+      if (!confirmed) {
+        throw new Error("sync init cancelled by user");
+      }
+    }
+
     await mkdir(dirname(this.repoDir), { recursive: true });
 
+    let clonedFromRemote = false;
     if (remote) {
-      const cloneResult = await this.runCommandFn(
-        ["git", "clone", remote, this.repoDir],
-        {
-          check: false,
-          timeoutMs: 120_000,
-        },
-      );
-      if (cloneResult.exitCode !== 0) {
-        throw new Error("git clone 失敗");
+      if (await pathExists(join(this.repoDir, ".git"))) {
+        const setRemoteResult = await this.runCommandFn(
+          ["git", "-C", this.repoDir, "remote", "set-url", "origin", remote],
+          {
+            check: false,
+            timeoutMs: 60_000,
+          },
+        );
+        if (setRemoteResult.exitCode !== 0) {
+          const addRemoteResult = await this.runCommandFn(
+            ["git", "-C", this.repoDir, "remote", "add", "origin", remote],
+            {
+              check: false,
+              timeoutMs: 60_000,
+            },
+          );
+          if (addRemoteResult.exitCode !== 0) {
+            throw new Error("git remote 設定失敗");
+          }
+        }
+
+        const fetchResult = await this.runCommandFn(
+          ["git", "-C", this.repoDir, "fetch", "origin"],
+          {
+            check: false,
+            timeoutMs: 60_000,
+          },
+        );
+        if (fetchResult.exitCode !== 0) {
+          throw new Error("git fetch 失敗");
+        }
+      } else {
+        await rm(this.repoDir, { recursive: true, force: true });
+        const cloneResult = await this.runCommandFn(
+          ["git", "clone", remote, this.repoDir],
+          {
+            check: false,
+            timeoutMs: 120_000,
+          },
+        );
+        if (cloneResult.exitCode !== 0) {
+          throw new Error("git clone 失敗");
+        }
+        clonedFromRemote = true;
       }
     } else {
       await mkdir(this.repoDir, { recursive: true });
@@ -483,6 +781,84 @@ export class SyncEngine {
       await mkdir(join(this.repoDir, directory.repoSubdir), {
         recursive: true,
       });
+    }
+
+    if (remote) {
+      for (const directory of config.directories) {
+        const repoPath = join(this.repoDir, directory.repoSubdir);
+        const localPath = expandHome(directory.path);
+        const ignorePatterns = resolveIgnorePatterns(
+          directory.ignoreProfile,
+          directory.customIgnore,
+        );
+        const hasRemoteContent = await directoryHasContents(repoPath);
+
+        if (clonedFromRemote && hasRemoteContent) {
+          await syncDirectory(repoPath, localPath, false, ignorePatterns);
+        }
+        if (directory.ignoreProfile === "claude" && hasRemoteContent) {
+          await restorePluginsFromManifest(
+            join(repoPath, "plugins", "plugin-manifest.json"),
+            localPath,
+            this.runCommandFn,
+          );
+        }
+
+        await syncDirectory(localPath, repoPath, true, ignorePatterns);
+      }
+
+      await this.writePluginManifest(config);
+
+      await this.runCommandFn(["git", "-C", this.repoDir, "add", "-A"], {
+        check: false,
+        timeoutMs: 60_000,
+      });
+      const commit = await this.runCommandFn(
+        [
+          "git",
+          "-C",
+          this.repoDir,
+          "commit",
+          "-m",
+          `sync update ${new Date().toISOString()}`,
+        ],
+        {
+          check: false,
+          timeoutMs: 60_000,
+        },
+      );
+      const commitOutput = `${commit.stdout}\n${commit.stderr}`.toLowerCase();
+      const noChanges =
+        commit.exitCode !== 0 &&
+        (commitOutput.includes("nothing to commit") ||
+          commitOutput.includes("no changes added to commit"));
+      if (commit.exitCode !== 0 && !noChanges) {
+        throw new Error("git commit 失敗");
+      }
+
+      const pullResult = await this.runCommandFn(
+        ["git", "-C", this.repoDir, "pull", "--rebase"],
+        {
+          check: false,
+          timeoutMs: 60_000,
+        },
+      );
+      if (pullResult.exitCode !== 0) {
+        throw new Error("git pull --rebase 失敗");
+      }
+
+      const pushResult = await this.runCommandFn(
+        ["git", "-C", this.repoDir, "push"],
+        {
+          check: false,
+          timeoutMs: 60_000,
+        },
+      );
+      if (pushResult.exitCode !== 0) {
+        throw new Error("git push 失敗");
+      }
+
+      config.lastSync = new Date().toISOString();
     }
 
     await this.saveConfig(config);
@@ -681,19 +1057,27 @@ export class SyncEngine {
   }
 
   private async writePluginManifest(config: SyncConfig): Promise<void> {
-    const manifest = {
-      generatedAt: new Date().toISOString(),
-      directories: config.directories.map((directory) => ({
-        path: directory.path,
-        repoSubdir: directory.repoSubdir,
-      })),
-    };
-
-    await writeFile(
-      join(this.repoDir, "plugin-manifest.json"),
-      JSON.stringify(manifest, null, 2),
-      "utf8",
+    const claudeDirectory = config.directories.find(
+      (directory) => directory.ignoreProfile === "claude",
     );
+    if (!claudeDirectory) {
+      return;
+    }
+
+    const localClaudePath = expandHome(claudeDirectory.path);
+    const manifest = await generatePluginManifest(localClaudePath);
+    if (!manifest) {
+      return;
+    }
+
+    const manifestPath = join(
+      this.repoDir,
+      claudeDirectory.repoSubdir,
+      "plugins",
+      "plugin-manifest.json",
+    );
+    await mkdir(dirname(manifestPath), { recursive: true });
+    await writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
   }
 
   async push(options: { force?: boolean } = {}): Promise<SyncSummary> {
@@ -726,15 +1110,30 @@ export class SyncEngine {
 
     await this.writePluginManifest(config);
 
-    const prePushPull = await this.runCommandFn(
-      ["git", "-C", this.repoDir, "pull", "--rebase"],
-      {
-        check: false,
-        timeoutMs: 60_000,
-      },
-    );
-    if (prePushPull.exitCode !== 0) {
-      throw new Error("git pull --rebase 失敗");
+    if (!options.force) {
+      const localStatus = await this.runCommandFn(
+        ["git", "-C", this.repoDir, "status", "--porcelain"],
+        {
+          check: false,
+          timeoutMs: 60_000,
+        },
+      );
+      if (localStatus.exitCode === 0 && localStatus.stdout.trim().length === 0) {
+        return { added: 0, updated: 0, deleted: 0 };
+      }
+    }
+
+    if (!options.force) {
+      const prePushPull = await this.runCommandFn(
+        ["git", "-C", this.repoDir, "pull", "--rebase"],
+        {
+          check: false,
+          timeoutMs: 60_000,
+        },
+      );
+      if (prePushPull.exitCode !== 0) {
+        throw new Error("git pull --rebase 失敗");
+      }
     }
 
     await this.runCommandFn(["git", "-C", this.repoDir, "add", "-A"], {
@@ -761,10 +1160,11 @@ export class SyncEngine {
       commit.exitCode !== 0 &&
       (commitOutput.includes("nothing to commit") ||
         commitOutput.includes("no changes added to commit"));
-    if (noChanges && !options.force) {
-      return { added: 0, updated: 0, deleted: 0 };
-    }
-    if (commit.exitCode !== 0) {
+    if (noChanges) {
+      if (!options.force) {
+        return { added: 0, updated: 0, deleted: 0 };
+      }
+    } else if (commit.exitCode !== 0) {
       throw new Error("git commit 失敗");
     }
 

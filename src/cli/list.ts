@@ -78,15 +78,15 @@ function validateListOptions(
   | { ok: true; target?: TargetType; type?: ResourceType }
   | { ok: false; message: string } {
   if (target && !isTarget(target)) {
-    return { ok: false, message: t("toggle.invalid_target", { target }) };
+    return { ok: false, message: t("list.invalid_target", { target }) };
   }
 
   if (type && !isResourceType(type)) {
-    return { ok: false, message: t("toggle.invalid_type", { type }) };
+    return { ok: false, message: t("list.invalid_type", { type }) };
   }
 
   if (target && type && !COPY_TARGETS[target][type]) {
-    return { ok: false, message: t("toggle.invalid_combo", { target, type }) };
+    return { ok: false, message: t("list.invalid_combo", { target, type }) };
   }
 
   return { ok: true, target, type };

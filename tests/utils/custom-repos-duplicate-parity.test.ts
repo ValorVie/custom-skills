@@ -35,7 +35,7 @@ describe("utils custom repos duplicate parity", () => {
         home,
       );
       expect(second.exitCode).toBe(1);
-      expect(second.stdout.toLowerCase()).toContain("already");
+      expect(second.stdout).toContain("已存在");
     } finally {
       await rm(home, { recursive: true, force: true });
     }
@@ -62,7 +62,7 @@ describe("utils custom repos duplicate parity", () => {
         home,
       );
       expect(second.exitCode).toBe(1);
-      expect(second.stdout.toLowerCase()).toContain("already");
+      expect(second.stdout).toContain("已存在");
     } finally {
       await rm(home, { recursive: true, force: true });
     }

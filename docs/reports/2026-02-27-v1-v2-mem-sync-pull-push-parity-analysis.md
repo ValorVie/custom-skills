@@ -36,6 +36,20 @@ status: draft
 - `bun test tests/core/sync-engine.test.ts tests/core/mem-sync.test.ts tests/cli/smoke.test.ts` → `59 pass, 0 fail`。[Source: Code] tests/core/sync-engine.test.ts:87 [Source: Code] tests/core/mem-sync.test.ts:1 [Source: Code] tests/cli/smoke.test.ts:234
 - `bun test tests/core/mem-sync-push-parity.test.ts tests/core/mem-sync-pull-parity.test.ts` → `6 pass, 0 fail`。[Source: Code] tests/core/mem-sync-push-parity.test.ts:1 [Source: Code] tests/core/mem-sync-pull-parity.test.ts:1
 
+## 最新再驗證（2026-02-27 第六批，循環收斂）
+
+[Confirmed] 本輪針對 `mem/sync push/pull` 再做一次修復與驗證循環，新增/調整如下：
+
+- `sync init` 在遠端已有內容時，會由 `plugin-manifest.json` 還原 plugin metadata，包含 marketplace clone 與 `known_marketplaces.json`/`settings.enabledPlugins` 回寫路徑。 [Source: Code] src/core/sync-engine.ts:457 [Source: Code] src/core/sync-engine.ts:799 [Source: Code] src/core/sync-engine.ts:515 [Source: Code] src/core/sync-engine.ts:567
+- `sync push` parity 測試去除共享 `~/.claude` 依賴，改用隔離暫存目錄，避免跨檔併發測試偶發 `ENOENT`。 [Source: Code] tests/core/sync-engine-push-parity.test.ts:65 [Source: Code] tests/core/sync-engine-push-parity.test.ts:94
+- `sync init` marketplace clone 斷言改為子字串檢查，與實際 `git clone` 參數（完整 URL）一致。 [Source: Code] tests/core/sync-engine-init-parity.test.ts:222
+
+[Confirmed] 本輪測試結果：
+
+- `HOME=/tmp bun test tests/cli/*parity*.test.ts tests/core/*parity*.test.ts tests/core/*compat*.test.ts tests/cli/smoke.test.ts tests/core/sync-engine.test.ts tests/core/mem-sync.test.ts` → `104 pass, 0 fail`。
+- `HOME=/tmp bun test tests/cli/help-short-options-parity.test.ts tests/core/standards-manager-sync-target.test.ts tests/core/sync-engine-add-validation.test.ts tests/core/sync-engine-remove-confirm.test.ts tests/core/project-manager-reverse-sync.test.ts tests/cli/toggle-list-parity.test.ts tests/core/toggle-config-compat.test.ts tests/cli/install-output-parity.test.ts tests/cli/update-output-parity.test.ts tests/tui/standards-switch.test.tsx tests/tui/openers.test.ts tests/tui/source-index.test.ts tests/cli/clone.integration.test.ts tests/cli/phase3.integration.test.ts` → `36 pass, 0 fail`。
+- `HOME=/tmp bun test` 整包測試有 `plugins/ecc-hooks` integration 既有失敗（10 fail），與本報告範圍 `mem/sync push/pull` 無直接關聯。
+
 ## 補充修復狀態（2026-02-27 第五批，ai-dev custom repos）
 
 [Confirmed] 在本報告原範圍之外，另發現並修復 `repos.yaml` v1→v2 相容缺口：v1 既有 `local_path` / `added_at` 舊欄位在 v2 `update` / `update-custom-repo` 會造成 `repo.localPath` 未定義錯誤。已於 `loadCustomRepos()` 增加 snake_case 正規化與 `~/` 展開，並補回歸測試鎖定此行為。[Source: Code] src/utils/custom-repos.ts:25 [Source: Code] src/utils/custom-repos.ts:37 [Source: Code] src/utils/custom-repos.ts:43 [Source: Code] src/utils/custom-repos.ts:65 [Source: Code] tests/utils/custom-repos-compat.test.ts:46 [Source: Code] tests/utils/custom-repos-compat.test.ts:80 [Source: Code] tests/cli/phase3.integration.test.ts:163 [Source: Code] tests/cli/phase3.integration.test.ts:175

@@ -164,6 +164,7 @@ export function registerInstallCommand(program: Command): void {
     .option("--skip-repos", t("opt.skip_repos"))
     .option("--skip-skills", t("opt.skip_skills"))
     .option("--sync-project", t("opt.sync_project"))
+    .option("--no-sync-project", t("opt.no_sync_project"))
     .option("--json", t("opt.json"))
     .action(async (options: InstallCommandOptions) => {
       await handleInstallCommand(options);

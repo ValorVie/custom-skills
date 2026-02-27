@@ -20,18 +20,18 @@ describe("cli list validation parity", () => {
   test("list rejects unknown target", () => {
     const result = runCli(["list", "--target", "unknown-target", "--json"]);
     expect(result.exitCode).toBe(1);
-    expect(result.stdout).toContain("無效 target");
+    expect(result.stdout).toContain("無效的目標");
   });
 
   test("list rejects unknown type", () => {
     const result = runCli(["list", "--type", "unknown-type", "--json"]);
     expect(result.exitCode).toBe(1);
-    expect(result.stdout).toContain("無效 type");
+    expect(result.stdout).toContain("無效的類型");
   });
 
   test("list rejects invalid target/type combination", () => {
     const result = runCli(["list", "--target", "codex", "--type", "agents"]);
     expect(result.exitCode).toBe(1);
-    expect(result.stdout).toContain("無效 target/type 組合");
+    expect(result.stdout).toContain("無效的 target/type 組合");
   });
 });

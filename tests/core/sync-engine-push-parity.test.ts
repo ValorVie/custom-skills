@@ -48,7 +48,7 @@ describe("core/sync-engine push parity", () => {
     try {
       await mkdir(localDir, { recursive: true });
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
 
@@ -66,6 +66,52 @@ describe("core/sync-engine push parity", () => {
     const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-push-parity-"));
     const configPath = join(root, "sync.yaml");
     const repoDir = join(root, "sync-repo");
+    const localDir = join(root, "local");
+    const calls: string[][] = [];
+
+    const engine = new SyncEngine(configPath, repoDir, {
+      runCommandFn: async (command: string[]) => {
+        calls.push(command);
+        if (command.includes("status")) {
+          return {
+            stdout: "",
+            stderr: "",
+            exitCode: 0,
+          };
+        }
+        if (command.includes("commit")) {
+          return {
+            stdout: "",
+            stderr: "nothing to commit, working tree clean",
+            exitCode: 1,
+          };
+        }
+        return { stdout: "", stderr: "", exitCode: 0 };
+      },
+    });
+
+    try {
+      await mkdir(localDir, { recursive: true });
+      await engine.init();
+      await engine.removeDirectory("~/.claude", { skipMinCheck: true });
+      await engine.addDirectory(localDir);
+
+      calls.length = 0;
+      const summary = await engine.push({ force: false });
+
+      expect(summary).toEqual({ added: 0, updated: 0, deleted: 0 });
+      expect(calls.some(isGitPullRebaseCommand)).toBe(false);
+      expect(calls.some(isGitPushCommand)).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("push with force skips pull and can continue when commit has no changes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-push-parity-"));
+    const configPath = join(root, "sync.yaml");
+    const repoDir = join(root, "sync-repo");
+    const localDir = join(root, "local");
     const calls: string[][] = [];
 
     const engine = new SyncEngine(configPath, repoDir, {
@@ -80,16 +126,24 @@ describe("core/sync-engine push parity", () => {
         }
         return { stdout: "", stderr: "", exitCode: 0 };
       },
+      confirmForcePushFn: async () => true,
     });
 
     try {
-      await engine.init("https://example.com/repo.git");
+      await mkdir(localDir, { recursive: true });
+      await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
+      await engine.init();
+      await engine.removeDirectory("~/.claude", { skipMinCheck: true });
+      await engine.addDirectory(localDir);
 
-      calls.length = 0;
-      const summary = await engine.push({ force: false });
-
-      expect(summary).toEqual({ added: 0, updated: 0, deleted: 0 });
-      expect(calls.some(isGitPushCommand)).toBe(false);
+      await expect(engine.push({ force: true })).resolves.toEqual(
+        expect.objectContaining({
+          added: 1,
+          updated: 1,
+        }),
+      );
+      expect(calls.some(isGitPullRebaseCommand)).toBe(false);
+      expect(calls.some(isGitPushCommand)).toBe(true);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -105,6 +159,9 @@ describe("core/sync-engine push parity", () => {
     const engine = new SyncEngine(configPath, repoDir, {
       runCommandFn: async (command: string[]) => {
         calls.push(command);
+        if (command.includes("status")) {
+          return { stdout: " M a.txt\n", stderr: "", exitCode: 0 };
+        }
         if (isGitPullRebaseCommand(command)) {
           return {
             stdout: "",
@@ -119,7 +176,7 @@ describe("core/sync-engine push parity", () => {
     try {
       await mkdir(localDir, { recursive: true });
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
 
@@ -138,6 +195,9 @@ describe("core/sync-engine push parity", () => {
 
     const engine = new SyncEngine(configPath, repoDir, {
       runCommandFn: async (command: string[]) => {
+        if (command.includes("status")) {
+          return { stdout: " M a.txt\n", stderr: "", exitCode: 0 };
+        }
         if (isGitPullRebaseCommand(command)) {
           return { stdout: "", stderr: "", exitCode: 0 };
         }
@@ -155,7 +215,7 @@ describe("core/sync-engine push parity", () => {
     try {
       await mkdir(localDir, { recursive: true });
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
 
@@ -173,6 +233,9 @@ describe("core/sync-engine push parity", () => {
 
     const engine = new SyncEngine(configPath, repoDir, {
       runCommandFn: async (command: string[]) => {
+        if (command.includes("status")) {
+          return { stdout: " M a.txt\n", stderr: "", exitCode: 0 };
+        }
         if (isGitPullRebaseCommand(command)) {
           return { stdout: "", stderr: "", exitCode: 0 };
         }
@@ -190,7 +253,7 @@ describe("core/sync-engine push parity", () => {
     try {
       await mkdir(localDir, { recursive: true });
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
 
@@ -208,6 +271,9 @@ describe("core/sync-engine push parity", () => {
 
     const engine = new SyncEngine(configPath, repoDir, {
       runCommandFn: async (command: string[]) => {
+        if (command.includes("status")) {
+          return { stdout: " M a.txt\n", stderr: "", exitCode: 0 };
+        }
         if (isGitPullRebaseCommand(command)) {
           return { stdout: "", stderr: "", exitCode: 0 };
         }
@@ -225,7 +291,7 @@ describe("core/sync-engine push parity", () => {
     try {
       await mkdir(localDir, { recursive: true });
       await writeFile(join(localDir, "a.txt"), "hello\n", "utf8");
-      await engine.init("https://example.com/repo.git");
+      await engine.init();
       await engine.removeDirectory("~/.claude", { skipMinCheck: true });
       await engine.addDirectory(localDir);
 

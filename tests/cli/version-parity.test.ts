@@ -21,10 +21,16 @@ function runCli(args: string[], timeoutMs = 5000) {
 }
 
 describe("cli version parity", () => {
-  test("--version matches package.json", () => {
+  test("--version matches v1-compatible format", () => {
     const result = runCli(["--version"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout.trim()).toBe(pkg.version);
+    expect(result.stdout.trim()).toBe(`ai-dev ${pkg.version}`);
+  });
+
+  test("-v matches v1-compatible format", () => {
+    const result = runCli(["-v"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe(`ai-dev ${pkg.version}`);
   });
 
   test("createProgram version is sourced from package.json", async () => {

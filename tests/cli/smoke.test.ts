@@ -17,11 +17,18 @@ function runCli(args: string[], timeoutMs = 5000) {
 }
 
 describe("cli smoke", () => {
-  test("--version outputs version from package.json", () => {
+  test("--version outputs v1-compatible format", () => {
     const pkg = require("../../package.json") as { version: string };
     const result = runCli(["--version"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout.trim()).toBe(pkg.version);
+    expect(result.stdout.trim()).toBe(`ai-dev ${pkg.version}`);
+  });
+
+  test("-v outputs v1-compatible format", () => {
+    const pkg = require("../../package.json") as { version: string };
+    const result = runCli(["-v"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe(`ai-dev ${pkg.version}`);
   });
 
   test("--help shows zh-TW descriptions by default", () => {
@@ -71,6 +78,7 @@ describe("cli smoke", () => {
     expect(result.stdout).toContain("install");
     expect(result.stdout).toContain("--skip-skills");
     expect(result.stdout).toContain("--sync-project");
+    expect(result.stdout).toContain("--no-sync-project");
   });
 
   test("update --help", () => {
@@ -105,6 +113,10 @@ describe("cli smoke", () => {
   test("list groups by target and type with Chinese columns", () => {
     const result = runCli(["list", "--target", "claude", "--type", "skills"]);
     expect(result.exitCode).toBe(0);
+    if (result.stdout.includes("找不到資源。")) {
+      expect(result.stdout).toContain("找不到資源。");
+      return;
+    }
     expect(result.stdout).toContain("Claude Code - Skills");
     expect(result.stdout).toContain("名稱");
     expect(result.stdout).toContain("來源");

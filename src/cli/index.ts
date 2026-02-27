@@ -24,7 +24,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("ai-dev")
     .description(t("cli.description"))
-    .version(pkg.version)
+    .version(`ai-dev ${pkg.version}`, "-v, --version", "顯示版本資訊")
     .option("--lang <locale>", t("opt.lang"));
 
   program.hook("preAction", (command) => {
