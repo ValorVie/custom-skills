@@ -36,6 +36,17 @@ status: draft
 - `bun test tests/core/sync-engine.test.ts tests/core/mem-sync.test.ts tests/cli/smoke.test.ts` → `59 pass, 0 fail`。[Source: Code] tests/core/sync-engine.test.ts:87 [Source: Code] tests/core/mem-sync.test.ts:1 [Source: Code] tests/cli/smoke.test.ts:234
 - `bun test tests/core/mem-sync-push-parity.test.ts tests/core/mem-sync-pull-parity.test.ts` → `6 pass, 0 fail`。[Source: Code] tests/core/mem-sync-push-parity.test.ts:1 [Source: Code] tests/core/mem-sync-pull-parity.test.ts:1
 
+## 補充修復狀態（2026-02-27 第五批，ai-dev custom repos）
+
+[Confirmed] 在本報告原範圍之外，另發現並修復 `repos.yaml` v1→v2 相容缺口：v1 既有 `local_path` / `added_at` 舊欄位在 v2 `update` / `update-custom-repo` 會造成 `repo.localPath` 未定義錯誤。已於 `loadCustomRepos()` 增加 snake_case 正規化與 `~/` 展開，並補回歸測試鎖定此行為。[Source: Code] src/utils/custom-repos.ts:25 [Source: Code] src/utils/custom-repos.ts:37 [Source: Code] src/utils/custom-repos.ts:43 [Source: Code] src/utils/custom-repos.ts:65 [Source: Code] tests/utils/custom-repos-compat.test.ts:46 [Source: Code] tests/utils/custom-repos-compat.test.ts:80 [Source: Code] tests/cli/phase3.integration.test.ts:163 [Source: Code] tests/cli/phase3.integration.test.ts:175
+
+| 面向 | 目前狀態 | 證據 |
+|------|----------|------|
+| v1 `repos.yaml` snake_case 相容 (`local_path`, `added_at`) | ✅ 已修復 | `loadCustomRepos()` 讀取後映射到 `localPath` / `addedAt` [Source: Code] src/utils/custom-repos.ts:37 [Source: Code] src/utils/custom-repos.ts:43 |
+| `~` 路徑展開 | ✅ 已修復 | `~/...` 轉為 `home` 絕對路徑 [Source: Code] src/utils/custom-repos.ts:38 [Source: Code] src/utils/custom-repos.ts:39 |
+| `update-custom-repo` 舊格式回歸 | ✅ 已修復 | phase3 整合測試改用 v1 fixture，仍可正常輸出 summary [Source: Code] tests/cli/phase3.integration.test.ts:163 [Source: Code] tests/cli/phase3.integration.test.ts:182 |
+| 舊格式相容測試覆蓋 | ✅ 已補齊 | 新增 `tests/utils/custom-repos-compat.test.ts`，同時覆蓋 snake_case 與 camelCase 路徑 [Source: Code] tests/utils/custom-repos-compat.test.ts:46 [Source: Code] tests/utils/custom-repos-compat.test.ts:80 |
+
 ## 分析目的
 
 - 確認 `ai-dev mem` 及 `pull/push` 相關指令在 `v2` 是否已對齊 `v1`（輸出與業務邏輯）。[Source: Code] main:script/commands/mem.py:123 [Source: Code] main:script/commands/sync.py:316 [Source: Code] src/cli/mem/index.ts:50 [Source: Code] src/cli/sync/index.ts:30

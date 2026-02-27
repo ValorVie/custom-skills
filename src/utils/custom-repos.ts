@@ -22,6 +22,30 @@ export interface ParsedRepo {
   defaultBranch: string;
 }
 
+function normalizeLoadedRepos(repos: unknown): void {
+  if (!repos || typeof repos !== "object") {
+    return;
+  }
+
+  for (const repoValue of Object.values(repos as Record<string, unknown>)) {
+    if (!repoValue || typeof repoValue !== "object") {
+      continue;
+    }
+
+    const repo = repoValue as Record<string, unknown>;
+
+    if (typeof repo.localPath !== "string" && typeof repo.local_path === "string") {
+      repo.localPath = repo.local_path.startsWith("~/")
+        ? join(homedir(), repo.local_path.slice(2))
+        : repo.local_path;
+    }
+
+    if (typeof repo.addedAt !== "string" && typeof repo.added_at === "string") {
+      repo.addedAt = repo.added_at;
+    }
+  }
+}
+
 export function getCustomReposConfigPath(): string {
   return join(homedir(), ".config", "ai-dev", "repos.yaml");
 }
@@ -38,6 +62,7 @@ export async function loadCustomRepos(): Promise<CustomRepoConfig> {
     if (!parsed.repos || typeof parsed.repos !== "object") {
       parsed.repos = {};
     }
+    normalizeLoadedRepos(parsed.repos);
     return parsed;
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
