@@ -63,6 +63,111 @@ export function expandHome(pathValue: string): string {
   return join(paths.home, pathValue.slice(2));
 }
 
+function readStringField(
+  source: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string,
+  fallback = "",
+): string {
+  const camelValue = source[camelKey];
+  if (typeof camelValue === "string") {
+    return camelValue;
+  }
+
+  const snakeValue = source[snakeKey];
+  if (typeof snakeValue === "string") {
+    return snakeValue;
+  }
+
+  return fallback;
+}
+
+function readStringArrayField(
+  source: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string,
+): string[] {
+  const value = source[camelKey] ?? source[snakeKey];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function readNullableStringField(
+  source: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string,
+): string | null {
+  const camelValue = source[camelKey];
+  if (typeof camelValue === "string" || camelValue === null) {
+    return camelValue;
+  }
+
+  const snakeValue = source[snakeKey];
+  if (typeof snakeValue === "string" || snakeValue === null) {
+    return snakeValue;
+  }
+
+  return null;
+}
+
+function normalizeIgnoreProfile(value: string): "claude" | "custom" {
+  return value === "claude" ? "claude" : "custom";
+}
+
+function normalizeLegacySyncConfig(raw: unknown): SyncConfig | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const source = raw as Record<string, unknown>;
+  const rawDirectories = Array.isArray(source.directories)
+    ? source.directories
+    : [];
+
+  const directories = rawDirectories
+    .map((entry): SyncDirectory | null => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const directory = entry as Record<string, unknown>;
+      const path = readStringField(directory, "path", "path");
+      const repoSubdir = readStringField(
+        directory,
+        "repoSubdir",
+        "repo_subdir",
+      );
+      if (!path || !repoSubdir) {
+        return null;
+      }
+
+      const ignoreProfile = normalizeIgnoreProfile(
+        readStringField(directory, "ignoreProfile", "ignore_profile", "custom"),
+      );
+
+      return {
+        path,
+        repoSubdir,
+        ignoreProfile,
+        customIgnore: readStringArrayField(
+          directory,
+          "customIgnore",
+          "custom_ignore",
+        ),
+      };
+    })
+    .filter((item): item is SyncDirectory => item !== null);
+
+  return {
+    version: readStringField(source, "version", "version", "1"),
+    remote: readStringField(source, "remote", "remote"),
+    lastSync: readNullableStringField(source, "lastSync", "last_sync"),
+    directories,
+  };
+}
+
 function makeRepoSubdir(pathValue: string, existing: Set<string>): string {
   const base = basename(pathValue.replace(/[\\/]+$/, "")) || "sync-dir";
   const normalized = base.replace(/[^a-zA-Z0-9._-]/g, "-").toLowerCase();
@@ -187,11 +292,7 @@ export class SyncEngine {
   async loadConfig(): Promise<SyncConfig | null> {
     try {
       const content = await readFile(this.configPath, "utf8");
-      const parsed = YAML.parse(content) as SyncConfig | null;
-      if (!parsed || typeof parsed !== "object") {
-        return null;
-      }
-      return parsed;
+      return normalizeLegacySyncConfig(YAML.parse(content));
     } catch {
       return null;
     }
