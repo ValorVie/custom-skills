@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  loadMemSyncConfig,
   pullMemData,
   saveMemSyncConfig,
 } from "../../src/core/mem-sync";
@@ -73,6 +74,18 @@ async function countRows(dbPath: string, table: string): Promise<number> {
   const row = db.query(`SELECT COUNT(*) AS count FROM ${table}`).get() as {
     count: number;
   };
+  db.close();
+  return row.count;
+}
+
+async function countTrackedHashes(dbPath: string): Promise<number> {
+  const sqlite = await import("bun:sqlite");
+  const db = new sqlite.Database(dbPath, { readonly: true });
+  const row = db
+    .query(
+      "SELECT COUNT(*) AS count FROM observations WHERE sync_content_hash IS NOT NULL AND sync_content_hash != ''",
+    )
+    .get() as { count: number };
   db.close();
   return row.count;
 }
@@ -211,6 +224,139 @@ describe("core/mem-sync pull parity", () => {
       globalThis.fetch = originalFetch;
       await rm(apiRoot, { recursive: true, force: true });
       await rm(fallbackRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("pullMemData updates lastPullEpoch from server_epoch and tracks pulled hashes", async () => {
+    const originalFetch = globalThis.fetch;
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-pull-parity-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const dbPath = join(root, "claude-mem.db");
+    const chromaDbPath = join(root, "chroma.sqlite3");
+
+    await createMemDb(dbPath);
+    await saveMemSyncConfig(
+      {
+        serverUrl: "https://sync.example.com",
+        apiKey: "api-key",
+        deviceName: "device-a",
+        deviceId: "1",
+        lastPushEpoch: 0,
+        lastPullEpoch: 0,
+        autoSync: false,
+        autoSyncIntervalMinutes: 10,
+      },
+      configPath,
+    );
+
+    try {
+      globalThis.fetch = (async (input) => {
+        const url = String(input);
+
+        if (url.includes("/api/sync/pull")) {
+          return new Response(
+            JSON.stringify({
+              ...pullPayload,
+              server_epoch: 1700001111,
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith("/api/import")) {
+          throw new Error("worker unavailable");
+        }
+
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
+      const result = await pullMemData({ configPath, dbPath, chromaDbPath });
+      const updatedConfig = await loadMemSyncConfig(configPath);
+
+      expect(result.imported.observations).toBe(1);
+      expect(updatedConfig.lastPullEpoch).toBe(1700001111);
+      expect(await countTrackedHashes(dbPath)).toBe(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("pullMemData triggers reindexcleanup (reindex+cleanup) when imported observations > 0 and worker available", async () => {
+    const originalFetch = globalThis.fetch;
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-mem-pull-parity-"));
+    const configPath = join(root, "mem-sync.yaml");
+    const dbPath = join(root, "claude-mem.db");
+    const chromaDbPath = join(root, "chroma.sqlite3");
+
+    await createMemDb(dbPath);
+    await saveMemSyncConfig(
+      {
+        serverUrl: "https://sync.example.com",
+        apiKey: "api-key",
+        deviceName: "device-a",
+        deviceId: "1",
+        lastPushEpoch: 0,
+        lastPullEpoch: 0,
+        autoSync: false,
+        autoSyncIntervalMinutes: 10,
+      },
+      configPath,
+    );
+
+    const sqlite = await import("bun:sqlite");
+    const db = new sqlite.Database(dbPath);
+    db.run(
+      "INSERT INTO observations (memory_session_id, title, narrative, facts, project, type, created_at_epoch, sync_content_hash) VALUES ('mem-local', 'obs-1', 'n-1', 'f-1', 'proj', 'note', 100, 'hash-local-1');",
+    );
+    db.close();
+
+    let workerHealthCalls = 0;
+    let memorySaveCalls = 0;
+
+    try {
+      globalThis.fetch = (async (input) => {
+        const url = String(input);
+
+        if (url.includes("/api/sync/pull")) {
+          return new Response(
+            JSON.stringify({
+              ...pullPayload,
+              sessions: [],
+              summaries: [],
+              prompts: [],
+              server_epoch: 1700002222,
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith("/api/import")) {
+          throw new Error("worker unavailable");
+        }
+
+        if (url.endsWith("/api/health")) {
+          workerHealthCalls += 1;
+          return new Response("{}", { status: 200 });
+        }
+
+        if (url.endsWith("/api/memory/save")) {
+          memorySaveCalls += 1;
+          return new Response("{}", { status: 200 });
+        }
+
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+
+      const result = await pullMemData({ configPath, dbPath, chromaDbPath });
+
+      expect(result.imported.observations).toBe(1);
+      expect(workerHealthCalls).toBeGreaterThan(0);
+      expect(memorySaveCalls).toBeGreaterThan(0);
+      expect(await countRows(dbPath, "observations")).toBe(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { recursive: true, force: true });
     }
   });
 });
