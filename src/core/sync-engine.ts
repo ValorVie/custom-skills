@@ -489,6 +489,17 @@ export class SyncEngine {
 
     await this.writePluginManifest(config);
 
+    const prePushPull = await this.runCommandFn(
+      ["git", "-C", this.repoDir, "pull", "--rebase"],
+      {
+        check: false,
+        timeoutMs: 60_000,
+      },
+    );
+    if (prePushPull.exitCode !== 0) {
+      throw new Error("git pull --rebase 失敗");
+    }
+
     await this.runCommandFn(["git", "-C", this.repoDir, "add", "-A"], {
       check: false,
       timeoutMs: 60_000,
@@ -516,8 +527,11 @@ export class SyncEngine {
     if (noChanges && !options.force) {
       return { added: 0, updated: 0, deleted: 0 };
     }
+    if (commit.exitCode !== 0) {
+      throw new Error("git commit 失敗");
+    }
 
-    await this.runCommandFn(
+    const pushResult = await this.runCommandFn(
       [
         "git",
         "-C",
@@ -530,13 +544,20 @@ export class SyncEngine {
         timeoutMs: 60_000,
       },
     );
-    await this.runCommandFn(
+    if (pushResult.exitCode !== 0) {
+      throw new Error("git push 失敗");
+    }
+
+    const lfsPushResult = await this.runCommandFn(
       ["git", "-C", this.repoDir, "lfs", "push", "--all", "origin"],
       {
         check: false,
         timeoutMs: 60_000,
       },
     );
+    if (lfsPushResult.exitCode !== 0) {
+      throw new Error("git lfs push 失敗");
+    }
 
     config.lastSync = new Date().toISOString();
     await this.saveConfig(config);
@@ -565,10 +586,16 @@ export class SyncEngine {
       }
     }
 
-    await this.runCommandFn(["git", "-C", this.repoDir, "pull", "--ff-only"], {
-      check: false,
-      timeoutMs: 60_000,
-    });
+    const pullResult = await this.runCommandFn(
+      ["git", "-C", this.repoDir, "pull", "--rebase"],
+      {
+        check: false,
+        timeoutMs: 60_000,
+      },
+    );
+    if (pullResult.exitCode !== 0) {
+      throw new Error("git pull --rebase 失敗");
+    }
 
     const deleteExtra = options.noDelete
       ? false

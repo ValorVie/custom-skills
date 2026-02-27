@@ -63,4 +63,47 @@ describe("core/sync-engine pull parity", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  test("pull uses git pull --rebase and throws on failure", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-pull-parity-"));
+    const configPath = join(root, "sync.yaml");
+    const repoDir = join(root, "sync-repo");
+    const localDir = join(root, "local");
+    const calls: string[][] = [];
+
+    const engine = new SyncEngine(configPath, repoDir, {
+      runCommandFn: async (command: string[]) => {
+        calls.push(command);
+        if (command[0] === "git" && command.includes("pull")) {
+          return {
+            stdout: "",
+            stderr: "cannot rebase onto divergent branch",
+            exitCode: 1,
+          };
+        }
+        return { stdout: "", stderr: "", exitCode: 0 };
+      },
+    });
+
+    try {
+      await mkdir(localDir, { recursive: true });
+      await writeFile(join(localDir, "a.txt"), "local\n", "utf8");
+      await engine.init("https://example.com/repo.git");
+      await engine.removeDirectory("~/.claude", { skipMinCheck: true });
+      await engine.addDirectory(localDir);
+
+      await expect(engine.pull({ force: true })).rejects.toThrow(
+        "git pull --rebase 失敗",
+      );
+
+      const pullCommand = calls.find(
+        (command) => command[0] === "git" && command.includes("pull"),
+      );
+      expect(pullCommand).toBeDefined();
+      expect(pullCommand).toContain("--rebase");
+      expect(pullCommand).not.toContain("--ff-only");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
