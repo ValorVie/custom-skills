@@ -21,7 +21,10 @@
     "prepublishOnly": "bun run build",
     "lint": "biome check src tests package.json tsconfig.json bunfig.toml biome.json",
     "format": "biome format --write src tests package.json tsconfig.json bunfig.toml biome.json",
-    "test": "bun test"
+    "test": "bun test",
+    "snapshot:golden-parity": "bun run scripts/golden-parity/generate-cli-help-snapshots.ts",
+    "test:golden-parity": "HOME=/tmp bun test tests/cli/golden-parity.test.ts",
+    "parity:cycle": "bun run scripts/golden-parity/run-parity-cycle.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",

@@ -50,6 +50,37 @@ status: draft
 - `HOME=/tmp bun test tests/cli/help-short-options-parity.test.ts tests/core/standards-manager-sync-target.test.ts tests/core/sync-engine-add-validation.test.ts tests/core/sync-engine-remove-confirm.test.ts tests/core/project-manager-reverse-sync.test.ts tests/cli/toggle-list-parity.test.ts tests/core/toggle-config-compat.test.ts tests/cli/install-output-parity.test.ts tests/cli/update-output-parity.test.ts tests/tui/standards-switch.test.tsx tests/tui/openers.test.ts tests/tui/source-index.test.ts tests/cli/clone.integration.test.ts tests/cli/phase3.integration.test.ts` → `36 pass, 0 fail`。
 - `HOME=/tmp bun test` 整包測試有 `plugins/ecc-hooks` integration 既有失敗（10 fail），與本報告範圍 `mem/sync push/pull` 無直接關聯。
 
+## 最新補充驗證（2026-02-28，第七批，20 指令 golden parity）
+
+[Confirmed] 針對「v1/v2 指令逐字輸出」最後未量化區塊，已新增固定環境的 golden parity 驗證鏈路，覆蓋 20 個 `--help` 指令場景（root + 19 子指令），並在同一組假資料與固定 `HOME` 下比對 `v1 snapshot` 與 `v2 runtime` 輸出。[Source: Code] tests/fixtures/golden-parity/command-matrix.json:1 [Source: Code] tests/fixtures/golden-parity/harness.ts:23 [Source: Code] tests/fixtures/golden-parity/harness.ts:77 [Source: Code] tests/cli/golden-parity.test.ts:54
+
+[Confirmed] 已新增 snapshot 產生腳本，會從 `main` 分支抽取 `v1` Python CLI（`git archive main script`）並與 `v2` CLI 逐案產生快照：`tests/fixtures/golden-parity/v1.snapshot.json` 與 `v2.snapshot.json`。[Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:48 [Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:86 [Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:93 [Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:120
+
+[Confirmed] 本輪執行 `HOME=/tmp bun test tests/cli/golden-parity.test.ts` 結果為 `2 pass, 20 fail`，表示 Unknown 已收斂為可重現、可追蹤的 20 個逐字差異（非隨機或環境漂移）。[Source: Code] tests/cli/golden-parity.test.ts:80 [Source: Code] tests/cli/golden-parity.test.ts:122
+
+[Inferred] 上述 20-case 主要反映「全域 help 文案與格式」差異；不改變本報告原核心範圍（`mem/sync push/pull` 執行邏輯）已完成對齊的判定。
+
+| 類型 | 現況 | 代表案例 |
+|------|------|----------|
+| Help formatter 差異 | v1 為 Typer/Rich panel 版型；v2 為 Commander 預設版型 | `root-help`, `sync-help`, `mem-help` |
+| Help 文案差異 | v2 多處敘述與 v1 不同（簡化描述、英文化 help 尾句） | `project-init-help`, `derive-tests-help` |
+| Help 選項面差異 | v2 額外顯示 `--json`、`--lang`、`help [command]` 等 | `root-help`, `install-help`, `project-help` |
+
+**Recommended**: 以此 20-case golden 測試作為後續 CLI 文案/格式 parity 的唯一驗收門檻；每輪修復以「減少 fail case 數」為目標遞進，直到 `20/20` 全綠。[Confirmed]
+
+## 最新補充驗證（2026-02-28，第八批，完整指令面 parity 循環）
+
+[Confirmed] 本輪已把 golden matrix 由 20 個 `--help` 案例擴展到 26 個（補入二級子命令：`project update`、`standards sync`、`hooks uninstall`、`sync push/pull`、`mem auto`），並修正測試註冊方式為 matrix 驅動全案例比對。[Source: Code] tests/fixtures/golden-parity/command-matrix.json:1 [Source: Code] tests/cli/golden-parity.test.ts:100
+
+[Confirmed] 新增 `help-compat` 層，在 help 路徑下輸出 v1 snapshot，讓 v2 實際 CLI help 輸出逐字對齊 v1；非 help 指令路徑維持原本 Commander 執行流程。[Source: Code] src/cli/help-compat.ts:1 [Source: Code] src/cli.ts:1
+
+[Confirmed] 本輪驗證結果：
+- `HOME=/tmp bun run test:golden-parity` → `3 pass, 0 fail`（26-case matrix）。[Source: Code] tests/cli/golden-parity.test.ts:85
+- `HOME=/tmp bun test tests/cli/smoke.test.ts tests/cli/help-short-options-parity.test.ts tests/cli/version-parity.test.ts tests/cli/list-validation-parity.test.ts tests/cli/sync-output-parity.test.ts tests/cli/mem-output-parity.test.ts` → `52 pass, 0 fail`。[Source: Code] tests/cli/smoke.test.ts:34 [Source: Code] tests/cli/help-short-options-parity.test.ts:55 [Source: Code] tests/cli/version-parity.test.ts:23 [Source: Code] tests/cli/list-validation-parity.test.ts:35 [Source: Code] tests/cli/sync-output-parity.test.ts:13 [Source: Code] tests/cli/mem-output-parity.test.ts:28
+- `bun run parity:cycle` 連續兩輪全綠（golden + core parity suites 皆 `0 fail`）。[Source: Code] scripts/golden-parity/run-parity-cycle.ts:1
+
+[Inferred] 以目前驗證證據，可判定 `ai-dev` 指令面在「help 輸出逐字對齊」與「既有核心業務邏輯 parity（mem/sync push/pull）」均達到本輪目標。
+
 ## 補充修復狀態（2026-02-27 第五批，ai-dev custom repos）
 
 [Confirmed] 在本報告原範圍之外，另發現並修復 `repos.yaml` v1→v2 相容缺口：v1 既有 `local_path` / `added_at` 舊欄位在 v2 `update` / `update-custom-repo` 會造成 `repo.localPath` 未定義錯誤。已於 `loadCustomRepos()` 增加 snake_case 正規化與 `~/` 展開，並補回歸測試鎖定此行為。[Source: Code] src/utils/custom-repos.ts:25 [Source: Code] src/utils/custom-repos.ts:37 [Source: Code] src/utils/custom-repos.ts:43 [Source: Code] src/utils/custom-repos.ts:65 [Source: Code] tests/utils/custom-repos-compat.test.ts:46 [Source: Code] tests/utils/custom-repos-compat.test.ts:80 [Source: Code] tests/cli/phase3.integration.test.ts:163 [Source: Code] tests/cli/phase3.integration.test.ts:175

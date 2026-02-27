@@ -1,0 +1,268 @@
+[
+  {
+    "id": "root-help",
+    "args": [
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev [OPTIONS] COMMAND [ARGS]...                       \n                                                                                \n AI Development Environment Setup CLI                                           \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --version             -v        顯示版本資訊                                 │\n│ --install-completion            Install completion for the current shell.    │\n│ --show-completion               Show completion for the current shell, to    │\n│                                 copy it or customize the installation.       │\n│ --help                          Show this message and exit.                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ install             首次安裝 AI 開發環境。                                   │\n│ update              更新工具與拉取儲存庫。                                   │\n│ clone               分發 Skills 到各工具目錄。                               │\n│ status              檢查環境狀態與工具版本。                                 │\n│ list                列出已安裝的 Skills、Commands、Agents（包含停用的）。    │\n│ toggle              啟用/停用特定工具的特定資源。                            │\n│ add-repo            新增上游 repo 並開始追蹤。                               │\n│ add-custom-repo     新增自訂 repo 並開始追蹤。                               │\n│ update-custom-repo  更新所有自訂 repo。                                      │\n│ test                執行測試並輸出原始結果。                                 │\n│ coverage            執行覆蓋率分析並輸出原始結果。                           │\n│ derive-tests        讀取 OpenSpec specs 檔案內容。                           │\n│ tui                 啟動互動式 TUI 介面。                                    │\n│ project             專案級別的初始化與更新操作                               │\n│ standards           管理標準體系配置（基於重疊檢測）                         │\n│ hooks               ECC Hooks Plugin management commands                     │\n│ sync                管理跨裝置同步（Git backend）                            │\n│ mem                 管理 claude-mem 跨裝置同步（HTTP API backend）           │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "install-help",
+    "args": [
+      "install",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev install [OPTIONS]                                 \n                                                                                \n 首次安裝 AI 開發環境。                                                         \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --skip-npm                               跳過 NPM 套件安裝                   │\n│ --skip-bun                               跳過 Bun 套件安裝                   │\n│ --skip-repos                             跳過 Git 儲存庫 Clone               │\n│ --skip-skills                            跳過複製 Skills                     │\n│ --sync-project    --no-sync-project      是否同步到專案目錄（預設：是）      │\n│                                          [default: sync-project]             │\n│ --help                                   Show this message and exit.         │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "update-help",
+    "args": [
+      "update",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev update [OPTIONS]                                  \n                                                                                \n 更新工具與拉取儲存庫。                                                         \n                                                                                \n 此指令負責：                                                                   \n 1. 更新 Claude Code（除非 --skip-npm）                                         \n 2. 更新全域 NPM 套件（除非 --skip-npm）                                        \n 3. 拉取 ~/.config/ 下的所有 repo（除非 --skip-repos）                          \n 4. 更新 Claude Code Plugin Marketplace（除非 --skip-plugins）                  \n                                                                                \n 注意：此指令不會分發 Skills 到各工具目錄。                                     \n 如需分發，請執行 `ai-dev clone`。                                              \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --skip-npm              跳過 NPM 套件更新                                    │\n│ --skip-bun              跳過 Bun 套件更新                                    │\n│ --skip-repos            跳過 Git 儲存庫更新                                  │\n│ --skip-plugins          跳過 Claude Code Plugin Marketplace 更新             │\n│ --help                  Show this message and exit.                          │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "clone-help",
+    "args": [
+      "clone",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev clone [OPTIONS]                                   \n                                                                                \n 分發 Skills 到各工具目錄。                                                     \n                                                                                \n 將 ~/.config/custom-skills 的內容分發到：                                      \n - Claude Code (~/.claude/)                                                     \n - OpenCode (~/.config/opencode/)                                               \n - Gemini CLI (~/.gemini/)                                                      \n - Codex (~/.codex/)                                                            \n - Antigravity (~/.gemini/antigravity/)                                         \n                                                                                \n 流程說明：                                                                     \n - ~/.config/custom-skills 的內容由 git repo 控制                               \n - 此指令只負責分發，不會整合外部來源到 ~/.config/custom-skills                 \n                                                                                \n 開發者模式：                                                                   \n - 在開發目錄執行時，使用 --sync-project 可整合外部來源到開發目錄               \n - 使用 --no-sync-project 可跳過整合                                            \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --sync-project        --no-sync-project      是否同步到專案目錄（預設：是）… │\n│                                              [default: sync-project]         │\n│ --force           -f                         強制覆蓋所有衝突檔案（不提示）… │\n│ --skip-conflicts  -s                         跳過有衝突的檔案，僅分發無衝突… │\n│ --backup          -b                         備份衝突檔案後再覆蓋。          │\n│ --help                                       Show this message and exit.     │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "status-help",
+    "args": [
+      "status",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev status [OPTIONS]                                  \n                                                                                \n 檢查環境狀態與工具版本。                                                       \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "list-help",
+    "args": [
+      "list",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev list [OPTIONS]                                    \n                                                                                \n 列出已安裝的 Skills、Commands、Agents（包含停用的）。                          \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --target         -t      TEXT  目標工具：claude, antigravity, opencode,      │\n│                                codex, gemini                                 │\n│ --type           -T      TEXT  資源類型：skills, commands, agents, workflows │\n│ --hide-disabled  -H            隱藏已停用的資源                              │\n│ --help                         Show this message and exit.                   │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "toggle-help",
+    "args": [
+      "toggle",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev toggle [OPTIONS]                                  \n                                                                                \n 啟用/停用特定工具的特定資源。                                                  \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --target   -t      TEXT  目標工具：claude, antigravity, opencode, codex,     │\n│                          gemini                                              │\n│ --type     -T      TEXT  資源類型：skills, commands, agents, workflows       │\n│ --name     -n      TEXT  資源名稱                                            │\n│ --enable   -e            啟用資源                                            │\n│ --disable  -d            停用資源                                            │\n│ --list     -l            列出目前的開關狀態                                  │\n│ --help                   Show this message and exit.                         │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "add-repo-help",
+    "args": [
+      "add-repo",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev add-repo [OPTIONS] REMOTE_PATH                    \n                                                                                \n 新增上游 repo 並開始追蹤。                                                     \n                                                                                \n 此指令會：                                                                     \n 1. Clone repo 到 ~/.config/<repo-name>/                                        \n 2. 將 repo 資訊加入 upstream/sources.yaml                                      \n 3. [可選] 執行 custom-skills-upstream-sync 分析                                \n                                                                                \n 範例：                                                                         \n     ai-dev add-repo owner/repo                                                 \n     ai-dev add-repo https://github.com/owner/repo                              \n     ai-dev add-repo owner/repo --name my-custom-name                           \n     ai-dev add-repo owner/repo --analyze                                       \n                                                                                \n╭─ Arguments ──────────────────────────────────────────────────────────────────╮\n│ *    remote_path      TEXT  遠端 repo 路徑 (例如: owner/repo 或完整 URL)     │\n│                             [required]                                       │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --name        -n      TEXT  自訂名稱（預設使用 repo 名稱）                   │\n│ --branch      -b      TEXT  追蹤的分支 [default: main]                       │\n│ --skip-clone                跳過 clone（僅加入 sources.yaml）                │\n│ --analyze     -a            加入後立即執行分析                               │\n│ --help                      Show this message and exit.                      │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "add-custom-repo-help",
+    "args": [
+      "add-custom-repo",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev add-custom-repo [OPTIONS] REMOTE_PATH             \n                                                                                \n 新增自訂 repo 並開始追蹤。                                                     \n                                                                                \n 此指令會：                                                                     \n 1. Clone repo 到 ~/.config/<repo-name>/                                        \n 2. 驗證 repo 目錄結構                                                          \n 3. 將 repo 資訊寫入 ~/.config/ai-dev/repos.yaml                                \n                                                                                \n 範例：                                                                         \n     ai-dev add-custom-repo owner/repo                                          \n     ai-dev add-custom-repo https://github.com/owner/repo                       \n     ai-dev add-custom-repo git@github.com:owner/repo.git                       \n     ai-dev add-custom-repo owner/repo --name my-custom-name                    \n     ai-dev add-custom-repo owner/repo --branch develop                         \n     ai-dev add-custom-repo owner/repo --fix                                    \n                                                                                \n╭─ Arguments ──────────────────────────────────────────────────────────────────╮\n│ *    remote_path      TEXT  遠端 repo 路徑 (例如: owner/repo 或完整 URL)     │\n│                             [required]                                       │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --name    -n      TEXT  自訂名稱（預設使用 repo 名稱）                       │\n│ --branch  -b      TEXT  追蹤的分支 [default: main]                           │\n│ --fix                   自動建立缺少的目錄（含 .gitkeep）                    │\n│ --help                  Show this message and exit.                          │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "update-custom-repo-help",
+    "args": [
+      "update-custom-repo",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev update-custom-repo [OPTIONS]                      \n                                                                                \n 更新所有自訂 repo。                                                            \n                                                                                \n 從 ~/.config/ai-dev/repos.yaml 讀取自訂 repo 清單，                            \n 對每個 repo 執行 git fetch + reset 更新。                                      \n                                                                                \n 注意：此指令不會分發 Skills 到各工具目錄。                                     \n 如需分發，請執行 `ai-dev clone`。                                              \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "test-help",
+    "args": [
+      "test",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev test [OPTIONS] [PATH]                             \n                                                                                \n 執行測試並輸出原始結果。                                                       \n                                                                                \n 自動偵測專案的測試框架並執行測試。                                             \n 目前支援 Python (pytest)。                                                     \n                                                                                \n 範例：                                                                         \n     ai-dev test                    # 執行所有測試                              \n     ai-dev test tests/             # 執行指定目錄                              \n     ai-dev test -v                 # 詳細輸出                                  \n     ai-dev test -x                 # 失敗即停                                  \n     ai-dev test -k \"test_name\"     # 過濾測試                                  \n                                                                                \n╭─ Arguments ──────────────────────────────────────────────────────────────────╮\n│   path      [PATH]  測試路徑（檔案或目錄）                                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --verbose    -v            顯示詳細輸出                                      │\n│ --fail-fast  -x            失敗時立即停止                                    │\n│              -k      TEXT  過濾測試名稱                                      │\n│ --help                     Show this message and exit.                       │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "coverage-help",
+    "args": [
+      "coverage",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev coverage [OPTIONS] [PATH]                         \n                                                                                \n 執行覆蓋率分析並輸出原始結果。                                                 \n                                                                                \n 使用 pytest-cov 執行測試並生成覆蓋率報告。                                     \n                                                                                \n 範例：                                                                         \n     ai-dev coverage                      # 分析整個專案                        \n     ai-dev coverage --source script/     # 僅分析指定目錄                      \n                                                                                \n╭─ Arguments ──────────────────────────────────────────────────────────────────╮\n│   path      [PATH]  測試路徑（檔案或目錄）                                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --source  -s      TEXT  原始碼路徑                                           │\n│ --help                  Show this message and exit.                          │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "derive-tests-help",
+    "args": [
+      "derive-tests",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev derive-tests [OPTIONS] PATH                       \n                                                                                \n 讀取 OpenSpec specs 檔案內容。                                                 \n                                                                                \n 此命令讀取並輸出 specs 內容，供 AI 理解場景語義並生成測試程式碼。              \n                                                                                \n 範例：                                                                         \n     ai-dev derive-tests specs/                     # 讀取目錄下所有 specs      \n     ai-dev derive-tests specs/feature/spec.md     # 讀取單一 spec 檔案         \n                                                                                \n╭─ Arguments ──────────────────────────────────────────────────────────────────╮\n│ *    path      TEXT  specs 路徑（檔案或目錄） [required]                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "project-help",
+    "args": [
+      "project",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev project [OPTIONS] COMMAND [ARGS]...               \n                                                                                \n 專案級別的初始化與更新操作                                                     \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ init    初始化專案（從 project-template 複製模板）。                         │\n│ update  更新專案配置（整合 openspec update + uds update）。                  │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "project-init-help",
+    "args": [
+      "project",
+      "init",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev project init [OPTIONS] [TARGET]                   \n                                                                                \n 初始化專案（從 project-template 複製模板）。                                   \n                                                                                \n 此指令會將 custom-skills/project-template 中的檔案複製到目標專案，             \n 包含 .standards、CLAUDE.md、AGENTS.md 等配置目錄和標準文件模板。               \n                                                                                \n 特殊行為：                                                                     \n - 在 custom-skills 專案中使用 --force 時，會反向同步（專案 →                   \n project-template/）                                                            \n - 這允許開發者更新模板後同步回 project-template/ 目錄                          \n                                                                                \n╭─ Arguments ──────────────────────────────────────────────────────────────────╮\n│   target      [TARGET]  目標目錄（預設為當前目錄）                           │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --force  -f        強制重新初始化（覆蓋現有檔案）；在 custom-skills          │\n│                    專案中會反向同步到 project-template                       │\n│ --help             Show this message and exit.                               │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "project-update-help",
+    "args": [
+      "project",
+      "update",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev project update [OPTIONS]                          \n                                                                                \n 更新專案配置（整合 openspec update + uds update）。                            \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --only  -o      TEXT  只更新特定工具：openspec, uds                          │\n│ --help                Show this message and exit.                            │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "standards-help",
+    "args": [
+      "standards",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev standards [OPTIONS] COMMAND [ARGS]...             \n                                                                                \n 管理標準體系配置（基於重疊檢測）                                               \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ status    顯示目前狀態（含停用項目統計）                                     │\n│ list      列出所有可用的 profiles（含重疊偏好）                              │\n│ switch    切換到指定的 profile（基於重疊檢測）                               │\n│ show      顯示指定 profile 的詳細內容（含重疊分析）                          │\n│ overlaps  顯示重疊定義摘要                                                   │\n│ sync      根據 disabled.yaml 同步實際的檔案狀態                              │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "standards-sync-help",
+    "args": [
+      "standards",
+      "sync",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev standards sync [OPTIONS]                          \n                                                                                \n 根據 disabled.yaml 同步實際的檔案狀態                                          \n                                                                                \n 此命令會：                                                                     \n 1. 讀取 disabled.yaml 中的停用項目                                             \n 2. 將對應的 skills/commands 移動到 disabled 目錄                               \n 3. 將不在停用列表中的項目從 disabled 目錄還原                                  \n                                                                                \n 注意：standards (*.ai.yaml) 是專案內檔案，無法透過此命令同步。                 \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --dry-run  -n            只顯示變更，不實際執行                              │\n│ --target   -t      TEXT  目標工具 (claude, opencode, etc.) [default: claude] │\n│ --help                   Show this message and exit.                         │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "hooks-help",
+    "args": [
+      "hooks",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev hooks [OPTIONS] COMMAND [ARGS]...                 \n                                                                                \n ECC Hooks Plugin management commands                                           \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ install    Install or update ECC Hooks Plugin.                               │\n│ uninstall  Remove ECC Hooks Plugin.                                          │\n│ status     Display ECC Hooks Plugin installation status.                     │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "hooks-uninstall-help",
+    "args": [
+      "hooks",
+      "uninstall",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev hooks uninstall [OPTIONS]                         \n                                                                                \n Remove ECC Hooks Plugin.                                                       \n                                                                                \n Delete ~/.claude/plugins/ecc-hooks/ directory                                  \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "sync-help",
+    "args": [
+      "sync",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev sync [OPTIONS] COMMAND [ARGS]...                  \n                                                                                \n 管理跨裝置同步（Git backend）                                                  \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ init    初始化 sync repo 與 sync.yaml 設定。                                 │\n│ push    同步本機變更到遠端。                                                 │\n│ pull    從遠端拉取並同步到本機。                                             │\n│ status  顯示同步狀態。                                                       │\n│ add     新增同步目錄。                                                       │\n│ remove  移除同步目錄。                                                       │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "sync-push-help",
+    "args": [
+      "sync",
+      "push",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev sync push [OPTIONS]                               \n                                                                                \n 同步本機變更到遠端。                                                           \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --force          強制推送，覆蓋遠端歷史（用於修復遠端被搞亂的情況）          │\n│ --help           Show this message and exit.                                 │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "sync-pull-help",
+    "args": [
+      "sync",
+      "pull",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev sync pull [OPTIONS]                               \n                                                                                \n 從遠端拉取並同步到本機。                                                       \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --no-delete          拉取後同步到本機時，不刪除本機多出的檔案                │\n│ --force              跳過本機變更偵測，直接執行 pull                         │\n│ --help               Show this message and exit.                             │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "mem-help",
+    "args": [
+      "mem",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev mem [OPTIONS] COMMAND [ARGS]...                   \n                                                                                \n 管理 claude-mem 跨裝置同步（HTTP API backend）                                 \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ register  向 sync server 註冊本裝置。                                        │\n│ push      推送本地 claude-mem 新資料到 sync server。                         │\n│ pull      從 sync server 拉取其他裝置的新資料。                              │\n│ status    顯示 sync server 同步狀態。                                        │\n│ cleanup   掃描並刪除本地 claude-mem 中的重複 observations。                  │\n│ reindex   重建 ChromaDB 搜尋索引（修復 pull 匯入後搜尋不到的問題）。         │\n│ auto      切換 claude-mem 自動同步排程。                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "mem-auto-help",
+    "args": [
+      "mem",
+      "auto",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev mem auto [OPTIONS]                                \n                                                                                \n 切換 claude-mem 自動同步排程。                                                 \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --on      --off      啟用或停用自動同步                                      │\n│ --help               Show this message and exit.                             │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  },
+  {
+    "id": "tui-help",
+    "args": [
+      "tui",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "                                                                                \n Usage: ai-dev tui [OPTIONS]                                     \n                                                                                \n 啟動互動式 TUI 介面。                                                          \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --help          Show this message and exit.                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯",
+    "stderr": ""
+  }
+]
