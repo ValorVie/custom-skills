@@ -26,6 +26,7 @@ export interface SyncSummary {
   added: number;
   updated: number;
   deleted: number;
+  skipped?: boolean;
 }
 
 export interface SyncStatus {
@@ -39,6 +40,7 @@ export interface SyncStatus {
 export interface SyncEngineDeps {
   runCommandFn?: typeof runCommand;
   pullConflictChoiceFn?: () => Promise<"overwrite" | "backup" | "cancel">;
+  confirmForcePushFn?: () => Promise<boolean>;
 }
 
 export function defaultDirectories(): SyncDirectory[] {
@@ -151,12 +153,28 @@ async function defaultPullConflictChoice(): Promise<
   return answer.choice;
 }
 
+async function defaultForcePushConfirmation(): Promise<boolean> {
+  const answer = await inquirer.prompt<{ confirmed: boolean }>([
+    {
+      type: "confirm",
+      name: "confirmed",
+      message:
+        "Force push may overwrite remote history. Continue with sync push --force?",
+      default: false,
+    },
+  ]);
+
+  return Boolean(answer.confirmed);
+}
+
 export class SyncEngine {
   private readonly runCommandFn: typeof runCommand;
 
   private readonly pullConflictChoiceFn: () => Promise<
     "overwrite" | "backup" | "cancel"
   >;
+
+  private readonly confirmForcePushFn: () => Promise<boolean>;
 
   constructor(
     private readonly configPath: string = paths.syncConfig,
@@ -166,6 +184,8 @@ export class SyncEngine {
     this.runCommandFn = deps.runCommandFn ?? runCommand;
     this.pullConflictChoiceFn =
       deps.pullConflictChoiceFn ?? defaultPullConflictChoice;
+    this.confirmForcePushFn =
+      deps.confirmForcePushFn ?? defaultForcePushConfirmation;
   }
 
   async loadConfig(): Promise<SyncConfig | null> {
@@ -454,6 +474,13 @@ export class SyncEngine {
       throw new Error("sync not initialized");
     }
 
+    if (options.force) {
+      const confirmed = await this.confirmForcePushFn();
+      if (!confirmed) {
+        return { added: 0, updated: 0, deleted: 0, skipped: true };
+      }
+    }
+
     const total: SyncSummary = { added: 0, updated: 0, deleted: 0 };
     for (const directory of config.directories) {
       const sourcePath = expandHome(directory.path);
@@ -470,7 +497,7 @@ export class SyncEngine {
       check: false,
       timeoutMs: 60_000,
     });
-    await this.runCommandFn(
+    const commit = await this.runCommandFn(
       [
         "git",
         "-C",
@@ -484,6 +511,16 @@ export class SyncEngine {
         timeoutMs: 60_000,
       },
     );
+
+    const commitOutput = `${commit.stdout}\n${commit.stderr}`.toLowerCase();
+    const noChanges =
+      commit.exitCode !== 0 &&
+      (commitOutput.includes("nothing to commit") ||
+        commitOutput.includes("no changes added to commit"));
+    if (noChanges && !options.force) {
+      return { added: 0, updated: 0, deleted: 0 };
+    }
+
     await this.runCommandFn(
       [
         "git",

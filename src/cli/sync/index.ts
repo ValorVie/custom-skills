@@ -40,6 +40,25 @@ export function registerSyncCommands(program: Command): void {
         return;
       }
 
+      if (summary.skipped) {
+        if (options.force) {
+          console.log("Sync push cancelled");
+        } else {
+          console.log("No changes to sync");
+        }
+        return;
+      }
+
+      if (
+        !options.force &&
+        summary.added === 0 &&
+        summary.updated === 0 &&
+        summary.deleted === 0
+      ) {
+        console.log("No changes to sync");
+        return;
+      }
+
       console.log("Sync push complete");
       console.log(
         `- Added: ${summary.added}, Updated: ${summary.updated}, Deleted: ${summary.deleted}`,
