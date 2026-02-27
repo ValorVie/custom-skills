@@ -86,6 +86,7 @@ export interface MemCleanupResult {
 }
 
 const WORKER_URL = "http://localhost:37777";
+const PULLED_HASHES_FILENAME = "pulled-hashes.txt";
 
 export function defaultMemSyncConfigPath(): string {
   return join(paths.aiDevConfig, "mem-sync.yaml");
@@ -230,6 +231,54 @@ function readRowsSince(
   } catch {
     return [];
   }
+}
+
+function pulledHashesPath(configPath = defaultMemSyncConfigPath()): string {
+  return join(configPath, "..", PULLED_HASHES_FILENAME);
+}
+
+async function loadPulledHashes(
+  configPath = defaultMemSyncConfigPath(),
+): Promise<Set<string>> {
+  try {
+    const content = await readFile(pulledHashesPath(configPath), "utf8");
+    return new Set(
+      content
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+async function appendPulledHashes(
+  hashes: string[],
+  configPath = defaultMemSyncConfigPath(),
+): Promise<void> {
+  const nextHashes = hashes
+    .map((hash) => hash.trim())
+    .filter((hash) => hash.length > 0);
+  if (nextHashes.length === 0) {
+    return;
+  }
+
+  const allHashes = await loadPulledHashes(configPath);
+  let changed = false;
+  for (const hash of nextHashes) {
+    if (!allHashes.has(hash)) {
+      allHashes.add(hash);
+      changed = true;
+    }
+  }
+  if (!changed) {
+    return;
+  }
+
+  const filePath = pulledHashesPath(configPath);
+  await mkdir(join(filePath, ".."), { recursive: true });
+  await writeFile(filePath, `${Array.from(allHashes).join("\n")}\n`, "utf8");
 }
 
 function withSyncContentHash(
@@ -1137,13 +1186,15 @@ export async function pushMemData(
 }
 
 export async function pullMemData(
-  options: { configPath?: string; dbPath?: string } = {},
+  options: { configPath?: string; dbPath?: string; chromaDbPath?: string } = {},
 ): Promise<MemPullResult> {
   const config = await loadMemSyncConfig(options.configPath);
   const dbPath = options.dbPath ?? defaultMemDbPath();
+  const chromaDbPath = options.chromaDbPath ?? defaultChromaDbPath();
 
   let pulled = 0;
   let totalReceived = 0;
+  let latestServerEpoch: number | null = null;
 
   const zeroCat = (): MemCategoryStats => ({
     sessions: 0,
@@ -1171,6 +1222,7 @@ export async function pullMemData(
         observations?: Record<string, unknown>[];
         summaries?: Record<string, unknown>[];
         prompts?: Record<string, unknown>[];
+        server_epoch?: number;
         has_more?: boolean;
         next_since?: number;
       }>(
@@ -1192,6 +1244,9 @@ export async function pullMemData(
       const sessions = payload.sessions ?? [];
       const summaries = payload.summaries ?? [];
       const prompts = payload.prompts ?? [];
+      if (typeof payload.server_epoch === "number") {
+        latestServerEpoch = payload.server_epoch;
+      }
 
       received.sessions += sessions.length;
       received.observations += observations.length;
@@ -1229,10 +1284,21 @@ export async function pullMemData(
       skippedDetail.observations += stats.observationsSkipped;
       skippedDetail.summaries += stats.summariesSkipped;
       skippedDetail.prompts += stats.promptsSkipped;
+
+      const pulledHashes = pulledData.observations
+        .map((row) => String(row.sync_content_hash ?? ""))
+        .filter((hash) => hash.length > 0);
+      await appendPulledHashes(pulledHashes, options.configPath);
+
+      if (stats.observationsImported > 0 && (await workerAvailable())) {
+        await reindexMemData({ dbPath, chromaDbPath });
+      }
     }
   }
 
-  config.lastPullEpoch = Math.floor(Date.now() / 1000);
+  if (latestServerEpoch !== null) {
+    config.lastPullEpoch = latestServerEpoch;
+  }
   await saveMemSyncConfig(config, options.configPath);
 
   return {
