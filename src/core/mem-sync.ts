@@ -188,6 +188,50 @@ function readAllObservations(dbPath: string): Record<string, unknown>[] {
   }
 }
 
+function readRowsSince(
+  dbPath: string,
+  tableName: string,
+  epochColumn: string,
+  lastEpoch: number,
+): Record<string, unknown>[] {
+  if (!existsSync(dbPath)) {
+    return [];
+  }
+
+  try {
+    const db = openDb(dbPath, true);
+    try {
+      const tableExists = db
+        .query(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+        )
+        .get(tableName) as { 1?: number } | null;
+      if (!tableExists) {
+        return [];
+      }
+
+      const columnRows = db.query(`PRAGMA table_info(${tableName})`).all() as {
+        name: string;
+      }[];
+      const hasEpochColumn = columnRows.some((row) => row.name === epochColumn);
+      if (!hasEpochColumn) {
+        return db.query(`SELECT * FROM ${tableName}`).all() as Record<
+          string,
+          unknown
+        >[];
+      }
+
+      return db
+        .query(`SELECT * FROM ${tableName} WHERE ${epochColumn} > ?`)
+        .all(lastEpoch) as Record<string, unknown>[];
+    } finally {
+      db.close();
+    }
+  } catch {
+    return [];
+  }
+}
+
 function withSyncContentHash(
   observation: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -615,7 +659,30 @@ export async function pushMemData(
 ): Promise<MemPushResult> {
   const config = await loadMemSyncConfig(options.configPath);
   const dbPath = options.dbPath ?? defaultMemDbPath();
-  const observations = readAllObservations(dbPath).map(withSyncContentHash);
+  const sessions = readRowsSince(
+    dbPath,
+    "sdk_sessions",
+    "started_at_epoch",
+    config.lastPushEpoch,
+  );
+  const observations = readRowsSince(
+    dbPath,
+    "observations",
+    "created_at_epoch",
+    config.lastPushEpoch,
+  ).map(withSyncContentHash);
+  const summaries = readRowsSince(
+    dbPath,
+    "session_summaries",
+    "created_at_epoch",
+    config.lastPushEpoch,
+  );
+  const prompts = readRowsSince(
+    dbPath,
+    "user_prompts",
+    "created_at_epoch",
+    config.lastPushEpoch,
+  );
   let pushed = 0;
   let skipped = 0;
   let errors = 0;
@@ -633,8 +700,14 @@ export async function pushMemData(
 
   if (!config.serverUrl || !config.apiKey) {
     pushed = observations.length;
+    sent.sessions = sessions.length;
     sent.observations = observations.length;
+    sent.summaries = summaries.length;
+    sent.prompts = prompts.length;
+    imported.sessions = sessions.length;
     imported.observations = observations.length;
+    imported.summaries = summaries.length;
+    imported.prompts = prompts.length;
   } else {
     const hashes = observations
       .map((item) => String(item.sync_content_hash ?? ""))
@@ -651,10 +724,19 @@ export async function pushMemData(
 
     dedupExcluded.pulled = observations.length - hashes.length;
     dedupExcluded.preflight = hashes.length - missingHashes.size;
+    sent.sessions = sessions.length;
     sent.observations = toUpload.length;
+    sent.summaries = summaries.length;
+    sent.prompts = prompts.length;
 
-    for (const batch of chunkArray(toUpload, 100)) {
+    const batches = chunkArray(toUpload, 100);
+    if (batches.length === 0) {
+      batches.push([]);
+    }
+
+    for (const [index, batch] of batches.entries()) {
       const payload = await requestJson<{
+        server_epoch?: number;
         stats?: {
           sessionsImported?: number;
           observationsImported?: number;
@@ -674,9 +756,9 @@ export async function pushMemData(
             "X-API-Key": config.apiKey,
           },
           body: JSON.stringify({
-            sessions: [],
-            summaries: [],
-            prompts: [],
+            sessions: index === 0 ? sessions : [],
+            summaries: index === 0 ? summaries : [],
+            prompts: index === 0 ? prompts : [],
             observations: batch,
           }),
         },
