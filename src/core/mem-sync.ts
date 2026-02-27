@@ -113,19 +113,80 @@ function defaultConfig(): MemSyncConfig {
   };
 }
 
+type RawMemSyncConfig = Partial<MemSyncConfig> & {
+  server_url?: unknown;
+  api_key?: unknown;
+  device_name?: unknown;
+  device_id?: unknown;
+  last_push_epoch?: unknown;
+  last_pull_epoch?: unknown;
+  auto_sync?: unknown;
+  auto_sync_interval_minutes?: unknown;
+};
+
+function toStringOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function toNumberOrUndefined(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
+function toBooleanOrUndefined(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function normalizeMemSyncConfig(
+  raw: RawMemSyncConfig | null,
+): Partial<MemSyncConfig> {
+  if (!raw) {
+    return {};
+  }
+
+  return {
+    serverUrl: toStringOrUndefined(raw.serverUrl) ?? toStringOrUndefined(raw.server_url),
+    apiKey: toStringOrUndefined(raw.apiKey) ?? toStringOrUndefined(raw.api_key),
+    deviceName:
+      toStringOrUndefined(raw.deviceName) ?? toStringOrUndefined(raw.device_name),
+    deviceId: toStringOrUndefined(raw.deviceId) ?? toStringOrUndefined(raw.device_id),
+    lastPushEpoch:
+      toNumberOrUndefined(raw.lastPushEpoch) ??
+      toNumberOrUndefined(raw.last_push_epoch),
+    lastPullEpoch:
+      toNumberOrUndefined(raw.lastPullEpoch) ??
+      toNumberOrUndefined(raw.last_pull_epoch),
+    autoSync: toBooleanOrUndefined(raw.autoSync) ?? toBooleanOrUndefined(raw.auto_sync),
+    autoSyncIntervalMinutes:
+      toNumberOrUndefined(raw.autoSyncIntervalMinutes) ??
+      toNumberOrUndefined(raw.auto_sync_interval_minutes),
+  };
+}
+
+function legacyMemSyncConfigPath(configPath: string): string {
+  return join(configPath, "..", "sync-server.yaml");
+}
+
 export async function loadMemSyncConfig(
   configPath = defaultMemSyncConfigPath(),
 ): Promise<MemSyncConfig> {
-  try {
-    const content = await readFile(configPath, "utf8");
-    const parsed = YAML.parse(content) as Partial<MemSyncConfig> | null;
-    return {
-      ...defaultConfig(),
-      ...(parsed ?? {}),
-    };
-  } catch {
-    return defaultConfig();
+  const candidatePaths = existsSync(configPath)
+    ? [configPath]
+    : [configPath, legacyMemSyncConfigPath(configPath)];
+
+  for (const path of candidatePaths) {
+    try {
+      const content = await readFile(path, "utf8");
+      const parsed = YAML.parse(content) as RawMemSyncConfig | null;
+      return {
+        ...defaultConfig(),
+        ...normalizeMemSyncConfig(parsed),
+      };
+    } catch {
+      continue;
+    }
   }
+
+  return defaultConfig();
 }
 
 export async function saveMemSyncConfig(
