@@ -194,6 +194,9 @@ const messages: Record<Locale, Record<string, string>> = {
     "sync.local_changes": "Local Changes",
     "sync.remote_behind": "Remote Behind",
     "sync.tracked_dirs": "Tracked Directories",
+    "sync.push_done": "sync push complete",
+    "sync.pull_done": "sync pull complete",
+    "sync.summary": "+{added} ~{updated} -{deleted}",
 
     "mem.col_field": "Field",
     "mem.col_value": "Value",
@@ -477,6 +480,9 @@ const messages: Record<Locale, Record<string, string>> = {
     "sync.local_changes": "本地變更",
     "sync.remote_behind": "遠端落後",
     "sync.tracked_dirs": "追蹤目錄數",
+    "sync.push_done": "sync push 完成",
+    "sync.pull_done": "sync pull 完成",
+    "sync.summary": "+{added} ~{updated} -{deleted}",
 
     "mem.col_field": "項目",
     "mem.col_value": "值",

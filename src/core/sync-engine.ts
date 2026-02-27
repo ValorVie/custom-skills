@@ -244,11 +244,11 @@ async function defaultPullConflictChoice(): Promise<PullConflictChoice> {
     {
       type: "list",
       name: "choice",
-      message: "Local changes detected. Choose how to continue:",
+      message: "偵測到本地變更，請選擇後續操作：",
       choices: [
-        { name: "Push local changes then pull", value: "push_then_pull" },
-        { name: "Force pull and overwrite local changes", value: "force_pull" },
-        { name: "Cancel", value: "cancel" },
+        { name: "先 push 再 pull（推薦）", value: "push_then_pull" },
+        { name: "強制 pull 並覆蓋本地變更", value: "force_pull" },
+        { name: "取消", value: "cancel" },
       ],
     },
   ]);

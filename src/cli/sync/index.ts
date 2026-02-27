@@ -59,9 +59,13 @@ export function registerSyncCommands(program: Command): void {
         return;
       }
 
-      console.log("Sync push complete");
+      console.log(t("sync.push_done"));
       console.log(
-        `- Added: ${summary.added}, Updated: ${summary.updated}, Deleted: ${summary.deleted}`,
+        t("sync.summary", {
+          added: String(summary.added),
+          updated: String(summary.updated),
+          deleted: String(summary.deleted),
+        }),
       );
     });
 
@@ -89,9 +93,13 @@ export function registerSyncCommands(program: Command): void {
             return;
           }
 
-          console.log("Sync pull complete");
+          console.log(t("sync.pull_done"));
           console.log(
-            `- Added: ${summary.added}, Updated: ${summary.updated}, Deleted: ${summary.deleted}`,
+            t("sync.summary", {
+              added: String(summary.added),
+              updated: String(summary.updated),
+              deleted: String(summary.deleted),
+            }),
           );
         } catch (error: unknown) {
           const message =
