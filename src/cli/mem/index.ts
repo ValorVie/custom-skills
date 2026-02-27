@@ -98,6 +98,10 @@ export function registerMemCommands(program: Command): void {
     .option("--json", t("opt.json"))
     .action(async (options: { json?: boolean }) => {
       const result = await pullMemData();
+      const importMethodLabel =
+        result.importMethod === "api"
+          ? t("mem.import_method_api")
+          : t("mem.import_method_sqlite");
 
       if (options.json) {
         console.log(JSON.stringify(result, null, 2));
@@ -114,6 +118,7 @@ export function registerMemCommands(program: Command): void {
       );
       console.log(
         t("mem.pull_done", {
+          method: importMethodLabel,
           si: String(result.imported.sessions),
           oi: String(result.imported.observations),
           smi: String(result.imported.summaries),

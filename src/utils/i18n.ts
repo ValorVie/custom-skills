@@ -219,8 +219,10 @@ const messages: Record<Locale, Record<string, string>> = {
     "mem.push_nothing": "No new data to push",
     "mem.pull_received":
       "Pulled: {sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
+    "mem.import_method_api": "API",
+    "mem.import_method_sqlite": "SQLite",
     "mem.pull_done":
-      "Pull done (SQLite) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
+      "Pull done ({method}) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
     "mem.reindex_scanning": "Scanning missing ChromaDB indices...",
     "mem.reindex_complete": "Index complete ({total} observations)",
     "mem.reindex_done":
@@ -500,8 +502,10 @@ const messages: Record<Locale, Record<string, string>> = {
     "mem.push_nothing": "無新資料需要推送",
     "mem.pull_received":
       "拉取到：{sessions} sessions, {observations} observations, {summaries} summaries, {prompts} prompts",
+    "mem.import_method_api": "API",
+    "mem.import_method_sqlite": "SQLite",
     "mem.pull_done":
-      "Pull 完成 (SQLite) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
+      "Pull 完成 ({method}) imported: {si}s {oi}o {smi}sm {pi}p | skipped: {ss}s {os}o {sms}sm {ps}p",
     "mem.reindex_scanning": "正在掃描缺失的 ChromaDB 索引...",
     "mem.reindex_complete": "索引已完整（共 {total} 筆 observations）",
     "mem.reindex_done":

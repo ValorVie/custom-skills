@@ -45,6 +45,7 @@ export interface MemPullResult {
   pulled: number;
   skipped: number;
   serverUrl: string;
+  importMethod: "api" | "sqlite";
   /** Per-category counts received from server */
   received: MemCategoryStats;
   /** Per-category imported/skipped */
@@ -1143,7 +1144,7 @@ export async function pushMemData(
   let latestServerEpoch: number | null = null;
 
   if (!config.serverUrl || !config.apiKey) {
-    throw new Error("找不到 sync server 設定，請先執行 `ai-dev mem register`");
+    throw new Error("找不到 sync server 設定，請先執行 ai-dev mem register");
   }
 
   const hashes = observations
@@ -1266,6 +1267,8 @@ export async function pullMemData(
   const received = zeroCat();
   const imported = zeroCat();
   const skippedDetail = zeroCat();
+  let importMethod: "api" | "sqlite" =
+    config.serverUrl && config.apiKey ? "api" : "sqlite";
   const pulledData: MemPullPayload = {
     sessions: [],
     observations: [],
@@ -1335,6 +1338,7 @@ export async function pullMemData(
       pulledData.prompts.length > 0
     ) {
       const importResult = await importPulledData(dbPath, pulledData);
+      importMethod = importResult.method;
       const stats = importResult.stats;
       pulled += stats.observationsImported;
       imported.sessions += stats.sessionsImported;
@@ -1366,6 +1370,7 @@ export async function pullMemData(
     pulled,
     skipped: totalReceived - pulled,
     serverUrl: config.serverUrl,
+    importMethod,
     received,
     imported,
     skippedDetail,
