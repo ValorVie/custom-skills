@@ -37,9 +37,11 @@ export interface SyncStatus {
   remoteBehind: number;
 }
 
+export type PullConflictChoice = "push_then_pull" | "force_pull" | "cancel";
+
 export interface SyncEngineDeps {
   runCommandFn?: typeof runCommand;
-  pullConflictChoiceFn?: () => Promise<"overwrite" | "backup" | "cancel">;
+  pullConflictChoiceFn?: () => Promise<PullConflictChoice>;
   confirmForcePushFn?: () => Promise<boolean>;
 }
 
@@ -132,19 +134,15 @@ async function ensureFileContains(
   await writeFile(pathValue, `${merged.join("\n")}\n`, "utf8");
 }
 
-async function defaultPullConflictChoice(): Promise<
-  "overwrite" | "backup" | "cancel"
-> {
-  const answer = await inquirer.prompt<{
-    choice: "overwrite" | "backup" | "cancel";
-  }>([
+async function defaultPullConflictChoice(): Promise<PullConflictChoice> {
+  const answer = await inquirer.prompt<{ choice: PullConflictChoice }>([
     {
       type: "list",
       name: "choice",
       message: "Local changes detected. Choose how to continue:",
       choices: [
-        { name: "Overwrite local changes", value: "overwrite" },
-        { name: "Backup then overwrite", value: "backup" },
+        { name: "Push local changes then pull", value: "push_then_pull" },
+        { name: "Force pull and overwrite local changes", value: "force_pull" },
         { name: "Cancel", value: "cancel" },
       ],
     },
@@ -170,9 +168,7 @@ async function defaultForcePushConfirmation(): Promise<boolean> {
 export class SyncEngine {
   private readonly runCommandFn: typeof runCommand;
 
-  private readonly pullConflictChoiceFn: () => Promise<
-    "overwrite" | "backup" | "cancel"
-  >;
+  private readonly pullConflictChoiceFn: () => Promise<PullConflictChoice>;
 
   private readonly confirmForcePushFn: () => Promise<boolean>;
 
@@ -559,20 +555,20 @@ export class SyncEngine {
       throw new Error("sync not initialized");
     }
 
-    await this.runCommandFn(["git", "-C", this.repoDir, "pull", "--ff-only"], {
-      check: false,
-      timeoutMs: 60_000,
-    });
-
     if (!options.force && (await this.hasPullConflicts(config))) {
       const choice = await this.pullConflictChoiceFn();
       if (choice === "cancel") {
         throw new Error("sync pull cancelled by user");
       }
-      if (choice === "backup") {
-        await this.backupDestinations(config);
+      if (choice === "push_then_pull") {
+        await this.push({ force: false });
       }
     }
+
+    await this.runCommandFn(["git", "-C", this.repoDir, "pull", "--ff-only"], {
+      check: false,
+      timeoutMs: 60_000,
+    });
 
     const deleteExtra = options.noDelete
       ? false
