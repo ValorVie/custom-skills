@@ -147,15 +147,63 @@ describe("core/updater", () => {
       (c) => c.command[0] === "npm" && c.command[1] === "install",
     );
     expect(npmCall).toBeDefined();
-    expect(npmCall?.options.timeoutMs).toBe(60_000);
+    expect(npmCall?.options.timeoutMs).toBe(180_000);
 
     const bunCall = calls.find((c) => c.command[0] === "bun");
     expect(bunCall).toBeDefined();
-    expect(bunCall?.options.timeoutMs).toBe(60_000);
+    expect(bunCall?.options.timeoutMs).toBe(180_000);
 
     const gitCall = calls.find((c) => c.command[0] === "git");
     expect(gitCall).toBeDefined();
     expect(gitCall?.options.timeoutMs).toBe(60_000);
+  });
+
+  test("runUpdate continues npm updates when one package times out", async () => {
+    const npmCallOrder: string[] = [];
+
+    const result = await runUpdate({
+      skipBun: true,
+      skipRepos: true,
+      skipPlugins: true,
+      deps: {
+        commandExistsFn: () => true,
+        npmPackages: ["npm-timeout", "npm-ok"],
+        runCommandFn: async (command: string[]) => {
+          if (command[0] === "claude") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          if (command[0] === "uds") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          if (command[0] === "npx" && command[1] === "skills") {
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          if (command[0] === "npm") {
+            const pkg = command[3] ?? "";
+            npmCallOrder.push(pkg);
+            if (pkg === "npm-timeout") {
+              throw new Error(`Command timed out: ${command.join(" ")}`);
+            }
+            return { stdout: "", stderr: "", exitCode: 0 };
+          }
+          return { stdout: "", stderr: "", exitCode: 0 };
+        },
+      },
+    });
+
+    const targetCallOrder = npmCallOrder.filter(
+      (pkg) => pkg === "npm-timeout" || pkg === "npm-ok",
+    );
+    expect(targetCallOrder).toEqual(["npm-timeout", "npm-ok"]);
+    expect(result.npmPackages).toEqual([
+      {
+        name: "npm-timeout",
+        success: false,
+        message: "Command timed out: npm install -g npm-timeout",
+      },
+      { name: "npm-ok", success: true, message: undefined },
+    ]);
+    expect(result.errors).toContain("Command timed out: npm install -g npm-timeout");
   });
 
   test("runUpdate backs up local changes before reset", async () => {

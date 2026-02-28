@@ -19,6 +19,14 @@ import { updateClaudeCode } from "./claude-code-manager";
 type RepoConfig = (typeof REPOS)[number];
 
 const OPENCODE_SUPERPOWERS_URL = "https://github.com/obra/superpowers.git";
+const PACKAGE_UPDATE_TIMEOUT_MS = 180_000;
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
 
 export interface UpdateDependencies {
   commandExistsFn?: typeof commandExists;
@@ -434,17 +442,25 @@ export async function runUpdate(
       for (let index = 0; index < total; index += 1) {
         const pkg = npmPackages[index];
         onProgress(`[${index + 1}/${total}] 正在更新 ${pkg}...`);
-        const updateResult = await runCommandFn(["npm", "install", "-g", pkg], {
-          check: false,
-          timeoutMs: 60_000,
-          stream,
-        });
-        result.npmPackages.push({
-          name: pkg,
-          success: updateResult.exitCode === 0,
-          message:
-            updateResult.exitCode === 0 ? undefined : updateResult.stderr,
-        });
+        try {
+          const updateResult = await runCommandFn(["npm", "install", "-g", pkg], {
+            check: false,
+            timeoutMs: PACKAGE_UPDATE_TIMEOUT_MS,
+            stream,
+          });
+          result.npmPackages.push({
+            name: pkg,
+            success: updateResult.exitCode === 0,
+            message:
+              updateResult.exitCode === 0 ? undefined : updateResult.stderr,
+          });
+        } catch (error) {
+          result.npmPackages.push({
+            name: pkg,
+            success: false,
+            message: toErrorMessage(error),
+          });
+        }
       }
     }
   }
@@ -459,17 +475,25 @@ export async function runUpdate(
       for (let index = 0; index < total; index += 1) {
         const pkg = bunPackages[index];
         onProgress(`[${index + 1}/${total}] 正在更新 ${pkg}...`);
-        const updateResult = await runCommandFn(["bun", "install", "-g", pkg], {
-          check: false,
-          timeoutMs: 60_000,
-          stream,
-        });
-        result.bunPackages.push({
-          name: pkg,
-          success: updateResult.exitCode === 0,
-          message:
-            updateResult.exitCode === 0 ? undefined : updateResult.stderr,
-        });
+        try {
+          const updateResult = await runCommandFn(["bun", "install", "-g", pkg], {
+            check: false,
+            timeoutMs: PACKAGE_UPDATE_TIMEOUT_MS,
+            stream,
+          });
+          result.bunPackages.push({
+            name: pkg,
+            success: updateResult.exitCode === 0,
+            message:
+              updateResult.exitCode === 0 ? undefined : updateResult.stderr,
+          });
+        } catch (error) {
+          result.bunPackages.push({
+            name: pkg,
+            success: false,
+            message: toErrorMessage(error),
+          });
+        }
       }
     }
   } else {
