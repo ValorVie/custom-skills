@@ -98,6 +98,25 @@ status: draft
 - 輸出 parity：由 non-help golden matrix + snapshot 回放覆蓋。
 - 核心業務邏輯 parity：持續由 `mem/sync push/pull` core parity suites 保護，不由 snapshot 測試替代。
 
+## 最新補充驗證（2026-02-28，第十批，命令樹自動全覆蓋與完整套件）
+
+[Confirmed] `non-help-command-matrix` 已改為程式化生成：直接由 `createProgram()` 走訪命令樹，對 root 與每個 command node 自動加入 `*-invalid-option` 案例；對有 required args 的 node 自動加入 `*-missing-required-args` 案例，避免手寫矩陣遺漏新增指令。[Source: Code] tests/fixtures/golden-parity/non-help-matrix.ts:1 [Source: Code] tests/fixtures/golden-parity/non-help-matrix.ts:45
+
+[Confirmed] 已新增覆蓋驗證測試 `non-help-matrix-coverage`，逐一斷言命令樹節點與矩陣案例對齊，並保留 `version`/`derive-tests` 功能基線案例。[Source: Code] tests/cli/non-help-matrix-coverage.test.ts:1
+
+[Confirmed] golden harness 現在以強制色彩環境生成與比對快照（`FORCE_COLOR=1`, `CLICOLOR_FORCE=1`, `PY_COLORS=1`），把 ANSI 顏色差異納入 parity 驗證，不再以 `NO_COLOR` 關閉色彩。[Source: Code] tests/fixtures/golden-parity/harness.ts:79
+
+[Confirmed] `parity:cycle` 已擴展執行完整 parity/compat suites，並固定 `HOME`/`USERPROFILE`/`XDG_CONFIG_HOME` 隔離，避免共享家目錄造成 `sync init parity` 權限/污染問題。[Source: Code] scripts/golden-parity/run-parity-cycle.ts:5 [Source: Code] scripts/golden-parity/run-parity-cycle.ts:37
+
+[Confirmed] 已在 golden parity 與 snapshot 生成流程加入 Bun crash 短重試（僅限 `panic(main thread)`/`Bun has crashed`），避免 Bun runtime 偶發 SIGSEGV 造成 parity 誤判；同時 `smoke` 測試比對前移除 ANSI 控制碼，避免色碼切斷 option token 導致假陰性。[Source: Code] tests/cli/golden-parity.test.ts:20 [Source: Code] tests/cli/non-help-golden-parity.test.ts:20 [Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:71 [Source: Code] tests/cli/smoke.test.ts:3
+
+[Confirmed] 本輪驗證結果：
+- `bun run snapshot:golden-parity` → PASS（help/non-help snapshots + assets 全部更新）
+- `bun run test:golden-parity` → `8 pass, 0 fail`
+- `bun run parity:cycle` → `86 pass, 0 fail`
+
+[Inferred] 在可有限建模的範圍內（命令樹 parser 分支 + golden matrix + parity/compat 測試集合）已達到高強度收斂；但對「所有輸入/所有流程」的數學完全一致，仍受外部系統狀態與無限輸入空間限制，無法在有限測試中被形式化證明。
+
 ## 補充修復狀態（2026-02-27 第五批，ai-dev custom repos）
 
 [Confirmed] 在本報告原範圍之外，另發現並修復 `repos.yaml` v1→v2 相容缺口：v1 既有 `local_path` / `added_at` 舊欄位在 v2 `update` / `update-custom-repo` 會造成 `repo.localPath` 未定義錯誤。已於 `loadCustomRepos()` 增加 snake_case 正規化與 `~/` 展開，並補回歸測試鎖定此行為。[Source: Code] src/utils/custom-repos.ts:25 [Source: Code] src/utils/custom-repos.ts:37 [Source: Code] src/utils/custom-repos.ts:43 [Source: Code] src/utils/custom-repos.ts:65 [Source: Code] tests/utils/custom-repos-compat.test.ts:46 [Source: Code] tests/utils/custom-repos-compat.test.ts:80 [Source: Code] tests/cli/phase3.integration.test.ts:163 [Source: Code] tests/cli/phase3.integration.test.ts:175

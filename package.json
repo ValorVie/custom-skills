@@ -23,7 +23,7 @@
     "format": "biome format --write src tests package.json tsconfig.json bunfig.toml biome.json",
     "test": "bun test",
     "snapshot:golden-parity": "bun run scripts/golden-parity/generate-cli-help-snapshots.ts",
-    "test:golden-parity": "HOME=/tmp bun test tests/cli/golden-parity.test.ts tests/cli/non-help-golden-parity.test.ts",
+    "test:golden-parity": "HOME=/tmp bun test tests/cli/golden-parity.test.ts tests/cli/non-help-golden-parity.test.ts tests/cli/non-help-matrix-coverage.test.ts",
     "parity:cycle": "bun run scripts/golden-parity/run-parity-cycle.ts"
   },
   "dependencies": {

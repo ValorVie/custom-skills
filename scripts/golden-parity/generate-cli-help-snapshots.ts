@@ -43,6 +43,13 @@ const V2_NON_HELP_SNAPSHOT_PATH = join(
   "golden-parity",
   "v2.non-help.snapshot.json",
 );
+const NON_HELP_MATRIX_FIXTURE_PATH = join(
+  ROOT,
+  "tests",
+  "fixtures",
+  "golden-parity",
+  "non-help-command-matrix.json",
+);
 const HELP_MATRIX_ASSET_PATH = join(
   ROOT,
   "src",
@@ -72,25 +79,43 @@ const NON_HELP_SNAPSHOT_ASSET_PATH = join(
   "v1-non-help.snapshot.json",
 );
 const VENV_PYTHON_PATH = join(ROOT, ".venv", "bin", "python");
+const MAX_BUN_RETRIES = 2;
+
+function isBunCrash(stderr: string): boolean {
+  return stderr.includes("Bun has crashed") || stderr.includes("panic(main thread)");
+}
 
 function runCommand(
   command: string[],
   cwd: string,
   env: Record<string, string>,
 ): { exitCode: number; stdout: string; stderr: string } {
-  const result = Bun.spawnSync(command, {
-    cwd,
-    env,
-    stdout: "pipe",
-    stderr: "pipe",
-    timeout: 30_000,
-  });
+  const shouldRetry = command[0] === "bun";
 
-  return {
-    exitCode: result.exitCode,
-    stdout: Buffer.from(result.stdout).toString("utf8"),
-    stderr: Buffer.from(result.stderr).toString("utf8"),
-  };
+  for (
+    let attempt = 0;
+    attempt <= (shouldRetry ? MAX_BUN_RETRIES : 0);
+    attempt += 1
+  ) {
+    const result = Bun.spawnSync(command, {
+      cwd,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 30_000,
+    });
+
+    const stdout = Buffer.from(result.stdout).toString("utf8");
+    const stderr = Buffer.from(result.stderr).toString("utf8");
+    const exitCode = result.exitCode ?? 1;
+    const crashed = shouldRetry && result.exitCode === null && isBunCrash(stderr);
+
+    if (!crashed || attempt === MAX_BUN_RETRIES) {
+      return { exitCode, stdout, stderr };
+    }
+  }
+
+  return { exitCode: 1, stdout: "", stderr: "Unexpected retry flow" };
 }
 
 async function materializeV1Script(snapshotRoot: string): Promise<string> {
@@ -197,6 +222,7 @@ async function main(): Promise<void> {
 
     await saveSnapshot(V1_SNAPSHOT_PATH, helpRows.v1Rows);
     await saveSnapshot(V2_SNAPSHOT_PATH, helpRows.v2Rows);
+    await saveJson(NON_HELP_MATRIX_FIXTURE_PATH, nonHelpMatrix);
     await saveSnapshot(V1_NON_HELP_SNAPSHOT_PATH, nonHelpRows.v1Rows);
     await saveSnapshot(V2_NON_HELP_SNAPSHOT_PATH, nonHelpRows.v2Rows);
 
@@ -208,6 +234,7 @@ async function main(): Promise<void> {
 
     console.log(`Generated snapshots: ${V1_SNAPSHOT_PATH}`);
     console.log(`Generated snapshots: ${V2_SNAPSHOT_PATH}`);
+    console.log(`Generated snapshots: ${NON_HELP_MATRIX_FIXTURE_PATH}`);
     console.log(`Generated snapshots: ${V1_NON_HELP_SNAPSHOT_PATH}`);
     console.log(`Generated snapshots: ${V2_NON_HELP_SNAPSHOT_PATH}`);
     console.log(`Generated assets: ${HELP_MATRIX_ASSET_PATH}`);

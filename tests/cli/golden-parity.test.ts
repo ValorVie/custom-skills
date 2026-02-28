@@ -35,24 +35,36 @@ const V2_RUNTIME_SNAPSHOT_PATH = join(
   "golden-parity",
   "v2.runtime.snapshot.json",
 );
+const MAX_BUN_RETRIES = 2;
+
+function isBunCrash(stderr: string): boolean {
+  return stderr.includes("Bun has crashed") || stderr.includes("panic(main thread)");
+}
 
 function runV2(
   args: string[],
   env: Record<string, string>,
 ): { exitCode: number; stdout: string; stderr: string } {
-  const result = Bun.spawnSync(["bun", "run", "src/cli.ts", ...args], {
-    cwd: ROOT,
-    env,
-    stdout: "pipe",
-    stderr: "pipe",
-    timeout: 30_000,
-  });
+  for (let attempt = 0; attempt <= MAX_BUN_RETRIES; attempt += 1) {
+    const result = Bun.spawnSync(["bun", "run", "src/cli.ts", ...args], {
+      cwd: ROOT,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 30_000,
+    });
 
-  return {
-    exitCode: result.exitCode,
-    stdout: Buffer.from(result.stdout).toString("utf8"),
-    stderr: Buffer.from(result.stderr).toString("utf8"),
-  };
+    const stdout = Buffer.from(result.stdout).toString("utf8");
+    const stderr = Buffer.from(result.stderr).toString("utf8");
+    const exitCode = result.exitCode ?? 1;
+    const crashed = result.exitCode === null && isBunCrash(stderr);
+
+    if (!crashed || attempt === MAX_BUN_RETRIES) {
+      return { exitCode, stdout, stderr };
+    }
+  }
+
+  return { exitCode: 1, stdout: "", stderr: "Unexpected retry flow" };
 }
 
 describe("cli golden parity", () => {

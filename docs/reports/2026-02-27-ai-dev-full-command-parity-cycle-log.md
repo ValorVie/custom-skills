@@ -66,12 +66,30 @@ status: draft
   - `bun run parity:cycle` → `0 fail`
   - `HOME=/tmp bun test tests/cli/smoke.test.ts` → `39 pass, 0 fail`
 
+## Cycle 6（自動全覆蓋 + full parity/compat + 顏色對齊）
+
+- 變更：
+  - `non-help-command-matrix` 改為從 `createProgram()` 命令樹自動生成，覆蓋 root 與所有 command node 的 parser error 分支。
+  - 新增 `tests/cli/non-help-matrix-coverage.test.ts`，驗證 `*-invalid-option` 與 `*-missing-required-args` 覆蓋完整。
+  - `snapshot:golden-parity` 會先輸出生成後 matrix 到 fixture 與 release assets，確保發佈內容與測試來源一致。
+  - golden harness 改為強制 ANSI 顏色輸出（`FORCE_COLOR=1` / `CLICOLOR_FORCE=1` / `PY_COLORS=1`），納入顏色一致性比對。
+  - `parity:cycle` 擴展為完整 parity/compat suites，並固定 `HOME` 隔離避免共享家目錄污染。
+  - golden parity 執行鏈加入 Bun crash 短重試（僅在 `panic(main thread)`/`Bun has crashed` 時觸發），降低 runtime 偶發崩潰對 parity 判定的干擾。
+  - `smoke` 測試斷言先移除 ANSI 控制碼，避免 `--option` 文字被色碼切斷造成誤判。
+- 驗證：
+  - `bun run snapshot:golden-parity` → 成功生成 help/non-help snapshots + assets
+  - `bun run test:golden-parity` → `8 pass, 0 fail`
+  - `bun run parity:cycle` → `86 pass, 0 fail`
+
 ## 結論
 
 - 已達成連續兩輪 parity cycle 全綠。
 - 已新增 non-help golden parity 與 release assets 路徑，parity gate 可直接用於發佈內容。
-- non-help golden parity 已擴展為全量 leaf 指令 matrix 覆蓋。
+- non-help golden parity 已升級為命令樹自動全覆蓋（parser error branches）。
 - 本輪範圍內可確認 v2 對齊 v1：
   - help 指令逐字輸出
-  - 已納入的 non-help matrix 指令輸出
+  - 已納入 matrix 的 non-help 指令輸出（含 ANSI 顏色）
   - mem/sync push/pull 核心業務邏輯 parity
+- 形式化邊界：
+  - 可有限驗證：命令樹 parser 分支、golden matrix 內輸出、既有 parity/compat 測試覆蓋邏輯。
+  - 不可有限窮舉：外部網路、任意檔案系統狀態、第三方工具副作用與無限輸入空間。

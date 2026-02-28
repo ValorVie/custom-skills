@@ -24,7 +24,7 @@
       "__SPEC_FILE__"
     ],
     "exitCode": 0,
-    "stdout": "\n--- __HOME__/specs/sample.md ---\n\n# Sample Spec\n\nGolden parity sample file.",
+    "stdout": "\n--- \u001b[35m__HOME__/specs/\u001b[0m\u001b[95msample.md\u001b[0m ---\n\n# Sample Spec\n\nGolden parity sample file.",
     "stderr": ""
   },
   {
@@ -38,74 +38,13 @@
     "stderr": "Error: 路徑不存在: __HOME__/specs/missing.md"
   },
   {
-    "id": "install-invalid-option",
+    "id": "root-invalid-option",
     "args": [
-      "install",
       "--parity-probe"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev install [OPTIONS]\nTry 'ai-dev install --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "update-invalid-option",
-    "args": [
-      "update",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev update [OPTIONS]\nTry 'ai-dev update --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "clone-invalid-option",
-    "args": [
-      "clone",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev clone [OPTIONS]\nTry 'ai-dev clone --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "status-invalid-option",
-    "args": [
-      "status",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev status [OPTIONS]\nTry 'ai-dev status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "list-invalid-option",
-    "args": [
-      "list",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev list [OPTIONS]\nTry 'ai-dev list --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe Did you mean --type?                          │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "toggle-invalid-option",
-    "args": [
-      "toggle",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev toggle [OPTIONS]\nTry 'ai-dev toggle --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe Did you mean --type?                          │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "add-repo-invalid-option",
-    "args": [
-      "add-repo",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev add-repo [OPTIONS] REMOTE_PATH\nTry 'ai-dev add-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main [OPTIONS] COMMAND [ARGS]...\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
     "id": "add-custom-repo-invalid-option",
@@ -115,27 +54,45 @@
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev add-custom-repo [OPTIONS] REMOTE_PATH\nTry 'ai-dev add-custom-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main add-custom-repo [OPTIONS] REMOTE_PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main add-custom-repo \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
-    "id": "update-custom-repo-invalid-option",
+    "id": "add-custom-repo-missing-required-args",
     "args": [
-      "update-custom-repo",
+      "add-custom-repo"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main add-custom-repo [OPTIONS] REMOTE_PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main add-custom-repo \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m Missing argument 'REMOTE_PATH'.                                                                                      \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "add-repo-invalid-option",
+    "args": [
+      "add-repo",
       "--parity-probe"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev update-custom-repo [OPTIONS]\nTry 'ai-dev update-custom-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main add-repo [OPTIONS] REMOTE_PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main add-repo \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
-    "id": "test-invalid-option",
+    "id": "add-repo-missing-required-args",
     "args": [
-      "test",
+      "add-repo"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main add-repo [OPTIONS] REMOTE_PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main add-repo \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m Missing argument 'REMOTE_PATH'.                                                                                      \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "clone-invalid-option",
+    "args": [
+      "clone",
       "--parity-probe"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev test [OPTIONS] [PATH]\nTry 'ai-dev test --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main clone [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main clone \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
     "id": "coverage-invalid-option",
@@ -145,7 +102,7 @@
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev coverage [OPTIONS] [PATH]\nTry 'ai-dev coverage --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main coverage [OPTIONS] [PATH]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main coverage \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
     "id": "derive-tests-invalid-option",
@@ -155,95 +112,16 @@
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev derive-tests [OPTIONS] PATH\nTry 'ai-dev derive-tests --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main derive-tests [OPTIONS] PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main derive-tests \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
-    "id": "project-init-invalid-option",
+    "id": "derive-tests-missing-required-args",
     "args": [
-      "project",
-      "init",
-      "--parity-probe"
+      "derive-tests"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev project init [OPTIONS] [TARGET]\nTry 'ai-dev project init --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "project-update-invalid-option",
-    "args": [
-      "project",
-      "update",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev project update [OPTIONS]\nTry 'ai-dev project update --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "standards-status-invalid-option",
-    "args": [
-      "standards",
-      "status",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev standards status [OPTIONS]\nTry 'ai-dev standards status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "standards-list-invalid-option",
-    "args": [
-      "standards",
-      "list",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev standards list [OPTIONS]\nTry 'ai-dev standards list --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "standards-switch-invalid-option",
-    "args": [
-      "standards",
-      "switch",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev standards switch [OPTIONS] PROFILE_NAME\nTry 'ai-dev standards switch --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "standards-show-invalid-option",
-    "args": [
-      "standards",
-      "show",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev standards show [OPTIONS] PROFILE_NAME\nTry 'ai-dev standards show --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "standards-overlaps-invalid-option",
-    "args": [
-      "standards",
-      "overlaps",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev standards overlaps [OPTIONS]\nTry 'ai-dev standards overlaps --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "standards-sync-invalid-option",
-    "args": [
-      "standards",
-      "sync",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev standards sync [OPTIONS]\nTry 'ai-dev standards sync --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main derive-tests [OPTIONS] PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main derive-tests \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m Missing argument 'PATH'.                                                                                             \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
     "id": "hooks-install-invalid-option",
@@ -254,18 +132,17 @@
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev hooks install [OPTIONS]\nTry 'ai-dev hooks install --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main hooks install [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main hooks install \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
-    "id": "hooks-uninstall-invalid-option",
+    "id": "hooks-invalid-option",
     "args": [
       "hooks",
-      "uninstall",
       "--parity-probe"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev hooks uninstall [OPTIONS]\nTry 'ai-dev hooks uninstall --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main hooks [OPTIONS] COMMAND [ARGS]...\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main hooks \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
     "id": "hooks-status-invalid-option",
@@ -276,139 +153,38 @@
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev hooks status [OPTIONS]\nTry 'ai-dev hooks status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main hooks status [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main hooks status \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
-    "id": "sync-init-invalid-option",
+    "id": "hooks-uninstall-invalid-option",
     "args": [
-      "sync",
-      "init",
+      "hooks",
+      "uninstall",
       "--parity-probe"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev sync init [OPTIONS]\nTry 'ai-dev sync init --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main hooks uninstall [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main hooks uninstall \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
-    "id": "sync-push-invalid-option",
+    "id": "install-invalid-option",
     "args": [
-      "sync",
-      "push",
+      "install",
       "--parity-probe"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev sync push [OPTIONS]\nTry 'ai-dev sync push --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main install [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main install \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
-    "id": "sync-pull-invalid-option",
+    "id": "list-invalid-option",
     "args": [
-      "sync",
-      "pull",
+      "list",
       "--parity-probe"
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev sync pull [OPTIONS]\nTry 'ai-dev sync pull --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "sync-status-invalid-option",
-    "args": [
-      "sync",
-      "status",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev sync status [OPTIONS]\nTry 'ai-dev sync status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "sync-add-invalid-option",
-    "args": [
-      "sync",
-      "add",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev sync add [OPTIONS] PATH\nTry 'ai-dev sync add --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "sync-remove-invalid-option",
-    "args": [
-      "sync",
-      "remove",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev sync remove [OPTIONS] PATH\nTry 'ai-dev sync remove --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "mem-register-invalid-option",
-    "args": [
-      "mem",
-      "register",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev mem register [OPTIONS]\nTry 'ai-dev mem register --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "mem-push-invalid-option",
-    "args": [
-      "mem",
-      "push",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev mem push [OPTIONS]\nTry 'ai-dev mem push --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "mem-pull-invalid-option",
-    "args": [
-      "mem",
-      "pull",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev mem pull [OPTIONS]\nTry 'ai-dev mem pull --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "mem-status-invalid-option",
-    "args": [
-      "mem",
-      "status",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev mem status [OPTIONS]\nTry 'ai-dev mem status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "mem-reindex-invalid-option",
-    "args": [
-      "mem",
-      "reindex",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev mem reindex [OPTIONS]\nTry 'ai-dev mem reindex --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
-  },
-  {
-    "id": "mem-cleanup-invalid-option",
-    "args": [
-      "mem",
-      "cleanup",
-      "--parity-probe"
-    ],
-    "exitCode": 2,
-    "stdout": "",
-    "stderr": "Usage: ai-dev mem cleanup [OPTIONS]\nTry 'ai-dev mem cleanup --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main list [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main list \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m Did you mean \u001b[1;36m-\u001b[0m\u001b[1;36m-type\u001b[0m?                                                                  \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
     "id": "mem-auto-invalid-option",
@@ -419,7 +195,337 @@
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev mem auto [OPTIONS]\nTry 'ai-dev mem auto --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem auto [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem auto \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "mem-cleanup-invalid-option",
+    "args": [
+      "mem",
+      "cleanup",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem cleanup [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem cleanup \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "mem-invalid-option",
+    "args": [
+      "mem",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem [OPTIONS] COMMAND [ARGS]...\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "mem-pull-invalid-option",
+    "args": [
+      "mem",
+      "pull",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem pull [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem pull \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "mem-push-invalid-option",
+    "args": [
+      "mem",
+      "push",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem push [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem push \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "mem-register-invalid-option",
+    "args": [
+      "mem",
+      "register",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem register [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem register \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "mem-reindex-invalid-option",
+    "args": [
+      "mem",
+      "reindex",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem reindex [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem reindex \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "mem-status-invalid-option",
+    "args": [
+      "mem",
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main mem status [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main mem status \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "project-init-invalid-option",
+    "args": [
+      "project",
+      "init",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main project init [OPTIONS] [TARGET]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main project init \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "project-invalid-option",
+    "args": [
+      "project",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main project [OPTIONS] COMMAND [ARGS]...\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main project \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "project-update-invalid-option",
+    "args": [
+      "project",
+      "update",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main project update [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main project update \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-invalid-option",
+    "args": [
+      "standards",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards [OPTIONS] COMMAND [ARGS]...\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-list-invalid-option",
+    "args": [
+      "standards",
+      "list",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards list [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards list \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-overlaps-invalid-option",
+    "args": [
+      "standards",
+      "overlaps",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards overlaps [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards overlaps \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-show-invalid-option",
+    "args": [
+      "standards",
+      "show",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards show [OPTIONS] PROFILE_NAME\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards show \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-show-missing-required-args",
+    "args": [
+      "standards",
+      "show"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards show [OPTIONS] PROFILE_NAME\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards show \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m Missing argument 'PROFILE_NAME'.                                                                                     \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-status-invalid-option",
+    "args": [
+      "standards",
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards status [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards status \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-switch-invalid-option",
+    "args": [
+      "standards",
+      "switch",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards switch [OPTIONS] PROFILE_NAME\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards switch \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-switch-missing-required-args",
+    "args": [
+      "standards",
+      "switch"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards switch [OPTIONS] PROFILE_NAME\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards switch \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m Missing argument 'PROFILE_NAME'.                                                                                     \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "standards-sync-invalid-option",
+    "args": [
+      "standards",
+      "sync",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main standards sync [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main standards sync \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "status-invalid-option",
+    "args": [
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main status [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main status \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-add-invalid-option",
+    "args": [
+      "sync",
+      "add",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync add [OPTIONS] PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync add \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-add-missing-required-args",
+    "args": [
+      "sync",
+      "add"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync add [OPTIONS] PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync add \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m Missing argument 'PATH'.                                                                                             \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-init-invalid-option",
+    "args": [
+      "sync",
+      "init",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync init [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync init \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-invalid-option",
+    "args": [
+      "sync",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync [OPTIONS] COMMAND [ARGS]...\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-pull-invalid-option",
+    "args": [
+      "sync",
+      "pull",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync pull [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync pull \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-push-invalid-option",
+    "args": [
+      "sync",
+      "push",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync push [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync push \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-remove-invalid-option",
+    "args": [
+      "sync",
+      "remove",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync remove [OPTIONS] PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync remove \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-remove-missing-required-args",
+    "args": [
+      "sync",
+      "remove"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync remove [OPTIONS] PATH\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync remove \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m Missing argument 'PATH'.                                                                                             \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "sync-status-invalid-option",
+    "args": [
+      "sync",
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main sync status [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main sync status \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "test-invalid-option",
+    "args": [
+      "test",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main test [OPTIONS] [PATH]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main test \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "toggle-invalid-option",
+    "args": [
+      "toggle",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main toggle [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main toggle \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m Did you mean \u001b[1;36m-\u001b[0m\u001b[1;36m-type\u001b[0m?                                                                  \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   },
   {
     "id": "tui-invalid-option",
@@ -429,6 +535,26 @@
     ],
     "exitCode": 2,
     "stdout": "",
-    "stderr": "Usage: ai-dev tui [OPTIONS]\nTry 'ai-dev tui --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main tui [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main tui \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "update-custom-repo-invalid-option",
+    "args": [
+      "update-custom-repo",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main update-custom-repo [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main update-custom-repo \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
+  },
+  {
+    "id": "update-invalid-option",
+    "args": [
+      "update",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "\u001b[33mUsage: \u001b[0mpython \u001b[1;32m-m\u001b[0m script.main update [OPTIONS]\n\u001b[2mTry \u001b[0m\u001b[2;34m'python \u001b[0m\u001b[1;2;34m-m\u001b[0m\u001b[2;34m script.main update \u001b[0m\u001b[1;2;34m-\u001b[0m\u001b[1;2;34m-help\u001b[0m\u001b[2;34m'\u001b[0m\u001b[2m for help.\u001b[0m\n\u001b[31m╭─\u001b[0m\u001b[31m Error \u001b[0m\u001b[31m─────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[31m─╮\u001b[0m\n\u001b[31m│\u001b[0m No such option: \u001b[1;36m-\u001b[0m\u001b[1;36m-parity\u001b[0m\u001b[1;36m-probe\u001b[0m                                                                                       \u001b[31m│\u001b[0m\n\u001b[31m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\u001b[0m"
   }
 ]

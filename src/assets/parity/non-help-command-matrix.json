@@ -26,51 +26,8 @@
     ]
   },
   {
-    "id": "install-invalid-option",
+    "id": "root-invalid-option",
     "args": [
-      "install",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "update-invalid-option",
-    "args": [
-      "update",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "clone-invalid-option",
-    "args": [
-      "clone",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "status-invalid-option",
-    "args": [
-      "status",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "list-invalid-option",
-    "args": [
-      "list",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "toggle-invalid-option",
-    "args": [
-      "toggle",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "add-repo-invalid-option",
-    "args": [
-      "add-repo",
       "--parity-probe"
     ]
   },
@@ -82,16 +39,28 @@
     ]
   },
   {
-    "id": "update-custom-repo-invalid-option",
+    "id": "add-custom-repo-missing-required-args",
     "args": [
-      "update-custom-repo",
+      "add-custom-repo"
+    ]
+  },
+  {
+    "id": "add-repo-invalid-option",
+    "args": [
+      "add-repo",
       "--parity-probe"
     ]
   },
   {
-    "id": "test-invalid-option",
+    "id": "add-repo-missing-required-args",
     "args": [
-      "test",
+      "add-repo"
+    ]
+  },
+  {
+    "id": "clone-invalid-option",
+    "args": [
+      "clone",
       "--parity-probe"
     ]
   },
@@ -110,67 +79,9 @@
     ]
   },
   {
-    "id": "project-init-invalid-option",
+    "id": "derive-tests-missing-required-args",
     "args": [
-      "project",
-      "init",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "project-update-invalid-option",
-    "args": [
-      "project",
-      "update",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "standards-status-invalid-option",
-    "args": [
-      "standards",
-      "status",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "standards-list-invalid-option",
-    "args": [
-      "standards",
-      "list",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "standards-switch-invalid-option",
-    "args": [
-      "standards",
-      "switch",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "standards-show-invalid-option",
-    "args": [
-      "standards",
-      "show",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "standards-overlaps-invalid-option",
-    "args": [
-      "standards",
-      "overlaps",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "standards-sync-invalid-option",
-    "args": [
-      "standards",
-      "sync",
-      "--parity-probe"
+      "derive-tests"
     ]
   },
   {
@@ -182,10 +93,9 @@
     ]
   },
   {
-    "id": "hooks-uninstall-invalid-option",
+    "id": "hooks-invalid-option",
     "args": [
       "hooks",
-      "uninstall",
       "--parity-probe"
     ]
   },
@@ -198,33 +108,185 @@
     ]
   },
   {
-    "id": "sync-init-invalid-option",
+    "id": "hooks-uninstall-invalid-option",
     "args": [
-      "sync",
-      "init",
+      "hooks",
+      "uninstall",
       "--parity-probe"
     ]
   },
   {
-    "id": "sync-push-invalid-option",
+    "id": "install-invalid-option",
     "args": [
-      "sync",
-      "push",
+      "install",
       "--parity-probe"
     ]
   },
   {
-    "id": "sync-pull-invalid-option",
+    "id": "list-invalid-option",
     "args": [
-      "sync",
+      "list",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-auto-invalid-option",
+    "args": [
+      "mem",
+      "auto",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-cleanup-invalid-option",
+    "args": [
+      "mem",
+      "cleanup",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-invalid-option",
+    "args": [
+      "mem",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-pull-invalid-option",
+    "args": [
+      "mem",
       "pull",
       "--parity-probe"
     ]
   },
   {
-    "id": "sync-status-invalid-option",
+    "id": "mem-push-invalid-option",
     "args": [
+      "mem",
+      "push",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-register-invalid-option",
+    "args": [
+      "mem",
+      "register",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-reindex-invalid-option",
+    "args": [
+      "mem",
+      "reindex",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-status-invalid-option",
+    "args": [
+      "mem",
+      "status",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "project-init-invalid-option",
+    "args": [
+      "project",
+      "init",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "project-invalid-option",
+    "args": [
+      "project",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "project-update-invalid-option",
+    "args": [
+      "project",
+      "update",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-invalid-option",
+    "args": [
+      "standards",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-list-invalid-option",
+    "args": [
+      "standards",
+      "list",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-overlaps-invalid-option",
+    "args": [
+      "standards",
+      "overlaps",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-show-invalid-option",
+    "args": [
+      "standards",
+      "show",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-show-missing-required-args",
+    "args": [
+      "standards",
+      "show"
+    ]
+  },
+  {
+    "id": "standards-status-invalid-option",
+    "args": [
+      "standards",
+      "status",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-switch-invalid-option",
+    "args": [
+      "standards",
+      "switch",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-switch-missing-required-args",
+    "args": [
+      "standards",
+      "switch"
+    ]
+  },
+  {
+    "id": "standards-sync-invalid-option",
+    "args": [
+      "standards",
       "sync",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "status-invalid-option",
+    "args": [
       "status",
       "--parity-probe"
     ]
@@ -238,6 +300,44 @@
     ]
   },
   {
+    "id": "sync-add-missing-required-args",
+    "args": [
+      "sync",
+      "add"
+    ]
+  },
+  {
+    "id": "sync-init-invalid-option",
+    "args": [
+      "sync",
+      "init",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-invalid-option",
+    "args": [
+      "sync",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-pull-invalid-option",
+    "args": [
+      "sync",
+      "pull",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-push-invalid-option",
+    "args": [
+      "sync",
+      "push",
+      "--parity-probe"
+    ]
+  },
+  {
     "id": "sync-remove-invalid-option",
     "args": [
       "sync",
@@ -246,58 +346,31 @@
     ]
   },
   {
-    "id": "mem-register-invalid-option",
+    "id": "sync-remove-missing-required-args",
     "args": [
-      "mem",
-      "register",
-      "--parity-probe"
+      "sync",
+      "remove"
     ]
   },
   {
-    "id": "mem-push-invalid-option",
+    "id": "sync-status-invalid-option",
     "args": [
-      "mem",
-      "push",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "mem-pull-invalid-option",
-    "args": [
-      "mem",
-      "pull",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "mem-status-invalid-option",
-    "args": [
-      "mem",
+      "sync",
       "status",
       "--parity-probe"
     ]
   },
   {
-    "id": "mem-reindex-invalid-option",
+    "id": "test-invalid-option",
     "args": [
-      "mem",
-      "reindex",
+      "test",
       "--parity-probe"
     ]
   },
   {
-    "id": "mem-cleanup-invalid-option",
+    "id": "toggle-invalid-option",
     "args": [
-      "mem",
-      "cleanup",
-      "--parity-probe"
-    ]
-  },
-  {
-    "id": "mem-auto-invalid-option",
-    "args": [
-      "mem",
-      "auto",
+      "toggle",
       "--parity-probe"
     ]
   },
@@ -305,6 +378,20 @@
     "id": "tui-invalid-option",
     "args": [
       "tui",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "update-custom-repo-invalid-option",
+    "args": [
+      "update-custom-repo",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "update-invalid-option",
+    "args": [
+      "update",
       "--parity-probe"
     ]
   }

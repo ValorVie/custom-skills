@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
+function stripAnsi(text: string): string {
+  return text.replace(/\u001b\[[0-9;]*m/g, "");
+}
+
 function runCli(args: string[], timeoutMs = 5000) {
   const result = Bun.spawnSync(["bun", "run", "src/cli.ts", ...args], {
     cwd: process.cwd(),
@@ -11,8 +15,8 @@ function runCli(args: string[], timeoutMs = 5000) {
 
   return {
     exitCode: result.exitCode,
-    stdout: Buffer.from(result.stdout).toString("utf8"),
-    stderr: Buffer.from(result.stderr).toString("utf8"),
+    stdout: stripAnsi(Buffer.from(result.stdout).toString("utf8")),
+    stderr: stripAnsi(Buffer.from(result.stderr).toString("utf8")),
   };
 }
 

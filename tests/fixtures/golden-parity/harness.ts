@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+import { buildNonHelpCommandMatrix } from "./non-help-matrix";
+
 export type GoldenCase = {
   id: string;
   args: string[];
@@ -21,22 +23,13 @@ const MATRIX_PATH = join(
   "golden-parity",
   "command-matrix.json",
 );
-const NON_HELP_MATRIX_PATH = join(
-  process.cwd(),
-  "tests",
-  "fixtures",
-  "golden-parity",
-  "non-help-command-matrix.json",
-);
-
 export async function loadCommandMatrix(): Promise<GoldenCase[]> {
   const raw = await readFile(MATRIX_PATH, "utf8");
   return JSON.parse(raw) as GoldenCase[];
 }
 
 export async function loadNonHelpCommandMatrix(): Promise<GoldenCase[]> {
-  const raw = await readFile(NON_HELP_MATRIX_PATH, "utf8");
-  return JSON.parse(raw) as GoldenCase[];
+  return buildNonHelpCommandMatrix();
 }
 
 export async function prepareGoldenHome(home: string): Promise<void> {
@@ -99,15 +92,18 @@ export async function prepareGoldenHome(home: string): Promise<void> {
 }
 
 export function buildGoldenEnv(home: string): Record<string, string> {
+  const inherited = { ...process.env } as Record<string, string | undefined>;
+  delete inherited.NO_COLOR;
+
   return {
-    ...process.env,
+    ...inherited,
     HOME: home,
     USERPROFILE: home,
     XDG_CONFIG_HOME: join(home, ".config"),
-    NO_COLOR: "1",
-    FORCE_COLOR: "0",
-    CLICOLOR: "0",
-    TERM: "dumb",
+    FORCE_COLOR: "1",
+    CLICOLOR_FORCE: "1",
+    PY_COLORS: "1",
+    TERM: "xterm-256color",
     COLUMNS: "120",
     TZ: "UTC",
     LANG: "C.UTF-8",

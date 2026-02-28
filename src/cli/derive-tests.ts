@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { basename, extname, join, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 
 import type { Command } from "commander";
 
@@ -33,6 +33,34 @@ async function collectMarkdownFiles(path: string): Promise<string[]> {
   return files;
 }
 
+function shouldUseColor(): boolean {
+  if (process.env.NO_COLOR) {
+    return false;
+  }
+
+  const forced = process.env.FORCE_COLOR ?? process.env.CLICOLOR_FORCE ?? "0";
+  return forced !== "0";
+}
+
+function formatDisplayPath(path: string): string {
+  if (!shouldUseColor()) {
+    return path;
+  }
+
+  const base = basename(path);
+  const dir = dirname(path);
+
+  if (!dir || dir === ".") {
+    return `\u001b[95m${base}\u001b[0m`;
+  }
+
+  if (dir === "/") {
+    return `\u001b[35m/\u001b[0m\u001b[95m${base}\u001b[0m`;
+  }
+
+  return `\u001b[35m${dir}/\u001b[0m\u001b[95m${base}\u001b[0m`;
+}
+
 export function registerDeriveTestsCommand(program: Command): void {
   program
     .command("derive-tests")
@@ -49,7 +77,7 @@ export function registerDeriveTestsCommand(program: Command): void {
           "code" in error &&
           error.code === "ENOENT"
         ) {
-          console.error(`Error: 路徑不存在: ${path}`);
+          process.stderr.write(`Error: 路徑不存在: ${path}\n`);
           process.exitCode = 1;
           return;
         }
@@ -57,7 +85,7 @@ export function registerDeriveTestsCommand(program: Command): void {
       }
 
       if (files.length === 0) {
-        console.error(`No markdown spec files found at: ${path}`);
+        process.stderr.write(`No markdown spec files found at: ${path}\n`);
         process.exitCode = 1;
         return;
       }
@@ -65,7 +93,7 @@ export function registerDeriveTestsCommand(program: Command): void {
       for (const filePath of files.sort((a, b) => a.localeCompare(b))) {
         const content = await readFile(filePath, "utf8");
         const displayPath = resolve(filePath) || basename(filePath);
-        console.log(`\n--- ${displayPath} ---\n`);
+        console.log(`\n--- ${formatDisplayPath(displayPath)} ---\n`);
         console.log(content);
       }
     });
