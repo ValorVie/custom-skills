@@ -125,6 +125,42 @@ describe("cli/clone integration", () => {
     }
   });
 
+  test("clone non-json prints updated item details", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-clone-"));
+    const cwd = join(root, "custom-skills");
+    const snapshot = captureTargets();
+    const previousCwd = process.cwd();
+
+    try {
+      await mkdir(join(cwd, "skills", "alpha"), { recursive: true });
+      await mkdir(join(cwd, "commands"), { recursive: true });
+      await mkdir(join(cwd, "agents"), { recursive: true });
+      await writeFile(
+        join(cwd, "skills", "alpha", "SKILL.md"),
+        "alpha\n",
+        "utf8",
+      );
+      await writeFile(
+        join(cwd, "package.json"),
+        JSON.stringify({ name: "ai-dev" }),
+        "utf8",
+      );
+
+      redirectTargets(root);
+      process.chdir(cwd);
+
+      const output = await runClone([]);
+
+      expect(output).toContain("分發完成！共");
+      expect(output).toContain("本次更新明細：");
+      expect(output).toContain("claude/skills: alpha");
+    } finally {
+      process.chdir(previousCwd);
+      restoreTargets(snapshot);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   test("clone --skip-conflicts keeps existing content", async () => {
     const root = await mkdtemp(join(tmpdir(), "ai-dev-clone-"));
     const cwd = join(root, "custom-skills");

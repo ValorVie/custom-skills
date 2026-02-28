@@ -341,6 +341,27 @@ export function registerCloneCommand(program: Command): void {
           ),
         );
 
+        console.log(chalk.bold.cyan("\n本次更新明細："));
+        if (result.distributed.length === 0) {
+          console.log(chalk.dim("  （本次無更新項目）"));
+        } else {
+          const sorted = [...result.distributed].sort((left, right) => {
+            if (left.target !== right.target) {
+              return left.target.localeCompare(right.target);
+            }
+            if (left.type !== right.type) {
+              return left.type.localeCompare(right.type);
+            }
+            return left.name.localeCompare(right.name);
+          });
+
+          for (const item of sorted) {
+            console.log(
+              chalk.cyan(`  + ${item.target}/${item.type}: ${item.name}`),
+            );
+          }
+        }
+
         // Conflicts
         if (result.conflicts.length > 0) {
           console.log(chalk.yellow("\n衝突："));
