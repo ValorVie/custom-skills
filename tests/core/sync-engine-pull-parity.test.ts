@@ -106,4 +106,41 @@ describe("core/sync-engine pull parity", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  test("pull preserves git pull outputs in summary details", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-sync-pull-parity-"));
+    const configPath = join(root, "sync.yaml");
+    const repoDir = join(root, "sync-repo");
+    const localDir = join(root, "local");
+
+    const engine = new SyncEngine(configPath, repoDir, {
+      runCommandFn: async (command: string[]) => {
+        if (command[0] === "git" && command.includes("pull")) {
+          return {
+            stdout: "Updating abc123..def456\n",
+            stderr: "Fast-forward\n",
+            exitCode: 0,
+          };
+        }
+        return { stdout: "", stderr: "", exitCode: 0 };
+      },
+    });
+
+    try {
+      await mkdir(localDir, { recursive: true });
+      await writeFile(join(localDir, "a.txt"), "local\n", "utf8");
+      await engine.init();
+      await engine.removeDirectory("~/.claude", { skipMinCheck: true });
+      await engine.addDirectory(localDir);
+
+      const summary = await engine.pull({ force: true });
+      expect(summary.git?.pull?.stdout).toContain("Updating abc123..def456");
+      expect(summary.git?.pull?.stderr).toContain("Fast-forward");
+      expect(summary.git?.pull?.command).toEqual(
+        expect.arrayContaining(["git", "pull", "--rebase"]),
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });

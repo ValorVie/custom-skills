@@ -35,6 +35,23 @@ export interface SyncSummary {
   updated: number;
   deleted: number;
   skipped?: boolean;
+  git?: SyncGitDetails;
+}
+
+export interface SyncGitCommandDetail {
+  command: string[];
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+export interface SyncGitDetails {
+  status?: SyncGitCommandDetail;
+  add?: SyncGitCommandDetail;
+  commit?: SyncGitCommandDetail;
+  pull?: SyncGitCommandDetail;
+  push?: SyncGitCommandDetail;
+  lfsPush?: SyncGitCommandDetail;
 }
 
 export interface SyncStatus {
@@ -1086,10 +1103,12 @@ export class SyncEngine {
       throw new Error("sync not initialized");
     }
 
+    const gitDetails: SyncGitDetails = {};
+
     if (options.force) {
       const confirmed = await this.confirmForcePushFn();
       if (!confirmed) {
-        return { added: 0, updated: 0, deleted: 0, skipped: true };
+        return { added: 0, updated: 0, deleted: 0, skipped: true, git: gitDetails };
       }
     }
 
@@ -1118,9 +1137,58 @@ export class SyncEngine {
           timeoutMs: 60_000,
         },
       );
+      gitDetails.status = {
+        command: ["git", "-C", this.repoDir, "status", "--porcelain"],
+        exitCode: localStatus.exitCode,
+        stdout: localStatus.stdout,
+        stderr: localStatus.stderr,
+      };
       if (localStatus.exitCode === 0 && localStatus.stdout.trim().length === 0) {
-        return { added: 0, updated: 0, deleted: 0 };
+        return { added: 0, updated: 0, deleted: 0, git: gitDetails };
       }
+    }
+
+    const addResult = await this.runCommandFn(["git", "-C", this.repoDir, "add", "-A"], {
+      check: false,
+      timeoutMs: 60_000,
+    });
+    gitDetails.add = {
+      command: ["git", "-C", this.repoDir, "add", "-A"],
+      exitCode: addResult.exitCode,
+      stdout: addResult.stdout,
+      stderr: addResult.stderr,
+    };
+    const commitMessage = `sync update ${new Date().toISOString()}`;
+    const commitCommand = [
+      "git",
+      "-C",
+      this.repoDir,
+      "commit",
+      "-m",
+      commitMessage,
+    ] as const;
+    const commit = await this.runCommandFn([...commitCommand], {
+      check: false,
+      timeoutMs: 60_000,
+    });
+    gitDetails.commit = {
+      command: [...commitCommand],
+      exitCode: commit.exitCode,
+      stdout: commit.stdout,
+      stderr: commit.stderr,
+    };
+
+    const commitOutput = `${commit.stdout}\n${commit.stderr}`.toLowerCase();
+    const noChanges =
+      commit.exitCode !== 0 &&
+      (commitOutput.includes("nothing to commit") ||
+        commitOutput.includes("no changes added to commit"));
+    if (noChanges) {
+      if (!options.force) {
+        return { added: 0, updated: 0, deleted: 0, git: gitDetails };
+      }
+    } else if (commit.exitCode !== 0) {
+      throw new Error("git commit 失敗");
     }
 
     if (!options.force) {
@@ -1131,41 +1199,18 @@ export class SyncEngine {
           timeoutMs: 60_000,
         },
       );
+      gitDetails.pull = {
+        command: ["git", "-C", this.repoDir, "pull", "--rebase"],
+        exitCode: prePushPull.exitCode,
+        stdout: prePushPull.stdout,
+        stderr: prePushPull.stderr,
+      };
       if (prePushPull.exitCode !== 0) {
-        throw new Error("git pull --rebase 失敗");
+        const reason = `${prePushPull.stderr}\n${prePushPull.stdout}`.trim();
+        throw new Error(
+          reason ? `git pull --rebase 失敗: ${reason}` : "git pull --rebase 失敗",
+        );
       }
-    }
-
-    await this.runCommandFn(["git", "-C", this.repoDir, "add", "-A"], {
-      check: false,
-      timeoutMs: 60_000,
-    });
-    const commit = await this.runCommandFn(
-      [
-        "git",
-        "-C",
-        this.repoDir,
-        "commit",
-        "-m",
-        `sync update ${new Date().toISOString()}`,
-      ],
-      {
-        check: false,
-        timeoutMs: 60_000,
-      },
-    );
-
-    const commitOutput = `${commit.stdout}\n${commit.stderr}`.toLowerCase();
-    const noChanges =
-      commit.exitCode !== 0 &&
-      (commitOutput.includes("nothing to commit") ||
-        commitOutput.includes("no changes added to commit"));
-    if (noChanges) {
-      if (!options.force) {
-        return { added: 0, updated: 0, deleted: 0 };
-      }
-    } else if (commit.exitCode !== 0) {
-      throw new Error("git commit 失敗");
     }
 
     const pushResult = await this.runCommandFn(
@@ -1181,6 +1226,18 @@ export class SyncEngine {
         timeoutMs: 60_000,
       },
     );
+    gitDetails.push = {
+      command: [
+        "git",
+        "-C",
+        this.repoDir,
+        "push",
+        ...(options.force ? ["--force"] : []),
+      ],
+      exitCode: pushResult.exitCode,
+      stdout: pushResult.stdout,
+      stderr: pushResult.stderr,
+    };
     if (pushResult.exitCode !== 0) {
       throw new Error("git push 失敗");
     }
@@ -1192,13 +1249,19 @@ export class SyncEngine {
         timeoutMs: 60_000,
       },
     );
+    gitDetails.lfsPush = {
+      command: ["git", "-C", this.repoDir, "lfs", "push", "--all", "origin"],
+      exitCode: lfsPushResult.exitCode,
+      stdout: lfsPushResult.stdout,
+      stderr: lfsPushResult.stderr,
+    };
     if (lfsPushResult.exitCode !== 0) {
       throw new Error("git lfs push 失敗");
     }
 
     config.lastSync = new Date().toISOString();
     await this.saveConfig(config);
-    return total;
+    return { ...total, git: gitDetails };
   }
 
   async pull(
@@ -1212,6 +1275,8 @@ export class SyncEngine {
     if (!config) {
       throw new Error("sync not initialized");
     }
+
+    const gitDetails: SyncGitDetails = {};
 
     if (!options.force && (await this.hasPullConflicts(config))) {
       const choice = await this.pullConflictChoiceFn();
@@ -1230,8 +1295,17 @@ export class SyncEngine {
         timeoutMs: 60_000,
       },
     );
+    gitDetails.pull = {
+      command: ["git", "-C", this.repoDir, "pull", "--rebase"],
+      exitCode: pullResult.exitCode,
+      stdout: pullResult.stdout,
+      stderr: pullResult.stderr,
+    };
     if (pullResult.exitCode !== 0) {
-      throw new Error("git pull --rebase 失敗");
+      const reason = `${pullResult.stderr}\n${pullResult.stdout}`.trim();
+      throw new Error(
+        reason ? `git pull --rebase 失敗: ${reason}` : "git pull --rebase 失敗",
+      );
     }
 
     const deleteExtra = options.noDelete
@@ -1254,7 +1328,7 @@ export class SyncEngine {
 
     config.lastSync = new Date().toISOString();
     await this.saveConfig(config);
-    return total;
+    return { ...total, git: gitDetails };
   }
 }
 

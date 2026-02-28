@@ -1,9 +1,59 @@
 import type { Command } from "commander";
 import inquirer from "inquirer";
 
-import { createDefaultSyncEngine } from "../../core/sync-engine";
+import {
+  type SyncGitCommandDetail,
+  type SyncSummary,
+  createDefaultSyncEngine,
+} from "../../core/sync-engine";
 import { printTable } from "../../utils/formatter";
 import { t } from "../../utils/i18n";
+
+function printGitCommandDetails(detail: SyncGitCommandDetail, label: string): void {
+  console.log(`\n[${label}] exit=${detail.exitCode}`);
+  console.log(`$ ${detail.command.join(" ")}`);
+
+  if (detail.stdout.length > 0) {
+    console.log(detail.stdout);
+  }
+
+  if (detail.stderr.length > 0) {
+    console.log(detail.stderr);
+  }
+
+  if (detail.stdout.length === 0 && detail.stderr.length === 0) {
+    console.log("（無輸出）");
+  }
+}
+
+function printSyncGitDetails(summary: SyncSummary): void {
+  const git = summary.git;
+  if (!git) {
+    return;
+  }
+
+  const details = [
+    ["git status --porcelain", git.status],
+    ["git add -A", git.add],
+    ["git commit", git.commit],
+    ["git pull --rebase", git.pull],
+    ["git push", git.push],
+    ["git lfs push --all origin", git.lfsPush],
+  ] as const;
+
+  const available = details.filter(
+    (entry): entry is readonly [string, SyncGitCommandDetail] => Boolean(entry[1]),
+  );
+
+  if (available.length === 0) {
+    return;
+  }
+
+  console.log("\nGit 詳細資訊：");
+  for (const [label, detail] of available) {
+    printGitCommandDetails(detail, label);
+  }
+}
 
 export function registerSyncCommands(program: Command): void {
   const sync = program.command("sync").description(t("cmd.sync"));
@@ -40,40 +90,50 @@ export function registerSyncCommands(program: Command): void {
     .option("--force", t("opt.force"))
     .option("--json", t("opt.json"))
     .action(async (options: { force?: boolean; json?: boolean }) => {
-      const summary = await engine.push({ force: options.force });
+      try {
+        const summary = await engine.push({ force: options.force });
 
-      if (options.json) {
-        console.log(JSON.stringify(summary, null, 2));
-        return;
-      }
-
-      if (summary.skipped) {
-        if (options.force) {
-          console.log("Sync push cancelled");
-        } else {
-          console.log("No changes to sync");
+        if (options.json) {
+          console.log(JSON.stringify(summary, null, 2));
+          return;
         }
-        return;
-      }
 
-      if (
-        !options.force &&
-        summary.added === 0 &&
-        summary.updated === 0 &&
-        summary.deleted === 0
-      ) {
-        console.log("No changes to sync");
-        return;
-      }
+        if (summary.skipped) {
+          if (options.force) {
+            console.log("Sync push cancelled");
+          } else {
+            console.log("No changes to sync");
+          }
+          printSyncGitDetails(summary);
+          return;
+        }
 
-      console.log(t("sync.push_done"));
-      console.log(
-        t("sync.summary", {
-          added: String(summary.added),
-          updated: String(summary.updated),
-          deleted: String(summary.deleted),
-        }),
-      );
+        if (
+          !options.force &&
+          summary.added === 0 &&
+          summary.updated === 0 &&
+          summary.deleted === 0
+        ) {
+          console.log("No changes to sync");
+          printSyncGitDetails(summary);
+          return;
+        }
+
+        console.log(t("sync.push_done"));
+        console.log(
+          t("sync.summary", {
+            added: String(summary.added),
+            updated: String(summary.updated),
+            deleted: String(summary.deleted),
+          }),
+        );
+        printSyncGitDetails(summary);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        console.error(message);
+        process.exitCode = 1;
+      }
     });
 
   sync
@@ -108,6 +168,7 @@ export function registerSyncCommands(program: Command): void {
               deleted: String(summary.deleted),
             }),
           );
+          printSyncGitDetails(summary);
         } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : String(error);
