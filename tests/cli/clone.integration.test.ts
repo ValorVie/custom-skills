@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createProgram } from "../../src/cli/index";
+import { paths } from "../../src/utils/paths";
 import {
   COPY_TARGETS,
   type ResourceType,
@@ -26,6 +27,7 @@ const RESOURCE_KEYS: (ResourceType | "plugins")[] = [
 ];
 
 type TargetSnapshot = Record<string, string | undefined>;
+type PathsSnapshot = Record<string, string>;
 
 function captureTargets(): TargetSnapshot {
   const snapshot: TargetSnapshot = {};
@@ -42,6 +44,25 @@ function restoreTargets(snapshot: TargetSnapshot): void {
     for (const key of RESOURCE_KEYS) {
       COPY_TARGETS[target][key] = snapshot[`${target}:${key}`];
     }
+  }
+}
+
+function disableTargets(): void {
+  for (const target of Object.keys(COPY_TARGETS) as TargetType[]) {
+    for (const key of RESOURCE_KEYS) {
+      COPY_TARGETS[target][key] = undefined;
+    }
+  }
+}
+
+function capturePaths(): PathsSnapshot {
+  return Object.fromEntries(Object.entries(paths)) as PathsSnapshot;
+}
+
+function restorePaths(snapshot: PathsSnapshot): void {
+  const mutablePaths = paths as unknown as Record<string, string>;
+  for (const [key, value] of Object.entries(snapshot)) {
+    mutablePaths[key] = value;
   }
 }
 
@@ -157,6 +178,54 @@ describe("cli/clone integration", () => {
     } finally {
       process.chdir(previousCwd);
       restoreTargets(snapshot);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("clone non-json reports project sync details when dev sync updates files", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-clone-"));
+    const cwd = join(root, "custom-skills");
+    const obsidianRoot = join(root, "obsidian-skills");
+    const snapshotTargets = captureTargets();
+    const snapshotPaths = capturePaths();
+    const previousCwd = process.cwd();
+
+    try {
+      await mkdir(join(cwd, "commands"), { recursive: true });
+      await mkdir(join(cwd, "agents"), { recursive: true });
+      await mkdir(join(obsidianRoot, "skills", "obsidian-skill"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(obsidianRoot, "skills", "obsidian-skill", "SKILL.md"),
+        "obsidian\n",
+        "utf8",
+      );
+      await writeFile(
+        join(cwd, "package.json"),
+        JSON.stringify({ name: "ai-dev" }),
+        "utf8",
+      );
+
+      disableTargets();
+      const mutablePaths = paths as unknown as Record<string, string>;
+      mutablePaths.udsRepo = join(root, "missing", "uds");
+      mutablePaths.obsidianSkillsRepo = obsidianRoot;
+      mutablePaths.anthropicSkillsRepo = join(root, "missing", "anthropic");
+      mutablePaths.autoSkillRepo = join(root, "missing", "auto-skill");
+      process.chdir(cwd);
+
+      const output = await runClone([]);
+
+      expect(output).toContain("本次更新明細：");
+      expect(output).toContain("開發目錄同步：");
+      expect(output).toContain("project/skills/obsidian-skill");
+      expect(output).not.toContain("（本次無更新項目）");
+      await access(join(cwd, "skills", "obsidian-skill", "SKILL.md"));
+    } finally {
+      process.chdir(previousCwd);
+      restoreTargets(snapshotTargets);
+      restorePaths(snapshotPaths);
       await rm(root, { recursive: true, force: true });
     }
   });

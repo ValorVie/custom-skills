@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import { cp, mkdir, readdir, readFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import chalk from "chalk";
 import type { Command } from "commander";
@@ -11,7 +11,11 @@ import {
   type DistributeResult,
   distributeSkills,
 } from "../core/skill-distributor";
-import type { ConflictInfo } from "../utils/manifest";
+import {
+  type ConflictInfo,
+  computeDirHash,
+  computeFileHash,
+} from "../utils/manifest";
 import {
   detectMetadataChanges,
   handleMetadataChanges,
@@ -30,9 +34,59 @@ interface CloneCommandResult extends DistributeResult {
   };
 }
 
+interface ProjectSyncUpdate {
+  label: string;
+  source: string;
+  destination: string;
+}
+
 function shortenPath(p: string): string {
   const home = homedir();
   return p.startsWith(home) ? p.replace(home, "~") : p;
+}
+
+async function isSourceChanged(
+  sourcePath: string,
+  destinationPath: string,
+): Promise<boolean> {
+  const sourceStat = await stat(sourcePath);
+  let destinationStat: Awaited<ReturnType<typeof stat>> | null = null;
+
+  try {
+    destinationStat = await stat(destinationPath);
+  } catch {
+    return true;
+  }
+
+  if (sourceStat.isDirectory() !== destinationStat.isDirectory()) {
+    return true;
+  }
+
+  const [sourceHash, destinationHash] = sourceStat.isDirectory()
+    ? await Promise.all([
+        computeDirHash(sourcePath),
+        computeDirHash(destinationPath),
+      ])
+    : await Promise.all([
+        computeFileHash(sourcePath),
+        computeFileHash(destinationPath),
+      ]);
+
+  return sourceHash !== destinationHash;
+}
+
+async function syncEntryIfChanged(
+  sourcePath: string,
+  destinationPath: string,
+): Promise<boolean> {
+  const changed = await isSourceChanged(sourcePath, destinationPath);
+  if (!changed) {
+    return false;
+  }
+
+  await mkdir(dirname(destinationPath), { recursive: true });
+  await cp(sourcePath, destinationPath, { recursive: true, force: true });
+  return true;
 }
 
 async function detectDeveloperMode(
@@ -63,10 +117,23 @@ async function detectDeveloperMode(
 async function integrateToDevProject(
   devProjectRoot: string,
   onProgress?: (message: string) => void,
+  onProjectSyncUpdate?: (item: ProjectSyncUpdate) => void,
 ): Promise<void> {
   const log = onProgress ?? (() => {});
   const dstSkills = join(devProjectRoot, "skills");
   await mkdir(dstSkills, { recursive: true });
+
+  const reportSyncUpdate = (
+    sourcePath: string,
+    destinationPath: string,
+    label: string,
+  ) => {
+    onProjectSyncUpdate?.({
+      label,
+      source: sourcePath,
+      destination: destinationPath,
+    });
+  };
 
   // UDS skills (excluding agents, workflows, commands)
   const srcUds = join(paths.udsRepo, "skills", "claude-code");
@@ -78,19 +145,27 @@ async function integrateToDevProject(
       if (["agents", "workflows", "commands"].includes(entry.name)) continue;
       const src = join(srcUds, entry.name);
       const dst = join(dstSkills, entry.name);
-      await cp(src, dst, { recursive: true, force: true });
+      if (await syncEntryIfChanged(src, dst)) {
+        reportSyncUpdate(src, dst, `skills/${entry.name}`);
+      }
     }
   }
 
   // UDS agents → agents/claude + agents/opencode
   const srcUdsAgents = join(paths.udsRepo, "skills", "claude-code", "agents");
   if (existsSync(srcUdsAgents)) {
+    const entries = await readdir(srcUdsAgents, { withFileTypes: true });
     for (const target of ["claude", "opencode"]) {
       const dst = join(devProjectRoot, "agents", target);
       log(`${shortenPath(srcUdsAgents)}`);
       log(`  → ${shortenPath(dst)}`);
-      await mkdir(dst, { recursive: true });
-      await cp(srcUdsAgents, dst, { recursive: true, force: true });
+      for (const entry of entries) {
+        const src = join(srcUdsAgents, entry.name);
+        const entryDst = join(dst, entry.name);
+        if (await syncEntryIfChanged(src, entryDst)) {
+          reportSyncUpdate(src, entryDst, `agents/${target}/${entry.name}`);
+        }
+      }
     }
   }
 
@@ -105,8 +180,14 @@ async function integrateToDevProject(
     const dst = join(devProjectRoot, "commands", "workflows");
     log(`${shortenPath(srcUdsWorkflows)}`);
     log(`  → ${shortenPath(dst)}`);
-    await mkdir(dst, { recursive: true });
-    await cp(srcUdsWorkflows, dst, { recursive: true, force: true });
+    const entries = await readdir(srcUdsWorkflows, { withFileTypes: true });
+    for (const entry of entries) {
+      const src = join(srcUdsWorkflows, entry.name);
+      const entryDst = join(dst, entry.name);
+      if (await syncEntryIfChanged(src, entryDst)) {
+        reportSyncUpdate(src, entryDst, `commands/workflows/${entry.name}`);
+      }
+    }
   }
 
   // UDS commands → commands/claude
@@ -120,8 +201,14 @@ async function integrateToDevProject(
     const dst = join(devProjectRoot, "commands", "claude");
     log(`${shortenPath(srcUdsCommands)}`);
     log(`  → ${shortenPath(dst)}`);
-    await mkdir(dst, { recursive: true });
-    await cp(srcUdsCommands, dst, { recursive: true, force: true });
+    const entries = await readdir(srcUdsCommands, { withFileTypes: true });
+    for (const entry of entries) {
+      const src = join(srcUdsCommands, entry.name);
+      const entryDst = join(dst, entry.name);
+      if (await syncEntryIfChanged(src, entryDst)) {
+        reportSyncUpdate(src, entryDst, `commands/claude/${entry.name}`);
+      }
+    }
   }
 
   // Obsidian skills
@@ -129,7 +216,14 @@ async function integrateToDevProject(
   if (existsSync(srcObsidian)) {
     log(`${shortenPath(srcObsidian)}`);
     log(`  → ${shortenPath(dstSkills)}`);
-    await cp(srcObsidian, dstSkills, { recursive: true, force: true });
+    const entries = await readdir(srcObsidian, { withFileTypes: true });
+    for (const entry of entries) {
+      const src = join(srcObsidian, entry.name);
+      const dst = join(dstSkills, entry.name);
+      if (await syncEntryIfChanged(src, dst)) {
+        reportSyncUpdate(src, dst, `skills/${entry.name}`);
+      }
+    }
   }
 
   // Anthropic skill-creator
@@ -142,7 +236,14 @@ async function integrateToDevProject(
     const dst = join(dstSkills, "skill-creator");
     log(`${shortenPath(srcAnthropic)}`);
     log(`  → ${shortenPath(dst)}`);
-    await cp(srcAnthropic, dst, { recursive: true, force: true });
+    const entries = await readdir(srcAnthropic, { withFileTypes: true });
+    for (const entry of entries) {
+      const src = join(srcAnthropic, entry.name);
+      const entryDst = join(dst, entry.name);
+      if (await syncEntryIfChanged(src, entryDst)) {
+        reportSyncUpdate(src, entryDst, `skills/skill-creator/${entry.name}`);
+      }
+    }
   }
 
   // Auto-Skill
@@ -158,7 +259,9 @@ async function integrateToDevProject(
       if ([".git", "assets", "README.md"].includes(entry.name)) continue;
       const src = join(srcAutoSkill, entry.name);
       const entryDst = join(dst, entry.name);
-      await cp(src, entryDst, { recursive: true, force: true });
+      if (await syncEntryIfChanged(src, entryDst)) {
+        reportSyncUpdate(src, entryDst, `skills/auto-skill/${entry.name}`);
+      }
     }
   }
 }
@@ -210,6 +313,7 @@ async function runClone(options: {
   syncProject?: boolean;
   json?: boolean;
   onProgress?: (message: string) => void;
+  onProjectSyncUpdate?: (item: ProjectSyncUpdate) => void;
 }): Promise<CloneCommandResult> {
   const cwd = process.cwd();
   const { isDev: devMode, projectRoot } = await detectDeveloperMode(cwd);
@@ -218,7 +322,11 @@ async function runClone(options: {
   // Dev mode: integrate external sources if syncProject enabled
   if (devMode && syncProject && projectRoot) {
     options.onProgress?.("開發者模式：整合外部來源到開發目錄");
-    await integrateToDevProject(projectRoot, options.onProgress);
+    await integrateToDevProject(
+      projectRoot,
+      options.onProgress,
+      options.onProjectSyncUpdate,
+    );
   }
 
   // Check source directory exists
@@ -274,6 +382,7 @@ export function registerCloneCommand(program: Command): void {
         json?: boolean;
       }) => {
         let result: CloneCommandResult;
+        const projectSyncUpdates: ProjectSyncUpdate[] = [];
         try {
           result = await runClone({
             force: options.force,
@@ -281,6 +390,9 @@ export function registerCloneCommand(program: Command): void {
             backup: options.backup,
             syncProject: options.syncProject,
             json: options.json,
+            onProjectSyncUpdate: (item) => {
+              projectSyncUpdates.push(item);
+            },
             onProgress: options.json
               ? undefined
               : (msg) => {
@@ -342,9 +454,34 @@ export function registerCloneCommand(program: Command): void {
         );
 
         console.log(chalk.bold.cyan("\n本次更新明細："));
-        if (result.distributed.length === 0) {
+        if (result.distributed.length === 0 && projectSyncUpdates.length === 0) {
           console.log(chalk.dim("  （本次無更新項目）"));
         } else {
+          if (projectSyncUpdates.length > 0) {
+            console.log(chalk.cyan("  開發目錄同步："));
+            const sortedProjectSync = [...projectSyncUpdates].sort(
+              (left, right) => {
+                if (left.label !== right.label) {
+                  return left.label.localeCompare(right.label);
+                }
+                return left.destination.localeCompare(right.destination);
+              },
+            );
+
+            for (const item of sortedProjectSync) {
+              console.log(chalk.cyan(`  + project/${item.label}`));
+              console.log(
+                chalk.dim(
+                  `      ${shortenPath(item.source)} → ${shortenPath(item.destination)}`,
+                ),
+              );
+            }
+          }
+
+          if (result.distributed.length > 0 && projectSyncUpdates.length > 0) {
+            console.log(chalk.cyan("  工具目錄分發："));
+          }
+
           const sorted = [...result.distributed].sort((left, right) => {
             if (left.target !== right.target) {
               return left.target.localeCompare(right.target);
