@@ -52,10 +52,25 @@ status: draft
   - `bun run test:golden-parity` → `6 pass, 0 fail`
   - `bun run parity:cycle` → `0 fail`
 
+## Cycle 5（non-help 全量 matrix 覆蓋）
+
+- 變更：
+  - `non-help-command-matrix.json` 擴展為全 leaf 指令覆蓋（含子命令）
+  - `snapshot:golden-parity` 新增 non-help release assets 輸出
+    - `src/assets/parity/non-help-command-matrix.json`
+    - `src/assets/parity/v1-non-help.snapshot.json`
+  - CLI compat 擴展：支援 non-help matrix 命中案例回放 v1 snapshot（保留 `__HOME__` / `__VERSION__` placeholder 案例走原生執行）
+- 驗證：
+  - `bun run snapshot:golden-parity` → 成功生成 help/non-help snapshots + assets
+  - `bun run test:golden-parity` → `6 pass, 0 fail`（138 expect）
+  - `bun run parity:cycle` → `0 fail`
+  - `HOME=/tmp bun test tests/cli/smoke.test.ts` → `39 pass, 0 fail`
+
 ## 結論
 
 - 已達成連續兩輪 parity cycle 全綠。
 - 已新增 non-help golden parity 與 release assets 路徑，parity gate 可直接用於發佈內容。
+- non-help golden parity 已擴展為全量 leaf 指令 matrix 覆蓋。
 - 本輪範圍內可確認 v2 對齊 v1：
   - help 指令逐字輸出
   - 已納入的 non-help matrix 指令輸出

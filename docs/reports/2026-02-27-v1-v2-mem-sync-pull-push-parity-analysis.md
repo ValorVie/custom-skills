@@ -81,6 +81,23 @@ status: draft
 
 [Inferred] 以目前驗證證據，可判定 `ai-dev` 指令面在「help 輸出逐字對齊」與「既有核心業務邏輯 parity（mem/sync push/pull）」均達到本輪目標。
 
+## 最新補充驗證（2026-02-28，第九批，non-help 全量 matrix parity）
+
+[Confirmed] `non-help-command-matrix` 已從 4 案例擴展為全 leaf 指令覆蓋（包含一級與二級子命令），目前共 42 案例（含 `--version/-v` 與 `derive-tests` 檔案讀取路徑案例）。[Source: Code] tests/fixtures/golden-parity/non-help-command-matrix.json:1 [Source: Code] tests/fixtures/golden-parity/non-help-command-matrix.json:42
+
+[Confirmed] snapshot 生成流程已同步輸出 non-help 發佈資產（不依賴 `tests/`）：`src/assets/parity/non-help-command-matrix.json` 與 `src/assets/parity/v1-non-help.snapshot.json`。[Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:60 [Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:67 [Source: Code] scripts/golden-parity/generate-cli-help-snapshots.ts:206
+
+[Confirmed] CLI compat 已擴展為支援 non-help matrix 命中案例回放 v1 snapshot；若 snapshot 含 `__HOME__` 或 `__VERSION__` placeholder，則回退原生執行，避免把模板值直接輸出給使用者。[Source: Code] src/cli/help-compat.ts:30 [Source: Code] src/cli/help-compat.ts:61 [Source: Code] src/cli/help-compat.ts:73 [Source: Code] src/cli/help-compat.ts:86
+
+[Confirmed] 本輪驗證結果：
+- `bun run test:golden-parity` → `6 pass, 0 fail`（含 expanded non-help matrix；`138 expect`）。[Source: Code] tests/cli/non-help-golden-parity.test.ts:59 [Source: Code] tests/cli/non-help-golden-parity.test.ts:101
+- `bun run parity:cycle` → `0 fail`（golden parity + core parity suites 全綠）。[Source: Code] scripts/golden-parity/run-parity-cycle.ts:6
+- `HOME=/tmp bun test tests/cli/smoke.test.ts` → `39 pass, 0 fail`（無 smoke 回歸）。[Source: Code] tests/cli/smoke.test.ts:17
+
+[Inferred] 在現行驗證模型下，可將 non-help parity 明確分為兩層：
+- 輸出 parity：由 non-help golden matrix + snapshot 回放覆蓋。
+- 核心業務邏輯 parity：持續由 `mem/sync push/pull` core parity suites 保護，不由 snapshot 測試替代。
+
 ## 補充修復狀態（2026-02-27 第五批，ai-dev custom repos）
 
 [Confirmed] 在本報告原範圍之外，另發現並修復 `repos.yaml` v1→v2 相容缺口：v1 既有 `local_path` / `added_at` 舊欄位在 v2 `update` / `update-custom-repo` 會造成 `repo.localPath` 未定義錯誤。已於 `loadCustomRepos()` 增加 snake_case 正規化與 `~/` 展開，並補回歸測試鎖定此行為。[Source: Code] src/utils/custom-repos.ts:25 [Source: Code] src/utils/custom-repos.ts:37 [Source: Code] src/utils/custom-repos.ts:43 [Source: Code] src/utils/custom-repos.ts:65 [Source: Code] tests/utils/custom-repos-compat.test.ts:46 [Source: Code] tests/utils/custom-repos-compat.test.ts:80 [Source: Code] tests/cli/phase3.integration.test.ts:163 [Source: Code] tests/cli/phase3.integration.test.ts:175

@@ -36,5 +36,399 @@
     "exitCode": 1,
     "stdout": "",
     "stderr": "Error: 路徑不存在: __HOME__/specs/missing.md"
+  },
+  {
+    "id": "install-invalid-option",
+    "args": [
+      "install",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev install [OPTIONS]\nTry 'ai-dev install --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "update-invalid-option",
+    "args": [
+      "update",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev update [OPTIONS]\nTry 'ai-dev update --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "clone-invalid-option",
+    "args": [
+      "clone",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev clone [OPTIONS]\nTry 'ai-dev clone --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "status-invalid-option",
+    "args": [
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev status [OPTIONS]\nTry 'ai-dev status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "list-invalid-option",
+    "args": [
+      "list",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev list [OPTIONS]\nTry 'ai-dev list --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe Did you mean --type?                          │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "toggle-invalid-option",
+    "args": [
+      "toggle",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev toggle [OPTIONS]\nTry 'ai-dev toggle --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe Did you mean --type?                          │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "add-repo-invalid-option",
+    "args": [
+      "add-repo",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev add-repo [OPTIONS] REMOTE_PATH\nTry 'ai-dev add-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "add-custom-repo-invalid-option",
+    "args": [
+      "add-custom-repo",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev add-custom-repo [OPTIONS] REMOTE_PATH\nTry 'ai-dev add-custom-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "update-custom-repo-invalid-option",
+    "args": [
+      "update-custom-repo",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev update-custom-repo [OPTIONS]\nTry 'ai-dev update-custom-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "test-invalid-option",
+    "args": [
+      "test",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev test [OPTIONS] [PATH]\nTry 'ai-dev test --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "coverage-invalid-option",
+    "args": [
+      "coverage",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev coverage [OPTIONS] [PATH]\nTry 'ai-dev coverage --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "derive-tests-invalid-option",
+    "args": [
+      "derive-tests",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev derive-tests [OPTIONS] PATH\nTry 'ai-dev derive-tests --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "project-init-invalid-option",
+    "args": [
+      "project",
+      "init",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev project init [OPTIONS] [TARGET]\nTry 'ai-dev project init --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "project-update-invalid-option",
+    "args": [
+      "project",
+      "update",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev project update [OPTIONS]\nTry 'ai-dev project update --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "standards-status-invalid-option",
+    "args": [
+      "standards",
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev standards status [OPTIONS]\nTry 'ai-dev standards status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "standards-list-invalid-option",
+    "args": [
+      "standards",
+      "list",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev standards list [OPTIONS]\nTry 'ai-dev standards list --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "standards-switch-invalid-option",
+    "args": [
+      "standards",
+      "switch",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev standards switch [OPTIONS] PROFILE_NAME\nTry 'ai-dev standards switch --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "standards-show-invalid-option",
+    "args": [
+      "standards",
+      "show",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev standards show [OPTIONS] PROFILE_NAME\nTry 'ai-dev standards show --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "standards-overlaps-invalid-option",
+    "args": [
+      "standards",
+      "overlaps",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev standards overlaps [OPTIONS]\nTry 'ai-dev standards overlaps --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "standards-sync-invalid-option",
+    "args": [
+      "standards",
+      "sync",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev standards sync [OPTIONS]\nTry 'ai-dev standards sync --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "hooks-install-invalid-option",
+    "args": [
+      "hooks",
+      "install",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev hooks install [OPTIONS]\nTry 'ai-dev hooks install --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "hooks-uninstall-invalid-option",
+    "args": [
+      "hooks",
+      "uninstall",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev hooks uninstall [OPTIONS]\nTry 'ai-dev hooks uninstall --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "hooks-status-invalid-option",
+    "args": [
+      "hooks",
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev hooks status [OPTIONS]\nTry 'ai-dev hooks status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "sync-init-invalid-option",
+    "args": [
+      "sync",
+      "init",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev sync init [OPTIONS]\nTry 'ai-dev sync init --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "sync-push-invalid-option",
+    "args": [
+      "sync",
+      "push",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev sync push [OPTIONS]\nTry 'ai-dev sync push --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "sync-pull-invalid-option",
+    "args": [
+      "sync",
+      "pull",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev sync pull [OPTIONS]\nTry 'ai-dev sync pull --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "sync-status-invalid-option",
+    "args": [
+      "sync",
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev sync status [OPTIONS]\nTry 'ai-dev sync status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "sync-add-invalid-option",
+    "args": [
+      "sync",
+      "add",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev sync add [OPTIONS] PATH\nTry 'ai-dev sync add --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "sync-remove-invalid-option",
+    "args": [
+      "sync",
+      "remove",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev sync remove [OPTIONS] PATH\nTry 'ai-dev sync remove --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "mem-register-invalid-option",
+    "args": [
+      "mem",
+      "register",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev mem register [OPTIONS]\nTry 'ai-dev mem register --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "mem-push-invalid-option",
+    "args": [
+      "mem",
+      "push",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev mem push [OPTIONS]\nTry 'ai-dev mem push --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "mem-pull-invalid-option",
+    "args": [
+      "mem",
+      "pull",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev mem pull [OPTIONS]\nTry 'ai-dev mem pull --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "mem-status-invalid-option",
+    "args": [
+      "mem",
+      "status",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev mem status [OPTIONS]\nTry 'ai-dev mem status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "mem-reindex-invalid-option",
+    "args": [
+      "mem",
+      "reindex",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev mem reindex [OPTIONS]\nTry 'ai-dev mem reindex --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "mem-cleanup-invalid-option",
+    "args": [
+      "mem",
+      "cleanup",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev mem cleanup [OPTIONS]\nTry 'ai-dev mem cleanup --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "mem-auto-invalid-option",
+    "args": [
+      "mem",
+      "auto",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev mem auto [OPTIONS]\nTry 'ai-dev mem auto --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
+  },
+  {
+    "id": "tui-invalid-option",
+    "args": [
+      "tui",
+      "--parity-probe"
+    ],
+    "exitCode": 2,
+    "stdout": "",
+    "stderr": "Usage: ai-dev tui [OPTIONS]\nTry 'ai-dev tui --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --parity-probe                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯"
   }
 ]

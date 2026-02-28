@@ -57,6 +57,20 @@ const HELP_SNAPSHOT_ASSET_PATH = join(
   "parity",
   "v1-help.snapshot.json",
 );
+const NON_HELP_MATRIX_ASSET_PATH = join(
+  ROOT,
+  "src",
+  "assets",
+  "parity",
+  "non-help-command-matrix.json",
+);
+const NON_HELP_SNAPSHOT_ASSET_PATH = join(
+  ROOT,
+  "src",
+  "assets",
+  "parity",
+  "v1-non-help.snapshot.json",
+);
 const VENV_PYTHON_PATH = join(ROOT, ".venv", "bin", "python");
 
 function runCommand(
@@ -189,6 +203,8 @@ async function main(): Promise<void> {
     await mkdir(join(ROOT, "src", "assets", "parity"), { recursive: true });
     await saveJson(HELP_MATRIX_ASSET_PATH, helpMatrix);
     await saveJson(HELP_SNAPSHOT_ASSET_PATH, helpRows.v1Rows);
+    await saveJson(NON_HELP_MATRIX_ASSET_PATH, nonHelpMatrix);
+    await saveJson(NON_HELP_SNAPSHOT_ASSET_PATH, nonHelpRows.v1Rows);
 
     console.log(`Generated snapshots: ${V1_SNAPSHOT_PATH}`);
     console.log(`Generated snapshots: ${V2_SNAPSHOT_PATH}`);
@@ -196,6 +212,8 @@ async function main(): Promise<void> {
     console.log(`Generated snapshots: ${V2_NON_HELP_SNAPSHOT_PATH}`);
     console.log(`Generated assets: ${HELP_MATRIX_ASSET_PATH}`);
     console.log(`Generated assets: ${HELP_SNAPSHOT_ASSET_PATH}`);
+    console.log(`Generated assets: ${NON_HELP_MATRIX_ASSET_PATH}`);
+    console.log(`Generated assets: ${NON_HELP_SNAPSHOT_ASSET_PATH}`);
   } finally {
     await rm(snapshotRoot, { recursive: true, force: true });
   }

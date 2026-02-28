@@ -1,0 +1,311 @@
+[
+  {
+    "id": "version-long",
+    "args": [
+      "--version"
+    ]
+  },
+  {
+    "id": "version-short",
+    "args": [
+      "-v"
+    ]
+  },
+  {
+    "id": "derive-tests-single-file",
+    "args": [
+      "derive-tests",
+      "__SPEC_FILE__"
+    ]
+  },
+  {
+    "id": "derive-tests-missing-path",
+    "args": [
+      "derive-tests",
+      "__MISSING_SPEC__"
+    ]
+  },
+  {
+    "id": "install-invalid-option",
+    "args": [
+      "install",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "update-invalid-option",
+    "args": [
+      "update",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "clone-invalid-option",
+    "args": [
+      "clone",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "status-invalid-option",
+    "args": [
+      "status",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "list-invalid-option",
+    "args": [
+      "list",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "toggle-invalid-option",
+    "args": [
+      "toggle",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "add-repo-invalid-option",
+    "args": [
+      "add-repo",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "add-custom-repo-invalid-option",
+    "args": [
+      "add-custom-repo",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "update-custom-repo-invalid-option",
+    "args": [
+      "update-custom-repo",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "test-invalid-option",
+    "args": [
+      "test",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "coverage-invalid-option",
+    "args": [
+      "coverage",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "derive-tests-invalid-option",
+    "args": [
+      "derive-tests",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "project-init-invalid-option",
+    "args": [
+      "project",
+      "init",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "project-update-invalid-option",
+    "args": [
+      "project",
+      "update",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-status-invalid-option",
+    "args": [
+      "standards",
+      "status",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-list-invalid-option",
+    "args": [
+      "standards",
+      "list",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-switch-invalid-option",
+    "args": [
+      "standards",
+      "switch",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-show-invalid-option",
+    "args": [
+      "standards",
+      "show",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-overlaps-invalid-option",
+    "args": [
+      "standards",
+      "overlaps",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "standards-sync-invalid-option",
+    "args": [
+      "standards",
+      "sync",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "hooks-install-invalid-option",
+    "args": [
+      "hooks",
+      "install",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "hooks-uninstall-invalid-option",
+    "args": [
+      "hooks",
+      "uninstall",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "hooks-status-invalid-option",
+    "args": [
+      "hooks",
+      "status",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-init-invalid-option",
+    "args": [
+      "sync",
+      "init",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-push-invalid-option",
+    "args": [
+      "sync",
+      "push",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-pull-invalid-option",
+    "args": [
+      "sync",
+      "pull",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-status-invalid-option",
+    "args": [
+      "sync",
+      "status",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-add-invalid-option",
+    "args": [
+      "sync",
+      "add",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "sync-remove-invalid-option",
+    "args": [
+      "sync",
+      "remove",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-register-invalid-option",
+    "args": [
+      "mem",
+      "register",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-push-invalid-option",
+    "args": [
+      "mem",
+      "push",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-pull-invalid-option",
+    "args": [
+      "mem",
+      "pull",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-status-invalid-option",
+    "args": [
+      "mem",
+      "status",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-reindex-invalid-option",
+    "args": [
+      "mem",
+      "reindex",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-cleanup-invalid-option",
+    "args": [
+      "mem",
+      "cleanup",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "mem-auto-invalid-option",
+    "args": [
+      "mem",
+      "auto",
+      "--parity-probe"
+    ]
+  },
+  {
+    "id": "tui-invalid-option",
+    "args": [
+      "tui",
+      "--parity-probe"
+    ]
+  }
+]

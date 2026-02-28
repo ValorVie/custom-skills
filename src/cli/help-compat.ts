@@ -1,5 +1,7 @@
 import helpMatrix from "../assets/parity/help-command-matrix.json";
 import v1HelpSnapshot from "../assets/parity/v1-help.snapshot.json";
+import nonHelpMatrix from "../assets/parity/non-help-command-matrix.json";
+import v1NonHelpSnapshot from "../assets/parity/v1-non-help.snapshot.json";
 
 type MatrixEntry = {
   id: string;
@@ -14,15 +16,21 @@ type SnapshotEntry = {
   stderr: string;
 };
 
-type HelpData = {
+type SnapshotData = {
   matrix: MatrixEntry[];
   snapshotById: Map<string, SnapshotEntry>;
 };
 
-const HELP_DATA: HelpData = {
+const HELP_DATA: SnapshotData = {
   matrix: helpMatrix as MatrixEntry[],
   snapshotById: new Map(
     (v1HelpSnapshot as SnapshotEntry[]).map((entry) => [entry.id, entry]),
+  ),
+};
+const NON_HELP_DATA: SnapshotData = {
+  matrix: nonHelpMatrix as MatrixEntry[],
+  snapshotById: new Map(
+    (v1NonHelpSnapshot as SnapshotEntry[]).map((entry) => [entry.id, entry]),
   ),
 };
 
@@ -50,22 +58,41 @@ function sameArgs(left: string[], right: string[]): boolean {
   return left.every((arg, index) => arg === right[index]);
 }
 
+function findSnapshot(
+  data: SnapshotData,
+  argv: string[],
+): SnapshotEntry | undefined {
+  const matrixEntry = data.matrix.find((entry) => sameArgs(entry.args, argv));
+  if (!matrixEntry) {
+    return undefined;
+  }
+
+  return data.snapshotById.get(matrixEntry.id);
+}
+
+function containsTemplateToken(text: string): boolean {
+  return text.includes("__HOME__") || text.includes("__VERSION__");
+}
+
 export async function maybePrintV1HelpSnapshot(
   argv: string[],
 ): Promise<boolean> {
-  if (!isHelpInvocation(argv)) {
-    return false;
+  let snapshotEntry: SnapshotEntry | undefined;
+
+  if (isHelpInvocation(argv)) {
+    const normalizedArgv = normalizeArgs(argv);
+    snapshotEntry = findSnapshot(HELP_DATA, normalizedArgv);
+  } else {
+    snapshotEntry = findSnapshot(NON_HELP_DATA, argv);
+    if (
+      snapshotEntry &&
+      (containsTemplateToken(snapshotEntry.stdout) ||
+        containsTemplateToken(snapshotEntry.stderr))
+    ) {
+      return false;
+    }
   }
 
-  const normalizedArgv = normalizeArgs(argv);
-  const matrixEntry = HELP_DATA.matrix.find((entry) =>
-    sameArgs(entry.args, normalizedArgv),
-  );
-  if (!matrixEntry) {
-    return false;
-  }
-
-  const snapshotEntry = HELP_DATA.snapshotById.get(matrixEntry.id);
   if (!snapshotEntry) {
     return false;
   }
