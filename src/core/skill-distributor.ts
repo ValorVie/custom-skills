@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
-import { access, cp, mkdir, readdir, rm, symlink } from "node:fs/promises";
+import { access, cp, mkdir, readdir, rename, rm, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import {
   type ConflictInfo,
@@ -40,7 +40,7 @@ export interface DistributeOptions {
 export interface DistributedItem {
   name: string;
   target: TargetType;
-  type: ResourceType;
+  type: ResourceType | "plugins";
 }
 
 export interface ConflictItem {
@@ -66,6 +66,8 @@ const RESOURCE_TYPES: ResourceType[] = [
   "workflows",
 ];
 
+const OPENCODE_PLUGIN_SOURCE_NAME = "ecc-hooks-opencode";
+
 function shortenPath(p: string): string {
   const home = homedir();
   return p.startsWith(home) ? p.replace(home, "~") : p;
@@ -78,6 +80,35 @@ async function pathExists(pathValue: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function migrateOpencodePluginDirIfNeeded(
+  targetMap: Partial<Record<ResourceType | "plugins", string>>,
+  onProgress: (message: string) => void,
+): Promise<void> {
+  const modernDir = targetMap.plugins;
+  if (!modernDir) {
+    return;
+  }
+
+  const legacyDir = join(dirname(modernDir), "plugin");
+  if (!(await pathExists(legacyDir))) {
+    return;
+  }
+
+  await mkdir(dirname(modernDir), { recursive: true });
+
+  if (!(await pathExists(modernDir))) {
+    await rename(legacyDir, modernDir);
+    onProgress(
+      `偵測到 OpenCode legacy plugin 路徑，已遷移：${shortenPath(legacyDir)} → ${shortenPath(modernDir)}`,
+    );
+    return;
+  }
+
+  onProgress(
+    `偵測到 OpenCode 新舊 plugin 路徑並存：${shortenPath(legacyDir)} 與 ${shortenPath(modernDir)}。將以 plugins 路徑為主要目標並保留 legacy 相容。`,
+  );
 }
 
 function sourceDirectory(
@@ -247,8 +278,13 @@ export async function distributeSkills(
 
   for (const target of targets) {
     const targetMap = COPY_TARGETS[target];
+    const targetName = TARGET_NAMES[target] ?? target;
 
     try {
+      if (target === "opencode") {
+        await migrateOpencodePluginDirIfNeeded(targetMap, onProgress);
+      }
+
       // Step 1: Read old manifest
       const oldManifest = await readManifest(target);
 
@@ -323,7 +359,6 @@ export async function distributeSkills(
 
       // Step 6: Execute copies and build new manifest tracker
       const copyTracker = new ManifestTracker(target);
-      const targetName = TARGET_NAMES[target] ?? target;
 
       for (const type of RESOURCE_TYPES) {
         const destinationBase = targetMap[type];
@@ -389,6 +424,41 @@ export async function distributeSkills(
             const message =
               error instanceof Error ? error.message : String(error);
             result.errors.push(`${target}/${type}/${name}: ${message}`);
+          }
+        }
+      }
+
+      if (target === "opencode" && targetMap.plugins) {
+        const sourcePluginsDir = join(
+          sourceRoot,
+          "plugins",
+          OPENCODE_PLUGIN_SOURCE_NAME,
+        );
+
+        if (await pathExists(sourcePluginsDir)) {
+          try {
+            onProgress(`plugins → ${targetName}`);
+            onProgress(
+              `  ${shortenPath(sourcePluginsDir)} → ${shortenPath(targetMap.plugins)}`,
+            );
+
+            await mkdir(targetMap.plugins, { recursive: true });
+            await cp(sourcePluginsDir, targetMap.plugins, {
+              recursive: true,
+              force: true,
+            });
+
+            result.distributed.push({
+              name: OPENCODE_PLUGIN_SOURCE_NAME,
+              target,
+              type: "plugins",
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            result.errors.push(
+              `${target}/plugins/${OPENCODE_PLUGIN_SOURCE_NAME}: ${message}`,
+            );
           }
         }
       }

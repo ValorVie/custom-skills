@@ -332,4 +332,98 @@ describe("cli/clone integration", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  test("clone prints coexist warning and distributes opencode plugins", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-clone-"));
+    const cwd = join(root, "custom-skills");
+    const snapshot = captureTargets();
+    const previousCwd = process.cwd();
+    const modernPluginsDir = join(root, "targets", "opencode", "plugins");
+    const legacyPluginsDir = join(root, "targets", "opencode", "plugin");
+
+    try {
+      await mkdir(join(cwd, "commands"), { recursive: true });
+      await mkdir(join(cwd, "agents"), { recursive: true });
+      await mkdir(join(cwd, "plugins", "ecc-hooks-opencode"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(cwd, "plugins", "ecc-hooks-opencode", "plugin.ts"),
+        "export const plugin = true;\n",
+        "utf8",
+      );
+      await writeFile(
+        join(cwd, "plugins", "ecc-hooks-opencode", "ecc-hooks-opencode.js"),
+        "export default {};\n",
+        "utf8",
+      );
+      await writeFile(
+        join(cwd, "package.json"),
+        JSON.stringify({ name: "ai-dev" }),
+        "utf8",
+      );
+
+      redirectTargets(root);
+      await mkdir(modernPluginsDir, { recursive: true });
+      await mkdir(legacyPluginsDir, { recursive: true });
+      await writeFile(join(legacyPluginsDir, "legacy.ts"), "legacy\n", "utf8");
+      process.chdir(cwd);
+
+      const output = await runClone([]);
+
+      expect(output).toContain("偵測到 OpenCode 新舊 plugin 路徑並存");
+      expect(output).toContain("將以 plugins 路徑為主要目標並保留 legacy 相容");
+      await access(join(modernPluginsDir, "plugin.ts"));
+      await access(join(modernPluginsDir, "ecc-hooks-opencode.js"));
+      await access(join(legacyPluginsDir, "legacy.ts"));
+    } finally {
+      process.chdir(previousCwd);
+      restoreTargets(snapshot);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("clone migrates legacy opencode plugin dir when modern path is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-dev-clone-"));
+    const cwd = join(root, "custom-skills");
+    const snapshot = captureTargets();
+    const previousCwd = process.cwd();
+    const modernPluginsDir = join(root, "targets", "opencode", "plugins");
+    const legacyPluginsDir = join(root, "targets", "opencode", "plugin");
+
+    try {
+      await mkdir(join(cwd, "commands"), { recursive: true });
+      await mkdir(join(cwd, "agents"), { recursive: true });
+      await mkdir(join(cwd, "plugins", "ecc-hooks-opencode"), {
+        recursive: true,
+      });
+      await writeFile(
+        join(cwd, "plugins", "ecc-hooks-opencode", "plugin.ts"),
+        "export const plugin = true;\n",
+        "utf8",
+      );
+      await writeFile(
+        join(cwd, "package.json"),
+        JSON.stringify({ name: "ai-dev" }),
+        "utf8",
+      );
+
+      redirectTargets(root);
+      await mkdir(legacyPluginsDir, { recursive: true });
+      await writeFile(join(legacyPluginsDir, "legacy.ts"), "legacy\n", "utf8");
+      process.chdir(cwd);
+
+      const output = await runClone([]);
+
+      expect(output).toContain("偵測到 OpenCode legacy plugin 路徑，已遷移");
+      await access(modernPluginsDir);
+      await expect(access(legacyPluginsDir)).rejects.toBeDefined();
+      await access(join(modernPluginsDir, "legacy.ts"));
+      await access(join(modernPluginsDir, "plugin.ts"));
+    } finally {
+      process.chdir(previousCwd);
+      restoreTargets(snapshot);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });

@@ -397,7 +397,7 @@ export function registerCloneCommand(program: Command): void {
               ? undefined
               : (msg) => {
                   // Resource-level headers: "type → Target Name"
-                  const headerMatch = msg.match(/^(skills|commands|agents|workflows) → (.+)$/);
+                  const headerMatch = msg.match(/^(skills|commands|agents|workflows|plugins) → (.+)$/);
                   if (headerMatch) {
                     console.log(`  ${chalk.green(headerMatch[1])} → ${chalk.cyan(headerMatch[2])}`);
                     return;
