@@ -362,8 +362,17 @@ npx skills add dchuk/claude-code-tauri-skills@integrating-tauri-js-frontends -y
 npx skills add apollographql/skills@rust-best-practices -y
 npx skills add zhanghandong/rust-skills@coding-guidelines -y
 
-# Vue（1 個）
-npx skills add dedalus-erp-pas/foundation-skills@vue-best-practices -y
+# Vue（5 個）
+npx skills add antfu/skills@nuxt -y
+npx skills add antfu/skills@vue -y
+npx skills add antfu/skills@vueuse-functions -y
+npx skills add antfu/skills@vue-router-best-practices -y
+npx skills add nuxt/ui@nuxt-ui -y
+
+# Prisma（3 個）
+npx skills add prisma/skills@prisma-database-setup -y
+npx skills add prisma/skills@prisma-client-api -y
+npx skills add gocallum/nextjs16-agent-skills@prisma-orm-v7-skills -y
 
 # Obsidian Visual
 npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -g -y
@@ -372,6 +381,11 @@ npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -g -y
 npx skills add sickn33/antigravity-awesome-skills@bun-development -y
 npx skills add wshobson/agents@typescript-advanced-types -y
 npx skills add wshobson/agents@javascript-testing-patterns -y
+
+# Playwright
+npx skills add microsoft/playwright-cli -y
+npx skills add currents-dev/playwright-best-practices -y
+npx skills add awesome-copilot/playwright-generate-test -y
 ```
 
 
@@ -383,6 +397,9 @@ npx skills add wshobson/agents@javascript-testing-patterns -y
 > 建議每天開始工作前執行一次，確保工具與 Skills 為最新版本。
 
 ```shell
+# 更新 ai-dev 框架
+uv tool install git+https://github.com/ValorVie/custom-skills.git
+
 # 更新所有工具與 Skills 來源
 ai-dev update
 
