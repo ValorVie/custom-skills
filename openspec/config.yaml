@@ -1,4 +1,5 @@
 schema: spec-driven
+locale: tw
 
 context: |
   Product: custom-skills - AI 輔助開發的 Skills、Commands 與 Agent 配置管理專案
