@@ -14,7 +14,7 @@ from rich.syntax import Syntax
 console = Console()
 
 # 排除不複製的檔案/目錄（相對於模板根目錄）
-EXCLUDE_PATHS = {".git", ".gitkeep", "README.md", "LICENSE"}
+EXCLUDE_PATHS = {".git", ".gitkeep", ".gitignore-downstream", "README.md", "LICENSE"}
 
 # 5 個標準工具目錄（若模板包含這些目錄會發出警告）
 STANDARD_TOOL_DIRS = {"agents", "commands", "hooks", "plugins", "skills"}
