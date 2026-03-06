@@ -89,6 +89,7 @@ When copying files from template to CWD, the system SHALL follow this merge logi
 - **WHEN** a template file `CLAUDE.md` exists in CWD with different content
 - **THEN** the system SHALL prompt with options:
   - `[A]` Append to end — append template content after existing content
+  - `[I]` Incremental append — only append lines from template that don't exist in target
   - `[O]` Overwrite — replace with template content
   - `[S]` Skip — keep existing content
   - `[D]` Diff — show unified diff, then re-prompt

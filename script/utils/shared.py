@@ -1524,6 +1524,32 @@ def _is_custom_skills_project(project_root: Path) -> bool:
         return False
 
 
+def _copy_dir_with_managed_skip(
+    src_dir: Path,
+    dst_dir: Path,
+    project_root: Path,
+    managed_files: set[str],
+    template_name: str,
+) -> None:
+    """逐檔複製目錄，跳過由 init-from 模板管理的檔案。"""
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    for src_file in sorted(src_dir.rglob("*")):
+        if not src_file.is_file():
+            continue
+        rel_to_src = src_file.relative_to(src_dir)
+        dst_file = dst_dir / rel_to_src
+        rel_to_project = str(dst_file.relative_to(project_root))
+
+        if rel_to_project in managed_files:
+            console.print(
+                f"  [dim]~ 跳過 {rel_to_project}（由 {template_name} 管理）[/dim]"
+            )
+            continue
+
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_file, dst_file)
+
+
 def _sync_to_project_directory(src_skills: Path) -> None:
     """同步資源到 custom-skills 專案目錄（內部函式）。
 
@@ -1549,6 +1575,16 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         f"[bold yellow]  偵測到 custom-skills 專案：{shorten_path(project_root)}[/bold yellow]"
     )
 
+    # 讀取 .ai-dev-project.yaml 取得由模板管理的檔案清單
+    from .project_tracking import load_tracking_file
+
+    tracking = load_tracking_file(project_root)
+    managed_files: set[str] = set()
+    template_name = ""
+    if tracking:
+        managed_files = set(tracking.get("managed_files", []))
+        template_name = tracking.get("template", {}).get("name", "模板")
+
     # Skills → Project
     if src_skills.exists():
         dst_project_skills = project_root / "skills"
@@ -1556,8 +1592,13 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         console.print(
             f"    [dim]{shorten_path(src_skills)} → {shorten_path(dst_project_skills)}[/dim]"
         )
-        dst_project_skills.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_skills, dst_project_skills, dirs_exist_ok=True)
+        if managed_files:
+            _copy_dir_with_managed_skip(
+                src_skills, dst_project_skills, project_root, managed_files, template_name
+            )
+        else:
+            dst_project_skills.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(src_skills, dst_project_skills, dirs_exist_ok=True)
         clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
 
     # Commands → Project
@@ -1568,7 +1609,12 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         console.print(
             f"    [dim]{shorten_path(src_commands)} → {shorten_path(dst_project_commands)}[/dim]"
         )
-        shutil.copytree(src_commands, dst_project_commands, dirs_exist_ok=True)
+        if managed_files:
+            _copy_dir_with_managed_skip(
+                src_commands, dst_project_commands, project_root, managed_files, template_name
+            )
+        else:
+            shutil.copytree(src_commands, dst_project_commands, dirs_exist_ok=True)
 
     # Agents → Project
     src_agents_all = get_custom_skills_dir() / "agents"
@@ -1578,7 +1624,12 @@ def _sync_to_project_directory(src_skills: Path) -> None:
         console.print(
             f"    [dim]{shorten_path(src_agents_all)} → {shorten_path(dst_project_agents)}[/dim]"
         )
-        shutil.copytree(src_agents_all, dst_project_agents, dirs_exist_ok=True)
+        if managed_files:
+            _copy_dir_with_managed_skip(
+                src_agents_all, dst_project_agents, project_root, managed_files, template_name
+            )
+        else:
+            shutil.copytree(src_agents_all, dst_project_agents, dirs_exist_ok=True)
 
 
 def copy_skills(

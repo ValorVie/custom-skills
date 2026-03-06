@@ -295,10 +295,12 @@ def update(
                 "[dim]   請執行 `ai-dev install --skip-npm --skip-bun` 來補齊缺失的儲存庫[/dim]"
             )
 
-        # 更新 custom repos
+        # 更新 custom repos（含 tool 和 template 類型）
         from ..utils.custom_repos import load_custom_repos
 
         custom_repos = load_custom_repos().get("repos", {})
+        template_repos_with_updates: list[str] = []
+
         for repo_name, repo_info in custom_repos.items():
             local_path = Path(
                 repo_info.get("local_path", "").replace("~", str(Path.home()))
@@ -309,11 +311,14 @@ def update(
                 )
                 continue
             branch = repo_info.get("branch", "main")
+            repo_type = repo_info.get("type", "tool")
             console.print(f"正在更新 {local_path} ({branch})...")
             run_command(["git", "fetch", "--all"], cwd=str(local_path), check=False)
             has_updates = check_for_updates(local_path, branch)
             if has_updates:
                 updated_repos.append(repo_name)
+                if repo_type == "template":
+                    template_repos_with_updates.append(repo_name)
             if has_local_changes(local_path):
                 backup_dirty_files(local_path, backup_root)
             remote_ref = f"origin/{branch}"
@@ -321,6 +326,16 @@ def update(
                 ["git", "reset", "--hard", remote_ref],
                 cwd=str(local_path),
                 check=False,
+            )
+
+        # 若模板 repo 有更新，提示使用者重新套用
+        if template_repos_with_updates:
+            console.print()
+            console.print("[bold cyan]模板 repo 有新更新：[/bold cyan]")
+            for tname in template_repos_with_updates:
+                console.print(f"  • {tname}")
+            console.print(
+                "[dim]  在需要更新的專案目錄中執行：ai-dev init-from --update[/dim]"
             )
 
         # 更新完成後刷新 OpenCode symlink（保持冪等）

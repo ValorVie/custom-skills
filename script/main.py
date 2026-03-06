@@ -10,6 +10,7 @@ from .commands.toggle import toggle
 from .commands.add_repo import add_repo
 from .commands.add_custom_repo import add_custom_repo
 from .commands.update_custom_repo import update_custom_repo
+from .commands.init_from import init_from
 from .commands.test import test
 from .commands.coverage import coverage
 from .commands.derive_tests import derive_tests
@@ -63,6 +64,7 @@ app.command()(toggle)
 app.command(name="add-repo")(add_repo)
 app.command(name="add-custom-repo")(add_custom_repo)
 app.command(name="update-custom-repo")(update_custom_repo)
+app.command(name="init-from")(init_from)
 app.command()(test)
 app.command()(coverage)
 app.command(name="derive-tests")(derive_tests)

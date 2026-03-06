@@ -57,7 +57,13 @@ def save_custom_repos(data: dict) -> None:
         )
 
 
-def add_custom_repo(name: str, url: str, branch: str, local_path: str) -> bool:
+def add_custom_repo(
+    name: str,
+    url: str,
+    branch: str,
+    local_path: str,
+    repo_type: str = "tool",
+) -> bool:
     """新增 custom repo 條目到設定檔。
 
     Args:
@@ -65,6 +71,7 @@ def add_custom_repo(name: str, url: str, branch: str, local_path: str) -> bool:
         url: Git clone URL
         branch: 追蹤的分支
         local_path: 本地路徑（如 ~/.config/company-tools/）
+        repo_type: repo 類型，"tool"（預設）或 "template"
 
     Returns:
         bool: 是否成功新增
@@ -79,6 +86,7 @@ def add_custom_repo(name: str, url: str, branch: str, local_path: str) -> bool:
         "url": url,
         "branch": branch,
         "local_path": local_path,
+        "type": repo_type,
         "added_at": datetime.now().astimezone().isoformat(),
     }
 

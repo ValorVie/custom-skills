@@ -73,6 +73,7 @@ ai-dev
 ├── add-repo         # 新增上游 repo
 ├── add-custom-repo  # 新增自訂 repo
 ├── update-custom-repo # 更新自訂 repo 設定
+├── init-from        # 從客製化模板 repo 初始化專案目錄
 ├── test             # 執行測試
 ├── coverage         # 覆蓋率分析
 ├── derive-tests     # 測試推導
@@ -246,6 +247,70 @@ ai-dev add-custom-repo --name my-skills --url https://github.com/user/my-skills.
 ```
 
 配置存儲在 `~/.config/ai-dev/custom-repos.yaml`，在 install/update 時一併處理。
+
+---
+
+## 模板 Repo 系統（init-from）
+
+客製化模板 repo 提供專案級 AI 配置初始化，與工具 repo 分為兩條獨立管線：
+
+### 管線比較
+
+| 管線 | 指令 | 來源 | 目標 |
+|------|------|------|------|
+| 工具分發 | `add-custom-repo` + `clone` | 客製化工具 repo | 全域目錄（~/.claude/ 等） |
+| 模板初始化 | `init-from` | 客製化模板 repo | CWD（當前專案目錄） |
+
+### init-from 工作流程
+
+```
+ai-dev init-from ValorVie/qdm-ai-base
+    │
+    ├─ Clone 模板到 ~/.config/qdm-ai-base/
+    ├─ 寫入 repos.yaml（type: template）
+    ├─ 智慧合併：逐檔比對，[A]附加/[O]覆蓋/[S]跳過/[D]diff
+    └─ 建立 .ai-dev-project.yaml（追蹤 managed_files）
+```
+
+### repos.yaml 格式
+
+```yaml
+repos:
+  qdm-ai-base:
+    url: https://github.com/ValorVie/qdm-ai-base.git
+    branch: main
+    local_path: ~/.config/qdm-ai-base/
+    type: template          # 區分模板與工具 repo
+    added_at: 2026-01-01T00:00:00+08:00
+  qdm-ai-tools:
+    url: https://github.com/ValorVie/qdm-ai-tools.git
+    branch: main
+    local_path: ~/.config/qdm-ai-tools/
+    type: tool              # 預設值
+    added_at: 2026-01-01T00:00:00+08:00
+```
+
+### .ai-dev-project.yaml（專案追蹤檔）
+
+初始化後會在專案根目錄建立此檔案，記錄由模板管理的每個檔案：
+
+```yaml
+template:
+  name: qdm-ai-base
+  url: https://github.com/ValorVie/qdm-ai-base.git
+  branch: main
+  initialized_at: 2026-01-01T00:00:00+08:00
+  last_updated: 2026-01-01T00:00:00+08:00
+
+managed_files:
+  - .claude/commands/tdd.md
+  - .standards/commit-message.ai.yaml
+  - CLAUDE.md
+```
+
+此檔案應提交到 git。`ai-dev clone` 分發時會跳過 `managed_files` 中的檔案。
+
+更多詳細說明請參考 [custom-template-format.md](./custom-template-format.md)。
 
 ---
 
