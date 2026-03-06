@@ -11,6 +11,7 @@ from ..utils.project_tracking import (
     load_tracking_file,
     update_tracking_file,
 )
+from ..utils.gitignore_downstream import merge_gitignore_downstream
 from ..utils.smart_merge import merge_template
 
 console = Console()
@@ -173,6 +174,13 @@ def init_from(
         skip_conflicts=skip_conflicts,
     )
 
+    # 合併 .gitignore-downstream
+    merge_gitignore_downstream(
+        template_dir=target_dir,
+        target_dir=cwd,
+        template_name=final_name,
+    )
+
     # 建立追蹤檔
     create_tracking_file(
         name=final_name,
@@ -248,6 +256,14 @@ def _run_update_mode(
         target_dir=cwd,
         force=force,
         skip_conflicts=skip_conflicts,
+    )
+
+    # 合併 .gitignore-downstream（支援新增/更新/移除）
+    merge_gitignore_downstream(
+        template_dir=template_dir,
+        target_dir=cwd,
+        template_name=template_name,
+        remove_if_missing=True,
     )
 
     # 合併既有追蹤清單（保留使用者跳過但先前已管理的檔案）
