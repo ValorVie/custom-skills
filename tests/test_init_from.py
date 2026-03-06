@@ -104,7 +104,7 @@ def test_init_from_update_no_tracking_file(tmp_path: Path):
 
 
 def test_init_from_update_pulls_and_merges(tmp_path: Path):
-    """--update 模式：拉取並重新合併 managed_files。"""
+    """--update 模式：拉取並合併所有模板檔案（包含上游新增的）。"""
     project_dir = tmp_path / "project"
     project_dir.mkdir()
     # 建立模板目錄（Path.home() / ".config" / name）
@@ -121,7 +121,7 @@ def test_init_from_update_pulls_and_merges(tmp_path: Path):
     )
 
     mock_stats = MagicMock()
-    mock_stats.new = 0
+    mock_stats.new = 1
     mock_stats.identical = 0
     mock_stats.overwritten = 1
     mock_stats.appended = 0
@@ -133,17 +133,18 @@ def test_init_from_update_pulls_and_merges(tmp_path: Path):
         patch("script.commands.init_from.Path.home", return_value=tmp_path),
         patch(
             "script.commands.init_from.merge_template",
-            return_value=(["CLAUDE.md"], mock_stats),
+            return_value=(["CLAUDE.md", "AGENTS.md"], mock_stats),
         ) as mock_merge,
     ):
         from script.commands.init_from import _run_update_mode
         _run_update_mode(cwd=project_dir, force=False, skip_conflicts=False)
 
-        # 確認只合併 managed_files 中的檔案
+        # 確認不再限制 only_files（掃描全部模板檔案）
         call_kwargs = mock_merge.call_args.kwargs
-        assert call_kwargs.get("only_files") == ["CLAUDE.md"]
+        assert "only_files" not in call_kwargs or call_kwargs.get("only_files") is None
 
-    # 確認 last_updated 已更新
+    # 確認 managed_files 合併了新舊清單
     data = load_tracking_file(project_dir)
     assert data is not None
     assert "CLAUDE.md" in data["managed_files"]
+    assert "AGENTS.md" in data["managed_files"]

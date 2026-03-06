@@ -240,19 +240,19 @@ def _run_update_mode(
     if not _pull_template_repo(template_dir, template_branch):
         raise typer.Exit(1)
 
-    # 只合併已追蹤的檔案
+    # 合併所有模板檔案（包含上游新增的）
     console.print()
-    console.print("[bold]重新合併已追蹤的檔案...[/bold]")
+    console.print("[bold]合併模板檔案...[/bold]")
     managed_files, stats = merge_template(
         template_dir=template_dir,
         target_dir=cwd,
         force=force,
         skip_conflicts=skip_conflicts,
-        only_files=list(existing_managed),
     )
 
-    # 更新追蹤檔
-    update_tracking_file(managed_files=managed_files, project_dir=cwd)
+    # 合併既有追蹤清單（保留使用者跳過但先前已管理的檔案）
+    all_managed = sorted(set(managed_files) | existing_managed)
+    update_tracking_file(managed_files=all_managed, project_dir=cwd)
 
     stats.print_summary()
     console.print()
