@@ -305,6 +305,20 @@ def install(
         console.print("[green]正在同步 Skills 與設定...[/green]")
         copy_skills(sync_project=sync_project)
 
+    # 確認專案層級的 .git/info/exclude
+    if sync_project:
+        cwd = Path.cwd()
+        from script.utils.project_tracking import get_git_exclude_config
+        from script.utils.git_exclude import ensure_ai_exclude
+
+        exclude_config = get_git_exclude_config(cwd)
+        if exclude_config and exclude_config.get("enabled"):
+            patterns = exclude_config.get("patterns", [])
+            if patterns:
+                modified, _, _ = ensure_ai_exclude(cwd, patterns)
+                if modified:
+                    console.print("[dim]✓ .git/info/exclude 已確認同步[/dim]")
+
     # 6. 顯示已安裝的 Skills 警告
     console.print()
     console.print(

@@ -129,6 +129,19 @@ def clone(
         backup=backup,
     )
 
+    # 確認專案層級的 .git/info/exclude（僅在開發目錄）
+    if is_dev_dir and dev_project_root:
+        from script.utils.project_tracking import get_git_exclude_config
+        from script.utils.git_exclude import ensure_ai_exclude
+
+        exclude_config = get_git_exclude_config(dev_project_root)
+        if exclude_config and exclude_config.get("enabled"):
+            patterns = exclude_config.get("patterns", [])
+            if patterns:
+                modified, _, _ = ensure_ai_exclude(dev_project_root, patterns)
+                if modified:
+                    console.print("[dim]✓ .git/info/exclude 已確認同步[/dim]")
+
     console.print("[bold green]分發完成！[/bold green]")
 
     # 檢測非內容異動（僅在開發目錄）
