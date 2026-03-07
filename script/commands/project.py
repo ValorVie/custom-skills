@@ -643,3 +643,81 @@ def update(
         console.print("[bold green]專案配置更新完成！[/bold green]")
     else:
         raise typer.Exit(code=1)
+
+
+@app.command()
+def exclude(
+    enable: bool = typer.Option(False, "--enable", help="啟用本地排除"),
+    disable: bool = typer.Option(False, "--disable", help="停用本地排除"),
+    show: bool = typer.Option(False, "--list", "-l", help="檢視目前排除清單"),
+):
+    """管理 AI 文件的本地排除設定 (.git/info/exclude)。"""
+    from script.utils.project_tracking import (
+        get_git_exclude_config,
+        update_git_exclude_config,
+        load_tracking_file,
+    )
+    from script.utils.git_exclude import (
+        ensure_ai_exclude,
+        remove_ai_exclude,
+        get_current_patterns,
+        derive_exclude_patterns,
+        print_exclude_result,
+        DEFAULT_KEEP_TRACKED,
+    )
+
+    cwd = Path.cwd()
+
+    if show:
+        patterns = get_current_patterns(cwd)
+        if patterns:
+            console.print(f"[bold]目前排除 {len(patterns)} 個項目：[/bold]")
+            for p in patterns:
+                console.print(f"  {p}")
+        else:
+            console.print("[dim]尚未設定本地排除[/dim]")
+        return
+
+    tracking = load_tracking_file(cwd)
+    if tracking is None:
+        console.print("[yellow]此專案未使用 ai-dev 模板管理[/yellow]")
+        raise typer.Exit(1)
+
+    if enable:
+        config = get_git_exclude_config(cwd)
+        patterns = config["patterns"] if config and config.get("patterns") else []
+        if not patterns:
+            # 嘗試從模板推導
+            template_name = tracking.get("template", {}).get("name", "")
+            template_dir = Path.home() / ".config" / template_name
+            if template_dir.exists():
+                patterns = derive_exclude_patterns(template_dir)
+
+        if patterns:
+            modified, added, skipped = ensure_ai_exclude(cwd, patterns)
+            if modified:
+                print_exclude_result(added, skipped)
+            update_git_exclude_config(
+                enabled=True,
+                patterns=patterns,
+                keep_tracked=DEFAULT_KEEP_TRACKED,
+                project_dir=cwd,
+            )
+        else:
+            console.print("[yellow]無法推導排除清單[/yellow]")
+
+    elif disable:
+        removed = remove_ai_exclude(cwd)
+        if removed:
+            console.print("[yellow]已移除 .git/info/exclude 中的 ai-dev 管理區塊[/yellow]")
+        config = get_git_exclude_config(cwd)
+        update_git_exclude_config(
+            enabled=False,
+            patterns=config.get("patterns", []) if config else [],
+            keep_tracked=DEFAULT_KEEP_TRACKED,
+            project_dir=cwd,
+        )
+        console.print("[dim]ℹ 已停用本地排除[/dim]")
+
+    else:
+        console.print("[dim]使用 --enable、--disable 或 --list[/dim]")
