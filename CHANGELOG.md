@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **新增 AI 文件本地排除功能 (`project exclude`)**
+  - 使用 `.git/info/exclude` 將 AI 設定檔（`.claude/`、`.standards/`、`CLAUDE.md` 等）排除在 git 追蹤之外
+  - AI 工具仍可正常讀取，但不會汙染 `git status`、commit 和 PR
+  - `project init` 和 `init-from` 完成後自動詢問是否啟用
+  - `init-from --update` 時自動同步排除清單
+  - `clone` 和 `install` 時自動確認排除清單同步
+  - 新增 `ai-dev project exclude --enable/--disable/--list` 手動管理
+  - 排除清單從模板目錄動態推導，保留 `.editorconfig`、`.gitattributes`、`.gitignore`
+  - 使用標記區塊管理，不影響使用者手動項目
+  - 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
+  - 新增 `script/utils/git_exclude.py` 核心模組（21 個單元測試）
+  - 相容 Claude Code、Codex CLI、OpenCode、Gemini CLI、Antigravity
+  - 調查報告：`docs/report/2026-03-07-ai-files-gitignore-compatibility.md`
+
 - **新增 `ai-dev sync` 指令群組（OpenSpec: ai-dev-sync-command）**
   - 新增 `ai-dev sync init/push/pull/status/add/remove` 六個子指令
   - 新增 `~/.config/ai-dev/sync.yaml` 與 `~/.config/ai-dev/sync-repo/` 路徑管理

@@ -211,6 +211,10 @@ ai-dev project update
 ai-dev project update --only openspec
 ```
 
+> **AI 文件本地排除**：`project init` 完成後會詢問是否將 AI 文件加入 `.git/info/exclude`。
+> 選擇「是」後，AI 工具仍可正常讀取這些檔案，但它們不會出現在 `git status`、commit 或 PR 中。
+> 詳見下方 [AI 文件本地排除](#ai-文件本地排除-project-exclude) 章節。
+
 #### 可選參數
 
 **init:**
@@ -225,6 +229,47 @@ ai-dev project update --only openspec
 | 參數 | 說明 |
 |------|------|
 | `--only`, `-o` | 只更新特定工具：`openspec`, `uds` |
+
+### AI 文件本地排除 (Project Exclude)
+
+管理 AI 設定檔（`.claude/`、`.standards/`、`CLAUDE.md` 等）的本地 git 排除。
+
+**問題背景**：AI 設定檔混在專案中會汙染 PR（例如 453 files changed，其中只有 5 個是程式碼）。但 AI 工具（Claude Code、Codex、OpenCode 等）需要在專案目錄中讀取這些檔案。
+
+**解決方案**：使用 `.git/info/exclude`（本地 git 排除）取代 `.gitignore`。AI 工具不會讀取 `.git/info/exclude`，因此不受影響，但 git 會忽略這些檔案。
+
+```bash
+# 檢視目前排除清單
+ai-dev project exclude --list
+
+# 啟用本地排除
+ai-dev project exclude --enable
+
+# 停用本地排除（還原 git 追蹤）
+ai-dev project exclude --disable
+```
+
+#### 運作方式
+
+1. `project init` 或 `init-from` 完成後自動詢問是否啟用
+2. 排除清單從模板目錄動態推導（保留 `.editorconfig`、`.gitattributes`、`.gitignore`）
+3. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
+4. `init-from --update` 時自動同步排除清單（新增/移除項目）
+5. `clone` 和 `install` 時自動確認排除清單同步
+6. 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
+
+#### AI 工具相容性
+
+| 工具 | 設定載入 | 直接讀取 | 搜尋/Grep | 結論 |
+|------|:---:|:---:|:---:|:---:|
+| Claude Code | OK | OK | Glob OK, Grep 跳過 | **可行** |
+| Codex CLI | OK | OK | 搜尋跳過 | **可行** |
+| OpenCode | OK | OK | 搜尋跳過 | **可行** |
+| Gemini CLI | OK | read_file 拒絕 | 搜尋跳過 | **部分可行** |
+| Antigravity | OK | OK | OK | **可行** |
+
+> **關鍵差異**：`.git/info/exclude` 與 `.gitignore` 效果相同，但不被 AI 工具的 gitignore parser 讀取。
+> 詳細調查報告見 `docs/report/2026-03-07-ai-files-gitignore-compatibility.md`。
 
 ### 自訂 Repo 管理
 
@@ -563,8 +608,9 @@ ai-dev hooks status
 | `ai-dev install` | 首次安裝 AI 開發環境 |
 | `ai-dev update` | 每日更新：更新工具與儲存庫 |
 | `ai-dev clone` | 分發 Skills 內容到各 AI 工具目錄 |
-| `ai-dev project init` | 初始化專案（openspec + uds） |
+| `ai-dev project init` | 初始化專案（openspec + uds + 本地排除） |
 | `ai-dev project update` | 更新專案配置 |
+| `ai-dev project exclude` | 管理 AI 文件的本地排除設定 |
 | `ai-dev status` | 檢查環境狀態與工具版本 |
 | `ai-dev list` | 列出已安裝的 Skills、Commands、Agents |
 | `ai-dev toggle` | 啟用/停用特定資源 |
