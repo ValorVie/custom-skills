@@ -11,7 +11,9 @@ used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
 # Colors (ANSI, will render dimmed in status line)
 blue='\033[38;5;117m'
 grey='\033[38;5;242m'
-cyan='\033[38;5;117m'
+yellow='\033[38;5;220m'
+orange='\033[38;5;208m'
+red='\033[38;5;196m'
 reset='\033[0m'
 sep="${grey} | ${reset}"
 
@@ -52,8 +54,20 @@ fi
 # --- Date and time ---
 datetime_str=$(date +"%m-%d %H:%M")
 
-printf "${blue}%s${reset}${sep}${grey}%s${sep}${cyan}%s${reset}${sep}${grey}%s${reset}\n" \
-  "$dir_branch" \
+# Line 1: dir - branch
+printf "${blue}%s${reset}\n" "$dir_branch"
+# Pick bar color based on context usage
+bar_color="$grey"
+if [ -n "$used_pct" ]; then
+  used_int_c=${used_pct%.*}
+  if [ "$used_int_c" -ge 95 ]; then bar_color="$red"
+  elif [ "$used_int_c" -ge 80 ]; then bar_color="$orange"
+  elif [ "$used_int_c" -ge 50 ]; then bar_color="$yellow"
+  fi
+fi
+
+# Line 2: model | progress bar | datetime
+printf "${grey}%s${sep}${bar_color}%s${reset}${sep}${grey}%s${reset}\n" \
   "$model" \
   "$ctx_bar" \
   "$datetime_str"
