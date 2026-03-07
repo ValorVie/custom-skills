@@ -525,6 +525,39 @@ def init(
             console.print(f"  [blue]-[/blue] {backup_file}")
         console.print(f"[dim]備份檔案數量：{len(backup_files_display)}[/dim]")
 
+    # 本地排除 AI 文件
+    git_dir = target_dir / ".git"
+    if git_dir.is_dir():
+        from script.utils.git_exclude import (
+            derive_exclude_patterns,
+            ensure_ai_exclude,
+            prompt_exclude_choice,
+            print_exclude_result,
+        )
+        from script.utils.project_tracking import update_git_exclude_config
+
+        patterns = derive_exclude_patterns(template_dir)
+        choice = prompt_exclude_choice(patterns)
+
+        if choice == "yes":
+            modified, added, skipped = ensure_ai_exclude(target_dir, patterns)
+            if modified:
+                print_exclude_result(added, skipped)
+            update_git_exclude_config(
+                enabled=True,
+                patterns=patterns,
+                keep_tracked=[".editorconfig", ".gitattributes", ".gitignore"],
+                project_dir=target_dir,
+            )
+        else:
+            update_git_exclude_config(
+                enabled=False,
+                patterns=patterns,
+                keep_tracked=[".editorconfig", ".gitattributes", ".gitignore"],
+                project_dir=target_dir,
+            )
+            console.print("[dim]ℹ 已記錄選擇，後續可用 ai-dev project exclude --enable 啟用[/dim]")
+
     console.print()
     console.print("[bold green]專案初始化完成！[/bold green]")
     console.print()
