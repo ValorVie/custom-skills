@@ -190,6 +190,40 @@ def init_from(
         project_dir=cwd,
     )
 
+    # 本地排除 AI 文件
+    git_dir = cwd / ".git"
+    if git_dir.is_dir():
+        from script.utils.git_exclude import (
+            derive_exclude_patterns,
+            ensure_ai_exclude,
+            prompt_exclude_choice,
+            print_exclude_result,
+            DEFAULT_KEEP_TRACKED,
+        )
+        from script.utils.project_tracking import update_git_exclude_config
+
+        patterns = derive_exclude_patterns(target_dir)
+        choice = prompt_exclude_choice(patterns)
+
+        if choice == "yes":
+            modified, added, skipped = ensure_ai_exclude(cwd, patterns)
+            if modified:
+                print_exclude_result(added, skipped)
+            update_git_exclude_config(
+                enabled=True,
+                patterns=patterns,
+                keep_tracked=DEFAULT_KEEP_TRACKED,
+                project_dir=cwd,
+            )
+        else:
+            update_git_exclude_config(
+                enabled=False,
+                patterns=patterns,
+                keep_tracked=DEFAULT_KEEP_TRACKED,
+                project_dir=cwd,
+            )
+            console.print("[dim]ℹ 已記錄選擇，後續可用 ai-dev project exclude --enable 啟用[/dim]")
+
     stats.print_summary()
     console.print()
     console.print("[bold green]✓ 初始化完成！[/bold green]")
@@ -269,6 +303,43 @@ def _run_update_mode(
     # 合併既有追蹤清單（保留使用者跳過但先前已管理的檔案）
     all_managed = sorted(set(managed_files) | existing_managed)
     update_tracking_file(managed_files=all_managed, project_dir=cwd)
+
+    # 同步 .git/info/exclude
+    git_dir = cwd / ".git"
+    if git_dir.is_dir():
+        from script.utils.project_tracking import get_git_exclude_config
+        from script.utils.git_exclude import (
+            derive_exclude_patterns,
+            ensure_ai_exclude,
+            DEFAULT_KEEP_TRACKED,
+        )
+
+        exclude_config = get_git_exclude_config(cwd)
+        if exclude_config and exclude_config.get("enabled"):
+            new_patterns = derive_exclude_patterns(template_dir)
+            old_patterns = set(exclude_config.get("patterns", []))
+            new_set = set(new_patterns)
+
+            added_new = new_set - old_patterns
+            removed = old_patterns - new_set
+
+            modified, added, skipped = ensure_ai_exclude(cwd, new_patterns)
+            if modified:
+                changes = []
+                if added_new:
+                    changes.append(f"新增 {len(added_new)} 項")
+                if removed:
+                    changes.append(f"移除 {len(removed)} 項")
+                if changes:
+                    console.print(f"[green]✓ .git/info/exclude 已同步（{', '.join(changes)}）[/green]")
+
+            from script.utils.project_tracking import update_git_exclude_config
+            update_git_exclude_config(
+                enabled=True,
+                patterns=new_patterns,
+                keep_tracked=DEFAULT_KEEP_TRACKED,
+                project_dir=cwd,
+            )
 
     stats.print_summary()
     console.print()
