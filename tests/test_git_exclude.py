@@ -276,3 +276,70 @@ class TestDeriveExcludePatterns:
         patterns = derive_exclude_patterns(template)
 
         assert ".ai-dev-project.yaml" in patterns
+
+
+from script.utils.project_tracking import (
+    load_tracking_file,
+    save_tracking_file,
+)
+
+
+class TestProjectTrackingGitExclude:
+    """project_tracking git_exclude 擴展測試。"""
+
+    def test_save_and_load_git_exclude(self, tmp_path: Path) -> None:
+        """git_exclude 欄位可正常存取。"""
+        data = {
+            "template": {"name": "test"},
+            "managed_files": ["CLAUDE.md"],
+            "git_exclude": {
+                "enabled": True,
+                "version": "1",
+                "patterns": [".claude/", "CLAUDE.md"],
+                "keep_tracked": [".editorconfig"],
+            },
+        }
+        save_tracking_file(data, tmp_path)
+        loaded = load_tracking_file(tmp_path)
+
+        assert loaded is not None
+        assert loaded["git_exclude"]["enabled"] is True
+        assert loaded["git_exclude"]["patterns"] == [".claude/", "CLAUDE.md"]
+
+    def test_backward_compatible_without_git_exclude(self, tmp_path: Path) -> None:
+        """無 git_exclude 欄位時不影響既有功能。"""
+        data = {
+            "template": {"name": "test"},
+            "managed_files": ["CLAUDE.md"],
+        }
+        save_tracking_file(data, tmp_path)
+        loaded = load_tracking_file(tmp_path)
+
+        assert loaded is not None
+        assert "git_exclude" not in loaded
+
+
+from script.utils.project_tracking import (
+    get_git_exclude_config,
+    update_git_exclude_config,
+)
+
+
+class TestGitExcludeHelpers:
+
+    def test_update_and_get(self, tmp_path: Path) -> None:
+        save_tracking_file({"template": {"name": "test"}, "managed_files": []}, tmp_path)
+        update_git_exclude_config(
+            enabled=True,
+            patterns=[".claude/", "CLAUDE.md"],
+            keep_tracked=[".editorconfig"],
+            project_dir=tmp_path,
+        )
+        config = get_git_exclude_config(tmp_path)
+        assert config is not None
+        assert config["enabled"] is True
+        assert ".claude/" in config["patterns"]
+
+    def test_get_returns_none_when_missing(self, tmp_path: Path) -> None:
+        save_tracking_file({"template": {"name": "test"}, "managed_files": []}, tmp_path)
+        assert get_git_exclude_config(tmp_path) is None

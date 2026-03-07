@@ -116,3 +116,36 @@ def is_file_managed(relative_path: str, project_dir: Path | None = None) -> str 
     if relative_path in managed:
         return data.get("template", {}).get("name")
     return None
+
+
+def get_git_exclude_config(project_dir: Path | None = None) -> dict | None:
+    """取得 git_exclude 設定。
+
+    Returns:
+        dict: git_exclude 設定，不存在時回傳 None
+    """
+    data = load_tracking_file(project_dir)
+    if data is None:
+        return None
+    return data.get("git_exclude")
+
+
+def update_git_exclude_config(
+    enabled: bool,
+    patterns: list[str],
+    keep_tracked: list[str],
+    version: str = "1",
+    project_dir: Path | None = None,
+) -> None:
+    """更新 .ai-dev-project.yaml 中的 git_exclude 設定。"""
+    data = load_tracking_file(project_dir)
+    if data is None:
+        data = {}
+
+    data["git_exclude"] = {
+        "enabled": enabled,
+        "version": version,
+        "patterns": sorted(patterns),
+        "keep_tracked": sorted(keep_tracked),
+    }
+    save_tracking_file(data, project_dir)
