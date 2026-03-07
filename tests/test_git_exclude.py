@@ -195,3 +195,84 @@ class TestGetCurrentPatterns:
         exclude.write_text(".env\n", encoding="utf-8")
 
         assert get_current_patterns(project) is None
+
+
+from script.utils.git_exclude import derive_exclude_patterns
+
+
+class TestDeriveExcludePatterns:
+    """derive_exclude_patterns 測試。"""
+
+    def test_derives_from_template(self, tmp_path: Path) -> None:
+        """從模板內容推導排除清單。"""
+        template = tmp_path / "template"
+        template.mkdir()
+        (template / ".claude").mkdir()
+        (template / ".standards").mkdir()
+        (template / "CLAUDE.md").touch()
+        (template / ".editorconfig").touch()
+        (template / ".gitattributes").touch()
+        (template / ".gitignore").touch()
+
+        patterns = derive_exclude_patterns(template)
+
+        assert ".claude/" in patterns
+        assert ".standards/" in patterns
+        assert "CLAUDE.md" in patterns
+        # 保留項不在排除清單
+        assert ".editorconfig" not in patterns
+        assert ".gitattributes" not in patterns
+        assert ".gitignore" not in patterns
+
+    def test_github_specific_paths(self, tmp_path: Path) -> None:
+        """.github/ 只排除 AI 相關子路徑。"""
+        template = tmp_path / "template"
+        template.mkdir()
+        github = template / ".github"
+        github.mkdir()
+        (github / "skills").mkdir()
+        (github / "prompts").mkdir()
+        (github / "copilot-instructions.md").touch()
+
+        patterns = derive_exclude_patterns(template)
+
+        assert ".github/skills/" in patterns
+        assert ".github/prompts/" in patterns
+        assert ".github/copilot-instructions.md" in patterns
+        assert ".github/" not in patterns  # 整個 .github/ 不在
+
+    def test_excludes_git_directory(self, tmp_path: Path) -> None:
+        """.git 目錄不出現在排除清單。"""
+        template = tmp_path / "template"
+        template.mkdir()
+        (template / ".git").mkdir()
+        (template / "CLAUDE.md").touch()
+
+        patterns = derive_exclude_patterns(template)
+
+        assert ".git" not in patterns
+        assert ".git/" not in patterns
+
+    def test_custom_keep_tracked(self, tmp_path: Path) -> None:
+        """自訂保留項。"""
+        template = tmp_path / "template"
+        template.mkdir()
+        (template / "CLAUDE.md").touch()
+        (template / "custom-keep.txt").touch()
+
+        patterns = derive_exclude_patterns(
+            template, keep_tracked=[".editorconfig", ".gitattributes", ".gitignore", "custom-keep.txt"]
+        )
+
+        assert "CLAUDE.md" in patterns
+        assert "custom-keep.txt" not in patterns
+
+    def test_adds_ai_dev_project_yaml(self, tmp_path: Path) -> None:
+        """.ai-dev-project.yaml 永遠包含在排除清單。"""
+        template = tmp_path / "template"
+        template.mkdir()
+        (template / "CLAUDE.md").touch()
+
+        patterns = derive_exclude_patterns(template)
+
+        assert ".ai-dev-project.yaml" in patterns
