@@ -363,10 +363,22 @@ npx skills add apollographql/skills@rust-best-practices -y
 npx skills add zhanghandong/rust-skills@coding-guidelines -y
 
 # Vue（5 個）
-npx skills add antfu/skills@nuxt -y
 npx skills add antfu/skills@vue -y
 npx skills add antfu/skills@vueuse-functions -y
 npx skills add antfu/skills@vue-router-best-practices -y
+
+# Better Auth（4 個）
+npx skills add better-auth/skills@better-auth-best-practices -y
+npx skills add better-auth/skills@better-auth-security-best-practices -y
+npx skills add better-auth/skills@create-auth-skill -y
+npx skills add better-auth/skills@email-and-password-best-practices -y
+
+# Nuxt 生態系（4 個，與 antfu/skills@nuxt 互補）
+npx skills add antfu/skills@nuxt -y
+npx skills add onmax/nuxt-skills@nuxt-better-auth -y
+npx skills add onmax/nuxt-skills@nuxt -y
+npx skills add onmax/nuxt-skills@reka-ui -y
+npx skills add onmax/nuxt-skills@nuxt-ui -y
 npx skills add nuxt/ui@nuxt-ui -y
 
 # Prisma（3 個）
