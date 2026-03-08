@@ -152,6 +152,42 @@ Clean up the team
 
 > 始終使用主管進行清理，隊友不應執行清理操作。
 
+### 如何強制使用 Agent Teams
+
+Agent Teams 不是靠「關鍵字」觸發，而是靠**環境設定**。功能預設關閉，必須先啟用。
+
+**第一步：啟用功能**
+
+在 shell 環境中：
+
+```bash
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+```
+
+或在 `~/.claude/settings.json`：
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+**第二步：強制使用的方式**
+
+| 方法 | 效果 |
+|------|------|
+| **Shift+Tab** | 進入 delegation mode，AI 只能協調不能自己寫 code |
+| **明確語言**（「建立 agent team」、「spawn a team」） | AI *應該*用 teams，但仍可能自行判斷 |
+| **Slash commands**（`/team-spawn`、`/team-review` 等） | 直接建立團隊，繞過 AI 決策 |
+
+**結論：** 沒有「絕對命令」能 100% 強制。最接近的方式：
+
+1. **Shift+Tab** 進入 delegation mode — AI 被限制只能用協調工具
+2. **Slash commands**（如 `/team-spawn`）— 直接建立團隊，不經 AI 判斷
+3. 如果只是在 prompt 裡說「用 agent teams」，AI 仍會自行決策
+
 ---
 
 ## 顯示模式
