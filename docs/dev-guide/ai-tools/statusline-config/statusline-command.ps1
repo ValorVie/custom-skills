@@ -10,11 +10,16 @@ $pct   = if ($null -ne $input_json.context_window.used_percentage) {
              [int]$input_json.context_window.used_percentage
          } else { 0 }
 
-# --- Directory (replace home with ~) ---
+# --- Directory (replace home with ~, truncate if too long) ---
 $home_path = $env:USERPROFILE
 $dir = if ($cwd -and $cwd.StartsWith($home_path)) {
     "~" + $cwd.Substring($home_path.Length).Replace('\', '/')
 } else { $cwd }
+if ($dir.Length -gt 40) {
+    $parts = $dir.TrimStart('/').Split('/')
+    $last3 = $parts[-3..-1] -join '/'
+    $dir = "~/…/$last3"
+}
 
 # --- Git branch + dirty indicator ---
 $git_info = "(no git)"

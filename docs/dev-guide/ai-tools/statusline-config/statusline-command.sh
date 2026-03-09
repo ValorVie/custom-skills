@@ -17,8 +17,13 @@ red='\033[38;5;196m'
 reset='\033[0m'
 sep="${grey} | ${reset}"
 
-# --- Directory ---
+# --- Directory (truncate if too long) ---
 dir="${cwd/#$HOME/~}"
+max_dir_len=40
+if [ ${#dir} -gt $max_dir_len ]; then
+  last3=$(echo "$dir" | awk -F'/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
+  dir="~/…/${last3}"
+fi
 
 # --- Git branch + dirty indicator ---
 git_info="(no git)"
