@@ -1,0 +1,3 @@
+interface:
+  display_name: "Simplify"
+  short_description: "Run 3 parallel cleanup reviews before formal review"

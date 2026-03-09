@@ -1,0 +1,3 @@
+interface:
+  display_name: "Code Simplifier"
+  short_description: "Simplify touched code without changing behavior"
