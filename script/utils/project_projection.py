@@ -8,7 +8,7 @@ import hashlib
 from pathlib import Path
 import shutil
 
-from .git_exclude import derive_exclude_patterns, ensure_ai_exclude
+from .git_exclude import ALWAYS_EXCLUDE, ensure_ai_exclude
 from .manifest import compute_dir_hash, compute_file_hash
 from .paths import get_custom_skills_dir
 from .project_blocks import read_managed_block, remove_managed_block, upsert_managed_block
@@ -22,6 +22,20 @@ MANAGED_BLOCK_FILES = {
     "CLAUDE.md",
     "GEMINI.md",
     "INSTRUCTIONS.md",
+}
+FULLY_MANAGED_TOP_LEVEL_ITEMS = {
+    ".agent",
+    ".agents",
+    ".claude",
+    ".codex",
+    ".gemini",
+    ".opencode",
+    *MANAGED_BLOCK_FILES,
+}
+PARTIALLY_MANAGED_PROJECT_PATHS = {
+    ".github/copilot-instructions.md",
+    ".github/prompts",
+    ".github/skills",
 }
 
 
@@ -66,11 +80,31 @@ def _pattern_to_relative_path(pattern: str) -> str:
     return pattern[:-1] if pattern.endswith("/") else pattern
 
 
+def get_project_projection_patterns(template_dir: Path) -> list[str]:
+    """只回傳 project projection 需要排除的 AI 生成路徑。"""
+    patterns: list[str] = []
+
+    for relative_path in sorted(FULLY_MANAGED_TOP_LEVEL_ITEMS | PARTIALLY_MANAGED_PROJECT_PATHS):
+        source_path = template_dir / relative_path
+        if not source_path.exists():
+            continue
+        if source_path.is_dir():
+            patterns.append(f"{relative_path}/")
+        else:
+            patterns.append(relative_path)
+
+    for always in ALWAYS_EXCLUDE:
+        if always not in patterns:
+            patterns.append(always)
+
+    return patterns
+
+
 def _collect_projection_entries(template_dir: Path) -> list[ProjectionEntry]:
     """依排除清單收集專案 AI 投影來源。"""
     entries: list[ProjectionEntry] = []
 
-    for pattern in derive_exclude_patterns(template_dir):
+    for pattern in get_project_projection_patterns(template_dir):
         relative_path = _pattern_to_relative_path(pattern)
         if relative_path == ".ai-dev-project.yaml":
             continue
@@ -188,7 +222,7 @@ def hydrate_project(
         raise ValueError("on_conflict 必須是 skip、force 或 backup")
 
     project_id = intent["project_id"]
-    patterns = derive_exclude_patterns(template_dir)
+    patterns = get_project_projection_patterns(template_dir)
     ensure_ai_exclude(project_root, patterns)
 
     old_manifest = read_project_manifest(project_id) or {}

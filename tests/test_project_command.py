@@ -1,6 +1,7 @@
 """project 命令的整合測試。"""
 
 from pathlib import Path
+import subprocess
 
 import pytest
 from typer.testing import CliRunner
@@ -121,3 +122,32 @@ def test_project_doctor_reports_ok_for_hydrated_project(
 
     assert result.exit_code == 0, result.stdout
     assert "OK" in result.stdout
+
+
+def test_project_init_hides_generated_ai_files_from_git_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    manifest_dir = tmp_path / "manifests" / "projects"
+    subprocess.run(["git", "init"], cwd=project_root, check=True, capture_output=True)
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    result = runner.invoke(app, ["project", "init", str(project_root)])
+    assert result.exit_code == 0, result.stdout
+
+    status = subprocess.run(
+        ["git", "status", "--short"],
+        cwd=project_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+    assert "AGENTS.md" not in status
+    assert ".claude/" not in status
+    assert ".ai-dev-project.yaml" not in status
+    assert ".standards/" in status

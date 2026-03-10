@@ -289,10 +289,11 @@ def _ensure_project_intent(project_dir: Path) -> None:
 
 def _record_project_exclude_config(project_dir: Path, template_dir: Path) -> None:
     """將 project-template 對應的排除設定寫入追蹤檔。"""
-    from script.utils.git_exclude import DEFAULT_KEEP_TRACKED, derive_exclude_patterns
+    from script.utils.git_exclude import DEFAULT_KEEP_TRACKED
+    from script.utils.project_projection import get_project_projection_patterns
     from script.utils.project_tracking import update_git_exclude_config
 
-    patterns = derive_exclude_patterns(template_dir)
+    patterns = get_project_projection_patterns(template_dir)
     update_git_exclude_config(
         enabled=True,
         patterns=patterns,
@@ -800,6 +801,7 @@ def exclude(
         print_exclude_result,
         DEFAULT_KEEP_TRACKED,
     )
+    from script.utils.project_projection import get_project_projection_patterns
 
     cwd = Path.cwd()
 
@@ -824,9 +826,12 @@ def exclude(
         if not patterns:
             # 嘗試從模板推導
             template_name = tracking.get("template", {}).get("name", "")
-            template_dir = Path.home() / ".config" / template_name
-            if template_dir.exists():
-                patterns = derive_exclude_patterns(template_dir)
+            if template_name == PROJECT_TEMPLATE_NAME:
+                patterns = get_project_projection_patterns(get_project_template_dir())
+            else:
+                template_dir = Path.home() / ".config" / template_name
+                if template_dir.exists():
+                    patterns = derive_exclude_patterns(template_dir)
 
         if patterns:
             modified, added, skipped = ensure_ai_exclude(cwd, patterns)

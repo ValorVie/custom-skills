@@ -118,3 +118,27 @@ def test_reconcile_project_force_overwrites_conflicting_managed_block(
     assert "AGENTS.md" not in result.conflicts
     assert "AGENTS.md" in result.generated
     assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Updated instructions"
+
+
+def test_reconcile_project_backup_preserves_conflicting_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = _make_project(tmp_path)
+    manifest_dir = tmp_path / "manifests" / "projects"
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    hydrate_project(project_root, template_dir=template_dir)
+    from script.utils.project_blocks import upsert_managed_block
+
+    upsert_managed_block(project_root / "AGENTS.md", "ai-dev-project", "# manual\n")
+    _write(template_dir / "AGENTS.md", "# Updated instructions\n")
+
+    result = reconcile_project(project_root, template_dir=template_dir, on_conflict="backup")
+
+    backup_root = project_root / "_backup_project_projection"
+
+    assert "AGENTS.md" in result.generated
+    assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Updated instructions"
+    assert backup_root.exists()
+    assert any(path.name == "AGENTS.md" for path in backup_root.rglob("AGENTS.md"))
