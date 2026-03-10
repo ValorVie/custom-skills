@@ -2,7 +2,7 @@
 Project Tracking：讀寫 .ai-dev-project.yaml，追蹤專案意圖與模板管理檔案。
 """
 
-from datetime import datetime
+from copy import deepcopy
 from pathlib import Path
 import re
 
@@ -67,6 +67,15 @@ def _apply_tracking_defaults(
     return data
 
 
+def _strip_runtime_template_fields(data: dict) -> dict:
+    """移除不應留在 project intent 的 runtime template 欄位。"""
+    template = data.get("template")
+    if isinstance(template, dict):
+        template.pop("initialized_at", None)
+        template.pop("last_updated", None)
+    return data
+
+
 def get_tracking_file_path(project_dir: Path | None = None) -> Path:
     """回傳 .ai-dev-project.yaml 的路徑。"""
     base = project_dir or Path.cwd()
@@ -97,10 +106,12 @@ def load_tracking_file(project_dir: Path | None = None) -> dict | None:
 def save_tracking_file(data: dict, project_dir: Path | None = None) -> None:
     """寫入 .ai-dev-project.yaml。"""
     tracking_path = get_tracking_file_path(project_dir)
+    normalized = _apply_tracking_defaults(deepcopy(data), project_dir)
+    normalized = _strip_runtime_template_fields(normalized)
 
     with open(tracking_path, "w", encoding="utf-8") as f:
         yaml.dump(
-            data, f, allow_unicode=True, default_flow_style=False, sort_keys=False
+            normalized, f, allow_unicode=True, default_flow_style=False, sort_keys=False
         )
 
 
@@ -112,7 +123,6 @@ def create_tracking_file(
     project_dir: Path | None = None,
 ) -> None:
     """建立新的 .ai-dev-project.yaml（首次 init-from 時使用）。"""
-    now = datetime.now().astimezone().isoformat()
     data = {
         "managed_by": "ai-dev",
         "schema_version": TRACKING_SCHEMA_VERSION,
@@ -121,8 +131,6 @@ def create_tracking_file(
             "name": name,
             "url": url,
             "branch": branch,
-            "initialized_at": now,
-            "last_updated": now,
         },
         "projection": dict(DEFAULT_PROJECTION),
         "managed_files": sorted(managed_files),
@@ -134,7 +142,7 @@ def update_tracking_file(
     managed_files: list[str],
     project_dir: Path | None = None,
 ) -> None:
-    """更新既有 .ai-dev-project.yaml 的 managed_files 和 last_updated。"""
+    """更新既有 .ai-dev-project.yaml 的 managed_files。"""
     data = load_tracking_file(project_dir)
     if data is None:
         raise FileNotFoundError(
@@ -142,9 +150,6 @@ def update_tracking_file(
         )
 
     data = _apply_tracking_defaults(data, project_dir)
-    data.setdefault("template", {})["last_updated"] = (
-        datetime.now().astimezone().isoformat()
-    )
     data["managed_files"] = sorted(managed_files)
     save_tracking_file(data, project_dir)
 

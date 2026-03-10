@@ -10,6 +10,7 @@ from script.utils.project_tracking import (
     get_managed_files,
     is_file_managed,
     load_tracking_file,
+    save_tracking_file,
     update_tracking_file,
 )
 
@@ -41,9 +42,9 @@ def test_create_and_load_tracking_file(tmp_path: Path):
     assert data["project_id"] == _expected_project_id(tmp_path)
     assert data["template"]["name"] == "qdm-ai-base"
     assert data["template"]["branch"] == "main"
-    assert "initialized_at" in data["template"]
-    assert "last_updated" in data["template"]
-    assert data["template"]["initialized_at"] == data["template"]["last_updated"]
+    assert data["template"]["url"] == "https://github.com/ValorVie/qdm-ai-base.git"
+    assert "initialized_at" not in data["template"]
+    assert "last_updated" not in data["template"]
     assert data["projection"]["targets"] == ["claude", "codex", "gemini"]
     assert data["projection"]["profile"] == "default"
     assert data["projection"]["allow_local_generation"] is True
@@ -134,7 +135,7 @@ def test_is_file_managed_no_tracking(tmp_path: Path):
 
 
 def test_update_tracking_file(tmp_path: Path):
-    """更新後 managed_files 和 last_updated 都應變更。"""
+    """更新後 managed_files 應變更，且 template 保持意圖資料。"""
     create_tracking_file(
         name="test",
         url="https://github.com/test/test.git",
@@ -143,17 +144,38 @@ def test_update_tracking_file(tmp_path: Path):
         project_dir=tmp_path,
     )
     initial = load_tracking_file(tmp_path)
-    initial_updated = initial["template"]["last_updated"]
-
-    import time
-    time.sleep(0.01)  # 確保時間戳不同
 
     update_tracking_file(managed_files=["CLAUDE.md", "NEW.md"], project_dir=tmp_path)
 
     updated = load_tracking_file(tmp_path)
     assert "NEW.md" in updated["managed_files"]
     assert updated["project_id"] == _expected_project_id(tmp_path)
-    assert updated["template"]["last_updated"] >= initial_updated
+    assert updated["template"] == initial["template"]
+    assert "initialized_at" not in updated["template"]
+    assert "last_updated" not in updated["template"]
+
+
+def test_save_tracking_file_strips_runtime_template_fields(tmp_path: Path):
+    """save_tracking_file 應清除 runtime timestamp 欄位。"""
+    save_tracking_file(
+        {
+            "template": {
+                "name": "test",
+                "url": "https://github.com/test/test.git",
+                "branch": "main",
+                "initialized_at": "2026-03-10T00:00:00+08:00",
+                "last_updated": "2026-03-10T00:00:01+08:00",
+            },
+            "managed_files": ["CLAUDE.md"],
+        },
+        tmp_path,
+    )
+
+    data = load_tracking_file(tmp_path)
+
+    assert data is not None
+    assert "initialized_at" not in data["template"]
+    assert "last_updated" not in data["template"]
 
 
 def test_update_tracking_file_not_exist(tmp_path: Path):
