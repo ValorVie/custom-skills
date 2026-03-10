@@ -1,9 +1,10 @@
 """
-Project Tracking：讀寫 .ai-dev-project.yaml，追蹤由 init-from 模板管理的檔案。
+Project Tracking：讀寫 .ai-dev-project.yaml，追蹤專案意圖與模板管理檔案。
 """
 
 from datetime import datetime
 from pathlib import Path
+import re
 
 import yaml
 from rich.console import Console
@@ -11,6 +12,59 @@ from rich.console import Console
 console = Console()
 
 PROJECT_TRACKING_FILE = ".ai-dev-project.yaml"
+TRACKING_SCHEMA_VERSION = "2"
+DEFAULT_PROJECTION = {
+    "targets": ["claude", "codex", "gemini"],
+    "profile": "default",
+    "allow_local_generation": True,
+}
+
+
+def _generate_project_id(project_dir: Path | None = None) -> str:
+    """依目錄名稱產生穩定的 project_id。"""
+    base = Path(project_dir or Path.cwd()).resolve().name.strip().lower()
+    normalized = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+    return normalized or "ai-dev-project"
+
+
+def _apply_tracking_defaults(
+    data: dict, project_dir: Path | None = None, persist: bool = False
+) -> dict:
+    """補齊 schema v2 的預設欄位，保留舊檔相容性。"""
+    changed = False
+
+    if data.get("managed_by") != "ai-dev":
+        data["managed_by"] = "ai-dev"
+        changed = True
+
+    if data.get("schema_version") != TRACKING_SCHEMA_VERSION:
+        data["schema_version"] = TRACKING_SCHEMA_VERSION
+        changed = True
+
+    if not data.get("project_id"):
+        data["project_id"] = _generate_project_id(project_dir)
+        changed = True
+
+    projection = data.get("projection")
+    if not isinstance(projection, dict):
+        data["projection"] = dict(DEFAULT_PROJECTION)
+        changed = True
+    else:
+        for key, value in DEFAULT_PROJECTION.items():
+            if key not in projection:
+                projection[key] = value[:] if isinstance(value, list) else value
+                changed = True
+
+    if "managed_files" in data and isinstance(data["managed_files"], list):
+        sorted_files = sorted(data["managed_files"])
+        if sorted_files != data["managed_files"]:
+            data["managed_files"] = sorted_files
+            changed = True
+
+    if persist and changed:
+        save_tracking_file(data, project_dir)
+
+    return data
 
 
 def get_tracking_file_path(project_dir: Path | None = None) -> Path:
@@ -34,7 +88,7 @@ def load_tracking_file(project_dir: Path | None = None) -> dict | None:
             data = yaml.safe_load(f)
             if not isinstance(data, dict):
                 return None
-            return data
+            return _apply_tracking_defaults(data, project_dir)
     except Exception as e:
         console.print(f"[yellow]警告：讀取 {PROJECT_TRACKING_FILE} 失敗 ({e})[/yellow]")
         return None
@@ -60,6 +114,9 @@ def create_tracking_file(
     """建立新的 .ai-dev-project.yaml（首次 init-from 時使用）。"""
     now = datetime.now().astimezone().isoformat()
     data = {
+        "managed_by": "ai-dev",
+        "schema_version": TRACKING_SCHEMA_VERSION,
+        "project_id": _generate_project_id(project_dir),
         "template": {
             "name": name,
             "url": url,
@@ -67,6 +124,7 @@ def create_tracking_file(
             "initialized_at": now,
             "last_updated": now,
         },
+        "projection": dict(DEFAULT_PROJECTION),
         "managed_files": sorted(managed_files),
     }
     save_tracking_file(data, project_dir)
@@ -83,6 +141,7 @@ def update_tracking_file(
             f"{PROJECT_TRACKING_FILE} 不存在，請先執行 `ai-dev init-from <source>`"
         )
 
+    data = _apply_tracking_defaults(data, project_dir)
     data.setdefault("template", {})["last_updated"] = (
         datetime.now().astimezone().isoformat()
     )
@@ -141,6 +200,8 @@ def update_git_exclude_config(
     data = load_tracking_file(project_dir)
     if data is None:
         data = {}
+
+    data = _apply_tracking_defaults(data, project_dir)
 
     data["git_exclude"] = {
         "enabled": enabled,

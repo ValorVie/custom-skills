@@ -1,6 +1,7 @@
 """project_tracking.py 的單元測試。"""
 
 from pathlib import Path
+import re
 
 import pytest
 
@@ -11,6 +12,10 @@ from script.utils.project_tracking import (
     load_tracking_file,
     update_tracking_file,
 )
+
+
+def _expected_project_id(path: Path) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", path.name.strip().lower()).strip("-")
 
 
 def test_load_tracking_file_not_exist(tmp_path: Path):
@@ -31,11 +36,17 @@ def test_create_and_load_tracking_file(tmp_path: Path):
 
     data = load_tracking_file(tmp_path)
     assert data is not None
+    assert data["managed_by"] == "ai-dev"
+    assert data["schema_version"] == "2"
+    assert data["project_id"] == _expected_project_id(tmp_path)
     assert data["template"]["name"] == "qdm-ai-base"
     assert data["template"]["branch"] == "main"
     assert "initialized_at" in data["template"]
     assert "last_updated" in data["template"]
     assert data["template"]["initialized_at"] == data["template"]["last_updated"]
+    assert data["projection"]["targets"] == ["claude", "codex", "gemini"]
+    assert data["projection"]["profile"] == "default"
+    assert data["projection"]["allow_local_generation"] is True
     assert ".standards/commit.yaml" in data["managed_files"]
     assert "CLAUDE.md" in data["managed_files"]
 
@@ -51,6 +62,23 @@ def test_managed_files_sorted(tmp_path: Path):
     )
     data = load_tracking_file(tmp_path)
     assert data["managed_files"] == ["a.md", "m.md", "z.md"]
+
+
+def test_load_tracking_file_backfills_schema_defaults(tmp_path: Path):
+    """舊版檔案載入時自動補齊 schema v2 預設欄位。"""
+    tracking = tmp_path / ".ai-dev-project.yaml"
+    tracking.write_text(
+        "template:\n  name: legacy\nmanaged_files:\n  - CLAUDE.md\n",
+        encoding="utf-8",
+    )
+
+    data = load_tracking_file(tmp_path)
+
+    assert data is not None
+    assert data["managed_by"] == "ai-dev"
+    assert data["schema_version"] == "2"
+    assert data["project_id"] == _expected_project_id(tmp_path)
+    assert data["projection"]["allow_local_generation"] is True
 
 
 def test_get_managed_files_no_tracking(tmp_path: Path):
@@ -124,6 +152,7 @@ def test_update_tracking_file(tmp_path: Path):
 
     updated = load_tracking_file(tmp_path)
     assert "NEW.md" in updated["managed_files"]
+    assert updated["project_id"] == _expected_project_id(tmp_path)
     assert updated["template"]["last_updated"] >= initial_updated
 
 
