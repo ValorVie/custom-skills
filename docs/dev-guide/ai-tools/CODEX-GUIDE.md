@@ -72,7 +72,8 @@ Codex 以「核准層級」控制自動化幅度：
 
 ## 設定檔控制（像 OpenCode 的安全檔）
 
-- 位置：`~/.config/codex/config.toml`（若不存在可自行建立）。citeturn0search6
+- 位置：`~/.codex/config.toml`（若不存在可自行建立）。
+- MCP Server 也定義在同一份設定檔中，使用 `[mcp_servers.<name>]` 的 TOML table。
 - 你可以在此預設核准與沙箱模式，啟動時會自動套用：citeturn0search0
   ```toml
   # 預設模型（可選）
