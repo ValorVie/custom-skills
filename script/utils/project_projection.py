@@ -7,8 +7,9 @@ from datetime import datetime
 import hashlib
 from pathlib import Path
 import shutil
+from typing import Literal
 
-from .git_exclude import ALWAYS_EXCLUDE, ensure_ai_exclude
+from .git_exclude import ALWAYS_EXCLUDE, GITHUB_AI_PATHS, ensure_ai_exclude
 from .manifest import compute_dir_hash, compute_file_hash
 from .paths import get_custom_skills_dir
 from .project_blocks import read_managed_block, remove_managed_block, upsert_managed_block
@@ -16,6 +17,8 @@ from .project_projection_manifest import read_project_manifest, write_project_ma
 from .project_tracking import load_tracking_file, update_tracking_file
 
 PROJECT_PROJECTION_SCHEMA_VERSION = "1"
+PROJECT_TEMPLATE_NAME = "project-template"
+PROJECT_TEMPLATE_URL = f"local://{PROJECT_TEMPLATE_NAME}"
 PROJECT_MANAGED_BLOCK_ID = "ai-dev-project"
 MANAGED_BLOCK_FILES = {
     "AGENTS.md",
@@ -32,11 +35,9 @@ FULLY_MANAGED_TOP_LEVEL_ITEMS = {
     ".opencode",
     *MANAGED_BLOCK_FILES,
 }
-PARTIALLY_MANAGED_PROJECT_PATHS = {
-    ".github/copilot-instructions.md",
-    ".github/prompts",
-    ".github/skills",
-}
+PARTIALLY_MANAGED_PROJECT_PATHS = {f".github/{path}" for path in GITHUB_AI_PATHS}
+VALID_CONFLICT_MODES = {"skip", "force", "backup"}
+ProjectionKind = Literal["managed_block", "dir", "file"]
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,7 @@ class ProjectionEntry:
 
     relative_path: str
     source_path: Path
-    kind: str
+    kind: ProjectionKind
 
 
 @dataclass
@@ -159,6 +160,14 @@ def _get_current_hash(target_path: Path, kind: str) -> str | None:
     return compute_file_hash(target_path)
 
 
+def _build_manifest_record(entry: ProjectionEntry, expected_hash: str) -> dict[str, str]:
+    return {
+        "kind": entry.kind,
+        "hash": expected_hash,
+        "source": entry.relative_path,
+    }
+
+
 def _backup_path(project_root: Path, relative_path: str, backup_root: Path) -> None:
     """備份衝突或待刪除的投影路徑。"""
     source_path = project_root / relative_path
@@ -218,7 +227,7 @@ def hydrate_project(
     if not template_dir.exists():
         raise FileNotFoundError(f"找不到 project-template 目錄：{template_dir}")
 
-    if on_conflict not in {"skip", "force", "backup"}:
+    if on_conflict not in VALID_CONFLICT_MODES:
         raise ValueError("on_conflict 必須是 skip、force 或 backup")
 
     project_id = intent["project_id"]
@@ -242,10 +251,17 @@ def hydrate_project(
         target_path = project_root / entry.relative_path
         expected_hash = _get_expected_hash(entry)
         previous_record = old_files.get(entry.relative_path)
+        current_hash = _get_current_hash(target_path, entry.kind)
 
         conflict = False
         if previous_record is not None:
-            current_hash = _get_current_hash(target_path, entry.kind)
+            if (
+                previous_record.get("kind") == entry.kind
+                and current_hash == previous_record.get("hash") == expected_hash
+            ):
+                new_files[entry.relative_path] = _build_manifest_record(entry, expected_hash)
+                continue
+
             if current_hash is not None and current_hash != previous_record.get("hash"):
                 conflict = True
         elif entry.kind != "managed_block" and target_path.exists():
@@ -263,11 +279,7 @@ def hydrate_project(
 
         _apply_projection_entry(project_root, entry)
         result.generated.append(entry.relative_path)
-        new_files[entry.relative_path] = {
-            "kind": entry.kind,
-            "hash": expected_hash,
-            "source": entry.relative_path,
-        }
+        new_files[entry.relative_path] = _build_manifest_record(entry, expected_hash)
 
     for relative_path, previous_record in sorted(old_files.items()):
         if relative_path in desired_paths:

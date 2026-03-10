@@ -120,9 +120,10 @@ class TestEnsureAiExclude:
         ensure_ai_exclude(project, patterns)
         content1 = (project / ".git" / "info" / "exclude").read_text()
 
-        ensure_ai_exclude(project, patterns)
+        modified, _, _ = ensure_ai_exclude(project, patterns)
         content2 = (project / ".git" / "info" / "exclude").read_text()
 
+        assert modified is False
         assert content1 == content2
 
     def test_dry_run_does_not_write(self, tmp_path: Path) -> None:

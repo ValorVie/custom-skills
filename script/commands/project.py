@@ -14,12 +14,18 @@ import stat
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import typer
 from rich.console import Console
 
-from ..utils.paths import get_custom_skills_dir
+from ..utils.git_exclude import GITHUB_AI_PATHS
+from ..utils.project_projection import (
+    FULLY_MANAGED_TOP_LEVEL_ITEMS,
+    PROJECT_TEMPLATE_NAME,
+    PROJECT_TEMPLATE_URL,
+    get_project_template_dir,
+)
 
 app = typer.Typer(help="專案級別的初始化與更新操作")
 console = Console()
@@ -29,22 +35,6 @@ MERGE_FILES = {".gitattributes", ".gitignore"}
 
 # 複製到 project-template 時要排除的檔案名稱（個人設定，不屬於共享範本）
 EXCLUDE_FROM_TEMPLATE = {"settings.local.json"}
-PARTIALLY_MANAGED_GITHUB_ITEMS = {"skills", "prompts", "copilot-instructions.md"}
-
-PROJECT_TEMPLATE_NAME = "project-template"
-PROJECT_TEMPLATE_URL = "local://project-template"
-FULLY_MANAGED_PROJECT_ITEMS = {
-    ".agent",
-    ".agents",
-    ".claude",
-    ".codex",
-    ".gemini",
-    ".opencode",
-    "AGENTS.md",
-    "CLAUDE.md",
-    "GEMINI.md",
-    "INSTRUCTIONS.md",
-}
 
 
 def _template_ignore(directory: str, contents: list[str]) -> set[str]:
@@ -58,7 +48,7 @@ def _project_init_ignore(directory: str, contents: list[str]) -> set[str]:
     current_dir = Path(directory)
 
     if current_dir.name == ".github":
-        ignored |= {name for name in contents if name in PARTIALLY_MANAGED_GITHUB_ITEMS}
+        ignored |= {name for name in contents if name in GITHUB_AI_PATHS}
 
     return ignored
 
@@ -260,19 +250,6 @@ TOOLS = {
 }
 
 
-def get_project_template_dir() -> Path:
-    """取得 project-template 目錄的路徑。"""
-    # 優先使用 custom-skills 目錄下的模板
-    custom_skills_dir = get_custom_skills_dir()
-    template_dir = custom_skills_dir / "project-template"
-    if template_dir.exists():
-        return template_dir
-
-    # 備用：使用腳本相對路徑
-    script_dir = Path(__file__).resolve().parent.parent.parent
-    return script_dir / "project-template"
-
-
 def _ensure_project_intent(project_dir: Path) -> None:
     """確保專案存在 .ai-dev-project.yaml 意圖檔。"""
     from script.utils.project_tracking import (
@@ -325,6 +302,31 @@ def _print_projection_summary(action: str, result) -> None:
         console.print(f"[yellow]衝突：{len(result.conflicts)} 個[/yellow]")
         for relative_path in result.conflicts:
             console.print(f"  [yellow]-[/yellow] {relative_path}")
+
+
+def _resolve_target_dir(target: Optional[str]) -> Path:
+    target_dir = Path(target) if target else Path.cwd()
+    return target_dir.resolve()
+
+
+def _resolve_conflict_mode(force: bool, backup: bool) -> str:
+    return "force" if force else "backup" if backup else "skip"
+
+
+def _run_project_projection(
+    action: str,
+    projector: Callable[..., object],
+    target: Optional[str],
+    force: bool,
+    backup: bool,
+) -> None:
+    target_dir = _resolve_target_dir(target)
+    template_dir = get_project_template_dir()
+    on_conflict = _resolve_conflict_mode(force, backup)
+
+    _record_project_exclude_config(target_dir, template_dir)
+    result = projector(target_dir, template_dir=template_dir, on_conflict=on_conflict)
+    _print_projection_summary(action, result)
 
 
 def check_tool_installed(tool: str) -> bool:
@@ -460,8 +462,7 @@ def init(
     - 這允許開發者更新模板後同步回 project-template/ 目錄
     """
     # 決定目標目錄
-    target_dir = Path(target) if target else Path.cwd()
-    target_dir = target_dir.resolve()
+    target_dir = _resolve_target_dir(target)
 
     # 取得模板目錄
     template_dir = get_project_template_dir()
@@ -504,7 +505,7 @@ def init(
         src = item
         dst = target_dir / item.name
 
-        if item.name in FULLY_MANAGED_PROJECT_ITEMS:
+        if item.name in FULLY_MANAGED_TOP_LEVEL_ITEMS:
             console.print(f"  [dim]交由 hydrate 管理[/dim] {item.name}")
             continue
 
@@ -641,14 +642,7 @@ def hydrate(
     """依 project intent 生成專案內 AI 檔。"""
     from script.utils.project_projection import hydrate_project
 
-    target_dir = Path(target) if target else Path.cwd()
-    target_dir = target_dir.resolve()
-    template_dir = get_project_template_dir()
-    on_conflict = "force" if force else "backup" if backup else "skip"
-
-    _record_project_exclude_config(target_dir, template_dir)
-    result = hydrate_project(target_dir, template_dir=template_dir, on_conflict=on_conflict)
-    _print_projection_summary("hydrate", result)
+    _run_project_projection("hydrate", hydrate_project, target, force, backup)
 
 
 @app.command()
@@ -663,18 +657,7 @@ def reconcile(
     """比對並收斂專案意圖、projection manifest 與實際生成檔。"""
     from script.utils.project_projection import reconcile_project
 
-    target_dir = Path(target) if target else Path.cwd()
-    target_dir = target_dir.resolve()
-    template_dir = get_project_template_dir()
-    on_conflict = "force" if force else "backup" if backup else "skip"
-
-    _record_project_exclude_config(target_dir, template_dir)
-    result = reconcile_project(
-        target_dir,
-        template_dir=template_dir,
-        on_conflict=on_conflict,
-    )
-    _print_projection_summary("reconcile", result)
+    _run_project_projection("reconcile", reconcile_project, target, force, backup)
 
 
 @app.command()
@@ -689,8 +672,7 @@ def doctor(
     from script.utils.project_projection_manifest import read_project_manifest
     from script.utils.project_tracking import load_tracking_file
 
-    target_dir = Path(target) if target else Path.cwd()
-    target_dir = target_dir.resolve()
+    target_dir = _resolve_target_dir(target)
 
     tracking = load_tracking_file(target_dir)
     if tracking is None:

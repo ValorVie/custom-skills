@@ -10,6 +10,7 @@ from script.commands import project as project_command
 from script.main import app
 from script.utils import project_projection_manifest as ppm
 from script.utils.project_blocks import read_managed_block
+from script.utils.project_projection import PROJECT_TEMPLATE_NAME, PROJECT_TEMPLATE_URL
 from script.utils.project_tracking import save_tracking_file
 
 runner = CliRunner()
@@ -30,6 +31,21 @@ def _make_template(base: Path) -> Path:
     _write(template_dir / ".github" / "workflows" / "ci.yml", "name: CI\n")
     _write(template_dir / ".standards" / "testing.ai.yaml", "testing: true\n")
     return template_dir
+
+
+def _seed_project_intent(project_root: Path, project_id: str = "demo-project") -> None:
+    save_tracking_file(
+        {
+            "project_id": project_id,
+            "template": {
+                "name": PROJECT_TEMPLATE_NAME,
+                "url": PROJECT_TEMPLATE_URL,
+                "branch": "main",
+            },
+            "managed_files": [],
+        },
+        project_root,
+    )
 
 
 def test_project_init_creates_intent_and_hydrates(
@@ -62,25 +78,7 @@ def test_project_hydrate_command_uses_existing_intent(
     project_root = tmp_path / "project"
     (project_root / ".git" / "info").mkdir(parents=True)
     manifest_dir = tmp_path / "manifests" / "projects"
-    save_tracking_file(
-        {
-            "managed_by": "ai-dev",
-            "schema_version": "2",
-            "project_id": "demo-project",
-            "template": {
-                "name": "project-template",
-                "url": "local://project-template",
-                "branch": "main",
-            },
-            "projection": {
-                "targets": ["claude", "codex", "gemini"],
-                "profile": "default",
-                "allow_local_generation": True,
-            },
-            "managed_files": [],
-        },
-        project_root,
-    )
+    _seed_project_intent(project_root)
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
@@ -99,25 +97,7 @@ def test_project_doctor_reports_ok_for_hydrated_project(
     project_root = tmp_path / "project"
     (project_root / ".git" / "info").mkdir(parents=True)
     manifest_dir = tmp_path / "manifests" / "projects"
-    save_tracking_file(
-        {
-            "managed_by": "ai-dev",
-            "schema_version": "2",
-            "project_id": "demo-project",
-            "template": {
-                "name": "project-template",
-                "url": "local://project-template",
-                "branch": "main",
-            },
-            "projection": {
-                "targets": ["claude", "codex", "gemini"],
-                "profile": "default",
-                "allow_local_generation": True,
-            },
-            "managed_files": [],
-        },
-        project_root,
-    )
+    _seed_project_intent(project_root)
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)

@@ -6,7 +6,12 @@ import pytest
 
 from script.utils import project_projection_manifest as ppm
 from script.utils.project_blocks import read_managed_block
-from script.utils.project_projection import hydrate_project, reconcile_project
+from script.utils.project_projection import (
+    PROJECT_TEMPLATE_NAME,
+    PROJECT_TEMPLATE_URL,
+    hydrate_project,
+    reconcile_project,
+)
 from script.utils.project_tracking import load_tracking_file, save_tracking_file
 
 
@@ -29,18 +34,11 @@ def _make_project(base: Path, project_id: str = "demo-project") -> Path:
     (project_root / ".git" / "info").mkdir(parents=True)
     save_tracking_file(
         {
-            "managed_by": "ai-dev",
-            "schema_version": "2",
             "project_id": project_id,
             "template": {
-                "name": "project-template",
-                "url": "local://project-template",
+                "name": PROJECT_TEMPLATE_NAME,
+                "url": PROJECT_TEMPLATE_URL,
                 "branch": "main",
-            },
-            "projection": {
-                "targets": ["claude", "codex", "gemini"],
-                "profile": "default",
-                "allow_local_generation": True,
             },
             "managed_files": [],
         },
@@ -142,3 +140,20 @@ def test_reconcile_project_backup_preserves_conflicting_file(
     assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Updated instructions"
     assert backup_root.exists()
     assert any(path.name == "AGENTS.md" for path in backup_root.rglob("AGENTS.md"))
+
+
+def test_hydrate_project_skips_noop_entries_on_second_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = _make_project(tmp_path)
+    manifest_dir = tmp_path / "manifests" / "projects"
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    first_result = hydrate_project(project_root, template_dir=template_dir)
+    second_result = hydrate_project(project_root, template_dir=template_dir)
+
+    assert first_result.generated
+    assert second_result.generated == []
+    assert second_result.conflicts == []
+    assert second_result.skipped == []

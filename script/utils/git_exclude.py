@@ -120,6 +120,9 @@ def ensure_ai_exclude(
     if result and not result.endswith("\n"):
         result += "\n"
 
+    if result == existing:
+        return False, added, skipped
+
     exclude_path.write_text(result, encoding="utf-8")
     return True, added, skipped
 
