@@ -24,6 +24,10 @@ def _make_template(base: Path) -> Path:
     template_dir = base / "template"
     _write(template_dir / "AGENTS.md", "# Project instructions\n")
     _write(template_dir / ".claude" / "commands" / "review.md", "review command\n")
+    _write(template_dir / ".github" / "skills" / "demo" / "SKILL.md", "demo skill\n")
+    _write(template_dir / ".github" / "prompts" / "review.md", "review prompt\n")
+    _write(template_dir / ".github" / "copilot-instructions.md", "copilot\n")
+    _write(template_dir / ".github" / "workflows" / "ci.yml", "name: CI\n")
     _write(template_dir / ".standards" / "testing.ai.yaml", "testing: true\n")
     return template_dir
 
@@ -46,6 +50,9 @@ def test_project_init_creates_intent_and_hydrates(
     assert (project_root / ".standards" / "testing.ai.yaml").exists()
     assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Project instructions"
     assert (project_root / ".claude" / "commands" / "review.md").exists()
+    assert (project_root / ".github" / "workflows" / "ci.yml").exists()
+    assert (project_root / ".github" / "skills" / "demo" / "SKILL.md").exists()
+    assert "衝突：" not in result.stdout
 
 
 def test_project_hydrate_command_uses_existing_intent(

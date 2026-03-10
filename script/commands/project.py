@@ -29,6 +29,7 @@ MERGE_FILES = {".gitattributes", ".gitignore"}
 
 # 複製到 project-template 時要排除的檔案名稱（個人設定，不屬於共享範本）
 EXCLUDE_FROM_TEMPLATE = {"settings.local.json"}
+PARTIALLY_MANAGED_GITHUB_ITEMS = {"skills", "prompts", "copilot-instructions.md"}
 
 PROJECT_TEMPLATE_NAME = "project-template"
 PROJECT_TEMPLATE_URL = "local://project-template"
@@ -49,6 +50,17 @@ FULLY_MANAGED_PROJECT_ITEMS = {
 def _template_ignore(directory: str, contents: list[str]) -> set[str]:
     """返回 shutil.copytree 的 ignore 回調，排除不屬於共享範本的檔案。"""
     return {name for name in contents if name in EXCLUDE_FROM_TEMPLATE}
+
+
+def _project_init_ignore(directory: str, contents: list[str]) -> set[str]:
+    """初始化專案時排除交由 hydrate 管理的子項目。"""
+    ignored = _template_ignore(directory, contents)
+    current_dir = Path(directory)
+
+    if current_dir.name == ".github":
+        ignored |= {name for name in contents if name in PARTIALLY_MANAGED_GITHUB_ITEMS}
+
+    return ignored
 
 
 def _remove_readonly(path: Path) -> None:
@@ -546,7 +558,7 @@ def init(
                         _safe_rmtree(dst)
                     else:
                         dst.unlink()
-                shutil.copytree(src, dst, ignore=_template_ignore)
+                shutil.copytree(src, dst, ignore=_project_init_ignore)
                 console.print(f"  [green]✓[/green] {item.name}/")
             else:
                 if force and backup_base_dir is not None and dst.exists():
