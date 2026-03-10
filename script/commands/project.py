@@ -30,6 +30,21 @@ MERGE_FILES = {".gitattributes", ".gitignore"}
 # 複製到 project-template 時要排除的檔案名稱（個人設定，不屬於共享範本）
 EXCLUDE_FROM_TEMPLATE = {"settings.local.json"}
 
+PROJECT_TEMPLATE_NAME = "project-template"
+PROJECT_TEMPLATE_URL = "local://project-template"
+FULLY_MANAGED_PROJECT_ITEMS = {
+    ".agent",
+    ".agents",
+    ".claude",
+    ".codex",
+    ".gemini",
+    ".opencode",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    "INSTRUCTIONS.md",
+}
+
 
 def _template_ignore(directory: str, contents: list[str]) -> set[str]:
     """返回 shutil.copytree 的 ignore 回調，排除不屬於共享範本的檔案。"""
@@ -246,6 +261,59 @@ def get_project_template_dir() -> Path:
     return script_dir / "project-template"
 
 
+def _ensure_project_intent(project_dir: Path) -> None:
+    """確保專案存在 .ai-dev-project.yaml 意圖檔。"""
+    from script.utils.project_tracking import (
+        DEFAULT_PROJECTION,
+        load_tracking_file,
+        save_tracking_file,
+    )
+
+    existing = load_tracking_file(project_dir) or {}
+    save_tracking_file(
+        {
+            **existing,
+            "managed_by": "ai-dev",
+            "schema_version": "2",
+            "template": {
+                "name": PROJECT_TEMPLATE_NAME,
+                "url": PROJECT_TEMPLATE_URL,
+                "branch": "main",
+            },
+            "projection": existing.get("projection") or dict(DEFAULT_PROJECTION),
+            "managed_files": existing.get("managed_files", []),
+        },
+        project_dir,
+    )
+
+
+def _record_project_exclude_config(project_dir: Path, template_dir: Path) -> None:
+    """將 project-template 對應的排除設定寫入追蹤檔。"""
+    from script.utils.git_exclude import DEFAULT_KEEP_TRACKED, derive_exclude_patterns
+    from script.utils.project_tracking import update_git_exclude_config
+
+    patterns = derive_exclude_patterns(template_dir)
+    update_git_exclude_config(
+        enabled=True,
+        patterns=patterns,
+        keep_tracked=DEFAULT_KEEP_TRACKED,
+        project_dir=project_dir,
+    )
+
+
+def _print_projection_summary(action: str, result) -> None:
+    """輸出 hydrate/reconcile 摘要。"""
+    console.print()
+    console.print(
+        f"[green]{action} 完成：生成 {len(result.generated)}、"
+        f"跳過 {len(result.skipped)}、移除 {len(result.removed)}[/green]"
+    )
+    if result.conflicts:
+        console.print(f"[yellow]衝突：{len(result.conflicts)} 個[/yellow]")
+        for relative_path in result.conflicts:
+            console.print(f"  [yellow]-[/yellow] {relative_path}")
+
+
 def check_tool_installed(tool: str) -> bool:
     """檢查工具是否已安裝。"""
     return shutil.which(tool) is not None
@@ -369,10 +437,10 @@ def init(
         help="目標目錄（預設為當前目錄）",
     ),
 ):
-    """初始化專案（從 project-template 複製模板）。
+    """初始化專案（建立 intent、複製 tracked 範本、再 hydrate AI 檔）。
 
-    此指令會將 custom-skills/project-template 中的檔案複製到目標專案，
-    包含 .standards、CLAUDE.md、AGENTS.md 等配置目錄和標準文件模板。
+    此指令會將 project-template 中需納入 repo 的 tracked 檔案複製到目標專案，
+    然後建立 .ai-dev-project.yaml 並執行 hydrate，將 AI 檔投影到專案內。
 
     特殊行為：
     - 在 custom-skills 專案中使用 --force 時，會反向同步（專案 → project-template/）
@@ -422,6 +490,10 @@ def init(
     for item in template_dir.iterdir():
         src = item
         dst = target_dir / item.name
+
+        if item.name in FULLY_MANAGED_PROJECT_ITEMS:
+            console.print(f"  [dim]交由 hydrate 管理[/dim] {item.name}")
+            continue
 
         # 合併檔案（保留目標設定並加入來源新增的內容）
         if item.name in MERGE_FILES:
@@ -525,45 +597,108 @@ def init(
             console.print(f"  [blue]-[/blue] {backup_file}")
         console.print(f"[dim]備份檔案數量：{len(backup_files_display)}[/dim]")
 
-    # 本地排除 AI 文件
-    git_dir = target_dir / ".git"
-    if git_dir.is_dir():
-        from script.utils.git_exclude import (
-            derive_exclude_patterns,
-            ensure_ai_exclude,
-            prompt_exclude_choice,
-            print_exclude_result,
-        )
-        from script.utils.project_tracking import update_git_exclude_config
+    from script.utils.project_projection import hydrate_project
 
-        patterns = derive_exclude_patterns(template_dir)
-        choice = prompt_exclude_choice(patterns)
-
-        if choice == "yes":
-            modified, added, skipped = ensure_ai_exclude(target_dir, patterns)
-            if modified:
-                print_exclude_result(added, skipped)
-            update_git_exclude_config(
-                enabled=True,
-                patterns=patterns,
-                keep_tracked=[".editorconfig", ".gitattributes", ".gitignore"],
-                project_dir=target_dir,
-            )
-        else:
-            update_git_exclude_config(
-                enabled=False,
-                patterns=patterns,
-                keep_tracked=[".editorconfig", ".gitattributes", ".gitignore"],
-                project_dir=target_dir,
-            )
-            console.print("[dim]ℹ 已記錄選擇，後續可用 ai-dev project exclude --enable 啟用[/dim]")
+    _ensure_project_intent(target_dir)
+    _record_project_exclude_config(target_dir, template_dir)
+    hydrate_result = hydrate_project(
+        target_dir,
+        template_dir=template_dir,
+        on_conflict="force" if force else "skip",
+    )
+    _print_projection_summary("hydrate", hydrate_result)
 
     console.print()
     console.print("[bold green]專案初始化完成！[/bold green]")
     console.print()
     console.print("[dim]下一步：[/dim]")
-    console.print("[dim]  1. 檢視並客製化 CLAUDE.md 專案指引[/dim]")
+    console.print("[dim]  1. 檢視並客製化 AGENTS.md / CLAUDE.md 專案指引[/dim]")
     console.print("[dim]  2. 檢視並調整 .standards/ 中的開發規範[/dim]")
+
+
+@app.command()
+def hydrate(
+    target: Optional[str] = typer.Argument(
+        None,
+        help="目標目錄（預設為當前目錄）",
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="強制覆蓋衝突項目"),
+    backup: bool = typer.Option(False, "--backup", help="備份衝突項目後覆蓋"),
+):
+    """依 project intent 生成專案內 AI 檔。"""
+    from script.utils.project_projection import hydrate_project
+
+    target_dir = Path(target) if target else Path.cwd()
+    target_dir = target_dir.resolve()
+    template_dir = get_project_template_dir()
+    on_conflict = "force" if force else "backup" if backup else "skip"
+
+    _record_project_exclude_config(target_dir, template_dir)
+    result = hydrate_project(target_dir, template_dir=template_dir, on_conflict=on_conflict)
+    _print_projection_summary("hydrate", result)
+
+
+@app.command()
+def reconcile(
+    target: Optional[str] = typer.Argument(
+        None,
+        help="目標目錄（預設為當前目錄）",
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="強制覆蓋衝突項目"),
+    backup: bool = typer.Option(False, "--backup", help="備份衝突項目後覆蓋"),
+):
+    """比對並收斂專案意圖、projection manifest 與實際生成檔。"""
+    from script.utils.project_projection import reconcile_project
+
+    target_dir = Path(target) if target else Path.cwd()
+    target_dir = target_dir.resolve()
+    template_dir = get_project_template_dir()
+    on_conflict = "force" if force else "backup" if backup else "skip"
+
+    _record_project_exclude_config(target_dir, template_dir)
+    result = reconcile_project(
+        target_dir,
+        template_dir=template_dir,
+        on_conflict=on_conflict,
+    )
+    _print_projection_summary("reconcile", result)
+
+
+@app.command()
+def doctor(
+    target: Optional[str] = typer.Argument(
+        None,
+        help="目標目錄（預設為當前目錄）",
+    ),
+):
+    """檢查 project intent、projection manifest 與 exclude 狀態。"""
+    from script.utils.git_exclude import get_current_patterns
+    from script.utils.project_projection_manifest import read_project_manifest
+    from script.utils.project_tracking import load_tracking_file
+
+    target_dir = Path(target) if target else Path.cwd()
+    target_dir = target_dir.resolve()
+
+    tracking = load_tracking_file(target_dir)
+    if tracking is None:
+        console.print("[red]缺少 .ai-dev-project.yaml[/red]")
+        raise typer.Exit(code=1)
+
+    manifest = read_project_manifest(tracking["project_id"])
+    issues: list[str] = []
+    if manifest is None:
+        issues.append("缺少 project projection manifest")
+
+    if (target_dir / ".git").is_dir() and not get_current_patterns(target_dir):
+        issues.append(".git/info/exclude 缺少 ai-dev 管理區塊")
+
+    if issues:
+        console.print("[bold yellow]Doctor 發現問題：[/bold yellow]")
+        for issue in issues:
+            console.print(f"  [yellow]-[/yellow] {issue}")
+        raise typer.Exit(code=1)
+
+    console.print("[bold green]OK[/bold green] project intent、projection manifest 與 exclude 狀態正常")
 
 
 @app.command()
