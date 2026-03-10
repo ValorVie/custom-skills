@@ -19,6 +19,16 @@ def get_ai_dev_config_dir() -> Path:
     return get_config_dir() / "ai-dev"
 
 
+def get_ai_dev_manifest_dir() -> Path:
+    """回傳 ai-dev manifest 根目錄。"""
+    return get_ai_dev_config_dir() / "manifests"
+
+
+def get_project_manifest_dir() -> Path:
+    """回傳專案投影 manifest 目錄。"""
+    return get_ai_dev_manifest_dir() / "projects"
+
+
 def get_sync_config_path() -> Path:
     """回傳 sync 設定檔路徑。"""
     return get_ai_dev_config_dir() / "sync.yaml"
