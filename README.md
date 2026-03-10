@@ -188,10 +188,10 @@ ai-dev clone --no-sync-project
 
 ### 專案級操作 (Project)
 
-在專案目錄下初始化或更新配置：
+在專案目錄下初始化 tracked scaffold，並以投影方式生成 AI 檔：
 
 ```bash
-# 初始化專案（整合 openspec init + uds init）
+# 初始化專案（複製 tracked scaffold + hydrate AI 檔）
 ai-dev project init
 
 # 初始化指定目錄
@@ -204,6 +204,15 @@ ai-dev project init --force
 # （會將專案根目錄的模板檔案同步回 project-template/）
 cd ~/custom-skills && ai-dev project init --force
 
+# 重新生成 AI 檔（預設跳過衝突）
+ai-dev project hydrate
+
+# 收斂意圖檔、projection manifest 與實際檔案
+ai-dev project reconcile
+
+# 檢查 projection 狀態
+ai-dev project doctor
+
 # 更新專案配置（整合 openspec update + uds update）
 ai-dev project update
 
@@ -211,8 +220,8 @@ ai-dev project update
 ai-dev project update --only openspec
 ```
 
-> **AI 文件本地排除**：`project init` 完成後會詢問是否將 AI 文件加入 `.git/info/exclude`。
-> 選擇「是」後，AI 工具仍可正常讀取這些檔案，但它們不會出現在 `git status`、commit 或 PR 中。
+> **AI 文件本地排除**：`project init`、`project hydrate`、`project reconcile` 會自動將 AI 生成檔寫入 `.git/info/exclude`。
+> AI 工具仍可正常讀取這些檔案，但它們不會出現在 `git status`、commit 或 PR 中。
 > 詳見下方 [AI 文件本地排除](#ai-文件本地排除-project-exclude) 章節。
 
 #### 可選參數
@@ -230,9 +239,17 @@ ai-dev project update --only openspec
 |------|------|
 | `--only`, `-o` | 只更新特定工具：`openspec`, `uds` |
 
+**hydrate / reconcile:**
+
+| 參數 | 說明 |
+|------|------|
+| `target` (位置參數) | 目標目錄（預設為當前目錄） |
+| `--force`, `-f` | 強制覆蓋衝突項目 |
+| `--backup` | 備份衝突項目後覆蓋 |
+
 ### AI 文件本地排除 (Project Exclude)
 
-管理 AI 設定檔（`.claude/`、`.standards/`、`CLAUDE.md` 等）的本地 git 排除。
+管理 AI 生成檔（`.claude/`、`.codex/`、`.gemini/`、`.github/skills/`、`AGENTS.md`、`CLAUDE.md` 等）的本地 git 排除。
 
 **問題背景**：AI 設定檔混在專案中會汙染 PR（例如 453 files changed，其中只有 5 個是程式碼）。但 AI 工具（Claude Code、Codex、OpenCode 等）需要在專案目錄中讀取這些檔案。
 
@@ -251,12 +268,13 @@ ai-dev project exclude --disable
 
 #### 運作方式
 
-1. `project init` 或 `init-from` 完成後自動詢問是否啟用
-2. 排除清單從模板目錄動態推導（保留 `.editorconfig`、`.gitattributes`、`.gitignore`）
-3. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
-4. `init-from --update` 時自動同步排除清單（新增/移除項目）
-5. `clone` 和 `install` 時自動確認排除清單同步
-6. 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
+1. `project init` / `project hydrate` / `project reconcile` 會自動修補 `.git/info/exclude`
+2. `init-from` 完成後仍可由使用者選擇是否啟用
+3. 排除清單只涵蓋 AI 生成物，保留 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold
+4. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
+5. `init-from --update` 時自動同步排除清單（新增/移除項目）
+6. `clone` 和 `install` 時自動確認排除清單同步
+7. 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
 
 #### AI 工具相容性
 
@@ -608,7 +626,10 @@ ai-dev hooks status
 | `ai-dev install` | 首次安裝 AI 開發環境 |
 | `ai-dev update` | 每日更新：更新工具與儲存庫 |
 | `ai-dev clone` | 分發 Skills 內容到各 AI 工具目錄 |
-| `ai-dev project init` | 初始化專案（openspec + uds + 本地排除） |
+| `ai-dev project init` | 初始化專案 tracked scaffold 並投影 AI 檔 |
+| `ai-dev project hydrate` | 依專案意圖重新生成 AI 檔 |
+| `ai-dev project reconcile` | 收斂 project intent、manifest 與實際生成檔 |
+| `ai-dev project doctor` | 檢查 project projection 與 exclude 狀態 |
 | `ai-dev project update` | 更新專案配置 |
 | `ai-dev project exclude` | 管理 AI 文件的本地排除設定 |
 | `ai-dev status` | 檢查環境狀態與工具版本 |

@@ -9,14 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **新增專案 AI 投影流程 (`project hydrate/reconcile/doctor`)**
+  - `project init` 改為建立 `.ai-dev-project.yaml`、複製 tracked scaffold，再 hydrate AI 生成檔
+  - 新增本機 projection manifest：`~/.config/ai-dev/manifests/projects/<project-id>.yaml`
+  - 根目錄 AI 檔改用 managed block 模式管理：`AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`INSTRUCTIONS.md`
+  - `project hydrate` / `project reconcile` 支援 `skip` / `force` / `backup` 衝突策略
+  - `project doctor` 可檢查 intent、projection manifest 與 `.git/info/exclude` 狀態
+
 - **新增 AI 文件本地排除功能 (`project exclude`)**
-  - 使用 `.git/info/exclude` 將 AI 設定檔（`.claude/`、`.standards/`、`CLAUDE.md` 等）排除在 git 追蹤之外
+  - 使用 `.git/info/exclude` 將 AI 設定檔（`.claude/`、`.codex/`、`.gemini/`、`.github/skills/`、`AGENTS.md`、`CLAUDE.md` 等）排除在 git 追蹤之外
   - AI 工具仍可正常讀取，但不會汙染 `git status`、commit 和 PR
-  - `project init` 和 `init-from` 完成後自動詢問是否啟用
+  - `project init` 會自動啟用；`init-from` 完成後仍可由使用者選擇
   - `init-from --update` 時自動同步排除清單
   - `clone` 和 `install` 時自動確認排除清單同步
   - 新增 `ai-dev project exclude --enable/--disable/--list` 手動管理
-  - 排除清單從模板目錄動態推導，保留 `.editorconfig`、`.gitattributes`、`.gitignore`
+  - 排除清單從模板目錄動態推導，只涵蓋 AI 生成物並保留 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore`
   - 使用標記區塊管理，不影響使用者手動項目
   - 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
   - 新增 `script/utils/git_exclude.py` 核心模組（21 個單元測試）

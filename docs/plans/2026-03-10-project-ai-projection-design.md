@@ -1,8 +1,22 @@
 # 設計文件：ai-dev 專案 AI 投影與本地排除架構
 
 **日期：** 2026-03-10
-**狀態：** 已核准
+**狀態：** 已實作
 **範圍：** ai-dev CLI — `project init`、`project exclude` 與新增的專案投影命令
+
+---
+
+## 實作備註
+
+已完成的命令面如下：
+
+- `ai-dev project init`
+- `ai-dev project hydrate`
+- `ai-dev project reconcile`
+- `ai-dev project doctor`
+- `ai-dev project exclude`
+
+目前實作採用 project projection manifest 與 managed block，並將 `.git/info/exclude` 收斂為只隱藏 AI 生成物；`.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold 仍保持可見。
 
 ---
 
