@@ -66,6 +66,7 @@
 | [AI-DEV-SYNC-GUIDE.md](workflow/AI-DEV-SYNC-GUIDE.md) | ai-dev sync 跨裝置同步教學（Git backend） |
 | [copy-architecture.md](workflow/copy-architecture.md) | Copy 架構說明 |
 | [WSL-WINDOWS-SYNC-GUIDE.md](workflow/WSL-WINDOWS-SYNC-GUIDE.md) | WSL ↔ Windows 檔案同步指南（多專案統一管理） |
+| [PROJECT-MANAGER-GUIDE.md](workflow/PROJECT-MANAGER-GUIDE.md) | VS Code Project Manager 專案快速切換指南 |
 
 ## 範例檔案 (`examples/`)
 
