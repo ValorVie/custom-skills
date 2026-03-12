@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **新增 auto-skill canonical state 與多工具投影**
+  - 新增 canonical state 路徑：`~/.config/ai-dev/skills/auto-skill`
+  - 新增 `script/utils/auto_skill_state.py`，將 template 與 upstream merge 到 canonical state
+  - 新增 `script/utils/auto_skill_projection.py`，將 canonical state 投影到各 AI 工具目錄
+  - `clone` 階段對 `auto-skill` 優先使用 `symlink`，Windows 優先 `junction`，失敗 fallback `copy`
+  - `update` 階段會同步 refresh auto-skill canonical state
+  - `custom-skills` repo 與開發目錄不再直接用 external repo 覆蓋 `skills/auto-skill/` 模板
+
 - **新增專案 AI 投影流程 (`project hydrate/reconcile/doctor`)**
   - `project init` 改為建立 `.ai-dev-project.yaml`、複製 tracked scaffold，再 hydrate AI 生成檔
   - 新增本機 projection manifest：`~/.config/ai-dev/manifests/projects/<project-id>.yaml`

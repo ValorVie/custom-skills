@@ -32,6 +32,7 @@ from .paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_auto_skill_dir,
+    get_auto_skill_repo_dir,
     get_project_root,
 )
 from .system import run_command
@@ -95,7 +96,7 @@ REPOS = {
     ),
     "auto_skill": (
         "https://github.com/Toolsai/auto-skill.git",
-        get_auto_skill_dir,
+        get_auto_skill_repo_dir,
     ),
 }
 
@@ -533,17 +534,12 @@ def copy_sources_to_custom_skills() -> None:
     # ============================================================
     # Auto-Skill（自進化知識系統）
     # ============================================================
-    src_auto_skill = get_auto_skill_dir()
-    if src_auto_skill.exists() and (src_auto_skill / "SKILL.md").exists():
-        dst_auto_skill = dst_custom / "auto-skill"
-        console.print(f"  [dim]{shorten_path(src_auto_skill)}[/dim]")
-        console.print(f"    → [dim]{shorten_path(dst_auto_skill)}[/dim]")
-        shutil.copytree(
-            src_auto_skill,
-            dst_auto_skill,
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns(".git", "assets", "README.md"),
-        )
+    from .auto_skill_state import refresh_auto_skill_state
+
+    state_dir = refresh_auto_skill_state()
+    if state_dir is not None:
+        console.print(f"  [dim]{shorten_path(state_dir)}[/dim]")
+        console.print("    → [dim]auto-skill canonical state 已同步[/dim]")
 
 
 def _ensure_opencode_plugin_entry_file(dst: Path) -> None:
@@ -840,6 +836,7 @@ def _copy_with_log(
     source: str = "custom-skills",
     force: bool = False,
     skip_conflicts: bool = False,
+    auto_skill_state_dir: Path | None = None,
 ) -> None:
     """複製目錄並輸出帶路徑的日誌。
 
@@ -861,6 +858,22 @@ def _copy_with_log(
     console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
     dst.mkdir(parents=True, exist_ok=True)
 
+    def _project_auto_skill(dst_item: Path) -> Path | None:
+        if auto_skill_state_dir is None:
+            return None
+        if not auto_skill_state_dir.exists() or not (auto_skill_state_dir / "SKILL.md").exists():
+            return None
+
+        from .auto_skill_projection import project_auto_skill
+
+        result = project_auto_skill(auto_skill_state_dir, dst_item)
+        console.print(
+            "    [dim]"
+            f"{shorten_path(auto_skill_state_dir)} → {shorten_path(dst_item)} "
+            f"({result.mode})[/dim]"
+        )
+        return auto_skill_state_dir
+
     # 如果有 tracker，需要逐一記錄
     if tracker is not None:
         record_method = {
@@ -878,6 +891,12 @@ def _copy_with_log(
                         console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")
                         continue
                     dst_item = dst / item.name
+                    if item.name == "auto-skill":
+                        actual_source = _project_auto_skill(dst_item)
+                        if actual_source is not None:
+                            if record_method:
+                                record_method(item.name, actual_source, source=source)
+                            continue
                     policy = _load_clone_policy(item)
                     if policy is not None:
                         _copy_skill_with_policy(
@@ -917,6 +936,8 @@ def _copy_with_log(
             for item in src.iterdir():
                 if item.is_dir() and not item.name.startswith("."):
                     dst_item = dst / item.name
+                    if item.name == "auto-skill" and _project_auto_skill(dst_item) is not None:
+                        continue
                     policy = _load_clone_policy(item)
                     if policy is not None:
                         _copy_skill_with_policy(
@@ -973,6 +994,11 @@ def copy_custom_skills_to_targets(
     src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
     src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
     src_plugins_opencode = get_custom_skills_dir() / "plugins" / "ecc-hooks-opencode"
+    from .auto_skill_state import refresh_auto_skill_state
+
+    auto_skill_state_dir = refresh_auto_skill_state(
+        template_dir=src_skills / "auto-skill"
+    )
 
     # 定義各平台的分發配置
     platform_configs = {
@@ -1121,6 +1147,7 @@ def copy_custom_skills_to_targets(
                 source="custom-skills",
                 force=force,
                 skip_conflicts=skip_conflicts,
+                auto_skill_state_dir=auto_skill_state_dir,
             )
 
         # 5.5 分發 custom repos 的資源
@@ -1758,17 +1785,12 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
     # ============================================================
     # Auto-Skill（自進化知識系統）
     # ============================================================
-    src_auto_skill = get_auto_skill_dir()
-    if src_auto_skill.exists() and (src_auto_skill / "SKILL.md").exists():
-        dst_auto_skill = dst_skills / "auto-skill"
-        console.print(f"  [dim]{shorten_path(src_auto_skill)}[/dim]")
-        console.print(f"    → [dim]{shorten_path(dst_auto_skill)}[/dim]")
-        shutil.copytree(
-            src_auto_skill,
-            dst_auto_skill,
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns(".git", "assets", "README.md"),
-        )
+    from .auto_skill_state import refresh_auto_skill_state
+
+    state_dir = refresh_auto_skill_state()
+    if state_dir is not None:
+        console.print(f"  [dim]{shorten_path(state_dir)}[/dim]")
+        console.print("    → [dim]auto-skill canonical state 已同步[/dim]")
 
     console.print("[green]✓ 外部來源整合完成[/green]")
 

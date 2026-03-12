@@ -90,8 +90,8 @@ ai-dev install
 4. 檢查 Bun 是否已安裝，若已安裝則自動安裝 Codex CLI。
 5. Clone 必要的設定儲存庫到 `~/.config/` （Stage 1）。
 6. Clone 已設定的自訂 repo（若有）。
-7. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2）。
-8. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）。
+7. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2），並同步 `auto-skill` canonical state 到 `~/.config/ai-dev/skills/auto-skill`。
+8. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）；`auto-skill` 會優先以 `symlink/junction` 投影，失敗才 fallback copy。
 9. 顯示已安裝的 Skills 清單與重複名稱警告。
 10. 顯示 `npx skills` 可用指令提示。
 
@@ -131,6 +131,7 @@ ai-dev update
 4. 更新 Codex CLI（若 Bun 已安裝）。
 5. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
 6. 更新已設定的自訂 repo。
+7. 同步 `auto-skill` canonical state。
 
 > **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
 
@@ -161,6 +162,8 @@ ai-dev update && ai-dev clone
 ```bash
 ai-dev clone
 ```
+
+`auto-skill` 為特殊資源：來源固定為 `~/.config/ai-dev/skills/auto-skill`，分發時優先建立 `symlink`（Windows 優先 `junction`），若平台或權限不支援則自動 fallback 為複製。
 
 #### 可選參數
 

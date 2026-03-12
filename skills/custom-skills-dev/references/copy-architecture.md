@@ -37,6 +37,10 @@ Detailed documentation for the three-stage copy flow.
 │  └── agents/                                                    │
 │      ├── claude/    ←── UDS agents                              │
 │      └── opencode/  ←── UDS agents                              │
+│                                                                 │
+│  auto-skill canonical state                                     │
+│  `~/.config/ai-dev/skills/auto-skill`                           │
+│   ←── template + upstream merge                                 │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -89,11 +93,14 @@ Merge resources from multiple sources into `~/.config/custom-skills/`.
 | UDS commands | `~/.config/universal-dev-standards/skills/claude-code/commands/` | `~/.config/custom-skills/commands/claude/` |
 | Obsidian skills | `~/.config/obsidian-skills/skills/` | `~/.config/custom-skills/skills/` |
 | Anthropic skill-creator | `~/.config/anthropic-skills/skills/skill-creator/` | `~/.config/custom-skills/skills/skill-creator/` |
+| auto-skill state | `~/.config/custom-skills/skills/auto-skill/` + `~/.config/auto-skill/` | `~/.config/ai-dev/skills/auto-skill/` |
 
 ### Implementation
 
-- Code: `script/utils/shared.py` - `STAGE2_SOURCES` configuration
-- Function: `copy_skills_stage2()`
+- Code: `script/utils/shared.py`, `script/utils/auto_skill_state.py`
+- Notes:
+  - 一般 Skills 仍整合進 `~/.config/custom-skills/`
+  - `auto-skill` 例外，改同步到 canonical state `~/.config/ai-dev/skills/auto-skill`
 
 ---
 
@@ -120,8 +127,11 @@ Copy from `~/.config/custom-skills/` to each AI tool's directory.
 
 ### Implementation
 
-- Code: `script/utils/shared.py` - `STAGE3_TARGETS` configuration
-- Function: `copy_skills_stage3()`
+- Code: `script/utils/shared.py`, `script/utils/auto_skill_projection.py`
+- Notes:
+  - 一般 Skills 仍使用 copy/clone-policy 流程
+  - `auto-skill` 例外，從 canonical state 投影到各工具目錄
+  - 預設使用 `symlink`；Windows 優先 `junction`；失敗 fallback `copy`
 
 ---
 
@@ -131,6 +141,8 @@ Copy from `~/.config/custom-skills/` to each AI tool's directory.
 |------|---------|
 | `script/utils/paths.py` | Path resolution functions |
 | `script/utils/shared.py` | Copy logic, source/target configurations |
+| `script/utils/auto_skill_state.py` | auto-skill canonical state refresh |
+| `script/utils/auto_skill_projection.py` | auto-skill projection helper |
 | `script/commands/install.py` | First-time installation flow |
 | `script/commands/update.py` | Update flow |
 | `script/commands/clone.py` | Manual distribution trigger |

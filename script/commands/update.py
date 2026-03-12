@@ -16,8 +16,9 @@ from ..utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_ecc_dir,
-    get_auto_skill_dir,
+    get_auto_skill_repo_dir,
 )
+from ..utils.auto_skill_state import refresh_auto_skill_state
 from ..utils.shared import (
     NPM_PACKAGES,
     BUN_PACKAGES,
@@ -243,7 +244,7 @@ def update(
             get_obsidian_skills_dir(),
             get_anthropic_skills_dir(),
             get_ecc_dir(),
-            get_auto_skill_dir(),
+            get_auto_skill_repo_dir(),
         ]
 
         # 備份目錄位於使用者目錄
@@ -340,6 +341,11 @@ def update(
 
         # 更新完成後刷新 OpenCode symlink（保持冪等）
         refresh_opencode_superpowers_symlinks(opencode_superpowers_repo)
+        state_dir = refresh_auto_skill_state()
+        if state_dir is not None:
+            console.print(
+                f"[green]✓[/green] auto-skill canonical state 已同步 → [dim]{state_dir}[/dim]"
+            )
 
         # 顯示更新摘要
         if updated_repos:

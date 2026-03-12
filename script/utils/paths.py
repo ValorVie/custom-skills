@@ -107,7 +107,12 @@ def get_ecc_dir() -> Path:
 
 
 def get_auto_skill_dir() -> Path:
-    """回傳 auto-skill 儲存庫的本地路徑。"""
+    """回傳 auto-skill canonical state 路徑。"""
+    return get_ai_dev_config_dir() / "skills" / "auto-skill"
+
+
+def get_auto_skill_repo_dir() -> Path:
+    """回傳 auto-skill 上游儲存庫的本地路徑。"""
     return get_config_dir() / "auto-skill"
 
 
