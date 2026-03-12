@@ -1,0 +1,8 @@
+# work-log-claude configuration
+timezone: Asia/Taipei
+output_dir: docs/work-logs
+obsidian_vault: ~/Documents/obsidian-Sympasoft-mac
+obsidian_folder: work-logs
+default_output: all
+claude_home: ~/.claude
+codex_home: ~/.codex

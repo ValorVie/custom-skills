@@ -16,6 +16,7 @@ dist
 *.egg-info
 .coverage
 .ruff_cache
+**/tests/tmp-output/
 
 # 專案專用
 logs
