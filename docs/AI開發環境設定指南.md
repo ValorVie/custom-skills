@@ -347,57 +347,91 @@ npx skills update
 ```
 
 #### 目前安裝
+
 ```shell
-# 尋找 Skills 的 SKILL (全局)
+# ── 工具管理 ──────────────────────────────────────
+# 搜尋與探索 Skills（全局）
 npx skills add https://github.com/vercel-labs/skills -g --skill find-skills
 
-# tampermonkey 專案 (專案)
-npx skills add henkisdabro/wookstar-claude-code-plugins@tampermonkey
-
-# Tauri 核心（2 個）
-npx skills add hairyf/skills@tauri -y
-npx skills add dchuk/claude-code-tauri-skills@integrating-tauri-js-frontends -y
-
-# Rust 最佳實踐（2 個，互補）
-npx skills add apollographql/skills@rust-best-practices -y
-npx skills add zhanghandong/rust-skills@coding-guidelines -y
-
-# Vue（5 個）
+# ── 前端框架 ──────────────────────────────────────
+# Vue 生態系（3 個）
 npx skills add antfu/skills@vue -y
 npx skills add antfu/skills@vueuse-functions -y
 npx skills add antfu/skills@vue-router-best-practices -y
 
+# Nuxt 生態系（6 個）
+npx skills add antfu/skills@nuxt -y
+npx skills add onmax/nuxt-skills@nuxt -y
+npx skills add onmax/nuxt-skills@nuxt-ui -y
+npx skills add nuxt/ui@nuxt-ui -y
+npx skills add onmax/nuxt-skills@reka-ui -y
+npx skills add onmax/nuxt-skills@nuxt-better-auth -y
+
+# Next.js
+npx skills add wshobson/agents@nextjs-app-router-patterns -y
+
+# ── 後端 / API / 認證 ────────────────────────────
 # Better Auth（4 個）
 npx skills add better-auth/skills@better-auth-best-practices -y
 npx skills add better-auth/skills@better-auth-security-best-practices -y
 npx skills add better-auth/skills@create-auth-skill -y
 npx skills add better-auth/skills@email-and-password-best-practices -y
 
-# Nuxt 生態系（4 個，與 antfu/skills@nuxt 互補）
-npx skills add antfu/skills@nuxt -y
-npx skills add onmax/nuxt-skills@nuxt-better-auth -y
-npx skills add onmax/nuxt-skills@nuxt -y
-npx skills add onmax/nuxt-skills@reka-ui -y
-npx skills add onmax/nuxt-skills@nuxt-ui -y
-npx skills add nuxt/ui@nuxt-ui -y
+# Hono
+npx skills add yusukebe/hono-skill@hono -y
 
-# Prisma（3 個）
+# Prisma ORM（4 個）
 npx skills add prisma/skills@prisma-database-setup -y
 npx skills add prisma/skills@prisma-client-api -y
+npx skills add prisma/skills@prisma-postgres -y
 npx skills add gocallum/nextjs16-agent-skills@prisma-orm-v7-skills -y
 
-# Obsidian Visual
-npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -g -y
+# ── 程式語言 / Runtime ───────────────────────────
+# Rust（2 個，互補）
+npx skills add apollographql/skills@rust-best-practices -y
+npx skills add zhanghandong/rust-skills@coding-guidelines -y
 
-# Bun 開發
-npx skills add sickn33/antigravity-awesome-skills@bun-development -y
+# TypeScript / JavaScript
 npx skills add wshobson/agents@typescript-advanced-types -y
 npx skills add wshobson/agents@javascript-testing-patterns -y
 
-# Playwright
+# Bun
+npx skills add sickn33/antigravity-awesome-skills@bun-development -y
+
+# ── 桌面應用 ──────────────────────────────────────
+# Tauri（2 個）
+npx skills add hairyf/skills@tauri -y
+npx skills add dchuk/claude-code-tauri-skills@integrating-tauri-js-frontends -y
+
+# ── AI / LLM ─────────────────────────────────────
+# LangChain / LangGraph（3 個）
+npx skills add langchain-ai/langchain-skills@langgraph-fundamentals -y
+npx skills add langchain-ai/langchain-skills@langgraph-persistence -y
+npx skills add langchain-ai/langchain-skills@langgraph-human-in-the-loop -y
+
+# ── 測試 ──────────────────────────────────────────
+# Playwright（3 個）
 npx skills add microsoft/playwright-cli -y
 npx skills add currents-dev/playwright-best-practices -y
 npx skills add awesome-copilot/playwright-generate-test -y
+
+# ── DevOps / 建置工具 ────────────────────────────
+# GitHub Actions
+npx skills add wshobson/agents@github-actions-templates -y
+
+# pnpm
+npx skills add antfu/skills@pnpm -y
+
+# Turborepo
+npx skills add vercel/turborepo@turborepo -y
+
+# ── 瀏覽器腳本 ────────────────────────────────────
+# Tampermonkey（專案層級）
+npx skills add henkisdabro/wookstar-claude-code-plugins@tampermonkey
+
+# ── 知識管理 ──────────────────────────────────────
+# Obsidian Excalidraw（全局）
+npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -g -y
 ```
 
 
