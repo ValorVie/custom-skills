@@ -83,6 +83,24 @@ def _api_request_or_exit(
         raise typer.Exit(code=1)
 
 
+def _load_server_config_or_exit(
+    *,
+    allow_missing_preview: bool = False,
+) -> dict[str, Any]:
+    try:
+        return load_server_config()
+    except FileNotFoundError as e:
+        if allow_missing_preview:
+            console.print(
+                "[yellow]未設定 sync server；dry-run 將使用預設 10 分鐘預覽，不會實際套用。[/yellow]"
+            )
+            console.print(f"[dim]{e}[/dim]")
+            return {"auto_sync": False, "auto_sync_interval_minutes": 10}
+
+        console.print(f"[yellow]{e}[/yellow]")
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def register(
     server: str = typer.Option(..., "--server", help="Sync server URL"),
@@ -123,7 +141,7 @@ def register(
 @app.command()
 def push() -> None:
     """推送本地 claude-mem 新資料到 sync server。"""
-    config = load_server_config()
+    config = _load_server_config_or_exit()
     last_epoch = config.get("last_push_epoch", 0)
 
     sessions = query_local_db(
@@ -254,7 +272,7 @@ def pull(
     ),
 ) -> None:
     """從 sync server 拉取其他裝置的新資料。"""
-    config = load_server_config()
+    config = _load_server_config_or_exit()
     last_epoch = config.get("last_pull_epoch", 0)
 
     all_data: dict[str, list] = {
@@ -425,7 +443,7 @@ def pull(
 @app.command()
 def status() -> None:
     """顯示 sync server 同步狀態。"""
-    config = load_server_config()
+    config = _load_server_config_or_exit()
     result = _api_request_or_exit(config, "GET", "/api/sync/status")
 
     local_obs = query_local_db(
@@ -675,7 +693,9 @@ def auto(
     dry_run: bool = typer.Option(False, "--dry-run", help="預覽排程變更但不實際套用"),
 ) -> None:
     """切換 claude-mem 自動同步排程。"""
-    config = load_server_config()
+    config = _load_server_config_or_exit(
+        allow_missing_preview=dry_run and enable is not None
+    )
 
     if enable is None:
         status_text = "啟用" if config.get("auto_sync") else "停用"

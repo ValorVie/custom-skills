@@ -290,6 +290,7 @@ exclude 規則：
 3. `standards sync` 只會對顯式指定的 target 同步 disabled 清單到 `~/.config/custom-skills/disabled/` 與工具目錄。
 
 注意：
+- `project init` 產出的 `.standards/profiles/` scaffold 已視為初始化完成；若尚未寫入 `.standards/active-profile.yaml`，CLI 會以 `uds` 當作預設 active profile。
 - `standards (*.ai.yaml)` 本身是專案內 tracked 檔案，不會被 `standards sync` 自動搬移。
 - `overlaps.yaml` 是規則來源，不是 CLI 執行期動態產物。
 
@@ -319,12 +320,12 @@ exclude 規則：
 | 子命令 | 實際語意 | 主要副作用 / 備註 |
 |--------|----------|-------------------|
 | `mem register` | 向 sync server 註冊目前裝置。 | 會寫入 `sync-server.yaml` 中的 `api_key`、`device_id`、最後 push/pull epoch 與 auto-sync 設定。 |
-| `mem push` | 將本地 `claude-mem.db` 的新資料推到 sync server。 | 會先做 observations 去重與 preflight；只有真的推送成功才更新 `last_push_epoch`。 |
-| `mem pull` | 從 sync server 拉回其他裝置的新資料。 | 先做 hash 去重，再優先走本地 worker API 匯入，失敗時 fallback 寫 SQLite；成功後更新 `last_pull_epoch` 與 `pulled-hashes.txt`；`--reindex` / `--cleanup` 為顯式後處理。 |
-| `mem status` | 顯示 server 端計數、本地 observations 數、重複數與 last push/pull epoch。 | 純讀取，不寫入。 |
+| `mem push` | 將本地 `claude-mem.db` 的新資料推到 sync server。 | 會先做 observations 去重與 preflight；只有真的推送成功才更新 `last_push_epoch`；若尚未註冊 sync server，會友善提示而非拋 traceback。 |
+| `mem pull` | 從 sync server 拉回其他裝置的新資料。 | 先做 hash 去重，再優先走本地 worker API 匯入，失敗時 fallback 寫 SQLite；成功後更新 `last_pull_epoch` 與 `pulled-hashes.txt`；`--reindex` / `--cleanup` 為顯式後處理；若尚未註冊 sync server，會友善提示。 |
+| `mem status` | 顯示 server 端計數、本地 observations 數、重複數與 last push/pull epoch。 | 純讀取，不寫入；若尚未註冊 sync server，會友善提示。 |
 | `mem cleanup` | 清除本地 `claude-mem.db` 內的重複 observations。 | 兩輪去重：content hash 與 text+project。 |
 | `mem reindex` | 透過 claude-mem worker 補建 ChromaDB 搜尋索引。 | 需要 worker 在線；完成後會自動跑一次 duplicate cleanup。 |
-| `mem auto` | 檢視或切換自動同步排程。 | 不帶參數時只顯示狀態；`--on/--off` 會更新 `sync-server.yaml` 並安裝/移除 launchd 或 cron；`--dry-run` 只預覽系統層排程變更。 |
+| `mem auto` | 檢視或切換自動同步排程。 | 不帶參數時只顯示狀態；`--on/--off` 會更新 `sync-server.yaml` 並安裝/移除 launchd 或 cron；`--dry-run` 只預覽系統層排程變更；未註冊 sync server 時，只有 `--dry-run --on/--off` 會使用預設 10 分鐘做預覽。 |
 
 主要狀態：
 - `~/.config/ai-dev/sync-server.yaml`：server URL、API key、device id、最後 push/pull 時間、auto sync 設定
@@ -344,6 +345,15 @@ exclude 規則：
 | `hooks install` | 安裝或更新 ECC Hooks Plugin。 | `--target` 必填，且目前僅支援 `claude`；實際目標是 `~/.claude/plugins/ecc-hooks/`。 |
 | `hooks uninstall` | 移除 ECC Hooks Plugin。 | `--target` 必填，且目前僅支援 `claude`；會先要求確認；若未安裝則直接提示返回。 |
 | `hooks status` | 顯示 ECC Hooks Plugin 安裝狀態。 | `--target` 必填，且目前僅支援 `claude`；純讀取，不寫入。 |
+
+## 輔助工具
+
+| 命令 | 實際語意 | 主要副作用 / 備註 |
+|------|----------|-------------------|
+| `test` | 以偵測到的 test runner 執行測試並輸出原始結果。 | 目前主要支援 Python pytest；屬 wrapper，不維護額外狀態檔。 |
+| `coverage` | 以 pytest-cov 執行覆蓋率分析。 | `--source` 應傳模組名稱或目錄；若傳單一 `.py` 檔案，CLI 會自動改用父目錄並提示。 |
+| `derive-tests` | 讀取 OpenSpec specs 與相關檔案，輸出供 AI 使用的測試衍生 prompt。 | 純讀取，不寫入。 |
+| `tui` | 啟動互動式終端介面。 | 互動式 UI，不屬於穩定腳本化介面。 |
 
 ## 命令關聯圖
 

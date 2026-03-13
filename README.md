@@ -637,6 +637,9 @@ ai-dev coverage
 
 # 僅分析指定目錄
 ai-dev coverage --source script/
+
+# 僅分析指定模組
+ai-dev coverage --source script.commands
 ```
 
 #### 可選參數
@@ -644,9 +647,9 @@ ai-dev coverage --source script/
 | 參數 | 說明 |
 |------|------|
 | `path` (位置參數) | 測試路徑（檔案或目錄） |
-| `--source`, `-s` | 原始碼路徑 |
+| `--source`, `-s` | 模組名稱或目錄 |
 
-> **注意**：目前僅支援 Python，需要 pytest-cov 已安裝。
+> **注意**：目前僅支援 Python，需要 pytest-cov 已安裝。若傳入單一 `.py` 檔案，CLI 會自動改用其父目錄，避免 pytest-cov 對單檔案來源產生警告。
 
 ### Hooks 管理
 

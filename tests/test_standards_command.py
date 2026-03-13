@@ -9,6 +9,39 @@ from script.commands import standards as standards_cmd
 runner = CliRunner()
 
 
+def test_standards_status_accepts_project_init_scaffold_without_active_profile(
+    monkeypatch, tmp_path: Path
+):
+    profiles_dir = tmp_path / ".standards" / "profiles"
+    profiles_dir.mkdir(parents=True)
+    (profiles_dir / "uds.yaml").write_text("display_name: UDS\n", encoding="utf-8")
+
+    monkeypatch.setattr(standards_cmd, "get_project_root", lambda: tmp_path)
+
+    result = runner.invoke(app, ["standards", "status"])
+
+    assert result.exit_code == 0
+    assert "尚未初始化標準體系" not in result.output
+    assert "目前啟用" in result.output
+    assert "uds" in result.output
+
+
+def test_standards_list_accepts_project_init_scaffold_without_active_profile(
+    monkeypatch, tmp_path: Path
+):
+    profiles_dir = tmp_path / ".standards" / "profiles"
+    profiles_dir.mkdir(parents=True)
+    (profiles_dir / "uds.yaml").write_text("display_name: UDS\n", encoding="utf-8")
+
+    monkeypatch.setattr(standards_cmd, "get_project_root", lambda: tmp_path)
+
+    result = runner.invoke(app, ["standards", "list"])
+
+    assert result.exit_code == 0
+    assert "尚未初始化標準體系" not in result.output
+    assert "uds" in result.output
+
+
 def test_standards_switch_does_not_sync_target_by_default(monkeypatch, tmp_path: Path):
     sync_calls = []
 

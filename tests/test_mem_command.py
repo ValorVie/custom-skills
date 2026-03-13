@@ -1,3 +1,4 @@
+import pytest
 from typer.testing import CliRunner
 
 from script.commands import mem as mem_cmd
@@ -215,3 +216,60 @@ def test_mem_auto_dry_run_reports_scheduler_side_effects(monkeypatch):
 
     assert result.exit_code == 0
     assert "launchd" in result.stdout.lower() or "cron" in result.stdout.lower()
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["mem", "push"],
+        ["mem", "pull"],
+        ["mem", "status"],
+    ],
+)
+def test_mem_commands_handle_missing_server_config_gracefully(monkeypatch, args):
+    monkeypatch.setattr(
+        mem_cmd,
+        "load_server_config",
+        lambda: (_ for _ in ()).throw(
+            FileNotFoundError("找不到 sync server 設定：/tmp/sync-server.yaml。請先執行 `ai-dev mem register`")
+        ),
+    )
+
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == 1
+    assert "請先執行 `ai-dev mem register`" in result.stdout
+    assert "FileNotFoundError" not in result.stdout
+
+
+def test_mem_auto_without_config_shows_friendly_guard(monkeypatch):
+    monkeypatch.setattr(
+        mem_cmd,
+        "load_server_config",
+        lambda: (_ for _ in ()).throw(
+            FileNotFoundError("找不到 sync server 設定：/tmp/sync-server.yaml。請先執行 `ai-dev mem register`")
+        ),
+    )
+
+    result = runner.invoke(app, ["mem", "auto"])
+
+    assert result.exit_code == 1
+    assert "請先執行 `ai-dev mem register`" in result.stdout
+    assert "FileNotFoundError" not in result.stdout
+
+
+def test_mem_auto_dry_run_without_config_uses_default_preview(monkeypatch):
+    monkeypatch.setattr(
+        mem_cmd,
+        "load_server_config",
+        lambda: (_ for _ in ()).throw(
+            FileNotFoundError("找不到 sync server 設定：/tmp/sync-server.yaml。請先執行 `ai-dev mem register`")
+        ),
+    )
+
+    result = runner.invoke(app, ["mem", "auto", "--dry-run", "--on"])
+
+    assert result.exit_code == 0
+    assert "未設定 sync server" in result.stdout
+    assert "10 minutes" in result.stdout
+    assert "FileNotFoundError" not in result.stdout

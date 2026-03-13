@@ -81,11 +81,11 @@ def is_standards_initialized() -> bool:
     """檢查專案是否已初始化標準體系
 
     Returns:
-        True if .standards/ 目錄與 active-profile.yaml 都存在，否則 False
+        True if `.standards/profiles/` 已存在且至少有一個 profile，否則 False
     """
     standards_dir = get_standards_dir()
-    active_file = get_active_profile_path()
-    return standards_dir.exists() and active_file.exists()
+    profiles_dir = get_profiles_dir()
+    return standards_dir.is_dir() and profiles_dir.is_dir() and bool(list_profiles())
 
 
 def load_yaml(path: Path) -> dict:

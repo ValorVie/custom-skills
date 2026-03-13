@@ -58,7 +58,7 @@ class TestRunner(ABC):
 
         Args:
             path: 測試路徑（檔案或目錄）
-            source: 原始碼路徑
+            source: 模組名稱或目錄
 
         Returns:
             CommandResult 包含原始輸出和 exit code
