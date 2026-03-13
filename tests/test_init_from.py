@@ -67,13 +67,6 @@ def test_init_from_creates_tracking_file(tmp_path: Path):
         patch("script.commands.init_from.Path.cwd", return_value=project_dir),
         patch("script.commands.init_from.Path.home", return_value=tmp_path),
     ):
-        from script.commands.init_from import init_from as _init_from
-        from typer import Context
-        import typer
-
-        # 直接呼叫函式（繞過 CLI runner 的 cwd 問題）
-        _init_from.__wrapped__ = None  # 確保不是被裝飾的
-        # 改用較簡單的方式：直接測試核心邏輯
         from script.utils.project_tracking import create_tracking_file
         create_tracking_file(
             name="qdm-ai-base",
@@ -148,3 +141,17 @@ def test_init_from_update_pulls_and_merges(tmp_path: Path):
     assert data is not None
     assert "CLAUDE.md" in data["managed_files"]
     assert "AGENTS.md" in data["managed_files"]
+
+
+def test_init_from_update_subcommand_exists():
+    result = runner.invoke(app, ["init-from", "update"])
+
+    assert result.exit_code == 1
+    assert ".ai-dev-project.yaml" in result.output
+
+
+def test_init_from_rejects_legacy_update_flag():
+    result = runner.invoke(app, ["init-from", "--update"])
+
+    assert result.exit_code != 0
+    assert "init-from update" in result.output

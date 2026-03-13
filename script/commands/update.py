@@ -326,7 +326,7 @@ def _legacy_update(
             for tname in template_repos_with_updates:
                 console.print(f"  • {tname}")
             console.print(
-                "[dim]  在需要更新的專案目錄中執行：ai-dev init-from --update[/dim]"
+                "[dim]  在需要更新的專案目錄中執行：ai-dev init-from update[/dim]"
             )
 
         # 更新完成後刷新 OpenCode symlink（保持冪等）

@@ -1425,7 +1425,7 @@ ai-dev standards show ecc
 ai-dev standards overlaps
 
 # 同步檔案狀態
-ai-dev standards sync
+ai-dev standards sync --target claude
 ```
 
 可用 profiles：

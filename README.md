@@ -317,7 +317,7 @@ ai-dev project exclude --disable
 3. 若專案尚未 `git init`，`project init` 只會提示稍後手動執行 `ai-dev project exclude --enable`
 4. 排除清單只涵蓋 AI 生成物，保留 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold
 5. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
-6. `init-from --update` 時自動同步排除清單（新增/移除項目）
+6. `init-from update` 時自動同步排除清單（新增/移除項目）
 7. `clone` 和 `install` 不會修改當前專案的 `.git/info/exclude`
 8. 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
 
@@ -654,13 +654,13 @@ ai-dev coverage --source script/
 
 ```bash
 # 安裝或更新 ECC Hooks Plugin
-ai-dev hooks install
+ai-dev hooks install --target claude
 
 # 移除 ECC Hooks Plugin
-ai-dev hooks uninstall
+ai-dev hooks uninstall --target claude
 
 # 檢查安裝狀態
-ai-dev hooks status
+ai-dev hooks status --target claude
 ```
 
 ## 指令總覽
@@ -793,7 +793,7 @@ ai-dev standards show ecc
 ai-dev standards overlaps
 
 # 同步檔案狀態（停用/啟用資源）
-ai-dev standards sync
+ai-dev standards sync --target claude
 ```
 
 可用 profiles：

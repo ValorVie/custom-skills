@@ -194,10 +194,19 @@ def _prompt_pull_safety(changes: dict[str, Any]) -> str:
 @app.command()
 def init(
     remote: str = typer.Option(..., "--remote", help="Git remote URL"),
+    mode: str = typer.Option(
+        "",
+        "--mode",
+        help="初始化模式。首次初始化必須顯式指定 bootstrap",
+    ),
 ) -> None:
     """初始化 sync repo 與 sync.yaml 設定。"""
     if not check_command_exists("git"):
         console.print("[bold red]錯誤：找不到 Git，請先安裝 Git[/bold red]")
+        raise typer.Exit(code=1)
+
+    if mode != "bootstrap":
+        console.print("[red]`ai-dev sync init` 需要顯式指定 `--mode bootstrap`[/red]")
         raise typer.Exit(code=1)
 
     config_path = get_sync_config_path()

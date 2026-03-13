@@ -64,6 +64,11 @@ def toggle(
         "-l",
         help="列出目前的開關狀態",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="預覽變更但不實際執行",
+    ),
 ):
     """啟用/停用特定工具的特定資源。"""
     config = load_toggle_config()
@@ -107,6 +112,13 @@ def toggle(
     if enable == disable:
         console.print("[red]請指定 --enable 或 --disable（二擇一）[/red]")
         raise typer.Exit(code=1)
+
+    if dry_run:
+        action = "啟用" if enable else "停用"
+        console.print(
+            f"[yellow]Dry-run: 將對 {target} 的 {resource_type}:{name} 執行{action}[/yellow]"
+        )
+        return
 
     # 確保結構存在
     if target not in config:

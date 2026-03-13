@@ -285,7 +285,7 @@ desktop.ini
 
 ```bash
 # 1) 首次初始化（建立/clone ~/.config/ai-dev/sync-repo）
-ai-dev sync init --remote git@github.com:<user>/claude-sync.git
+ai-dev sync init --remote git@github.com:<user>/claude-sync.git --mode bootstrap
 
 # 2) 查看狀態（本機變更、遠端落後、最後同步時間）
 ai-dev sync status

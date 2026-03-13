@@ -275,7 +275,7 @@ def _run_update_repos_phase() -> None:
         console.print("[bold cyan]模板 repo 有新更新：[/bold cyan]")
         for repo_name in template_repos_with_updates:
             console.print(f"  • {repo_name}")
-        console.print("[dim]  在需要更新的專案目錄中執行：ai-dev init-from --update[/dim]")
+        console.print("[dim]  在需要更新的專案目錄中執行：ai-dev init-from update[/dim]")
 
     console.print()
     if updated_repos:

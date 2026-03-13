@@ -241,7 +241,18 @@ def push() -> None:
 
 
 @app.command()
-def pull() -> None:
+def pull(
+    reindex: bool = typer.Option(
+        False,
+        "--reindex",
+        help="拉取完成後重建搜尋索引",
+    ),
+    cleanup: bool = typer.Option(
+        False,
+        "--cleanup",
+        help="拉取完成後清理本地重複 observations",
+    ),
+) -> None:
     """從 sync server 拉取其他裝置的新資料。"""
     config = load_server_config()
     last_epoch = config.get("last_pull_epoch", 0)
@@ -373,9 +384,10 @@ def pull() -> None:
         ]
     )
 
-    # 自動重建 ChromaDB 搜尋索引（worker 在線時）
+    # 顯式 post-process：reindex / cleanup 不再隱含執行
     obs_imported = stats.get("observationsImported", 0)
-    if obs_imported > 0 and worker_available():
+    did_cleanup = False
+    if reindex and obs_imported > 0 and worker_available():
         console.print("[cyan]正在同步 ChromaDB 搜尋索引...[/cyan]")
         try:
             reindex_stats = reindex_observations()
@@ -388,6 +400,7 @@ def pull() -> None:
             # reindex 透過 worker /api/memory/save 會建立副本，自動清理
             if synced > 0:
                 removed = _cleanup_duplicates()
+                did_cleanup = True
                 if removed > 0:
                     console.print(
                         f"[dim]自動清理 {removed} 筆重複 observations[/dim]"
@@ -396,6 +409,17 @@ def pull() -> None:
             console.print(
                 "[yellow]ChromaDB 索引同步失敗，稍後可執行 ai-dev mem reindex 補建[/yellow]"
             )
+    elif reindex and obs_imported > 0:
+        console.print(
+            "[yellow]claude-mem worker 未啟動，略過 reindex；稍後可執行 ai-dev mem reindex[/yellow]"
+        )
+
+    if cleanup and not did_cleanup:
+        removed = _cleanup_duplicates()
+        if removed == 0:
+            console.print("[dim]cleanup 完成，沒有重複 observations[/dim]")
+        else:
+            console.print(f"[dim]cleanup 完成，移除 {removed} 筆重複 observations[/dim]")
 
 
 @app.command()
@@ -648,6 +672,7 @@ def _remove_cron() -> None:
 @app.command()
 def auto(
     enable: bool = typer.Option(None, "--on/--off", help="啟用或停用自動同步"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="預覽排程變更但不實際套用"),
 ) -> None:
     """切換 claude-mem 自動同步排程。"""
     config = load_server_config()
@@ -660,6 +685,14 @@ def auto(
 
     system = platform.system()
     interval = config.get("auto_sync_interval_minutes", 10)
+    scheduler_name = "launchd" if system == "Darwin" else "cron"
+
+    if dry_run:
+        action = "install" if enable else "remove"
+        console.print(
+            f"[yellow]Dry-run: would {action} {scheduler_name} scheduler for mem sync (every {interval} minutes)[/yellow]"
+        )
+        return
 
     if enable:
         if system == "Darwin":

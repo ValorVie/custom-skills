@@ -37,7 +37,7 @@
 | 路徑 | 用途 | 主要寫入者 |
 |------|------|------------|
 | `~/.config/custom-skills/` | 已安裝的 `custom-skills` 本機 repo，也是 Stage 3 分發來源 | `install`, `update` |
-| `~/.config/custom-skills/disabled/` | 被停用後暫存的資源目錄 | `toggle`, `standards sync`, `standards switch` |
+| `~/.config/custom-skills/disabled/` | 被停用後暫存的資源目錄 | `toggle`, `standards sync` |
 | `~/.config/custom-skills/toggle-config.yaml` | toggle 資源開關狀態 | `toggle` |
 | `<custom-skills repo>/upstream/sources.yaml` | 上游來源註冊表 | `add-repo`, repo 維護者手動維護 |
 | `~/.config/ai-dev/repos.yaml` | custom repo / template repo 註冊表 | `add-custom-repo`, `init-from` |
@@ -79,8 +79,8 @@ flowchart LR
 | `ai-dev update` | 預設依序執行 `tools → repos → state`，更新工具與本機 repo，刷新 `auto-skill` canonical state，不直接動 target shadow |
 | `ai-dev clone` | 預設依序執行 `state → targets`，先刷新 `auto-skill` canonical state，再從 `~/.config/custom-skills` 分發資源到各工具目錄並更新各 target shadow |
 | `ai-dev status` | 讀取工具安裝狀態；對 repo 會比對 local HEAD 與 `origin/main`，若在 repo 內且存在上游同步紀錄，也會讀 `upstream/last-sync.yaml` / `upstream/sources.yaml` 顯示同步狀態 |
-| `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state |
-| `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml` |
+| `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state；`--target` 可省略，省略時等於列出所有 target，若無符合項目會顯示提示 |
+| `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml`；`--target` 必填，支援 `--dry-run` 預覽 |
 
 共享 phase 參數：
 - `install`：允許 `tools,repos,state,targets`
@@ -95,6 +95,43 @@ flowchart LR
 注意：
 - `--only` 與 `--skip` 不能同時使用
 - 若命令不支援某 phase，CLI 會以參數錯誤直接返回，不會噴 traceback
+
+### Top-level 命令細部語意表
+
+| 命令 | intent | side_effect_class | target_mode | 主要狀態寫入 |
+|------|--------|-------------------|-------------|--------------|
+| `ai-dev install` | 初始化或補齊全域 AI 開發環境 | `multi_stage_pipeline + system_level_operation` | `explicit_multi` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/projections/<target>/auto-skill` |
+| `ai-dev update` | 刷新工具、repo 與 canonical state | `multi_stage_pipeline + system_level_operation` | `none` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill` |
+| `ai-dev clone` | 將目前 state 套用到 targets | `multi_stage_pipeline` | `explicit_multi` | `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/projections/<target>/auto-skill` |
+| `ai-dev status` | 聚合顯示工具、repo、同步狀態 | `read_only` | `none` | 無 |
+| `ai-dev list` | 列出 target 資源與停用狀態 | `read_only` | `implicit_default` | 無 |
+| `ai-dev toggle` | 切換單一 target 上的單一資源啟用狀態 | `single_write` | `explicit_single` | `~/.config/custom-skills/disabled/`, `~/.config/custom-skills/toggle-config.yaml` |
+| `ai-dev init-from` | 以外部模板 repo 初始化或更新專案 | `multi_stage_pipeline` | `none` | `~/.config/ai-dev/repos.yaml`, `<project>/.ai-dev-project.yaml`, `<project>/.git/info/exclude` |
+
+### `ai-dev status`
+
+- 支援 `--section tools|repos|sync`
+- `tools` 會顯示核心工具與全域 NPM 套件
+- `repos` 會顯示設定儲存庫狀態
+- `sync` 會顯示上游同步狀態
+
+### `ai-dev list`
+
+- `--target` 可省略；未指定時代表所有 targets
+- `--type` 可過濾 `skills / commands / agents / workflows`
+- 若沒有符合結果，會顯示 `無符合結果`
+
+### `ai-dev toggle`
+
+- `--target`、`--type`、`--name` 為寫入前必要資訊
+- `--enable` 與 `--disable` 二擇一
+- `--dry-run` 只預覽，不移動或還原實體資源
+
+### `ai-dev init-from`
+
+- `ai-dev init-from <source>`：首次初始化專案
+- `ai-dev init-from update`：更新既有 init-from 專案
+- 舊的 `--update` 已移除，明確改為 `ai-dev init-from update`
 
 ### 2. 專案層：built-in project-template
 
@@ -115,8 +152,9 @@ AI projection 依型態再分三類：
 ### 3. 專案層：外部模板 repo
 
 `init-from` 的語意是：
-- 從外部模板 repo 初始化專案
-- 建立 `.ai-dev-project.yaml`
+- `ai-dev init-from <source>`：從外部模板 repo 初始化專案
+- `ai-dev init-from update`：從既有 `.ai-dev-project.yaml` 拉取並重新合併模板
+- 建立或更新 `.ai-dev-project.yaml`
 - 若目標已是 git repo，才詢問是否啟用 `.git/info/exclude`
 - 若目標尚未 `git init`，略過詢問，也不會寫入 `git_exclude` 設定
 
@@ -236,10 +274,10 @@ exclude 規則：
 |--------|----------|-------------------|
 | `standards status` | 顯示目前啟用的 profile 與 disabled 統計。 | 未初始化時只提示，不寫入。 |
 | `standards list` | 列出可用 profiles、顯示名稱、重疊偏好與目前啟用狀態。 | 讀取 `.standards/profiles/*.yaml`；未初始化時只提示。 |
-| `standards switch` | 切換 profile，重算 profile-based disabled 清單。 | 更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`；預設自動對 `claude` 做一次 `standards sync`。 |
+| `standards switch` | 切換 profile，重算 profile-based disabled 清單。 | 僅更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`；不再自動同步任何 target。 |
 | `standards show` | 顯示單一 profile 的詳細內容與 overlap 選擇。 | 純讀取，不寫入。 |
 | `standards overlaps` | 顯示 `overlaps.yaml` 摘要。 | 純讀取，不寫入。 |
-| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | 預設 target 是 `claude`；`standards (*.ai.yaml)` 不會被此命令搬移。 |
+| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | `--target` 必填；`standards (*.ai.yaml)` 不會被此命令搬移。 |
 
 主要狀態：
 - `.standards/active-profile.yaml`：目前啟用的 profile
@@ -249,7 +287,7 @@ exclude 規則：
 資料流：
 1. `standards switch` 讀取 profile 與 overlaps 定義。
 2. 依 profile 計算需要停用的資源，更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`。
-3. `standards sync` 預設只對 `claude` target 同步 disabled 清單到 `~/.config/custom-skills/disabled/` 與工具目錄；可用 `--target` 切換目標。
+3. `standards sync` 只會對顯式指定的 target 同步 disabled 清單到 `~/.config/custom-skills/disabled/` 與工具目錄。
 
 注意：
 - `standards (*.ai.yaml)` 本身是專案內 tracked 檔案，不會被 `standards sync` 自動搬移。
@@ -259,7 +297,7 @@ exclude 規則：
 
 | 子命令 | 實際語意 | 主要副作用 / 備註 |
 |--------|----------|-------------------|
-| `sync init` | 初始化 `sync-repo/` 與 `sync.yaml`，並建立預設同步目錄。 | 若 remote 已有內容，會先 repo→local 還原，再 local→repo 回寫；會寫 `.gitignore`、LFS 設定、plugin manifest，最後直接 push。 |
+| `sync init` | 初始化 `sync-repo/` 與 `sync.yaml`，並建立預設同步目錄。 | 首次初始化需顯式指定 `--mode bootstrap`；若 remote 已有內容，會先 repo→local 還原，再 local→repo 回寫；會寫 `.gitignore`、LFS 設定、plugin manifest，最後直接 push。 |
 | `sync push` | 把本機同步目錄內容送進 `sync-repo/` 並推到 remote。 | 會正規化路徑、重寫 plugin manifest；無變更時直接返回，不更新 `last_sync`。 |
 | `sync pull` | 從 remote 拉回 `sync-repo/`，再同步到本機目錄。 | 若偵測到本機未推送變更，會先提示使用者選擇；`--no-delete` 可保留本機多餘檔案。 |
 | `sync status` | 顯示各同步目錄的本機差異數、遠端落後情況與最後同步時間。 | 純讀取，不寫入。 |
@@ -271,7 +309,7 @@ exclude 規則：
 - `~/.config/ai-dev/sync-repo/`：實際 Git backend repo
 
 資料流：
-1. `sync init` 建立或 clone `sync-repo/`，初始化 `sync.yaml`。
+1. `sync init --mode bootstrap` 建立或 clone `sync-repo/`，初始化 `sync.yaml`。
 2. `sync push` 由本地目錄同步到 `sync-repo/`，提交並推送 remote；只有實際成功 push 時才更新 `last_sync`，無變更的 no-op push 不更新。
 3. `sync pull` 從 `sync-repo/` 拉回本地目錄，依設定決定是否刪除本地多餘檔案；成功 pull 後更新 `last_sync`。
 4. `sync add/remove` 修改 `sync.yaml` 的目錄清單。
@@ -282,11 +320,11 @@ exclude 規則：
 |--------|----------|-------------------|
 | `mem register` | 向 sync server 註冊目前裝置。 | 會寫入 `sync-server.yaml` 中的 `api_key`、`device_id`、最後 push/pull epoch 與 auto-sync 設定。 |
 | `mem push` | 將本地 `claude-mem.db` 的新資料推到 sync server。 | 會先做 observations 去重與 preflight；只有真的推送成功才更新 `last_push_epoch`。 |
-| `mem pull` | 從 sync server 拉回其他裝置的新資料。 | 先做 hash 去重，再優先走本地 worker API 匯入，失敗時 fallback 寫 SQLite；成功後更新 `last_pull_epoch` 與 `pulled-hashes.txt`。 |
+| `mem pull` | 從 sync server 拉回其他裝置的新資料。 | 先做 hash 去重，再優先走本地 worker API 匯入，失敗時 fallback 寫 SQLite；成功後更新 `last_pull_epoch` 與 `pulled-hashes.txt`；`--reindex` / `--cleanup` 為顯式後處理。 |
 | `mem status` | 顯示 server 端計數、本地 observations 數、重複數與 last push/pull epoch。 | 純讀取，不寫入。 |
 | `mem cleanup` | 清除本地 `claude-mem.db` 內的重複 observations。 | 兩輪去重：content hash 與 text+project。 |
 | `mem reindex` | 透過 claude-mem worker 補建 ChromaDB 搜尋索引。 | 需要 worker 在線；完成後會自動跑一次 duplicate cleanup。 |
-| `mem auto` | 檢視或切換自動同步排程。 | 不帶參數時只顯示狀態；`--on/--off` 會更新 `sync-server.yaml` 並安裝/移除 launchd 或 cron。 |
+| `mem auto` | 檢視或切換自動同步排程。 | 不帶參數時只顯示狀態；`--on/--off` 會更新 `sync-server.yaml` 並安裝/移除 launchd 或 cron；`--dry-run` 只預覽系統層排程變更。 |
 
 主要狀態：
 - `~/.config/ai-dev/sync-server.yaml`：server URL、API key、device id、最後 push/pull 時間、auto sync 設定
@@ -296,16 +334,16 @@ exclude 規則：
 資料流：
 1. `mem register` 註冊裝置並寫入 `sync-server.yaml`。
 2. `mem push` 讀取本地 `claude-mem.db`，送到 sync server；只有實際成功推送資料時才更新 `last_push_epoch`。
-3. `mem pull` 從 sync server 拉取資料，匯入本地 DB，成功後追加 `pulled-hashes.txt` 並更新 `last_pull_epoch`。
+3. `mem pull` 從 sync server 拉取資料，匯入本地 DB，成功後追加 `pulled-hashes.txt` 並更新 `last_pull_epoch`；若需要補建索引或清除重複，使用 `--reindex` / `--cleanup` 顯式啟用。
 4. `mem auto` 會同步更新 `sync-server.yaml`，並直接安裝或移除使用者層級的 launchd / cron 排程。
 
 ## `hooks` 子系統
 
 | 子命令 | 實際語意 | 主要副作用 / 備註 |
 |--------|----------|-------------------|
-| `hooks install` | 安裝或更新 ECC Hooks Plugin。 | 實際目標是 `~/.claude/plugins/ecc-hooks/`。 |
-| `hooks uninstall` | 移除 ECC Hooks Plugin。 | 會先要求確認；若未安裝則直接提示返回。 |
-| `hooks status` | 顯示 ECC Hooks Plugin 安裝狀態。 | 純讀取，不寫入。 |
+| `hooks install` | 安裝或更新 ECC Hooks Plugin。 | `--target` 必填，且目前僅支援 `claude`；實際目標是 `~/.claude/plugins/ecc-hooks/`。 |
+| `hooks uninstall` | 移除 ECC Hooks Plugin。 | `--target` 必填，且目前僅支援 `claude`；會先要求確認；若未安裝則直接提示返回。 |
+| `hooks status` | 顯示 ECC Hooks Plugin 安裝狀態。 | `--target` 必填，且目前僅支援 `claude`；純讀取，不寫入。 |
 
 ## 命令關聯圖
 

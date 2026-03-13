@@ -137,3 +137,81 @@ def test_mem_register_existing_device_prints_rotation_message(monkeypatch):
 
     assert result.exit_code == 0
     assert "重新註冊成功" in result.stdout
+
+
+def test_mem_pull_does_not_reindex_without_explicit_flag(monkeypatch):
+    monkeypatch.setattr(
+        mem_cmd,
+        "load_server_config",
+        lambda: {
+            "last_pull_epoch": 0,
+            "auto_sync": False,
+            "server_url": "https://example.com",
+            "api_key": "token",
+        },
+    )
+    monkeypatch.setattr(mem_cmd, "save_server_config", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(mem_cmd, "query_local_db", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(mem_cmd, "append_pulled_hashes", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(mem_cmd, "worker_available", lambda: True)
+
+    reindexed = []
+    cleaned = []
+    monkeypatch.setattr(mem_cmd, "reindex_observations", lambda: reindexed.append(True) or {"synced": 0, "errors": 0})
+    monkeypatch.setattr(mem_cmd, "_cleanup_duplicates", lambda: cleaned.append(True) or 0)
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return b'{"sessions":[],"observations":[{"id":"1","title":"t","narrative":"n","project":"p","type":"fact","sync_content_hash":"h1"}],"summaries":[],"prompts":[],"server_epoch":10,"has_more":false}'
+
+    monkeypatch.setattr(
+        mem_cmd,
+        "api_request",
+        lambda *_args, **_kwargs: {
+            "sessions": [],
+            "observations": [
+                {
+                    "id": "1",
+                    "title": "t",
+                    "narrative": "n",
+                    "project": "p",
+                    "type": "fact",
+                    "sync_content_hash": "h1",
+                }
+            ],
+            "summaries": [],
+            "prompts": [],
+            "server_epoch": 10,
+            "has_more": False,
+        },
+    )
+    monkeypatch.setattr(
+        mem_cmd.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: _Resp(),
+    )
+
+    result = runner.invoke(app, ["mem", "pull"])
+
+    assert result.exit_code == 0
+    assert reindexed == []
+    assert cleaned == []
+
+
+def test_mem_auto_dry_run_reports_scheduler_side_effects(monkeypatch):
+    monkeypatch.setattr(
+        mem_cmd,
+        "load_server_config",
+        lambda: {"auto_sync": False, "auto_sync_interval_minutes": 10},
+    )
+
+    result = runner.invoke(app, ["mem", "auto", "--dry-run", "--on"])
+
+    assert result.exit_code == 0
+    assert "launchd" in result.stdout.lower() or "cron" in result.stdout.lower()
