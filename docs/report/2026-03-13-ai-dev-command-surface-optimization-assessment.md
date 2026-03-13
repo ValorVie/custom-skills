@@ -3,14 +3,19 @@ title: ai-dev 命令面優化評估
 type: report/analysis
 date: 2026-03-13
 author: Codex
-status: draft
+status: updated
 ---
 
 # ai-dev 命令面優化評估
 
 ## 摘要
 
-截至 2026-03-13，`ai-dev` 已有一份可對照實作的命令與資料流參考文件，且本輪補齊了 `project`、`maintain`、`standards`、`sync`、`mem`、`hooks` 六組子命令語意，已盤點範圍內的文件語意與實作一致。接下來的主要問題不再是「文件嚴重過時」，而是命令面本身仍存在責任邊界混雜、副作用透明度不足、預設 target 不一致、狀態檔分散且缺少機器驗證等設計債。這些問題尚未直接造成錯誤行為，但已經提高理解成本與後續 drift 風險。
+截至 2026-03-13，`ai-dev` 已有一份可對照實作的命令與資料流參考文件，且本輪補齊了 `project`、`maintain`、`standards`、`sync`、`mem`、`hooks` 六組子命令語意。其後續的 P0 落地已完成：
+- `install / update / clone` 已改為共享 `tools / repos / state / targets` phase pipeline
+- top-level command manifest 已落地為 machine-readable Python registry
+- 參考文件已補齊 phase 契約，並新增 manifest 對文件的一致性測試
+
+接下來的主要問題不再是「文件嚴重過時」，而是命令面本身仍存在責任邊界混雜、副作用透明度不足、預設 target 不一致、狀態檔分散且缺少更廣泛的機器驗證等設計債。這些問題尚未直接造成錯誤行為，但已經提高理解成本與後續 drift 風險。
 
 ## 分析目的
 
@@ -117,20 +122,20 @@ status: draft
 **分析**:
 當 CLI 同時管理 Claude、Codex、Gemini、OpenCode 等多 target 時，scope 一致性很重要。否則使用者會把某個子系統的預設行為錯誤投射到其他子系統。
 
-### 發現 5：狀態檔雖已盤點，但仍缺少「單一權威來源」與機器驗證
+### 發現 5：狀態檔雖已盤點，machine-readable 契約已起步，但覆蓋率仍可擴大
 
-**結論**: 現況已能人工追蹤 state owner，但仍依賴手工維護文件；CLI 本身沒有自動保證文件、命令樹與 state writer 清單一致。
+**結論**: 現況已能人工追蹤 state owner，且 top-level command 已有 machine-readable manifest 與文件一致性測試；但仍未覆蓋到更多子命令與 state writer 細節。
 
 **資料/證據**:
 
 | 面向 | 現況 | 評估 |
 |------|------|------|
 | 命令清單來源 | `script/main.py` + 各子模組 | 良好 |
-| 文件同步方式 | 人工維護 `docs/ai-dev指令與資料流參考.md` | 需關注 |
-| 漂移防護 | 目前只有規範要求，沒有自動檢查 | 需關注 |
+| 文件同步方式 | 以 `docs/ai-dev指令與資料流參考.md` 為人工主檔，top-level command 由 manifest test 校驗 | 改善中 |
+| 漂移防護 | 已有 top-level command/phase 的 drift test，但尚未覆蓋子命令與 state writer | 需關注 |
 
 **分析**:
-這代表目前的可靠性仍然建立在維護紀律，而不是系統約束。隨著命令數量與 state 增加，這會再次累積 drift 風險。
+這代表目前的可靠性已不再完全建立在維護紀律上，但 system constraint 還只覆蓋 top-level command。隨著命令數量與 state 增加，仍需要把這套方式擴展到更多子命令與 writer 層。
 
 ## 比較與對照
 
@@ -154,8 +159,8 @@ status: draft
 
 | 優先級 | 建議 | 理由 | 預期效果 |
 |--------|------|------|----------|
-| P0 | 建立 machine-readable command manifest，從 `script/main.py` 與各 `Typer` app 產生命令樹、子命令、state writer 摘要，並用測試驗證文件同步 | 目前仍靠人工維護，未來極易再次 drift | 降低文件失真與命令契約不明風險 |
-| P0 | 重新收斂高層命令 `install` / `update` / `clone` 的責任分界，明確區分 bootstrap、refresh source、distribute targets | 這三者仍是理解成本最高的區域 | 讓使用者能更直觀預測副作用與正確使用命令 |
+| P0（已完成） | 建立 machine-readable command manifest，並用測試驗證 top-level command 與參考文件同步 | 已落地於 `script/cli/command_manifest.py` 與 `tests/test_ai_dev_command_reference.py` | 降低文件失真與命令契約不明風險 |
+| P0（已完成） | 重新收斂高層命令 `install` / `update` / `clone` 的責任分界，明確區分 `tools / repos / state / targets` | 已落地為 phase pipeline 與統一 flags | 讓使用者能更直觀預測副作用與正確使用命令 |
 | P1 | 統一 target/scope 預設規則，至少先處理 `standards switch` 與 `hooks` 的 scope 不一致問題 | 目前不同子系統的預設不一致 | 降低誤用與跨子系統心智切換成本 |
 | P1 | 把重副作用流程拆成顯式階段或顯式 flags，例如 `sync init`、`mem pull`、`mem auto` | 目前許多命令同時做多件事 | 提高可預測性、可測試性與回滾能力 |
 | P1 | 補齊 top-level 命令的細部語意表，至少涵蓋 `install/update/clone/status/list/toggle/init-from` | 目前參考文件對子系統已完整，但高層命令仍較粗略 | 讓整份參考文件真正成為單一可查來源 |
