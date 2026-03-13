@@ -23,6 +23,7 @@ logs
 backups
 disabled
 .env
+.worktrees/
 
 # Test coverage output
 plugins/ecc-hooks/coverage
