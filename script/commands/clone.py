@@ -1,5 +1,8 @@
 import typer
 from rich.console import Console
+from ..cli.command_manifest import build_command_manifest, get_command_spec
+from ..cli.phase_selection import build_execution_plan
+from ..services.pipeline.clone_pipeline import execute_clone_plan
 from ..utils.shared import (
     copy_skills,
     get_custom_skills_dir,
@@ -10,8 +13,7 @@ app = typer.Typer()
 console = Console()
 
 
-@app.command()
-def clone(
+def _legacy_clone(
     force: bool = typer.Option(
         False,
         "--force",
@@ -65,3 +67,46 @@ def clone(
     )
 
     console.print("[bold green]分發完成！[/bold green]")
+
+
+@app.command(name="clone")
+def clone(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="強制覆蓋所有衝突檔案（不提示）。",
+    ),
+    skip_conflicts: bool = typer.Option(
+        False,
+        "--skip-conflicts",
+        "-s",
+        help="跳過有衝突的檔案，僅分發無衝突的檔案。",
+    ),
+    backup: bool = typer.Option(
+        False,
+        "--backup",
+        "-b",
+        help="備份衝突檔案後再覆蓋。",
+    ),
+    only: str | None = typer.Option(None, "--only", help="僅執行指定 phase"),
+    skip: str | None = typer.Option(None, "--skip", help="跳過指定 phase"),
+    target: str | None = typer.Option(None, "--target", help="限制分發 target"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="只顯示執行計畫，不實際寫入"),
+):
+    """分發 Skills 到各工具目錄。"""
+    manifest = build_command_manifest()
+    spec = get_command_spec(manifest, ("clone",))
+    plan = build_execution_plan(
+        spec,
+        only=only,
+        skip=skip,
+        target=target,
+        dry_run=dry_run,
+    )
+    execute_clone_plan(
+        plan,
+        force=force,
+        skip_conflicts=skip_conflicts,
+        backup=backup,
+    )

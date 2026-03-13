@@ -3,6 +3,9 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from ..cli.command_manifest import build_command_manifest, get_command_spec
+from ..cli.phase_selection import build_execution_plan
+from ..services.pipeline.install_pipeline import execute_install_plan
 from ..utils.system import (
     run_command,
     check_command_exists,
@@ -72,8 +75,7 @@ def _is_completion_installed(shell: str) -> bool:
     return False
 
 
-@app.command()
-def install(
+def _legacy_install(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件安裝"),
     skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件安裝"),
     skip_repos: bool = typer.Option(
@@ -344,3 +346,23 @@ def install(
 
     console.print()
     console.print("[bold green]安裝完成！[/bold green]")
+
+
+@app.command(name="install")
+def install(
+    only: str | None = typer.Option(None, "--only", help="僅執行指定 phase"),
+    skip: str | None = typer.Option(None, "--skip", help="跳過指定 phase"),
+    target: str | None = typer.Option(None, "--target", help="限制分發 target"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="只顯示執行計畫，不實際寫入"),
+):
+    """首次安裝 AI 開發環境。"""
+    manifest = build_command_manifest()
+    spec = get_command_spec(manifest, ("install",))
+    plan = build_execution_plan(
+        spec,
+        only=only,
+        skip=skip,
+        target=target,
+        dry_run=dry_run,
+    )
+    execute_install_plan(plan)

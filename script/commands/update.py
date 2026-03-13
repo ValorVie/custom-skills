@@ -4,6 +4,9 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from rich.console import Console
+from ..cli.command_manifest import build_command_manifest, get_command_spec
+from ..cli.phase_selection import build_execution_plan
+from ..services.pipeline.update_pipeline import execute_update_plan
 from ..utils.system import (
     run_command,
     check_bun_installed,
@@ -162,8 +165,7 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
     return False
 
 
-@app.command()
-def update(
+def _legacy_update(
     skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
     skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件更新"),
     skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
@@ -389,3 +391,23 @@ def update(
     console.print("[bold green]更新完成！[/bold green]")
     console.print()
     console.print("[dim]提示：如需分發 Skills 到各工具目錄，請執行：ai-dev clone[/dim]")
+
+
+@app.command(name="update")
+def update(
+    only: str | None = typer.Option(None, "--only", help="僅執行指定 phase"),
+    skip: str | None = typer.Option(None, "--skip", help="跳過指定 phase"),
+    target: str | None = typer.Option(None, "--target", help="限制分發 target"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="只顯示執行計畫，不實際寫入"),
+):
+    """更新工具與拉取儲存庫。"""
+    manifest = build_command_manifest()
+    spec = get_command_spec(manifest, ("update",))
+    plan = build_execution_plan(
+        spec,
+        only=only,
+        skip=skip,
+        target=target,
+        dry_run=dry_run,
+    )
+    execute_update_plan(plan)

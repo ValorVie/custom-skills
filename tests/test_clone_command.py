@@ -4,37 +4,53 @@ from typer.testing import CliRunner
 
 from script.main import app
 from script.commands import clone as clone_command
+from script.models.execution_plan import ExecutionPlan
 
 runner = CliRunner()
 
 
-def test_clone_help_no_longer_exposes_sync_project_flag():
+def test_clone_help_exposes_pipeline_flags():
     result = runner.invoke(app, ["clone", "--help"])
 
     assert result.exit_code == 0, result.stdout
-    assert "--sync-project" not in result.stdout
+    assert "--only" in result.stdout
+    assert "--skip" in result.stdout
+    assert "--target" in result.stdout
+    assert "--dry-run" in result.stdout
 
 
-def test_clone_only_distributes_to_targets(tmp_path: Path, monkeypatch):
-    source_dir = tmp_path / "custom-skills"
-    source_dir.mkdir()
+def test_clone_builds_execution_plan_and_calls_pipeline(monkeypatch):
+    captured: dict[str, object] = {}
+    plan = ExecutionPlan(
+        command_name="clone",
+        phases=("targets",),
+        targets=("claude", "codex"),
+        dry_run=False,
+    )
 
-    called: dict[str, object] = {}
+    monkeypatch.setattr(
+        clone_command,
+        "build_execution_plan",
+        lambda spec, **kwargs: captured.update({"spec": spec, "kwargs": kwargs}) or plan,
+    )
+    monkeypatch.setattr(
+        clone_command,
+        "execute_clone_plan",
+        lambda incoming_plan, **kwargs: captured.update({"plan": incoming_plan, "extra": kwargs}),
+    )
 
-    monkeypatch.setattr(clone_command, "get_custom_skills_dir", lambda: source_dir)
-
-    def fake_copy_skills(**kwargs):
-        called.update(kwargs)
-
-    monkeypatch.setattr(clone_command, "copy_skills", fake_copy_skills)
-
-    result = runner.invoke(app, ["clone"])
+    result = runner.invoke(app, ["clone", "--only", "targets", "--target", "claude,codex"])
 
     assert result.exit_code == 0, result.stdout
-    assert called == {
-        "sync_project": False,
+    assert captured["kwargs"] == {
+        "only": "targets",
+        "skip": None,
+        "target": "claude,codex",
+        "dry_run": False,
+    }
+    assert captured["plan"] == plan
+    assert captured["extra"] == {
         "force": False,
         "skip_conflicts": False,
         "backup": False,
     }
-
