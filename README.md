@@ -171,6 +171,7 @@ ai-dev clone
 
 `ai-dev update` 只刷新 canonical state。  
 `ai-dev clone` 會依 `.clonepolicy.json` 重建各 target 的 shadow，然後將工具目錄優先以 `symlink`（Windows 優先 `junction`）投影到 shadow；若平台或權限不支援才 fallback 為複製。
+canonical state 與 shadow 會保留有效的 `.clonepolicy.json`；當 upstream `auto-skill` 缺少 policy 時，canonical refresh 會 fallback 使用 template policy，並以 temp rebuild 方式避免舊 state 反覆產生衝突訊息。
 
 #### 可選參數
 

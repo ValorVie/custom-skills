@@ -748,6 +748,7 @@ def _copy_skill_with_policy(
     policy: dict,
     force: bool,
     skip_conflicts: bool,
+    log_conflicts: bool = True,
 ) -> None:
     """依 clone policy 逐檔複製 skill。"""
     from .manifest import compute_file_hash
@@ -791,7 +792,8 @@ def _copy_skill_with_policy(
             continue
 
         if skip_conflicts:
-            console.print(f"    [yellow]跳過（衝突）: {relative_path}[/yellow]")
+            if log_conflicts:
+                console.print(f"    [yellow]跳過（衝突）: {relative_path}[/yellow]")
             continue
 
         while True:
@@ -871,7 +873,7 @@ def _copy_with_log(
             auto_skill_state_dir,
             dst_item,
             target_name=target_key,
-            policy_source_dir=item,
+            policy_source_dir=auto_skill_state_dir,
         )
         log_source = result.shadow_dir or auto_skill_state_dir
         console.print(

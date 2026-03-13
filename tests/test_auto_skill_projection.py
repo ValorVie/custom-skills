@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -106,6 +107,9 @@ def test_project_auto_skill_migrates_legacy_dir_to_shadow_projection(tmp_path: P
     assert target.is_symlink()
     assert target.resolve() == shadow_dir.resolve()
     assert (shadow_dir / "SKILL.md").read_text(encoding="utf-8") == "canonical skill v2\n"
+    assert json.loads((shadow_dir / ".clonepolicy.json").read_text(encoding="utf-8")) == json.loads(
+        (policy_source / ".clonepolicy.json").read_text(encoding="utf-8")
+    )
     assert (shadow_dir / "knowledge-base" / "workflow.md").read_text(encoding="utf-8") == "legacy workflow\n"
     assert any(backup_root.joinpath("claude").iterdir())
     merged_index = (shadow_dir / "knowledge-base" / "_index.json").read_text(
@@ -166,6 +170,9 @@ def test_project_auto_skill_updates_shadow_with_canonical_policy(tmp_path: Path)
     assert second.changed is True
     assert target.resolve() == shadow_dir.resolve()
     assert (shadow_dir / "SKILL.md").read_text(encoding="utf-8") == "canonical skill v2\n"
+    assert json.loads((shadow_dir / ".clonepolicy.json").read_text(encoding="utf-8")) == json.loads(
+        (policy_source / ".clonepolicy.json").read_text(encoding="utf-8")
+    )
     assert (shadow_dir / "knowledge-base" / "workflow.md").read_text(encoding="utf-8") == "custom workflow\n"
     merged_index = (shadow_dir / "knowledge-base" / "_index.json").read_text(
         encoding="utf-8"
@@ -204,3 +211,47 @@ def test_project_auto_skill_shadow_projection_is_revision_idempotent(tmp_path: P
     assert first.changed is True
     assert second.mode == "symlink"
     assert second.changed is False
+
+
+@pytest.mark.skipif(get_os() == "windows", reason="Windows 使用 junction，檢查方式不同")
+def test_project_auto_skill_rebuilds_shadow_after_legacy_policy_migration(tmp_path: Path):
+    source = tmp_path / "state"
+    policy_source = tmp_path / "policy-source"
+    target = tmp_path / "tool" / "skills" / "auto-skill"
+    projection_root = tmp_path / "projections"
+    backup_root = tmp_path / "backups"
+
+    _write(source / "SKILL.md", "canonical skill\n")
+    _write_json(
+        policy_source / ".clonepolicy.json",
+        '{\n  "rules": [\n    {"pattern": "knowledge-base/*.md", "strategy": "skip-if-exists"}\n  ]\n}\n',
+    )
+
+    _write(target / "SKILL.md", "legacy skill\n")
+    _write_json(target / ".clonepolicy.json", '{\n  "rules": []\n}\n')
+
+    first = project_auto_skill(
+        source,
+        target,
+        target_name="claude",
+        policy_source_dir=policy_source,
+        projection_root=projection_root,
+        backups_root=backup_root,
+    )
+    shadow_state_path = projection_root / "claude" / "auto-skill.state.json"
+    first_state = json.loads(shadow_state_path.read_text(encoding="utf-8"))
+
+    second = project_auto_skill(
+        source,
+        target,
+        target_name="claude",
+        policy_source_dir=policy_source,
+        projection_root=projection_root,
+        backups_root=backup_root,
+    )
+    second_state = json.loads(shadow_state_path.read_text(encoding="utf-8"))
+
+    assert first.changed is True
+    assert first_state["policy_source"] == "legacy"
+    assert second.changed is True
+    assert second_state["policy_source"] == "canonical"

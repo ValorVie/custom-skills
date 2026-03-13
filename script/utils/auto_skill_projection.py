@@ -136,6 +136,16 @@ def _copy_base_dir(base_dir: Path, dst_dir: Path) -> None:
     )
 
 
+def _write_clone_policy_file(dst_dir: Path, policy: dict | None) -> None:
+    if policy is None:
+        return
+
+    (dst_dir / ".clonepolicy.json").write_text(
+        json.dumps(policy, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _merge_source_into_shadow(source_dir: Path, shadow_dir: Path, policy: dict) -> None:
     from . import shared
 
@@ -258,27 +268,12 @@ def project_auto_skill(
         shadow_dir = projection_root / target_name / "auto-skill"
         state_path = projection_root / target_name / "auto-skill.state.json"
 
-    canonical_policy, _ = _load_clone_policy(policy_source_dir)
-    revision = _compute_revision(source_dir, canonical_policy)
+    canonical_policy, canonical_policy_found = _load_clone_policy(policy_source_dir)
     current_state = _detect_projection_state(source_dir, target_dir, shadow_dir)
-    shadow_state = _read_shadow_state(state_path)
-
-    if (
-        shadow_state is not None
-        and shadow_state.get("revision") == revision
-        and shadow_dir.exists()
-    ):
-        projection_result = _project_directory(shadow_dir, target_dir)
-        return AutoSkillProjectionResult(
-            mode=projection_result.mode,
-            changed=projection_result.changed,
-            migrated_from=None,
-            shadow_dir=shadow_dir,
-        )
 
     migrated_from: str | None = None
     effective_policy = canonical_policy
-    policy_source = "canonical"
+    policy_source = "canonical" if canonical_policy_found else "none"
     base_dir: Path | None = None
 
     if current_state == "legacy_dir":
@@ -298,6 +293,23 @@ def project_auto_skill(
     elif current_state == "other_link":
         migrated_from = "other_link"
 
+    revision = _compute_revision(source_dir, effective_policy)
+    shadow_state = _read_shadow_state(state_path)
+    if (
+        shadow_state is not None
+        and shadow_state.get("revision") == revision
+        and shadow_dir.exists()
+    ):
+        projection_result = _project_directory(shadow_dir, target_dir)
+        return AutoSkillProjectionResult(
+            mode=projection_result.mode,
+            changed=projection_result.changed,
+            migrated_from=None,
+            shadow_dir=shadow_dir,
+        )
+
+    persisted_policy = canonical_policy if canonical_policy_found else effective_policy
+
     shadow_parent = shadow_dir.parent
     shadow_parent.mkdir(parents=True, exist_ok=True)
     temp_shadow_parent = Path(
@@ -311,6 +323,7 @@ def project_auto_skill(
             _copy_base_dir(base_dir, temp_shadow_dir)
 
         _merge_source_into_shadow(source_dir, temp_shadow_dir, effective_policy)
+        _write_clone_policy_file(temp_shadow_dir, persisted_policy)
         if not (temp_shadow_dir / "SKILL.md").exists():
             raise FileNotFoundError(f"shadow build 失敗，缺少 SKILL.md: {temp_shadow_dir}")
 
