@@ -94,3 +94,45 @@ def _matches(path: str, pattern: str, rule_type: str, is_bash: bool) -> bool:
         if rule_type == "regex":
             return bool(re.search(pattern, path, re.IGNORECASE))
     return False
+
+
+DISABLE_FLAG = ".disable-fileguard"
+
+
+def check_hardcoded_protection(
+    tool_name: str, tool_input: dict, plugin_root: str
+) -> bool:
+    """Check if tool call targets hardcoded protected files.
+
+    Protected:
+    - .disable-fileguard (anywhere)
+    - Entire ${CLAUDE_PLUGIN_ROOT} directory
+
+    Returns True if access should be denied.
+    """
+    plugin_root_lower = plugin_root.lower()
+
+    if tool_name in FILE_PATH_TOOLS:
+        fp = tool_input.get("file_path", "").lower()
+        if DISABLE_FLAG in fp:
+            return True
+        if fp.startswith(plugin_root_lower):
+            return True
+
+    elif tool_name in SEARCH_PATH_TOOLS:
+        path = tool_input.get("path", "").lower()
+        pattern = tool_input.get("pattern", "").lower()
+        for val in (path, pattern):
+            if DISABLE_FLAG in val:
+                return True
+            if val.startswith(plugin_root_lower):
+                return True
+
+    elif tool_name == "Bash":
+        command = tool_input.get("command", "").lower()
+        if DISABLE_FLAG in command:
+            return True
+        if plugin_root_lower in command:
+            return True
+
+    return False

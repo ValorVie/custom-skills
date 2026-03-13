@@ -181,3 +181,70 @@ class TestMatchRules(unittest.TestCase):
         rules = [{"action": "deny", "pattern": "/secret", "type": "unknown", "reason": "?"}]
         result = fileguard.match_rules("/secret/file", rules, "allow", is_bash=False)
         self.assertEqual(result, ("allow", None))
+
+
+class TestHardcodedProtection(unittest.TestCase):
+    """Test check_hardcoded_protection() blocks access to guard files."""
+
+    def setUp(self):
+        self.plugin_root = "/path/to/plugins/fileguard"
+
+    def test_blocks_read_disable_fileguard(self):
+        tool_input = {"file_path": "/Users/arlen/project/.disable-fileguard"}
+        result = fileguard.check_hardcoded_protection("Read", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_write_disable_fileguard(self):
+        tool_input = {"file_path": "/Users/arlen/project/.disable-fileguard"}
+        result = fileguard.check_hardcoded_protection("Write", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_bash_rm_disable_fileguard(self):
+        tool_input = {"command": "rm .disable-fileguard"}
+        result = fileguard.check_hardcoded_protection("Bash", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_bash_touch_disable_fileguard(self):
+        tool_input = {"command": "touch /project/.disable-fileguard"}
+        result = fileguard.check_hardcoded_protection("Bash", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_read_plugin_root_file(self):
+        tool_input = {"file_path": f"{self.plugin_root}/scripts/fileguard.py"}
+        result = fileguard.check_hardcoded_protection("Read", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_edit_hooks_json(self):
+        tool_input = {"file_path": f"{self.plugin_root}/hooks/hooks.json"}
+        result = fileguard.check_hardcoded_protection("Edit", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_grep_plugin_root(self):
+        tool_input = {"pattern": "secret", "path": self.plugin_root}
+        result = fileguard.check_hardcoded_protection("Grep", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_bash_cat_plugin_file(self):
+        tool_input = {"command": f"cat {self.plugin_root}/fileguard-rules.json"}
+        result = fileguard.check_hardcoded_protection("Bash", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_allows_unrelated_path(self):
+        tool_input = {"file_path": "/Users/arlen/project/main.py"}
+        result = fileguard.check_hardcoded_protection("Read", tool_input, self.plugin_root)
+        self.assertFalse(result)
+
+    def test_allows_unrelated_bash(self):
+        tool_input = {"command": "ls /Users/arlen/project"}
+        result = fileguard.check_hardcoded_protection("Bash", tool_input, self.plugin_root)
+        self.assertFalse(result)
+
+    def test_blocks_mixed_case_plugin_root(self):
+        tool_input = {"file_path": self.plugin_root.upper() + "/scripts/fileguard.py"}
+        result = fileguard.check_hardcoded_protection("Read", tool_input, self.plugin_root)
+        self.assertTrue(result)
+
+    def test_blocks_glob_pattern_with_plugin_root(self):
+        tool_input = {"pattern": f"{self.plugin_root}/**/*.json"}
+        result = fileguard.check_hardcoded_protection("Glob", tool_input, self.plugin_root)
+        self.assertTrue(result)
