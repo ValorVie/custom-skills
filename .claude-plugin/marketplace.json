@@ -31,6 +31,15 @@
       "author": {
         "name": "custom-skills"
       }
+    },
+    {
+      "name": "fileguard",
+      "source": "./plugins/fileguard",
+      "description": "FileGuard - Path-based access control for Claude Code",
+      "version": "1.0.0",
+      "author": {
+        "name": "custom-skills"
+      }
     }
   ]
 }
