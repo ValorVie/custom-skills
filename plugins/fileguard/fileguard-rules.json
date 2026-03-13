@@ -1,0 +1,17 @@
+{
+  "rules": [
+    {
+      "action": "deny",
+      "pattern": "\\.env($|\\.)",
+      "type": "regex",
+      "reason": "Environment secrets"
+    },
+    {
+      "action": "deny",
+      "pattern": "\\.pem$",
+      "type": "regex",
+      "reason": "Certificate private keys"
+    }
+  ],
+  "default": "allow"
+}

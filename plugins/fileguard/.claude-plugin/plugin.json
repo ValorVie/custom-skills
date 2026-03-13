@@ -1,0 +1,13 @@
+{
+  "name": "fileguard",
+  "version": "1.0.0",
+  "description": "FileGuard - Path-based access control for Claude Code",
+  "author": {
+    "name": "custom-skills",
+    "email": "valorlove@gmail.com"
+  },
+  "homepage": "https://github.com/ValorVie/custom-skills",
+  "repository": "https://github.com/ValorVie/custom-skills",
+  "license": "MIT",
+  "keywords": ["hooks", "security", "path-guard", "access-control"]
+}
