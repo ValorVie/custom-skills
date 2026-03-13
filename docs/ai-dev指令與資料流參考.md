@@ -21,6 +21,17 @@
 | 同步與記憶 | `sync init/push/pull/status/add/remove`, `mem register/push/pull/status/cleanup/reindex/auto` | 跨裝置同步設定與 claude-mem 同步 |
 | 輔助工具 | `test`, `coverage`, `derive-tests`, `hooks install/uninstall/status`, `tui` | 測試、覆蓋率、衍生測試、Hooks、互動介面 |
 
+## 子命令速查
+
+| 群組 | 子命令 |
+|------|--------|
+| `project` | `init`, `hydrate`, `reconcile`, `doctor`, `update`, `exclude` |
+| `maintain` | `clone`, `template` |
+| `standards` | `status`, `list`, `switch`, `show`, `overlaps`, `sync` |
+| `hooks` | `install`, `uninstall`, `status` |
+| `sync` | `init`, `push`, `pull`, `status`, `add`, `remove` |
+| `mem` | `register`, `push`, `pull`, `status`, `cleanup`, `reindex`, `auto` |
+
 ## 重要狀態檔
 
 | 路徑 | 用途 | 主要寫入者 |
@@ -28,22 +39,24 @@
 | `~/.config/custom-skills/` | 已安裝的 `custom-skills` 本機 repo，也是 Stage 3 分發來源 | `install`, `update` |
 | `~/.config/custom-skills/disabled/` | 被停用後暫存的資源目錄 | `toggle`, `standards sync`, `standards switch` |
 | `~/.config/custom-skills/toggle-config.yaml` | toggle 資源開關狀態 | `toggle` |
-| `~/.config/ai-dev/repos.yaml` | 上游 repo / custom repo / template repo 註冊表 | `add-repo`, `add-custom-repo`, `update-custom-repo`, `init-from` |
+| `<custom-skills repo>/upstream/sources.yaml` | 上游來源註冊表 | `add-repo`, repo 維護者手動維護 |
+| `~/.config/ai-dev/repos.yaml` | custom repo / template repo 註冊表 | `add-custom-repo`, `init-from` |
 | `~/.config/ai-dev/skills/auto-skill` | `auto-skill` canonical state | `install`, `update`, `clone`, `maintain clone` |
 | `~/.config/ai-dev/projections/<target>/auto-skill` | 各 target 的 `auto-skill` shadow state | `install`, `clone` |
 | `~/.config/ai-dev/manifests/projects/<project_id>.yaml` | 專案 AI projection manifest | `init-from`, `project init`, `project hydrate`, `project reconcile` |
 | `<project>/.ai-dev-project.yaml` | 專案 intent、managed files、git exclude 設定 | `init-from`, `project init`, `project exclude`, `project hydrate` |
 | `<project>/.git/info/exclude` | 本地 git 排除規則 | `init-from`, `project init`, `project hydrate`, `project reconcile`, `project exclude` |
-| `<project>/openspec/project.md`、`<project>/openspec/config.yaml` | OpenSpec 專案初始化狀態 | `openspec init` |
+| `<project>/openspec/project.md`、`<project>/openspec/config.yaml` | OpenSpec 專案初始化狀態 | 外部 `openspec init` |
 | `<project>/.standards/manifest.json` | UDS scaffold manifest | `project init`, `init-from` |
 | `<project>/.claude/disabled.yaml` | standards profile 停用清單 | `standards switch` |
-| `<project>/.standards/active-profile.yaml` | 目前啟用的 standards profile | `uds init`, `standards switch` |
+| `<project>/.standards/active-profile.yaml` | 目前啟用的 standards profile | 外部 `uds init`, `standards switch` |
 | `<project>/.standards/profiles/overlaps.yaml` | standards 重疊定義 | repo tracked scaffold / 模板內容 |
 | `~/.config/ai-dev/sync.yaml` | sync 子系統設定 | `sync init`, `sync add`, `sync remove`, `sync push`, `sync pull` |
 | `~/.config/ai-dev/sync-repo/` | sync 使用的本地 Git repo | `sync init`, `sync push`, `sync pull` |
 | `~/.config/ai-dev/sync-server.yaml` | mem sync server 設定 | `mem register`, `mem auto` |
 | `~/.config/ai-dev/pulled-hashes.txt` | mem pull 去重紀錄 | `mem pull` |
 | `~/.claude-mem/claude-mem.db` | 本地 claude-mem SQLite 資料庫 | claude-mem worker / `mem pull` fallback import |
+| `~/Library/LaunchAgents/com.ai-dev.mem-sync.plist` / user crontab | `mem auto` 安裝的排程設定 | `mem auto` |
 | `project-template.manifest.yaml` | `project-template/` allowlist manifest | repo 維護者手動維護 |
 
 ## 核心資料流
@@ -65,6 +78,9 @@ flowchart LR
 | `ai-dev install` | 建立本機 repo 與工具環境，刷新 `auto-skill` canonical state，並從 `~/.config/custom-skills` 分發到各工具目錄 |
 | `ai-dev update` | 更新工具與本機 repo，刷新 `auto-skill` canonical state，不直接動 target shadow |
 | `ai-dev clone` | 從 `~/.config/custom-skills` 分發資源到各工具目錄，並更新各 target 的 `auto-skill` shadow |
+| `ai-dev status` | 讀取工具安裝狀態；對 repo 會比對 local HEAD 與 `origin/main`，若在 repo 內且存在上游同步紀錄，也會讀 `upstream/last-sync.yaml` / `upstream/sources.yaml` 顯示同步狀態 |
+| `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state |
+| `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml` |
 
 ### 2. 專案層：built-in project-template
 
@@ -87,7 +103,8 @@ AI projection 依型態再分三類：
 `init-from` 的語意是：
 - 從外部模板 repo 初始化專案
 - 建立 `.ai-dev-project.yaml`
-- 視使用者選擇決定是否啟用 `.git/info/exclude`
+- 若目標已是 git repo，才詢問是否啟用 `.git/info/exclude`
+- 若目標尚未 `git init`，略過詢問，也不會寫入 `git_exclude` 設定
 
 `project init` 的語意是：
 - 從內建 `project-template/` 初始化專案
@@ -125,8 +142,9 @@ git exclude 規則：
 - 更新專案 projection manifest
 
 exclude 規則：
-- 只在 `.ai-dev-project.yaml` 的 `git_exclude.enabled=true` 時同步 `.git/info/exclude`
-- 若 `enabled=false`，不會偷偷幫使用者開啟本地排除
+- 若 `.ai-dev-project.yaml` 已有 `git_exclude` 設定，依 `enabled` 決定是否同步 `.git/info/exclude`
+- 若 tracking file 尚未記錄 `git_exclude`，會先依目前 `.git/info/exclude` 的 ai-dev 管理區塊推導 `enabled` 狀態並補回 tracking config
+- 補齊設定後，若 `enabled=false`，不會偷偷幫使用者開啟本地排除
 
 ### `ai-dev project reconcile`
 
@@ -194,7 +212,7 @@ exclude 規則：
 資料流：
 1. `standards switch` 讀取 profile 與 overlaps 定義。
 2. 依 profile 計算需要停用的資源，更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`。
-3. `standards sync` 再把 disabled 清單實際同步到 `~/.config/custom-skills/disabled/` 與工具目錄。
+3. `standards sync` 預設只對 `claude` target 同步 disabled 清單到 `~/.config/custom-skills/disabled/` 與工具目錄；可用 `--target` 切換目標。
 
 注意：
 - `standards (*.ai.yaml)` 本身是專案內 tracked 檔案，不會被 `standards sync` 自動搬移。
@@ -208,8 +226,8 @@ exclude 規則：
 
 資料流：
 1. `sync init` 建立或 clone `sync-repo/`，初始化 `sync.yaml`。
-2. `sync push` 由本地目錄同步到 `sync-repo/`，提交並推送 remote，更新 `last_sync`。
-3. `sync pull` 從 `sync-repo/` 拉回本地目錄，依設定決定是否刪除本地多餘檔案，更新 `last_sync`。
+2. `sync push` 由本地目錄同步到 `sync-repo/`，提交並推送 remote；只有實際成功 push 時才更新 `last_sync`，無變更的 no-op push 不更新。
+3. `sync pull` 從 `sync-repo/` 拉回本地目錄，依設定決定是否刪除本地多餘檔案；成功 pull 後更新 `last_sync`。
 4. `sync add/remove` 修改 `sync.yaml` 的目錄清單。
 
 ## `mem` 子系統
@@ -221,9 +239,9 @@ exclude 規則：
 
 資料流：
 1. `mem register` 註冊裝置並寫入 `sync-server.yaml`。
-2. `mem push` 讀取本地 `claude-mem.db`，送到 sync server，更新 `last_push_epoch`。
+2. `mem push` 讀取本地 `claude-mem.db`，送到 sync server；只有實際成功推送資料時才更新 `last_push_epoch`。
 3. `mem pull` 從 sync server 拉取資料，匯入本地 DB，成功後追加 `pulled-hashes.txt` 並更新 `last_pull_epoch`。
-4. `mem auto` 只切換 `sync-server.yaml` 內的 auto sync 設定；實際排程由外部環境負責。
+4. `mem auto` 會同步更新 `sync-server.yaml`，並直接安裝或移除使用者層級的 launchd / cron 排程。
 
 ## 命令關聯圖
 
