@@ -84,3 +84,100 @@ class TestNormalizePath(unittest.TestCase):
     def test_case_normalized_to_lower(self):
         result = fileguard.normalize_path("/Users/Arlen/.SSH/ID_RSA", "/home")
         self.assertTrue(result.islower() or result == result.lower())
+
+
+class TestMatchRules(unittest.TestCase):
+    """Test match_rules() firewall logic (first-match-wins)."""
+
+    def _make_rules(self, *rule_tuples):
+        """Helper: (action, pattern, type, reason) -> rules list."""
+        return [
+            {"action": a, "pattern": p, "type": t, "reason": r}
+            for a, p, t, r in rule_tuples
+        ]
+
+    def test_directory_deny(self):
+        rules = self._make_rules(("deny", "/users/arlen/.ssh", "directory", "SSH"))
+        result = fileguard.match_rules("/users/arlen/.ssh/id_rsa", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("deny", "SSH"))
+
+    def test_directory_allow(self):
+        rules = self._make_rules(("allow", "/users/arlen/.config/claude", "directory", "Claude"))
+        result = fileguard.match_rules("/users/arlen/.config/claude/settings.json", rules, "deny", is_bash=False)
+        self.assertEqual(result, ("allow", "Claude"))
+
+    def test_file_exact_match(self):
+        rules = self._make_rules(("deny", "/users/arlen/secrets.txt", "file", "Secrets"))
+        result = fileguard.match_rules("/users/arlen/secrets.txt", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("deny", "Secrets"))
+
+    def test_file_no_partial_match(self):
+        rules = self._make_rules(("deny", "/users/arlen/secrets.txt", "file", "Secrets"))
+        result = fileguard.match_rules("/users/arlen/secrets.txt.bak", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("allow", None))
+
+    def test_regex_match(self):
+        rules = self._make_rules(("deny", r"\.env($|\.)", "regex", "Env"))
+        result = fileguard.match_rules("/users/arlen/project/.env", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("deny", "Env"))
+
+    def test_regex_env_local(self):
+        rules = self._make_rules(("deny", r"\.env($|\.)", "regex", "Env"))
+        result = fileguard.match_rules("/users/arlen/project/.env.local", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("deny", "Env"))
+
+    def test_first_match_wins(self):
+        rules = self._make_rules(
+            ("allow", "/users/arlen/.config/claude", "directory", "Claude OK"),
+            ("deny", "/users/arlen/.config", "directory", "Config blocked"),
+        )
+        # .config/claude matches allow first
+        result = fileguard.match_rules("/users/arlen/.config/claude/settings.json", rules, "deny", is_bash=False)
+        self.assertEqual(result, ("allow", "Claude OK"))
+        # .config/other matches deny second
+        result = fileguard.match_rules("/users/arlen/.config/other/file", rules, "deny", is_bash=False)
+        self.assertEqual(result, ("deny", "Config blocked"))
+
+    def test_no_match_uses_default_allow(self):
+        rules = self._make_rules(("deny", "/secret", "directory", "Secret"))
+        result = fileguard.match_rules("/users/arlen/public/file.txt", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("allow", None))
+
+    def test_no_match_uses_default_deny(self):
+        rules = self._make_rules(("allow", "/safe", "directory", "Safe"))
+        result = fileguard.match_rules("/users/arlen/other/file.txt", rules, "deny", is_bash=False)
+        self.assertEqual(result, ("deny", None))
+
+    def test_bash_directory_substring(self):
+        rules = self._make_rules(("deny", "/users/arlen/.ssh", "directory", "SSH"))
+        result = fileguard.match_rules("cat /users/arlen/.ssh/id_rsa", rules, "allow", is_bash=True)
+        self.assertEqual(result, ("deny", "SSH"))
+
+    def test_bash_file_substring(self):
+        rules = self._make_rules(("deny", "/users/arlen/secrets.txt", "file", "Secrets"))
+        result = fileguard.match_rules("cat /users/arlen/secrets.txt", rules, "allow", is_bash=True)
+        self.assertEqual(result, ("deny", "Secrets"))
+
+    def test_bash_regex(self):
+        rules = self._make_rules(("deny", r"\.env($|\.| )", "regex", "Env"))
+        result = fileguard.match_rules("cat /project/.env", rules, "allow", is_bash=True)
+        self.assertEqual(result, ("deny", "Env"))
+
+    def test_bash_case_insensitive(self):
+        rules = self._make_rules(("deny", "/users/arlen/.ssh", "directory", "SSH"))
+        result = fileguard.match_rules("cat /Users/Arlen/.SSH/id_rsa", rules, "allow", is_bash=True)
+        self.assertEqual(result, ("deny", "SSH"))
+
+    def test_empty_rules_uses_default(self):
+        result = fileguard.match_rules("/any/path", [], "allow", is_bash=False)
+        self.assertEqual(result, ("allow", None))
+
+    def test_rule_missing_reason_field(self):
+        rules = [{"action": "deny", "pattern": "/secret", "type": "directory"}]
+        result = fileguard.match_rules("/secret/file", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("deny", ""))
+
+    def test_unknown_rule_type_skipped(self):
+        rules = [{"action": "deny", "pattern": "/secret", "type": "unknown", "reason": "?"}]
+        result = fileguard.match_rules("/secret/file", rules, "allow", is_bash=False)
+        self.assertEqual(result, ("allow", None))

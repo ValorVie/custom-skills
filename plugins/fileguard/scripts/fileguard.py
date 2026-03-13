@@ -46,3 +46,51 @@ def normalize_path(path: str, cwd: str) -> str:
         path = os.path.join(cwd, path)
     path = os.path.realpath(path)
     return path.lower()
+
+
+def match_rules(
+    path: str,
+    rules: list[dict],
+    default: str,
+    is_bash: bool,
+) -> tuple[str, str | None]:
+    """Evaluate path against firewall rules (first-match-wins).
+
+    Args:
+        path: Normalized path (non-Bash) or raw command string (Bash).
+        rules: List of rule dicts with action/pattern/type/reason.
+        default: Default action if no rule matches ("allow" or "deny").
+        is_bash: True if evaluating a Bash command string.
+
+    Returns:
+        (action, reason) tuple. reason is None if default was used.
+    """
+    for rule in rules:
+        action = rule["action"]
+        pattern = rule["pattern"]
+        rule_type = rule["type"]
+        reason = rule.get("reason", "")
+
+        if _matches(path, pattern, rule_type, is_bash):
+            return (action, reason)
+
+    return (default, None)
+
+
+def _matches(path: str, pattern: str, rule_type: str, is_bash: bool) -> bool:
+    """Check if a single rule matches the path."""
+    if is_bash:
+        command_lower = path.lower()
+        pattern_lower = pattern.lower()
+        if rule_type in ("directory", "file"):
+            return pattern_lower in command_lower
+        if rule_type == "regex":
+            return bool(re.search(pattern, path, re.IGNORECASE))
+    else:
+        if rule_type == "directory":
+            return path.startswith(pattern.lower())
+        if rule_type == "file":
+            return path == pattern.lower()
+        if rule_type == "regex":
+            return bool(re.search(pattern, path, re.IGNORECASE))
+    return False
