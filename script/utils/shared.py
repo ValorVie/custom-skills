@@ -831,6 +831,7 @@ def _copy_with_log(
     dst: Path,
     resource_type: str,
     target_name: str,
+    target_key: TargetType | None = None,
     tracker: "ManifestTracker | None" = None,
     skip_names: set[str] | None = None,
     source: str = "custom-skills",
@@ -858,7 +859,7 @@ def _copy_with_log(
     console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
     dst.mkdir(parents=True, exist_ok=True)
 
-    def _project_auto_skill(dst_item: Path) -> Path | None:
+    def _project_auto_skill(item: Path, dst_item: Path) -> Path | None:
         if auto_skill_state_dir is None:
             return None
         if not auto_skill_state_dir.exists() or not (auto_skill_state_dir / "SKILL.md").exists():
@@ -866,13 +867,19 @@ def _copy_with_log(
 
         from .auto_skill_projection import project_auto_skill
 
-        result = project_auto_skill(auto_skill_state_dir, dst_item)
+        result = project_auto_skill(
+            auto_skill_state_dir,
+            dst_item,
+            target_name=target_key,
+            policy_source_dir=item,
+        )
+        log_source = result.shadow_dir or auto_skill_state_dir
         console.print(
             "    [dim]"
-            f"{shorten_path(auto_skill_state_dir)} → {shorten_path(dst_item)} "
+            f"{shorten_path(log_source)} → {shorten_path(dst_item)} "
             f"({result.mode})[/dim]"
         )
-        return auto_skill_state_dir
+        return log_source
 
     # 如果有 tracker，需要逐一記錄
     if tracker is not None:
@@ -892,7 +899,7 @@ def _copy_with_log(
                         continue
                     dst_item = dst / item.name
                     if item.name == "auto-skill":
-                        actual_source = _project_auto_skill(dst_item)
+                        actual_source = _project_auto_skill(item, dst_item)
                         if actual_source is not None:
                             if record_method:
                                 record_method(item.name, actual_source, source=source)
@@ -936,7 +943,7 @@ def _copy_with_log(
             for item in src.iterdir():
                 if item.is_dir() and not item.name.startswith("."):
                     dst_item = dst / item.name
-                    if item.name == "auto-skill" and _project_auto_skill(dst_item) is not None:
+                    if item.name == "auto-skill" and _project_auto_skill(item, dst_item) is not None:
                         continue
                     policy = _load_clone_policy(item)
                     if policy is not None:
@@ -1138,6 +1145,7 @@ def copy_custom_skills_to_targets(
                 dst,
                 resource_type,
                 target_name,
+                target_key=target,
                 tracker=tracker,
                 skip_names=(
                     skip_names

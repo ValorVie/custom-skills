@@ -91,7 +91,7 @@ ai-dev install
 5. Clone 必要的設定儲存庫到 `~/.config/` （Stage 1）。
 6. Clone 已設定的自訂 repo（若有）。
 7. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2），並同步 `auto-skill` canonical state 到 `~/.config/ai-dev/skills/auto-skill`。
-8. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）；`auto-skill` 會優先以 `symlink/junction` 投影，失敗才 fallback copy。
+8. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）；`auto-skill` 會先為各 target 重建 `~/.config/ai-dev/projections/<target>/auto-skill` shadow，再將工具目錄投影到該 shadow，優先使用 `symlink/junction`，失敗才 fallback copy。
 9. 顯示已安裝的 Skills 清單與重複名稱警告。
 10. 顯示 `npx skills` 可用指令提示。
 
@@ -131,7 +131,7 @@ ai-dev update
 4. 更新 Codex CLI（若 Bun 已安裝）。
 5. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
 6. 更新已設定的自訂 repo。
-7. 同步 `auto-skill` canonical state。
+7. 同步 `auto-skill` canonical state（不直接變更各工具目錄的 shadow/投影）。
 
 > **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
 
@@ -163,7 +163,14 @@ ai-dev update && ai-dev clone
 ai-dev clone
 ```
 
-`auto-skill` 為特殊資源：來源固定為 `~/.config/ai-dev/skills/auto-skill`，分發時優先建立 `symlink`（Windows 優先 `junction`），若平台或權限不支援則自動 fallback 為複製。
+`auto-skill` 為特殊資源，採三層模型：
+
+1. canonical state：`~/.config/ai-dev/skills/auto-skill`
+2. per-target shadow：`~/.config/ai-dev/projections/<target>/auto-skill`
+3. tool projection：`~/.claude/skills/auto-skill`、`~/.codex/skills/auto-skill` 等
+
+`ai-dev update` 只刷新 canonical state。  
+`ai-dev clone` 會依 `.clonepolicy.json` 重建各 target 的 shadow，然後將工具目錄優先以 `symlink`（Windows 優先 `junction`）投影到 shadow；若平台或權限不支援才 fallback 為複製。
 
 #### 可選參數
 
