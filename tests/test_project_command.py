@@ -326,3 +326,193 @@ def test_project_init_without_git_repo_warns_and_records_disabled_exclude(
     assert "尚未偵測到 .git/" in result.stdout
     assert "建議先執行 `git init`" in result.stdout
     assert "ai-dev project exclude --enable" in result.stdout
+
+
+def test_project_update_reports_valid_init_commands_when_all_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 1, result.stdout
+    assert "uds init" in result.stdout
+    assert "openspec init" in result.stdout
+    assert "project init --only" not in result.stdout
+
+
+def test_project_update_reports_valid_init_command_when_openspec_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    (project_root / ".standards" / "active-profile.yaml").write_text(
+        "active: ecc\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "openspec init" in result.stdout
+    assert "project init --only" not in result.stdout
+    assert "✓ uds update 完成" in result.stdout
+
+
+def test_project_update_treats_uds_without_active_profile_as_not_initialized(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "openspec").mkdir()
+    (project_root / "openspec" / "project.md").write_text(
+        "project: demo\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec" / "config.yaml").write_text(
+        "schema: spec-driven\nspecs: []\nactive: []\narchived: []\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+
+    result = runner.invoke(app, ["project", "update", "--only", "uds"])
+
+    assert result.exit_code == 1, result.stdout
+    assert "專案尚未初始化" in result.stdout
+    assert "uds init" in result.stdout
+    assert "✓ uds update 完成" not in result.stdout
+
+
+def test_project_update_reports_precise_missing_detail_for_uds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "openspec").mkdir()
+    (project_root / "openspec" / "project.md").write_text(
+        "project: demo\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec" / "config.yaml").write_text(
+        "schema: spec-driven\nspecs: []\nactive: []\narchived: []\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert ".standards/active-profile.yaml 不存在" in result.stdout
+    assert "建議執行 `uds init`" in result.stdout
+
+
+def test_project_update_reports_precise_missing_detail_for_openspec(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    (project_root / ".standards" / "active-profile.yaml").write_text(
+        "active: ecc\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec").mkdir()
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "openspec/project.md 不存在" in result.stdout
+    assert "建議執行 `openspec init`" in result.stdout
+
+
+def test_project_update_reports_invalid_manifest_for_uds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "openspec").mkdir()
+    (project_root / "openspec" / "project.md").write_text(
+        "project: demo\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec" / "config.yaml").write_text(
+        "schema: spec-driven\nspecs: []\nactive: []\narchived: []\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards" / "active-profile.yaml").write_text(
+        "active: ecc\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert ".standards/manifest.json 結構無效" in result.stdout
+    assert "建議執行 `uds init`" in result.stdout
+
+
+def test_run_tool_command_treats_uds_false_success_as_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    completed = subprocess.CompletedProcess(
+        args=["uds", "update"],
+        returncode=0,
+        stdout="Invalid manifest structure detected\n✗ Could not read manifest file.\n",
+        stderr="",
+    )
+    monkeypatch.setattr(project_command.subprocess, "run", lambda *args, **kwargs: completed)
+
+    assert project_command.run_tool_command("uds", "update") is False
+
+
+def test_run_tool_command_treats_openspec_false_success_as_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    completed = subprocess.CompletedProcess(
+        args=["openspec", "update"],
+        returncode=0,
+        stdout='No configured tools found.\nRun "openspec init" to set up tools.\n',
+        stderr="",
+    )
+    monkeypatch.setattr(project_command.subprocess, "run", lambda *args, **kwargs: completed)
+
+    assert project_command.run_tool_command("openspec", "update") is False

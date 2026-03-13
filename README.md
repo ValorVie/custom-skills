@@ -88,10 +88,10 @@ ai-dev install
 2. 檢查 Claude Code CLI 是否已安裝（若無則顯示安裝指引）。
 3. 安裝全域 NPM 工具 (`openspec`, `gemini-cli`, `skills` 等)。
 4. 檢查 Bun 是否已安裝，若已安裝則自動安裝 Codex CLI。
-5. Clone 必要的設定儲存庫到 `~/.config/` （Stage 1）。
+5. Clone 必要的設定儲存庫到 `~/.config/`（Stage 1，包含 `~/.config/custom-skills` 本機 repo）。
 6. Clone 已設定的自訂 repo（若有）。
-7. 整合 Skills 到 `~/.config/custom-skills/`（Stage 2），並同步 `auto-skill` canonical state 到 `~/.config/ai-dev/skills/auto-skill`。
-8. 複製 Skills 與設定到各個 AI 工具的目錄（Stage 3）；`auto-skill` 會先為各 target 重建 `~/.config/ai-dev/projections/<target>/auto-skill` shadow，再將工具目錄投影到該 shadow，優先使用 `symlink/junction`，失敗才 fallback copy。
+7. 同步 `auto-skill` canonical state 到 `~/.config/ai-dev/skills/auto-skill`。
+8. 從 `~/.config/custom-skills` 分發 Skills 與設定到各個 AI 工具的目錄；`auto-skill` 會先為各 target 重建 `~/.config/ai-dev/projections/<target>/auto-skill` shadow，再將工具目錄投影到該 shadow，優先使用 `symlink/junction`，失敗才 fallback copy。
 9. 顯示已安裝的 Skills 清單與重複名稱警告。
 10. 顯示 `npx skills` 可用指令提示。
 
@@ -215,7 +215,7 @@ ai-dev maintain template --check
 ai-dev project init
 
 # 同名檔案會提示覆蓋 / 增量 / 差異 / 跳過
-# 同名目錄則保留現況不動
+# 同名目錄會遞迴到檔案層級處理，目標額外檔案保留
 
 # 初始化指定目錄
 ai-dev project init /path/to/dir
@@ -246,7 +246,8 @@ ai-dev project update --only openspec
 > **初始化衝突規則**：
 > - `ai-dev project init`：遇到同名檔案時會進行內容級別分析，提供覆蓋、增量、查看差異、跳過選項。
 > - `ai-dev project init --force`：只會無條件覆蓋同名檔案。
-> - 若目標已存在同名目錄，兩種模式都會保留既有目錄內容，不刪除、不重建。
+> - 若目標已存在同名目錄，兩種模式都會遞迴到檔案層級處理；模板沒有的目標額外檔案會保留。
+> - `ai-dev project init` 會放入 `.standards/` scaffold，但不會替外部 `uds` CLI 執行 `uds init`。
 
 #### 可選參數
 

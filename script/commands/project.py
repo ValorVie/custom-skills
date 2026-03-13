@@ -7,6 +7,7 @@ project 指令群組：專案級別的初始化與更新操作。
 """
 
 import filecmp
+import json
 import os
 import shutil
 import stat
@@ -16,6 +17,7 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 import typer
+import yaml
 from rich.console import Console
 
 from ..utils.git_exclude import (
@@ -394,22 +396,133 @@ def run_tool_command(tool: str, command: str) -> bool:
         result = subprocess.run(
             [tool, command],
             check=False,
+            capture_output=True,
+            text=True,
         )
+        if result.stdout:
+            typer.echo(result.stdout, nl=False)
+        if result.stderr:
+            typer.echo(result.stderr, nl=False, err=True)
+
+        output = f"{result.stdout or ''}\n{result.stderr or ''}"
+        false_success_markers = {
+            "uds": [
+                "Standards not initialized in this project.",
+                "Invalid manifest structure detected",
+                "Could not read manifest file.",
+            ],
+            "openspec": [
+                "No configured tools found.",
+                'Run "openspec init" to set up tools.',
+            ],
+        }
+        if result.returncode == 0 and any(
+            marker in output for marker in false_success_markers.get(tool, [])
+        ):
+            return False
+
         return result.returncode == 0
     except FileNotFoundError:
         console.print(f"[bold red]找不到 {tool} 命令[/bold red]")
         return False
 
 
+def _has_valid_json_object(path: Path, required_keys: set[str]) -> bool:
+    """檢查 JSON 檔案是否為包含必要 key 的 object。"""
+    if not path.exists():
+        return False
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+
+    return isinstance(data, dict) and required_keys.issubset(data.keys())
+
+
+def _has_valid_yaml_object(path: Path, required_keys: set[str]) -> bool:
+    """檢查 YAML 檔案是否為包含必要 key 的 object。"""
+    if not path.exists():
+        return False
+
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+
+    return isinstance(data, dict) and required_keys.issubset(data.keys())
+
+
 def check_project_initialized(tool: str) -> bool:
     """檢查專案是否已初始化特定工具。"""
+    if tool == "uds":
+        standards_dir = Path(TOOLS[tool]["check_dir"])
+        return (
+            standards_dir.exists()
+            and _has_valid_json_object(
+                standards_dir / "manifest.json",
+                {"version", "standards", "integrationConfigs", "upstream"},
+            )
+            and (standards_dir / "active-profile.yaml").exists()
+        )
+    if tool == "openspec":
+        openspec_dir = Path(TOOLS[tool]["check_dir"])
+        return (
+            openspec_dir.exists()
+            and (openspec_dir / "project.md").exists()
+            and _has_valid_yaml_object(
+                openspec_dir / "config.yaml",
+                {"schema", "specs", "active", "archived"},
+            )
+        )
+
     check_dir = TOOLS[tool]["check_dir"]
     return Path(check_dir).exists()
+
+
+def _project_init_missing_detail(tool: str) -> str:
+    """回傳指定工具缺少初始化時的缺口描述。"""
+    if tool == "uds":
+        standards_dir = Path(TOOLS[tool]["check_dir"])
+        if not standards_dir.exists():
+            return ".standards/ 不存在"
+        if not (standards_dir / "manifest.json").exists():
+            return ".standards/manifest.json 不存在"
+        if not _has_valid_json_object(
+            standards_dir / "manifest.json",
+            {"version", "standards", "integrationConfigs", "upstream"},
+        ):
+            return ".standards/manifest.json 結構無效"
+        if not (standards_dir / "active-profile.yaml").exists():
+            return ".standards/active-profile.yaml 不存在"
+    if tool == "openspec":
+        openspec_dir = Path(TOOLS[tool]["check_dir"])
+        if not openspec_dir.exists():
+            return "openspec/ 不存在"
+        if not (openspec_dir / "project.md").exists():
+            return "openspec/project.md 不存在"
+        if not (openspec_dir / "config.yaml").exists():
+            return "openspec/config.yaml 不存在"
+        if not _has_valid_yaml_object(
+            openspec_dir / "config.yaml",
+            {"schema", "specs", "active", "archived"},
+        ):
+            return "openspec/config.yaml 結構無效"
+    return f"{TOOLS[tool]['check_dir']}/ 不存在"
 
 
 def get_missing_tools(tools: List[str]) -> List[str]:
     """取得未安裝的工具列表。"""
     return [t for t in tools if not check_tool_installed(t)]
+
+
+def _project_init_hint_for_tool(tool: str) -> str:
+    """回傳指定工具缺少初始化時的建議指令。"""
+    hints = {
+        "openspec": "openspec init",
+        "uds": "uds init",
+    }
+    return hints.get(tool, "ai-dev project init")
 
 
 @app.command()
@@ -673,20 +786,20 @@ def update(
     not_init = [t for t in tools_to_update if not check_project_initialized(t)]
     if not_init:
         if len(not_init) == len(tools_to_update):
-            # 全部都沒初始化
             console.print("[bold red]專案尚未初始化。[/bold red]")
-            console.print("[yellow]請先執行 `ai-dev project init`[/yellow]")
+            console.print("[yellow]請先完成必要初始化：[/yellow]")
+            for tool in not_init:
+                console.print(
+                    f"  - {tool}: [dim]{_project_init_hint_for_tool(tool)}[/dim]"
+                )
             raise typer.Exit(code=1)
         else:
-            # 部分初始化
             console.print("[yellow]以下工具尚未初始化：[/yellow]")
             for tool in not_init:
-                check_dir = TOOLS[tool]["check_dir"]
-                console.print(f"  - {tool}: {check_dir}/ 不存在")
-            console.print()
-            console.print(
-                f"[dim]建議執行 `ai-dev project init --only {not_init[0]}`[/dim]"
-            )
+                console.print(f"  - {tool}: {_project_init_missing_detail(tool)}")
+                console.print(
+                    f"    [dim]建議執行 `{_project_init_hint_for_tool(tool)}`[/dim]"
+                )
             console.print()
 
             # 只更新已初始化的工具
