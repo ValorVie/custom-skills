@@ -138,3 +138,54 @@ def test_refresh_auto_skill_state_falls_back_to_template_policy_for_upstream_ind
         "template-skill",
         "upstream-skill",
     }
+
+
+def test_refresh_auto_skill_state_skips_malformed_upstream_index_without_warning(
+    tmp_path: Path, capsys
+):
+    template = tmp_path / "template"
+    upstream = tmp_path / "upstream"
+    state = tmp_path / "state"
+
+    _write_json(
+        template / ".clonepolicy.json",
+        {
+            "rules": [
+                {"pattern": "*/_index.json", "strategy": "key-merge"},
+                {"pattern": "knowledge-base/*.md", "strategy": "skip-if-exists"},
+                {"pattern": "experience/*.md", "strategy": "skip-if-exists"},
+            ]
+        },
+    )
+    _write(template / "SKILL.md", "template skill\n")
+    _write_json(template / "experience" / "_index.json", {"skills": []})
+
+    _write(upstream / "SKILL.md", "upstream skill\n")
+    _write(
+        upstream / "experience" / "_index.json",
+        '{\n'
+        '  "lastUpdated": "2026-02-09",\n'
+        '  "version": "1.0.0",\n'
+        '  "skills": [\n'
+        '    {\n'
+        '      "skillId": "",\n'
+        '      "file": "",\n'
+        '      "keywords": [],\n'
+        '      "count": \n'
+        "    }\n"
+        "  ]\n"
+        "}\n",
+    )
+
+    result = refresh_auto_skill_state(
+        template_dir=template,
+        upstream_dir=upstream,
+        state_dir=state,
+    )
+
+    captured = capsys.readouterr()
+    assert result == state
+    assert "來源 JSON 讀取失敗" not in captured.out
+    assert json.loads((state / "experience" / "_index.json").read_text(encoding="utf-8")) == {
+        "skills": []
+    }

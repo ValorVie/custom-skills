@@ -16,6 +16,10 @@ from .paths import (
 AUTO_SKILL_IGNORE_TOP_LEVEL = {".git", "assets"}
 AUTO_SKILL_IGNORE_FILES = {"README.md"}
 CLONE_POLICY_FILE = ".clonepolicy.json"
+AUTO_SKILL_INDEX_PATHS = {
+    Path("knowledge-base") / "_index.json",
+    Path("experience") / "_index.json",
+}
 
 
 def _is_valid_auto_skill_dir(path: Path | None) -> bool:
@@ -37,6 +41,11 @@ def _stage_auto_skill_source(source_dir: Path, staged_dir: Path) -> Path:
             continue
         if len(relative_path.parts) == 1 and relative_path.name in AUTO_SKILL_IGNORE_FILES:
             continue
+        if relative_path in AUTO_SKILL_INDEX_PATHS:
+            try:
+                json.loads(src_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
 
         dst_path = staged_dir / relative_path
         dst_path.parent.mkdir(parents=True, exist_ok=True)
