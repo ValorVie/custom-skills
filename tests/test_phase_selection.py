@@ -30,3 +30,16 @@ def test_target_requires_targets_phase() -> None:
             target="claude",
             dry_run=False,
         )
+
+
+def test_only_and_skip_cannot_be_combined() -> None:
+    spec = get_command_spec(build_command_manifest(), ("install",))
+
+    with pytest.raises(ValueError, match="不能同時使用"):
+        build_execution_plan(
+            spec,
+            only="tools",
+            skip="repos",
+            target=None,
+            dry_run=False,
+        )

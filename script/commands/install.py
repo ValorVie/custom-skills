@@ -76,14 +76,12 @@ def _is_completion_installed(shell: str) -> bool:
 
 
 def _legacy_install(
-    skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件安裝"),
-    skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件安裝"),
-    skip_repos: bool = typer.Option(
-        False, "--skip-repos", help="跳過 Git 儲存庫 Clone"
-    ),
-    skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
+    skip_npm: bool = False,
+    skip_bun: bool = False,
+    skip_repos: bool = False,
+    skip_skills: bool = False,
 ):
-    """首次安裝 AI 開發環境。"""
+    """舊版 install 流程快照，僅供 phase pipeline 對照。"""
     console.print("[bold blue]開始安裝...[/bold blue]")
 
     # 1. 檢查前置需求
@@ -358,11 +356,14 @@ def install(
     """首次安裝 AI 開發環境。"""
     manifest = build_command_manifest()
     spec = get_command_spec(manifest, ("install",))
-    plan = build_execution_plan(
-        spec,
-        only=only,
-        skip=skip,
-        target=target,
-        dry_run=dry_run,
-    )
+    try:
+        plan = build_execution_plan(
+            spec,
+            only=only,
+            skip=skip,
+            target=target,
+            dry_run=dry_run,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     execute_install_plan(plan)

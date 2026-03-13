@@ -18,6 +18,9 @@ def resolve_phases(
     only: str | None,
     skip: str | None,
 ) -> tuple[str, ...]:
+    if only and skip:
+        raise ValueError("--only 與 --skip 不能同時使用")
+
     if only:
         phases = _parse_csv(only)
     else:

@@ -35,7 +35,7 @@ def build_command_manifest() -> CommandManifest:
                 path=("update",),
                 kind="top_level",
                 default_phases=("tools", "repos", "state"),
-                allowed_phases=PIPELINE_PHASES,
+                allowed_phases=("tools", "repos", "state"),
                 allowed_targets=TARGETS,
                 flags=PIPELINE_FLAGS,
                 state_writers=(
@@ -47,7 +47,7 @@ def build_command_manifest() -> CommandManifest:
                 path=("clone",),
                 kind="top_level",
                 default_phases=("state", "targets"),
-                allowed_phases=PIPELINE_PHASES,
+                allowed_phases=("state", "targets"),
                 allowed_targets=TARGETS,
                 flags=PIPELINE_FLAGS,
                 state_writers=(

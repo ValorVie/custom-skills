@@ -75,12 +75,26 @@ flowchart LR
 
 | 命令 | 主要副作用 |
 |------|------------|
-| `ai-dev install` | 建立本機 repo 與工具環境，刷新 `auto-skill` canonical state，並從 `~/.config/custom-skills` 分發到各工具目錄 |
-| `ai-dev update` | 更新工具與本機 repo，刷新 `auto-skill` canonical state，不直接動 target shadow |
-| `ai-dev clone` | 從 `~/.config/custom-skills` 分發資源到各工具目錄，並更新各 target 的 `auto-skill` shadow |
+| `ai-dev install` | 預設依序執行 `tools → repos → state → targets`，建立工具環境、Clone repo、刷新 canonical state，最後分發到各工具目錄 |
+| `ai-dev update` | 預設依序執行 `tools → repos → state`，更新工具與本機 repo，刷新 `auto-skill` canonical state，不直接動 target shadow |
+| `ai-dev clone` | 預設依序執行 `state → targets`，先刷新 `auto-skill` canonical state，再從 `~/.config/custom-skills` 分發資源到各工具目錄並更新各 target shadow |
 | `ai-dev status` | 讀取工具安裝狀態；對 repo 會比對 local HEAD 與 `origin/main`，若在 repo 內且存在上游同步紀錄，也會讀 `upstream/last-sync.yaml` / `upstream/sources.yaml` 顯示同步狀態 |
 | `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state |
 | `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml` |
+
+共享 phase 參數：
+- `install`：允許 `tools,repos,state,targets`
+- `update`：允許 `tools,repos,state`
+- `clone`：允許 `state,targets`
+- `--only <phase,...>`：只執行指定 phase
+- `--skip <phase,...>`：從預設 phase 集合中移除指定 phase
+- `--target <tool,...>`：限制 `targets` phase 的分發目標；目前只對 `install` / `clone` 有效
+- `--dry-run`：只顯示執行計畫，不寫入任何檔案
+- `clone` 額外保留 `--force`、`--skip-conflicts`、`--backup` 作為衝突處理策略
+
+注意：
+- `--only` 與 `--skip` 不能同時使用
+- 若命令不支援某 phase，CLI 會以參數錯誤直接返回，不會噴 traceback
 
 ### 2. 專案層：built-in project-template
 

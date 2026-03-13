@@ -14,38 +14,11 @@ console = Console()
 
 
 def _legacy_clone(
-    force: bool = typer.Option(
-        False,
-        "--force",
-        "-f",
-        help="強制覆蓋所有衝突檔案（不提示）。",
-    ),
-    skip_conflicts: bool = typer.Option(
-        False,
-        "--skip-conflicts",
-        "-s",
-        help="跳過有衝突的檔案，僅分發無衝突的檔案。",
-    ),
-    backup: bool = typer.Option(
-        False,
-        "--backup",
-        "-b",
-        help="備份衝突檔案後再覆蓋。",
-    ),
+    force: bool = False,
+    skip_conflicts: bool = False,
+    backup: bool = False,
 ):
-    """分發 Skills 到各工具目錄。
-
-    將 ~/.config/custom-skills 的內容分發到：
-    - Claude Code (~/.claude/)
-    - OpenCode (~/.config/opencode/)
-    - Gemini CLI (~/.gemini/)
-    - Codex (~/.codex/)
-    - Antigravity (~/.gemini/antigravity/)
-
-    流程說明：
-    - ~/.config/custom-skills 的內容由 git repo 控制
-    - 此指令只負責分發，不會整合外部來源回 custom-skills 專案
-    """
+    """舊版 clone 流程快照，僅供 phase pipeline 對照。"""
     # 分發 Skills（從 ~/.config/custom-skills 分發到各工具目錄）
     console.print("[bold blue]分發 Skills 到各工具目錄...[/bold blue]")
 
@@ -97,13 +70,16 @@ def clone(
     """分發 Skills 到各工具目錄。"""
     manifest = build_command_manifest()
     spec = get_command_spec(manifest, ("clone",))
-    plan = build_execution_plan(
-        spec,
-        only=only,
-        skip=skip,
-        target=target,
-        dry_run=dry_run,
-    )
+    try:
+        plan = build_execution_plan(
+            spec,
+            only=only,
+            skip=skip,
+            target=target,
+            dry_run=dry_run,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     execute_clone_plan(
         plan,
         force=force,

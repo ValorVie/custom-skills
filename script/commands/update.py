@@ -166,24 +166,12 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
 
 
 def _legacy_update(
-    skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
-    skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件更新"),
-    skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
-    skip_plugins: bool = typer.Option(
-        False, "--skip-plugins", help="跳過 Claude Code Plugin Marketplace 更新"
-    ),
+    skip_npm: bool = False,
+    skip_bun: bool = False,
+    skip_repos: bool = False,
+    skip_plugins: bool = False,
 ):
-    """更新工具與拉取儲存庫。
-
-    此指令負責：
-    1. 更新 Claude Code（除非 --skip-npm）
-    2. 更新全域 NPM 套件（除非 --skip-npm）
-    3. 拉取 ~/.config/ 下的所有 repo（除非 --skip-repos）
-    4. 更新 Claude Code Plugin Marketplace（除非 --skip-plugins）
-
-    注意：此指令不會分發 Skills 到各工具目錄。
-    如需分發，請執行 `ai-dev clone`。
-    """
+    """舊版 update 流程快照，僅供 phase pipeline 對照。"""
     console.print("[bold blue]開始更新...[/bold blue]")
 
     # 1. 更新 Claude Code
@@ -295,7 +283,7 @@ def _legacy_update(
             for repo_path in missing_repos:
                 console.print(f"  • {repo_path}")
             console.print(
-                "[dim]   請執行 `ai-dev install --skip-npm --skip-bun` 來補齊缺失的儲存庫[/dim]"
+                "[dim]   請執行 `ai-dev install --only repos,state,targets` 來補齊缺失的儲存庫[/dim]"
             )
 
         # 更新 custom repos（含 tool 和 template 類型）
@@ -403,11 +391,14 @@ def update(
     """更新工具與拉取儲存庫。"""
     manifest = build_command_manifest()
     spec = get_command_spec(manifest, ("update",))
-    plan = build_execution_plan(
-        spec,
-        only=only,
-        skip=skip,
-        target=target,
-        dry_run=dry_run,
-    )
+    try:
+        plan = build_execution_plan(
+            spec,
+            only=only,
+            skip=skip,
+            target=target,
+            dry_run=dry_run,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     execute_update_plan(plan)

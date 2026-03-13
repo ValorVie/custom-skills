@@ -58,9 +58,10 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 給定已安裝的環境且 `repos.yaml` 存在已註冊的 custom repos
 當執行 `ai-dev update` 時
 則應該執行：
-1. 更新全域 NPM 套件（除非 `--skip-npm`）
-2. 在已 clone 的內建儲存庫中執行 `git fetch --all` 與 `git reset --hard origin/<branch>`（除非 `--skip-repos`）
-3. 對每個 custom repo 執行相同的 fetch 與 reset 操作（除非 `--skip-repos`）
+1. 更新工具 phase（預設包含 Claude Code、NPM、Bun、plugin marketplace）
+2. 在已 clone 的內建儲存庫中執行 `git fetch --all` 與 `git reset --hard origin/<branch>`（預設 repos phase）
+3. 對每個 custom repo 執行相同的 fetch 與 reset 操作（預設 repos phase）
+4. 刷新 `auto-skill` canonical state（預設 state phase）
 
 且不應該執行：
 - Stage 2（整合 skills）
@@ -83,11 +84,11 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 #### Scenario: 跳過特定步驟
 
 給定已安裝的環境
-當執行 `ai-dev update --skip-npm` 時
-則應該只執行 repo 更新
+當執行 `ai-dev update --only repos,state` 時
+則應該只執行 repo 更新與 canonical state 刷新
 
-當執行 `ai-dev update --skip-repos` 時
-則應該只執行 NPM 更新
+當執行 `ai-dev update --only tools` 時
+則應該只執行工具更新
 
 ### Requirement: Multi-platform Support (跨平台支援)
 
@@ -218,4 +219,3 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 - `--no-sync-project` 選項
 
 這些選項應移至 `ai-dev clone`。
-

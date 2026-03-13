@@ -50,3 +50,11 @@ def test_update_builds_execution_plan_and_calls_pipeline(monkeypatch):
         "dry_run": True,
     }
     assert captured["plan"] == plan
+
+
+def test_update_reports_invalid_phase_without_traceback():
+    result = runner.invoke(app, ["update", "--only", "targets"])
+
+    assert result.exit_code != 0
+    assert "Unknown phases: targets" in result.output
+    assert "Traceback" not in result.output

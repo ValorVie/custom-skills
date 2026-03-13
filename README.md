@@ -96,20 +96,25 @@ ai-dev install
 10. 顯示 `npx skills` 可用指令提示。
 
 > **注意**：Claude Code 需要使用 native 安裝方式，不再透過 NPM 安裝。
+>
+> `ai-dev install` 預設 phase 為 `tools,repos,state,targets`。
 
 #### 可選參數
 
 | 參數 | 說明 |
 |------|------|
-| `--skip-npm` | 跳過 NPM 套件安裝 |
-| `--skip-bun` | 跳過 Bun 套件安裝（Codex） |
-| `--skip-repos` | 跳過 Git 儲存庫 Clone |
-| `--skip-skills` | 跳過複製 Skills |
+| `--only` | 只執行指定 phase：`tools,repos,state,targets` |
+| `--skip` | 從預設 phase 中跳過指定 phase |
+| `--target` | 僅分發指定目標：`claude`, `codex`, `gemini`, `opencode`, `antigravity` |
+| `--dry-run` | 只顯示執行計畫，不實際寫入 |
 
 **範例：**
 ```bash
-# 只 Clone 儲存庫（跳過 NPM 和 Skills 複製）
-ai-dev install --skip-npm --skip-skills
+# 只建立 repo 與 canonical state，不分發到工具目錄
+ai-dev install --only repos,state
+
+# 僅分發到 Claude Code
+ai-dev install --only state,targets --target claude
 ```
 
 ### 每日更新 (Update)
@@ -130,22 +135,24 @@ ai-dev update
 7. 同步 `auto-skill` canonical state（不直接變更各工具目錄的 shadow/投影）。
 
 > **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
+>
+> `ai-dev update` 預設 phase 為 `tools,repos,state`。
 
 #### 可選參數
 
 | 參數 | 說明 |
 |------|------|
-| `--skip-npm` | 跳過 NPM 套件更新（含 Claude Code） |
-| `--skip-bun` | 跳過 Bun 套件更新（Codex） |
-| `--skip-repos` | 跳過 Git 儲存庫更新 |
+| `--only` | 只執行指定 phase：`tools,repos,state` |
+| `--skip` | 從預設 phase 中跳過指定 phase |
+| `--dry-run` | 只顯示執行計畫，不實際寫入 |
 
 **範例：**
 ```bash
-# 只更新 Git 儲存庫（跳過 NPM）
-ai-dev update --skip-npm
+# 只更新 repo 與 canonical state，不更新工具
+ai-dev update --only repos,state
 
-# 只更新 NPM 套件（跳過 Git）
-ai-dev update --skip-repos
+# 只更新工具
+ai-dev update --only tools
 
 # 更新後分發 Skills
 ai-dev update && ai-dev clone
@@ -169,16 +176,28 @@ ai-dev clone
 `ai-dev clone` 會依 `.clonepolicy.json` 重建各 target 的 shadow，然後將工具目錄優先以 `symlink`（Windows 優先 `junction`）投影到 shadow；若平台或權限不支援才 fallback 為複製。
 canonical state 與 shadow 會保留有效的 `.clonepolicy.json`；當 upstream `auto-skill` 缺少 policy 時，canonical refresh 會 fallback 使用 template policy，並以 temp rebuild 方式避免舊 state 反覆產生衝突訊息。
 
+`ai-dev clone` 預設 phase 為 `state,targets`。
+
 #### 可選參數
 
 | 參數 | 說明 |
 |------|------|
+| `--only` | 只執行指定 phase：`state,targets` |
+| `--skip` | 從預設 phase 中跳過指定 phase |
+| `--target` | 僅分發指定目標：`claude`, `codex`, `gemini`, `opencode`, `antigravity` |
+| `--dry-run` | 只顯示執行計畫，不實際寫入 |
 | `--force`, `-f` | 強制覆蓋所有衝突檔案（不提示） |
 | `--skip-conflicts`, `-s` | 跳過有衝突的檔案，僅分發無衝突的檔案 |
 | `--backup`, `-b` | 備份衝突檔案後再覆蓋 |
 
 **範例：**
 ```bash
+# 只刷新 canonical state，不做分發
+ai-dev clone --only state
+
+# 只分發到 Claude 與 Codex
+ai-dev clone --target claude,codex
+
 # 強制覆蓋所有檔案
 ai-dev clone --force
 
