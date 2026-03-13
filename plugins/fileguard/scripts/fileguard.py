@@ -163,3 +163,69 @@ def make_rules_error_output() -> str:
             "所有路徑存取被拒絕。請手動建立規則檔或 touch .disable-fileguard 停用保護。"
         ),
     })
+
+
+def load_rules(plugin_root: str) -> tuple[list[dict], str] | None:
+    """Load rules from fileguard-rules.json.
+
+    Returns (rules, default) or None if load fails.
+    """
+    rules_path = os.path.join(plugin_root, "fileguard-rules.json")
+    try:
+        with open(rules_path, "r") as f:
+            data = json.load(f)
+        return data["rules"], data.get("default", "allow")
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        return None
+
+
+def main() -> None:
+    """Main entry point — reads stdin, evaluates rules, outputs decision."""
+    # Parse stdin
+    try:
+        raw = sys.stdin.read()
+        data = json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        sys.exit(0)
+
+    tool_name = data.get("tool_name", "")
+    tool_input = data.get("tool_input", {})
+    cwd = data.get("cwd", "")
+    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
+
+    # Hardcoded protection (cannot be bypassed)
+    if check_hardcoded_protection(tool_name, tool_input, plugin_root):
+        print(make_hardcoded_deny_output())
+        sys.exit(2)
+
+    # Check disable flag
+    if os.path.exists(os.path.join(cwd, DISABLE_FLAG)):
+        sys.exit(0)
+
+    # Load rules
+    rules_data = load_rules(plugin_root)
+    if rules_data is None:
+        print(make_rules_error_output())
+        sys.exit(2)
+    rules, default = rules_data
+
+    # Extract paths
+    paths = extract_paths(tool_name, tool_input, cwd)
+    if not paths:
+        sys.exit(0)
+
+    is_bash = tool_name == "Bash"
+
+    for path in paths:
+        check_path = path if is_bash else normalize_path(path, cwd)
+        action, reason = match_rules(check_path, rules, default, is_bash)
+        if action == "deny":
+            display_path = path if is_bash else tool_input.get("file_path", path)
+            print(make_deny_output(display_path, reason or "Default deny"))
+            sys.exit(2)
+
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

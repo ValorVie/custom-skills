@@ -272,3 +272,130 @@ class TestOutputHelpers(unittest.TestCase):
         self.assertEqual(parsed["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertIn("fileguard-rules.json", parsed["systemMessage"])
         self.assertIn(".disable-fileguard", parsed["systemMessage"])
+
+
+import subprocess
+import tempfile
+import shutil
+
+
+class TestMainIntegration(unittest.TestCase):
+    """Integration tests running fileguard.py as a subprocess."""
+
+    SCRIPT_PATH = os.path.join(
+        os.path.dirname(__file__), '..', 'plugins', 'fileguard', 'scripts', 'fileguard.py'
+    )
+
+    def setUp(self):
+        """Create a temp dir with rules and plugin structure."""
+        self.tmpdir = tempfile.mkdtemp()
+        self.plugin_root = os.path.join(self.tmpdir, "plugins", "fileguard")
+        os.makedirs(os.path.join(self.plugin_root, "scripts"), exist_ok=True)
+        # Copy script
+        shutil.copy2(self.SCRIPT_PATH, os.path.join(self.plugin_root, "scripts", "fileguard.py"))
+        # Write rules
+        rules = {
+            "rules": [
+                {"action": "allow", "pattern": "/safe/allowed", "type": "directory", "reason": "Allowed"},
+                {"action": "deny", "pattern": "/safe", "type": "directory", "reason": "Blocked"},
+                {"action": "deny", "pattern": r"\.env($|\.)", "type": "regex", "reason": "Env secrets"},
+            ],
+            "default": "allow",
+        }
+        self.rules_path = os.path.join(self.plugin_root, "fileguard-rules.json")
+        with open(self.rules_path, "w") as f:
+            json.dump(rules, f)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def _run(self, tool_name, tool_input, cwd=None):
+        """Run fileguard.py with given input, return (exit_code, stdout, stderr)."""
+        stdin_data = json.dumps({
+            "tool_name": tool_name,
+            "tool_input": tool_input,
+            "cwd": cwd or self.tmpdir,
+        })
+        env = os.environ.copy()
+        env["CLAUDE_PLUGIN_ROOT"] = self.plugin_root
+        result = subprocess.run(
+            [sys.executable, self.SCRIPT_PATH],
+            input=stdin_data,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        return result.returncode, result.stdout, result.stderr
+
+    def test_deny_protected_path(self):
+        code, stdout, _ = self._run("Read", {"file_path": "/safe/secret.txt"})
+        self.assertEqual(code, 2)
+        output = json.loads(stdout)
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_allow_allowed_path(self):
+        code, stdout, _ = self._run("Read", {"file_path": "/safe/allowed/file.txt"})
+        self.assertEqual(code, 0)
+
+    def test_allow_unmatched_path(self):
+        code, stdout, _ = self._run("Read", {"file_path": "/other/file.txt"})
+        self.assertEqual(code, 0)
+
+    def test_deny_env_file(self):
+        code, stdout, _ = self._run("Read", {"file_path": "/project/.env"})
+        self.assertEqual(code, 2)
+
+    def test_deny_env_local(self):
+        code, stdout, _ = self._run("Read", {"file_path": "/project/.env.local"})
+        self.assertEqual(code, 2)
+
+    def test_deny_bash_with_protected_path(self):
+        code, stdout, _ = self._run("Bash", {"command": "cat /safe/secret.txt"})
+        self.assertEqual(code, 2)
+
+    def test_hardcoded_blocks_disable_flag(self):
+        code, stdout, _ = self._run("Bash", {"command": "rm .disable-fileguard"})
+        self.assertEqual(code, 2)
+        output = json.loads(stdout)
+        self.assertIn("系統保護", output["systemMessage"])
+
+    def test_hardcoded_blocks_plugin_root(self):
+        code, stdout, _ = self._run("Read", {"file_path": f"{self.plugin_root}/fileguard-rules.json"})
+        self.assertEqual(code, 2)
+        output = json.loads(stdout)
+        self.assertIn("系統保護", output["systemMessage"])
+
+    def test_disable_flag_skips_all(self):
+        flag_path = os.path.join(self.tmpdir, ".disable-fileguard")
+        open(flag_path, "w").close()
+        code, stdout, _ = self._run("Read", {"file_path": "/safe/secret.txt"}, cwd=self.tmpdir)
+        self.assertEqual(code, 0)
+        os.remove(flag_path)
+
+    def test_disable_flag_still_blocks_own_access(self):
+        """Even with flag present, hardcoded protection still denies access to the flag itself."""
+        flag_path = os.path.join(self.tmpdir, ".disable-fileguard")
+        open(flag_path, "w").close()
+        code, stdout, _ = self._run("Bash", {"command": "rm .disable-fileguard"}, cwd=self.tmpdir)
+        self.assertEqual(code, 2)
+        os.remove(flag_path)
+
+    def test_invalid_json_stdin_allows(self):
+        """Malformed stdin should exit 0 (allow)."""
+        env = os.environ.copy()
+        env["CLAUDE_PLUGIN_ROOT"] = self.plugin_root
+        result = subprocess.run(
+            [sys.executable, self.SCRIPT_PATH],
+            input="not json",
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        self.assertEqual(result.returncode, 0)
+
+    def test_missing_rules_file_denies_all(self):
+        os.remove(self.rules_path)
+        code, stdout, _ = self._run("Read", {"file_path": "/any/file.txt"})
+        self.assertEqual(code, 2)
+        output = json.loads(stdout)
+        self.assertIn("fileguard-rules.json", output["systemMessage"])
