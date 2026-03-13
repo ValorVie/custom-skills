@@ -248,3 +248,27 @@ class TestHardcodedProtection(unittest.TestCase):
         tool_input = {"pattern": f"{self.plugin_root}/**/*.json"}
         result = fileguard.check_hardcoded_protection("Glob", tool_input, self.plugin_root)
         self.assertTrue(result)
+
+
+class TestOutputHelpers(unittest.TestCase):
+    """Test JSON output formatting."""
+
+    def test_deny_output(self):
+        output = fileguard.make_deny_output("/path/to/file", "SSH keys")
+        parsed = json.loads(output)
+        self.assertEqual(parsed["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertIn("SSH keys", parsed["systemMessage"])
+        self.assertIn("/path/to/file", parsed["systemMessage"])
+
+    def test_hardcoded_deny_output(self):
+        output = fileguard.make_hardcoded_deny_output()
+        parsed = json.loads(output)
+        self.assertEqual(parsed["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertIn("系統保護", parsed["systemMessage"])
+
+    def test_rules_error_output(self):
+        output = fileguard.make_rules_error_output()
+        parsed = json.loads(output)
+        self.assertEqual(parsed["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertIn("fileguard-rules.json", parsed["systemMessage"])
+        self.assertIn(".disable-fileguard", parsed["systemMessage"])

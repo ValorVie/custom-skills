@@ -136,3 +136,30 @@ def check_hardcoded_protection(
             return True
 
     return False
+
+
+def make_deny_output(path: str, reason: str) -> str:
+    """Build JSON output for rule-based deny."""
+    return json.dumps({
+        "hookSpecificOutput": {"permissionDecision": "deny"},
+        "systemMessage": f"[FileGuard] \U0001f6ab 存取被拒絕\n路徑: {path}\n規則: {reason}",
+    })
+
+
+def make_hardcoded_deny_output() -> str:
+    """Build JSON output for hardcoded protection deny."""
+    return json.dumps({
+        "hookSpecificOutput": {"permissionDecision": "deny"},
+        "systemMessage": "[FileGuard] \U0001f512 系統保護檔案，禁止存取",
+    })
+
+
+def make_rules_error_output() -> str:
+    """Build JSON output when rules file is missing or invalid."""
+    return json.dumps({
+        "hookSpecificOutput": {"permissionDecision": "deny"},
+        "systemMessage": (
+            "[FileGuard] \u26a0\ufe0f fileguard-rules.json 不存在或格式錯誤，"
+            "所有路徑存取被拒絕。請手動建立規則檔或 touch .disable-fileguard 停用保護。"
+        ),
+    })
