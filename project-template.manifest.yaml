@@ -18,6 +18,7 @@ include:
   - INSTRUCTIONS.md
 
 exclude:
+  - .claude/skills/auto-skill
   - .claude/skills/bun-development
   - .claude/skills/javascript-testing-patterns
   - .claude/skills/typescript-advanced-types
