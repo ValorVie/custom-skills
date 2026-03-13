@@ -114,6 +114,15 @@ AI projection 依型態再分三類：
 
 ## `project` 子系統詳細行為
 
+| 子命令 | 實際語意 | 主要副作用 / 備註 |
+|--------|----------|-------------------|
+| `project init` | 用內建 `project-template/` 初始化專案。先複製 tracked scaffold，再 hydrate AI projection。 | 同名檔案走內容分析；`--force` 直接覆蓋檔案並備份差異檔；同名目錄遞迴到檔案層級處理，不整個刪除重建。 |
+| `project hydrate` | 依 `.ai-dev-project.yaml` 與模板重新生成 AI 管理檔。 | 會更新 projection manifest，並依 `git_exclude.enabled` 決定是否同步 `.git/info/exclude`。 |
+| `project reconcile` | 重新比對 project intent、projection manifest 與實際投影結果後收斂。 | 目前底層仍走 projection/reconcile 流程；`--force` / `--backup` 只影響衝突處理模式。 |
+| `project doctor` | 檢查 tracking file、projection manifest 與 exclude 狀態是否一致。 | 若缺少 `.ai-dev-project.yaml`、manifest，或應存在的 exclude block 不在 `.git/info/exclude`，會以非零碼退出。 |
+| `project update` | 代理執行 `uds update` 與 `openspec update`。 | 先檢查工具是否已安裝與已初始化；若全部未初始化直接失敗，若只有部分未初始化則跳過未初始化工具。 |
+| `project exclude` | 手動檢視、啟用或停用 ai-dev 管理的 `.git/info/exclude` 區塊。 | `--list` 可直接看目前 block；`--enable` 需已 `git init`，並會從 tracking/template 推導 patterns。 |
+
 ### `ai-dev project init`
 
 作用：
@@ -187,6 +196,11 @@ exclude 規則：
 
 這一組命令只給 `custom-skills` repo 維護者使用，不應混入一般使用者的 `install` / `clone` / `project init` 流程。
 
+| 子命令 | 實際語意 | 主要副作用 / 備註 |
+|--------|----------|-------------------|
+| `maintain clone` | 把外部來源整合回目前的 `custom-skills` 開發目錄。 | 會把 UDS/Obsidian/Anthropic 等來源複製回 repo 工作樹，並刷新 `auto-skill` canonical state。 |
+| `maintain template` | 依 `project-template.manifest.yaml` allowlist 同步 `project-template/`。 | `--check` 只檢查差異，不寫檔；不再透過 `project init --force` 反向同步模板。 |
+
 ### `ai-dev maintain clone`
 
 作用：
@@ -204,6 +218,15 @@ exclude 規則：
 
 ## `standards` 子系統
 
+| 子命令 | 實際語意 | 主要副作用 / 備註 |
+|--------|----------|-------------------|
+| `standards status` | 顯示目前啟用的 profile 與 disabled 統計。 | 未初始化時只提示，不寫入。 |
+| `standards list` | 列出可用 profiles、顯示名稱、重疊偏好與目前啟用狀態。 | 讀取 `.standards/profiles/*.yaml`；未初始化時只提示。 |
+| `standards switch` | 切換 profile，重算 profile-based disabled 清單。 | 更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`；預設自動對 `claude` 做一次 `standards sync`。 |
+| `standards show` | 顯示單一 profile 的詳細內容與 overlap 選擇。 | 純讀取，不寫入。 |
+| `standards overlaps` | 顯示 `overlaps.yaml` 摘要。 | 純讀取，不寫入。 |
+| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | 預設 target 是 `claude`；`standards (*.ai.yaml)` 不會被此命令搬移。 |
+
 主要狀態：
 - `.standards/active-profile.yaml`：目前啟用的 profile
 - `.claude/disabled.yaml`：依 overlap 計算出的停用清單
@@ -220,6 +243,15 @@ exclude 規則：
 
 ## `sync` 子系統
 
+| 子命令 | 實際語意 | 主要副作用 / 備註 |
+|--------|----------|-------------------|
+| `sync init` | 初始化 `sync-repo/` 與 `sync.yaml`，並建立預設同步目錄。 | 若 remote 已有內容，會先 repo→local 還原，再 local→repo 回寫；會寫 `.gitignore`、LFS 設定、plugin manifest，最後直接 push。 |
+| `sync push` | 把本機同步目錄內容送進 `sync-repo/` 並推到 remote。 | 會正規化路徑、重寫 plugin manifest；無變更時直接返回，不更新 `last_sync`。 |
+| `sync pull` | 從 remote 拉回 `sync-repo/`，再同步到本機目錄。 | 若偵測到本機未推送變更，會先提示使用者選擇；`--no-delete` 可保留本機多餘檔案。 |
+| `sync status` | 顯示各同步目錄的本機差異數、遠端落後情況與最後同步時間。 | 純讀取，不寫入。 |
+| `sync add` | 新增一個本機目錄到同步清單。 | 會更新 `sync.yaml`、建立對應 repo 子目錄並重寫 `.gitignore`，但不會自動 push。 |
+| `sync remove` | 從同步清單移除一個目錄。 | 至少保留一個同步目錄；可選擇連同 repo 子目錄一起刪除，但不會自動 push。 |
+
 主要狀態：
 - `~/.config/ai-dev/sync.yaml`：同步目錄清單、remote、ignore profile、最後同步時間
 - `~/.config/ai-dev/sync-repo/`：實際 Git backend repo
@@ -232,6 +264,16 @@ exclude 規則：
 
 ## `mem` 子系統
 
+| 子命令 | 實際語意 | 主要副作用 / 備註 |
+|--------|----------|-------------------|
+| `mem register` | 向 sync server 註冊目前裝置。 | 會寫入 `sync-server.yaml` 中的 `api_key`、`device_id`、最後 push/pull epoch 與 auto-sync 設定。 |
+| `mem push` | 將本地 `claude-mem.db` 的新資料推到 sync server。 | 會先做 observations 去重與 preflight；只有真的推送成功才更新 `last_push_epoch`。 |
+| `mem pull` | 從 sync server 拉回其他裝置的新資料。 | 先做 hash 去重，再優先走本地 worker API 匯入，失敗時 fallback 寫 SQLite；成功後更新 `last_pull_epoch` 與 `pulled-hashes.txt`。 |
+| `mem status` | 顯示 server 端計數、本地 observations 數、重複數與 last push/pull epoch。 | 純讀取，不寫入。 |
+| `mem cleanup` | 清除本地 `claude-mem.db` 內的重複 observations。 | 兩輪去重：content hash 與 text+project。 |
+| `mem reindex` | 透過 claude-mem worker 補建 ChromaDB 搜尋索引。 | 需要 worker 在線；完成後會自動跑一次 duplicate cleanup。 |
+| `mem auto` | 檢視或切換自動同步排程。 | 不帶參數時只顯示狀態；`--on/--off` 會更新 `sync-server.yaml` 並安裝/移除 launchd 或 cron。 |
+
 主要狀態：
 - `~/.config/ai-dev/sync-server.yaml`：server URL、API key、device id、最後 push/pull 時間、auto sync 設定
 - `~/.config/ai-dev/pulled-hashes.txt`：已 pull observations 的 content hash
@@ -242,6 +284,14 @@ exclude 規則：
 2. `mem push` 讀取本地 `claude-mem.db`，送到 sync server；只有實際成功推送資料時才更新 `last_push_epoch`。
 3. `mem pull` 從 sync server 拉取資料，匯入本地 DB，成功後追加 `pulled-hashes.txt` 並更新 `last_pull_epoch`。
 4. `mem auto` 會同步更新 `sync-server.yaml`，並直接安裝或移除使用者層級的 launchd / cron 排程。
+
+## `hooks` 子系統
+
+| 子命令 | 實際語意 | 主要副作用 / 備註 |
+|--------|----------|-------------------|
+| `hooks install` | 安裝或更新 ECC Hooks Plugin。 | 實際目標是 `~/.claude/plugins/ecc-hooks/`。 |
+| `hooks uninstall` | 移除 ECC Hooks Plugin。 | 會先要求確認；若未安裝則直接提示返回。 |
+| `hooks status` | 顯示 ECC Hooks Plugin 安裝狀態。 | 純讀取，不寫入。 |
 
 ## 命令關聯圖
 
