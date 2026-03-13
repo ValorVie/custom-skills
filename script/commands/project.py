@@ -18,15 +18,24 @@ from typing import Callable, List, Optional
 import typer
 from rich.console import Console
 
-from ..utils.git_exclude import GITHUB_AI_PATHS
+from ..utils.git_exclude import (
+    DEFAULT_KEEP_TRACKED,
+    GITHUB_AI_PATHS,
+    ensure_ai_exclude,
+    get_current_patterns,
+    print_exclude_result,
+    prompt_exclude_choice,
+)
 from ..utils.project_projection import (
     FULLY_MANAGED_TOP_LEVEL_ITEMS,
     PROJECT_TEMPLATE_NAME,
     PROJECT_TEMPLATE_URL,
+    get_project_projection_patterns,
     get_project_template_dir,
 )
 from ..utils.manifest import compute_file_hash
 from ..utils.smart_merge import merge_file
+from ..utils.project_tracking import get_git_exclude_config, update_git_exclude_config
 
 app = typer.Typer(help="專案級別的初始化與更新操作")
 console = Console()
@@ -286,19 +295,53 @@ def _ensure_project_intent(project_dir: Path) -> None:
     )
 
 
-def _record_project_exclude_config(project_dir: Path, template_dir: Path) -> None:
+def _record_project_exclude_config(project_dir: Path, template_dir: Path, enabled: bool) -> list[str]:
     """將 project-template 對應的排除設定寫入追蹤檔。"""
-    from script.utils.git_exclude import DEFAULT_KEEP_TRACKED
-    from script.utils.project_projection import get_project_projection_patterns
-    from script.utils.project_tracking import update_git_exclude_config
-
     patterns = get_project_projection_patterns(template_dir)
     update_git_exclude_config(
-        enabled=True,
+        enabled=enabled,
         patterns=patterns,
         keep_tracked=DEFAULT_KEEP_TRACKED,
         project_dir=project_dir,
     )
+    return patterns
+
+
+def _ensure_project_exclude_config(project_dir: Path, template_dir: Path) -> list[str]:
+    """補齊 exclude tracking 設定，但不覆蓋既有 enabled 狀態。"""
+    config = get_git_exclude_config(project_dir)
+    if config is not None:
+        enabled = bool(config.get("enabled"))
+    else:
+        enabled = (project_dir / ".git").is_dir() and get_current_patterns(project_dir) is not None
+    return _record_project_exclude_config(project_dir, template_dir, enabled=enabled)
+
+
+def _configure_project_exclude(project_dir: Path, template_dir: Path) -> list[str]:
+    """初始化專案時設定本地 exclude 行為。"""
+    patterns = get_project_projection_patterns(template_dir)
+    git_dir = project_dir / ".git"
+
+    if not git_dir.is_dir():
+        _record_project_exclude_config(project_dir, template_dir, enabled=False)
+        console.print("[yellow]尚未偵測到 .git/，未自動設定本地排除[/yellow]")
+        console.print(
+            "[dim]建議先執行 `git init` 建立專案，或後續手動執行 `ai-dev project exclude --enable` 加入排除。[/dim]"
+        )
+        return patterns
+
+    choice = prompt_exclude_choice(patterns)
+    enabled = choice == "yes"
+    _record_project_exclude_config(project_dir, template_dir, enabled=enabled)
+
+    if enabled:
+        modified, added, skipped = ensure_ai_exclude(project_dir, patterns)
+        if modified:
+            print_exclude_result(added, skipped)
+    else:
+        console.print("[dim]ℹ 已記錄選擇，後續可用 ai-dev project exclude --enable 啟用[/dim]")
+
+    return patterns
 
 
 def _print_projection_summary(action: str, result) -> None:
@@ -334,7 +377,7 @@ def _run_project_projection(
     template_dir = get_project_template_dir()
     on_conflict = _resolve_conflict_mode(force, backup)
 
-    _record_project_exclude_config(target_dir, template_dir)
+    _ensure_project_exclude_config(target_dir, template_dir)
     result = projector(target_dir, template_dir=template_dir, on_conflict=on_conflict)
     _print_projection_summary(action, result)
 
@@ -510,7 +553,7 @@ def init(
     from script.utils.project_projection import hydrate_project
 
     _ensure_project_intent(target_dir)
-    _record_project_exclude_config(target_dir, template_dir)
+    _configure_project_exclude(target_dir, template_dir)
     hydrate_result = hydrate_project(
         target_dir,
         template_dir=template_dir,
@@ -580,7 +623,10 @@ def doctor(
     if manifest is None:
         issues.append("缺少 project projection manifest")
 
-    if (target_dir / ".git").is_dir() and not get_current_patterns(target_dir):
+    exclude_config = tracking.get("git_exclude")
+    exclude_required = True if exclude_config is None else bool(exclude_config.get("enabled"))
+
+    if (target_dir / ".git").is_dir() and exclude_required and not get_current_patterns(target_dir):
         issues.append(".git/info/exclude 缺少 ai-dev 管理區塊")
 
     if issues:
@@ -711,6 +757,10 @@ def exclude(
         raise typer.Exit(1)
 
     if enable:
+        if not (cwd / ".git").is_dir():
+            console.print("[yellow]尚未偵測到 .git/，請先執行 `git init` 再啟用本地排除[/yellow]")
+            raise typer.Exit(1)
+
         config = get_git_exclude_config(cwd)
         patterns = config["patterns"] if config and config.get("patterns") else []
         if not patterns:

@@ -157,3 +157,36 @@ def test_hydrate_project_skips_noop_entries_on_second_run(
     assert second_result.generated == []
     assert second_result.conflicts == []
     assert second_result.skipped == []
+
+
+def test_hydrate_project_respects_disabled_git_exclude(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = _make_project(tmp_path)
+    manifest_dir = tmp_path / "manifests" / "projects"
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    save_tracking_file(
+        {
+            "project_id": "demo-project",
+            "template": {
+                "name": PROJECT_TEMPLATE_NAME,
+                "url": PROJECT_TEMPLATE_URL,
+                "branch": "main",
+            },
+            "managed_files": [],
+            "git_exclude": {
+                "enabled": False,
+                "version": "1",
+                "patterns": [".claude/", "AGENTS.md"],
+                "keep_tracked": [".editorconfig", ".gitattributes", ".gitignore"],
+            },
+        },
+        project_root,
+    )
+
+    result = hydrate_project(project_root, template_dir=template_dir)
+
+    assert result.generated
+    assert not (project_root / ".git" / "info" / "exclude").exists()

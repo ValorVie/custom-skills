@@ -239,8 +239,8 @@ ai-dev project update
 ai-dev project update --only openspec
 ```
 
-> **AI 文件本地排除**：`project init`、`project hydrate`、`project reconcile` 會自動將 AI 生成檔寫入 `.git/info/exclude`。
-> AI 工具仍可正常讀取這些檔案，但它們不會出現在 `git status`、commit 或 PR 中。
+> **AI 文件本地排除**：`project init` 若偵測到 `.git/`，會詢問是否將 AI 生成檔加入 `.git/info/exclude`。
+> 若目前尚未 `git init`，指令只會提示你稍後手動啟用；`project hydrate` / `project reconcile` 只會在已啟用時同步排除規則。
 > 詳見下方 [AI 文件本地排除](#ai-文件本地排除-project-exclude) 章節。
 
 > **初始化衝突規則**：
@@ -292,13 +292,14 @@ ai-dev project exclude --disable
 
 #### 運作方式
 
-1. `project init` / `project hydrate` / `project reconcile` 會自動修補 `.git/info/exclude`
-2. `init-from` 完成後仍可由使用者選擇是否啟用
-3. 排除清單只涵蓋 AI 生成物，保留 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold
-4. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
-5. `init-from --update` 時自動同步排除清單（新增/移除項目）
-6. `clone` 和 `install` 不會修改當前專案的 `.git/info/exclude`
-7. 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
+1. `project init` 與 `init-from` 在 git repo 內都會詢問是否啟用本地排除
+2. 若 `.ai-dev-project.yaml` 的 `git_exclude.enabled` 為 `true`，`project hydrate` / `project reconcile` 會同步 `.git/info/exclude`
+3. 若專案尚未 `git init`，`project init` 只會提示稍後手動執行 `ai-dev project exclude --enable`
+4. 排除清單只涵蓋 AI 生成物，保留 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold
+5. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
+6. `init-from --update` 時自動同步排除清單（新增/移除項目）
+7. `clone` 和 `install` 不會修改當前專案的 `.git/info/exclude`
+8. 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
 
 #### AI 工具相容性
 
@@ -669,6 +670,8 @@ ai-dev hooks status
 | `ai-dev add-repo` | 新增上游 repo 並追蹤 |
 | `ai-dev add-custom-repo` | 新增自訂 repo |
 | `ai-dev update-custom-repo` | 更新自訂 repo |
+
+> **長期維護參考**：目前 CLI 命令面、核心副作用、狀態檔與資料流，請參閱 [ai-dev 指令與資料流參考](docs/ai-dev指令與資料流參考.md)。
 
 ## 開發
 

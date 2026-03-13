@@ -231,8 +231,15 @@ def hydrate_project(
         raise ValueError("on_conflict 必須是 skip、force 或 backup")
 
     project_id = intent["project_id"]
-    patterns = get_project_projection_patterns(template_dir)
-    ensure_ai_exclude(project_root, patterns)
+    exclude_config = intent.get("git_exclude")
+    patterns = (
+        list(exclude_config.get("patterns", []))
+        if isinstance(exclude_config, dict) and exclude_config.get("patterns")
+        else get_project_projection_patterns(template_dir)
+    )
+    exclude_enabled = True if exclude_config is None else bool(exclude_config.get("enabled"))
+    if exclude_enabled:
+        ensure_ai_exclude(project_root, patterns)
 
     old_manifest = read_project_manifest(project_id) or {}
     old_files = old_manifest.get("files", {})

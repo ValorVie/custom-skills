@@ -12,7 +12,7 @@ from script.main import app
 from script.utils import project_projection_manifest as ppm
 from script.utils.project_blocks import read_managed_block
 from script.utils.project_projection import PROJECT_TEMPLATE_NAME, PROJECT_TEMPLATE_URL
-from script.utils.project_tracking import save_tracking_file
+from script.utils.project_tracking import load_tracking_file, save_tracking_file
 
 runner = CliRunner()
 
@@ -59,6 +59,7 @@ def test_project_init_creates_intent_and_hydrates(
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     result = runner.invoke(app, ["project", "init", str(project_root)])
 
@@ -112,6 +113,38 @@ def test_project_doctor_reports_ok_for_hydrated_project(
     assert "OK" in result.stdout
 
 
+def test_project_doctor_allows_disabled_exclude(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    manifest_dir = tmp_path / "manifests" / "projects"
+    _seed_project_intent(project_root)
+
+    tracking = load_tracking_file(project_root)
+    assert tracking is not None
+    tracking["git_exclude"] = {
+        "enabled": False,
+        "version": "1",
+        "patterns": [".claude/", "AGENTS.md"],
+        "keep_tracked": [".editorconfig", ".gitattributes", ".gitignore"],
+    }
+    save_tracking_file(tracking, project_root)
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    hydrate_result = runner.invoke(app, ["project", "hydrate", str(project_root)])
+    assert hydrate_result.exit_code == 0, hydrate_result.stdout
+    assert not (project_root / ".git" / "info" / "exclude").exists()
+
+    result = runner.invoke(app, ["project", "doctor", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "OK" in result.stdout
+
+
 def test_project_init_hides_generated_ai_files_from_git_status(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -123,6 +156,7 @@ def test_project_init_hides_generated_ai_files_from_git_status(
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     result = runner.invoke(app, ["project", "init", str(project_root)])
     assert result.exit_code == 0, result.stdout
@@ -152,6 +186,7 @@ def test_project_init_force_in_custom_skills_repo_does_not_switch_to_template_sy
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     result = runner.invoke(app, ["project", "init", "--force", str(project_root)])
 
@@ -173,6 +208,7 @@ def test_project_init_interactively_merges_file_and_preserves_existing_directory
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     with patch("script.utils.smart_merge.Prompt.ask", return_value="I"):
         result = runner.invoke(app, ["project", "init", str(project_root)])
@@ -200,6 +236,7 @@ def test_project_init_force_overwrites_existing_file_and_preserves_existing_dire
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     result = runner.invoke(app, ["project", "init", "--force", str(project_root)])
 
@@ -222,6 +259,7 @@ def test_project_init_recursively_merges_files_within_existing_directory(
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     with patch("script.utils.smart_merge.Prompt.ask", return_value="O"):
         result = runner.invoke(app, ["project", "init", str(project_root)])
@@ -236,3 +274,55 @@ def test_project_init_recursively_merges_files_within_existing_directory(
         encoding="utf-8"
     ) == "workflow: template\n"
     assert (project_root / ".standards" / "custom.ai.yaml").exists()
+
+
+def test_project_init_respects_exclude_prompt_choice_no(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "no")
+
+    result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (project_root / ".git" / "info" / "exclude").exists()
+    tracking = load_tracking_file(project_root)
+    assert tracking is not None
+    assert tracking["git_exclude"]["enabled"] is False
+    assert "後續可用 ai-dev project exclude --enable 啟用" in result.stdout
+
+
+def test_project_init_without_git_repo_warns_and_records_disabled_exclude(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    manifest_dir = tmp_path / "manifests" / "projects"
+    prompt_called = {"value": False}
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    def _unexpected_prompt(patterns):
+        prompt_called["value"] = True
+        return "yes"
+
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", _unexpected_prompt)
+
+    result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert prompt_called["value"] is False
+    tracking = load_tracking_file(project_root)
+    assert tracking is not None
+    assert tracking["git_exclude"]["enabled"] is False
+    assert "尚未偵測到 .git/" in result.stdout
+    assert "建議先執行 `git init`" in result.stdout
+    assert "ai-dev project exclude --enable" in result.stdout
