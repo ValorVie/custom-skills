@@ -105,15 +105,11 @@ ai-dev install
 | `--skip-bun` | 跳過 Bun 套件安裝（Codex） |
 | `--skip-repos` | 跳過 Git 儲存庫 Clone |
 | `--skip-skills` | 跳過複製 Skills |
-| `--sync-project/--no-sync-project` | 是否同步到專案目錄（預設：是） |
 
 **範例：**
 ```bash
 # 只 Clone 儲存庫（跳過 NPM 和 Skills 複製）
 ai-dev install --skip-npm --skip-skills
-
-# 安裝但不同步到當前專案目錄
-ai-dev install --no-sync-project
 ```
 
 ### 每日更新 (Update)
@@ -177,7 +173,6 @@ canonical state 與 shadow 會保留有效的 `.clonepolicy.json`；當 upstream
 
 | 參數 | 說明 |
 |------|------|
-| `--sync-project/--no-sync-project` | 是否同步到專案目錄（預設：是） |
 | `--force`, `-f` | 強制覆蓋所有衝突檔案（不提示） |
 | `--skip-conflicts`, `-s` | 跳過有衝突的檔案，僅分發無衝突的檔案 |
 | `--backup`, `-b` | 備份衝突檔案後再覆蓋 |
@@ -192,10 +187,24 @@ ai-dev clone --skip-conflicts
 
 # 備份後覆蓋
 ai-dev clone --backup
-
-# 不同步到當前專案
-ai-dev clone --no-sync-project
 ```
+
+### 維護 custom-skills 專案 (Maintain)
+
+`maintain` 子命令專門處理 `custom-skills` repo 自維護流程，避免和一般使用者的 `install` / `clone` / `project init` 混在一起。
+
+```bash
+# 整合外部來源回開發目錄
+ai-dev maintain clone
+
+# 依 allowlist manifest 同步 project-template
+ai-dev maintain template
+
+# 只檢查 project-template 是否需要更新
+ai-dev maintain template --check
+```
+
+`ai-dev maintain template` 會讀取 repo 根目錄的 `project-template.manifest.yaml`，只同步 allowlist 內的檔案與資料夾到 `project-template/`。這份 manifest 是模板內容的單一權威來源，用來取代過去 `project init --force` 隱式反向同步的耦合行為。
 
 ### 專案級操作 (Project)
 
@@ -205,15 +214,14 @@ ai-dev clone --no-sync-project
 # 初始化專案（複製 tracked scaffold + hydrate AI 檔）
 ai-dev project init
 
+# 同名檔案會提示覆蓋 / 增量 / 差異 / 跳過
+# 同名目錄則保留現況不動
+
 # 初始化指定目錄
 ai-dev project init /path/to/dir
 
-# 強制重新初始化
+# 強制重新初始化（只覆蓋同名檔案，不刪既有目錄）
 ai-dev project init --force
-
-# 開發者模式：在 custom-skills 專案中反向同步到 project-template/
-# （會將專案根目錄的模板檔案同步回 project-template/）
-cd ~/custom-skills && ai-dev project init --force
 
 # 重新生成 AI 檔（預設跳過衝突）
 ai-dev project hydrate
@@ -235,6 +243,11 @@ ai-dev project update --only openspec
 > AI 工具仍可正常讀取這些檔案，但它們不會出現在 `git status`、commit 或 PR 中。
 > 詳見下方 [AI 文件本地排除](#ai-文件本地排除-project-exclude) 章節。
 
+> **初始化衝突規則**：
+> - `ai-dev project init`：遇到同名檔案時會進行內容級別分析，提供覆蓋、增量、查看差異、跳過選項。
+> - `ai-dev project init --force`：只會無條件覆蓋同名檔案。
+> - 若目標已存在同名目錄，兩種模式都會保留既有目錄內容，不刪除、不重建。
+
 #### 可選參數
 
 **init:**
@@ -242,7 +255,7 @@ ai-dev project update --only openspec
 | 參數 | 說明 |
 |------|------|
 | `target` (位置參數) | 目標目錄（預設為當前目錄） |
-| `--force`, `-f` | 強制重新初始化（即使已存在）；在 custom-skills 專案中會反向同步到 `project-template/` |
+| `--force`, `-f` | 強制重新初始化（即使已存在） |
 
 **update:**
 
@@ -284,7 +297,7 @@ ai-dev project exclude --disable
 3. 排除清單只涵蓋 AI 生成物，保留 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold
 4. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
 5. `init-from --update` 時自動同步排除清單（新增/移除項目）
-6. `clone` 和 `install` 時自動確認排除清單同步
+6. `clone` 和 `install` 不會修改當前專案的 `.git/info/exclude`
 7. 設定記錄於 `.ai-dev-project.yaml` 的 `git_exclude` 區段
 
 #### AI 工具相容性
@@ -499,7 +512,6 @@ ai-dev tui
 - 頂部按鈕列：Install / Update / Status / Add Skills / Quit
 - Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode / Codex / Gemini CLI）
 - Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
-- Sync to Project：勾選時會同步到 custom-skills 專案目錄（僅開發人員需要）
 - 資源列表：Checkbox 勾選啟用/停用
 - Add Skills 對話框：輸入套件名稱並執行 `npx skills add`
 - MCP Config 區塊：檢視並快速開啟各工具的 MCP 設定檔
@@ -637,6 +649,8 @@ ai-dev hooks status
 | `ai-dev install` | 首次安裝 AI 開發環境 |
 | `ai-dev update` | 每日更新：更新工具與儲存庫 |
 | `ai-dev clone` | 分發 Skills 內容到各 AI 工具目錄 |
+| `ai-dev maintain clone` | 整合外部來源回 custom-skills 開發目錄 |
+| `ai-dev maintain template` | 依 manifest 同步 `project-template/` |
 | `ai-dev project init` | 初始化專案 tracked scaffold 並投影 AI 檔 |
 | `ai-dev project hydrate` | 依專案意圖重新生成 AI 檔 |
 | `ai-dev project reconcile` | 收斂 project intent、manifest 與實際生成檔 |

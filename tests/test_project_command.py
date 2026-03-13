@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import subprocess
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -138,3 +139,71 @@ def test_project_init_hides_generated_ai_files_from_git_status(
     assert ".claude/" not in status
     assert ".ai-dev-project.yaml" not in status
     assert ".standards/" in status
+
+
+def test_project_init_force_in_custom_skills_repo_does_not_switch_to_template_sync(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "repo"
+    project_root.mkdir()
+    (project_root / "pyproject.toml").write_text('name = "ai-dev"\n', encoding="utf-8")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    result = runner.invoke(app, ["project", "init", "--force", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "反向同步模式" not in result.stdout
+    assert (project_root / ".ai-dev-project.yaml").exists()
+
+
+def test_project_init_interactively_merges_file_and_preserves_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    _write(template_dir / ".gitignore", "node_modules/\n.env\n")
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    _write(project_root / ".gitignore", "node_modules/\n.venv/\n")
+    _write(project_root / ".standards" / "custom.ai.yaml", "custom: true\n")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    with patch("script.utils.smart_merge.Prompt.ask", return_value="I"):
+        result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert (project_root / ".ai-dev-project.yaml").exists()
+    assert project_root.joinpath(".gitignore").read_text(encoding="utf-8") == (
+        "node_modules/\n.venv/\n.env\n"
+    )
+    assert (project_root / ".standards" / "custom.ai.yaml").exists()
+    assert not (project_root / ".standards" / "testing.ai.yaml").exists()
+    assert "專案已初始化" not in result.stdout
+
+
+def test_project_init_force_overwrites_existing_file_and_preserves_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    _write(template_dir / ".editorconfig", "root = true\n")
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    _write(project_root / ".editorconfig", "root = false\n")
+    _write(project_root / ".standards" / "custom.ai.yaml", "custom: true\n")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    result = runner.invoke(app, ["project", "init", "--force", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert project_root.joinpath(".editorconfig").read_text(encoding="utf-8") == "root = true\n"
+    assert (project_root / ".standards" / "custom.ai.yaml").exists()
+    assert not (project_root / ".standards" / "testing.ai.yaml").exists()

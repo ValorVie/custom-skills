@@ -3,7 +3,6 @@ project 指令群組：專案級別的初始化與更新操作。
 
 採用模板複製模式：
 - init: 從 project-template/ 複製到目標專案
-- init --force（在 custom-skills 專案中）: 反向同步，從專案複製到 project-template/
 - update: 執行 openspec update 和 uds update
 """
 
@@ -26,12 +25,10 @@ from ..utils.project_projection import (
     PROJECT_TEMPLATE_URL,
     get_project_template_dir,
 )
+from ..utils.smart_merge import merge_file
 
 app = typer.Typer(help="專案級別的初始化與更新操作")
 console = Console()
-
-# 需要合併而非覆蓋的檔案（保留目標設定並加入來源新增的內容）
-MERGE_FILES = {".gitattributes", ".gitignore"}
 
 # 複製到 project-template 時要排除的檔案名稱（個人設定，不屬於共享範本）
 EXCLUDE_FROM_TEMPLATE = {"settings.local.json"}
@@ -173,70 +170,6 @@ def _backup_diff_files(
     return backed_up_files
 
 
-def _merge_text_file(src: Path, dst: Path) -> tuple[int, int]:
-    """合併文字檔案內容，保留目標設定並加入來源新增的行。
-
-    適用於 .gitignore、.gitattributes 等逐行設定的檔案。
-    以行為單位進行去重，保留目標原有順序，將來源的新行附加在尾部。
-
-    Args:
-        src: 來源檔案路徑
-        dst: 目標檔案路徑
-
-    Returns:
-        tuple[int, int]: (新增行數, 總行數)
-    """
-    # 讀取來源內容
-    src_lines = src.read_text(encoding="utf-8").splitlines()
-
-    # 若目標不存在，直接複製
-    if not dst.exists():
-        dst.write_text("\n".join(src_lines) + "\n", encoding="utf-8")
-        return len(src_lines), len(src_lines)
-
-    # 讀取目標內容
-    dst_lines = dst.read_text(encoding="utf-8").splitlines()
-
-    # 建立目標行的集合（用於快速查重，忽略空白差異）
-    dst_lines_normalized = {line.strip() for line in dst_lines if line.strip()}
-
-    # 找出來源中目標沒有的行
-    new_lines = []
-    for line in src_lines:
-        normalized = line.strip()
-        if normalized and normalized not in dst_lines_normalized:
-            new_lines.append(line)
-            dst_lines_normalized.add(normalized)  # 避免來源內的重複
-
-    # 若有新行，附加到目標檔案尾部
-    if new_lines:
-        # 確保目標檔案最後有換行
-        content = dst.read_text(encoding="utf-8")
-        if content and not content.endswith("\n"):
-            content += "\n"
-        # 附加新行
-        content += "\n".join(new_lines) + "\n"
-        dst.write_text(content, encoding="utf-8")
-
-    return len(new_lines), len(dst_lines) + len(new_lines)
-
-
-def _is_custom_skills_project(project_root: Path) -> bool:
-    """檢查是否在 custom-skills 專案目錄中。
-
-    透過檢查 pyproject.toml 中的 name = "ai-dev" 來判斷。
-    """
-    pyproject_path = project_root / "pyproject.toml"
-    if not pyproject_path.exists():
-        return False
-
-    try:
-        content = pyproject_path.read_text(encoding="utf-8")
-        return 'name = "ai-dev"' in content
-    except Exception:
-        return False
-
-
 # 支援的工具（用於 update 指令）
 TOOLS = {
     "openspec": {
@@ -359,93 +292,13 @@ def get_missing_tools(tools: List[str]) -> List[str]:
     return [t for t in tools if not check_tool_installed(t)]
 
 
-def _sync_to_project_template(project_root: Path, template_dir: Path) -> None:
-    """反向同步：從專案複製到 project-template（開發者模式）。
-
-    當在 custom-skills 專案中執行 `ai-dev project init --force` 時，
-    會將專案根目錄的模板檔案同步回 project-template/ 目錄。
-
-    同步的檔案清單由 template_dir 中現有的檔案決定，包含隱藏檔案和目錄。
-    """
-    console.print(
-        "[bold yellow]偵測到 custom-skills 專案：啟用反向同步模式[/bold yellow]"
-    )
-    console.print(f"[dim]專案根目錄：{project_root}[/dim]")
-    console.print(f"[dim]模板目錄：{template_dir}[/dim]")
-    console.print()
-    console.print("[bold cyan]同步方向：專案 → project-template/[/bold cyan]")
-    console.print()
-
-    copied_count = 0
-    skipped_count = 0
-
-    # 根據 template_dir 中現有的檔案來決定要同步哪些項目
-    for item in template_dir.iterdir():
-        item_name = item.name
-        src = project_root / item_name
-        dst = template_dir / item_name
-
-        # 合併檔案（保留目標設定並加入來源新增的內容）
-        if item_name in MERGE_FILES:
-            if not src.exists():
-                console.print(f"  [yellow]跳過[/yellow] {item_name}（來源不存在）")
-                skipped_count += 1
-                continue
-            try:
-                added, total = _merge_text_file(src, dst)
-                if added > 0:
-                    console.print(
-                        f"  [blue]合併[/blue] {item_name}（+{added} 行，共 {total} 行）"
-                    )
-                else:
-                    console.print(f"  [dim]無變更[/dim] {item_name}（內容相同）")
-                copied_count += 1
-            except Exception as e:
-                console.print(f"  [red]✗[/red] {item_name}：{e}")
-            continue
-
-        if not src.exists():
-            console.print(f"  [yellow]跳過[/yellow] {item_name}（來源不存在）")
-            skipped_count += 1
-            continue
-
-        try:
-            if src.is_dir():
-                if dst.exists():
-                    _safe_rmtree(dst)
-                shutil.copytree(src, dst, ignore=_template_ignore)
-                console.print(f"  [green]✓[/green] {item_name}/ → project-template/")
-            else:
-                if src.name in EXCLUDE_FROM_TEMPLATE:
-                    console.print(
-                        f"  [yellow]排除[/yellow] {item_name}（不屬於共享範本）"
-                    )
-                    skipped_count += 1
-                    continue
-                shutil.copy2(src, dst)
-                console.print(f"  [green]✓[/green] {item_name} → project-template/")
-            copied_count += 1
-        except Exception as e:
-            console.print(f"  [red]✗[/red] {item_name}：{e}")
-
-    console.print()
-    console.print(f"[green]同步完成：{copied_count} 個項目[/green]")
-    if skipped_count > 0:
-        console.print(f"[yellow]跳過：{skipped_count} 個項目[/yellow]")
-
-    console.print()
-    console.print("[bold green]模板更新完成！[/bold green]")
-    console.print()
-    console.print("[dim]提示：記得提交 project-template/ 的變更[/dim]")
-
-
 @app.command()
 def init(
     force: bool = typer.Option(
         False,
         "--force",
         "-f",
-        help="強制重新初始化（覆蓋現有檔案）；在 custom-skills 專案中會反向同步到 project-template",
+        help="強制重新初始化（覆蓋現有檔案）",
     ),
     target: Optional[str] = typer.Argument(
         None,
@@ -457,9 +310,10 @@ def init(
     此指令會將 project-template 中需納入 repo 的 tracked 檔案複製到目標專案，
     然後建立 .ai-dev-project.yaml 並執行 hydrate，將 AI 檔投影到專案內。
 
-    特殊行為：
-    - 在 custom-skills 專案中使用 --force 時，會反向同步（專案 → project-template/）
-    - 這允許開發者更新模板後同步回 project-template/ 目錄
+    行為規則：
+    - 同名檔案：`init` 進行內容級別分析，提供覆蓋 / 增量 / 查看差異 / 跳過
+    - 同名檔案：`init --force` 直接覆蓋
+    - 同名目錄：一律保留目標現況，不刪除、不重建
     """
     # 決定目標目錄
     target_dir = _resolve_target_dir(target)
@@ -472,19 +326,9 @@ def init(
         console.print("[yellow]請先執行 `ai-dev install` 確保環境已安裝[/yellow]")
         raise typer.Exit(code=1)
 
-    # 特殊處理：在 custom-skills 專案中使用 --force 時反向同步
-    # 反向同步目標固定為 repo 內的 project-template/，不使用 get_project_template_dir()
-    if force and _is_custom_skills_project(target_dir):
-        local_template_dir = target_dir / "project-template"
-        _sync_to_project_template(target_dir, local_template_dir)
-        return
-
-    # 檢查是否已初始化
     standards_dir = target_dir / ".standards"
-    if standards_dir.exists() and not force:
-        console.print("[yellow]專案已初始化（.standards 目錄已存在）[/yellow]")
-        console.print("[dim]使用 --force 強制重新初始化[/dim]")
-        return
+    if standards_dir.exists():
+        console.print("[dim]偵測到既有 .standards，將依項目規則合併或保留現況[/dim]")
 
     console.print("[bold blue]開始初始化專案...[/bold blue]")
     console.print(f"[dim]模板目錄：{template_dir}[/dim]")
@@ -496,6 +340,7 @@ def init(
     skipped_count = 0
     backup_base_dir: Optional[Path] = None
     backed_up_files: list[Path] = []
+    prompt_hint_shown = False
 
     if force:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -509,98 +354,69 @@ def init(
             console.print(f"  [dim]交由 hydrate 管理[/dim] {item.name}")
             continue
 
-        # 合併檔案（保留目標設定並加入來源新增的內容）
-        if item.name in MERGE_FILES:
+        if src.is_dir():
+            if dst.exists():
+                existing_type = "目錄" if dst.is_dir() else "檔案"
+                console.print(
+                    f"  [yellow]跳過[/yellow] {item.name}/（已存在同名{existing_type}，保留現況）"
+                )
+                skipped_count += 1
+                continue
+
             try:
-                dst_existed = dst.exists()
-                added, total = _merge_text_file(src, dst)
-                if dst_existed and added > 0:
-                    console.print(
-                        f"  [blue]合併[/blue] {item.name}（+{added} 行，共 {total} 行）"
-                    )
-                elif dst_existed:
-                    console.print(f"  [dim]無變更[/dim] {item.name}（內容相同）")
-                else:
-                    console.print(f"  [green]✓[/green] {item.name}")
+                shutil.copytree(src, dst, ignore=_project_init_ignore)
+                console.print(f"  [green]✓[/green] {item.name}/")
                 copied_count += 1
             except Exception as e:
                 console.print(f"  [red]✗[/red] {item.name}：{e}")
             continue
 
-        # 檢查是否需要跳過
-        if dst.exists() and not force:
-            console.print(f"  [yellow]跳過[/yellow] {item.name}（已存在）")
+        if dst.exists() and dst.is_dir():
+            console.print(
+                f"  [yellow]跳過[/yellow] {item.name}（已存在同名目錄，保留現況）"
+            )
             skipped_count += 1
             continue
 
-        # 複製檔案或目錄
         try:
-            if src.is_dir():
-                if dst.exists():
-                    if force and backup_base_dir is not None:
-                        if dst.is_dir():
-                            diff_files = _collect_diff_files(src, dst)
-                            if diff_files:
-                                backed_up_files.extend(
-                                    _backup_diff_files(
-                                        target_dir=target_dir,
-                                        diff_files=diff_files,
-                                        item_name=item.name,
-                                        backup_dir=backup_base_dir,
-                                    )
-                                )
-                        elif dst.is_file():
-                            backup_file = backup_base_dir / item.name
-                            backup_file.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(dst, backup_file)
-                            backed_up_files.append(Path(item.name))
+            if force and backup_base_dir is not None and dst.exists() and dst.is_file():
+                try:
+                    files_differ = not filecmp.cmp(src, dst, shallow=False)
+                except OSError:
+                    files_differ = True
 
-                    if dst.is_dir():
-                        _safe_rmtree(dst)
-                    else:
-                        dst.unlink()
-                shutil.copytree(src, dst, ignore=_project_init_ignore)
-                console.print(f"  [green]✓[/green] {item.name}/")
+                if files_differ:
+                    backup_file = backup_base_dir / item.name
+                    backup_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(dst, backup_file)
+                    backed_up_files.append(Path(item.name))
+
+            result = merge_file(
+                src=src,
+                dst=dst,
+                relative_path=item.name,
+                force=force,
+                show_prompt_hint=not prompt_hint_shown and not force,
+            )
+            if not prompt_hint_shown and result in (
+                "overwritten",
+                "appended",
+                "incremental",
+                "skipped",
+            ):
+                prompt_hint_shown = True
+
+            if result == "skipped":
+                skipped_count += 1
             else:
-                if force and backup_base_dir is not None and dst.exists():
-                    if dst.is_file():
-                        try:
-                            files_differ = not filecmp.cmp(src, dst, shallow=False)
-                        except OSError:
-                            files_differ = True
-
-                        if files_differ:
-                            backup_file = backup_base_dir / item.name
-                            backup_file.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(dst, backup_file)
-                            backed_up_files.append(Path(item.name))
-                    elif dst.is_dir():
-                        diff_files = _collect_diff_files(src, dst)
-                        if diff_files:
-                            backed_up_files.extend(
-                                _backup_diff_files(
-                                    target_dir=target_dir,
-                                    diff_files=diff_files,
-                                    item_name=item.name,
-                                    backup_dir=backup_base_dir,
-                                )
-                            )
-
-                if dst.exists() and dst.is_dir():
-                    _safe_rmtree(dst)
-
-                shutil.copy2(src, dst)
-                console.print(f"  [green]✓[/green] {item.name}")
-            copied_count += 1
+                copied_count += 1
         except Exception as e:
             console.print(f"  [red]✗[/red] {item.name}：{e}")
 
     console.print()
     console.print(f"[green]複製完成：{copied_count} 個項目[/green]")
     if skipped_count > 0:
-        console.print(
-            f"[yellow]跳過：{skipped_count} 個項目（使用 --force 覆蓋）[/yellow]"
-        )
+        console.print(f"[yellow]跳過：{skipped_count} 個項目（保留目標現況）[/yellow]")
 
     if backed_up_files and backup_base_dir is not None:
         backup_files_display = sorted({path.as_posix() for path in backed_up_files})

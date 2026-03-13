@@ -17,6 +17,7 @@ from .commands.derive_tests import derive_tests
 from .commands import project
 from .commands import standards
 from .commands import hooks
+from .commands import maintain
 from .commands import sync
 from .commands import mem
 
@@ -71,6 +72,7 @@ app.command(name="derive-tests")(derive_tests)
 app.add_typer(project.app, name="project")
 app.add_typer(standards.app, name="standards")
 app.add_typer(hooks.app, name="hooks")
+app.add_typer(maintain.app, name="maintain")
 app.add_typer(sync.app, name="sync")
 app.add_typer(mem.app, name="mem")
 

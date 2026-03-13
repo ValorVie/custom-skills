@@ -1,0 +1,29 @@
+version: 1
+
+include:
+  - .agent/
+  - .agents/
+  - .claude/
+  - .codex/
+  - .gemini/
+  - .github/
+  - .opencode/
+  - .standards/
+  - .editorconfig
+  - .gitattributes
+  - .gitignore
+  - AGENTS.md
+  - CLAUDE.md
+  - GEMINI.md
+  - INSTRUCTIONS.md
+
+exclude:
+  - .claude/skills/bun-development
+  - .claude/skills/javascript-testing-patterns
+  - .claude/skills/typescript-advanced-types
+  - .agents/skills/bun-development
+  - .agents/skills/javascript-testing-patterns
+  - .agents/skills/typescript-advanced-types
+  - .agent/skills/bun-development
+  - .agent/skills/javascript-testing-patterns
+  - .agent/skills/typescript-advanced-types

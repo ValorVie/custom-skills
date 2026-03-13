@@ -301,12 +301,6 @@ class SkillManagerApp(App):
                 id="source-select",
                 allow_blank=False,
             )
-            yield Checkbox(
-                "Sync to Project",
-                value=True,
-                id="cb-sync-project",
-            )
-
         # 資源列表
         yield VerticalScroll(id="resource-list")
 
@@ -369,28 +363,16 @@ class SkillManagerApp(App):
         elif event.select.id == "profile-select":
             self.switch_standards_profile(str(event.value))
 
-    def _get_sync_project_args(self) -> list[str]:
-        """取得 sync-project 參數。"""
-        try:
-            sync_checkbox = self.query_one("#cb-sync-project", Checkbox)
-            if sync_checkbox.value:
-                return ["--sync-project"]
-            else:
-                return ["--no-sync-project"]
-        except Exception:
-            return []
-
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """處理按鈕點擊。"""
         button_id = event.button.id
 
         if button_id == "btn-install":
-            self.run_cli_command("install", self._get_sync_project_args())
+            self.run_cli_command("install")
         elif button_id == "btn-update":
-            # update 命令不支援 --sync-project，只更新 repos 和 NPM
             self.run_cli_command("update")
         elif button_id == "btn-clone":
-            self.run_cli_command("clone", self._get_sync_project_args())
+            self.run_cli_command("clone")
         elif button_id == "btn-status":
             self.run_cli_command("status")
         elif button_id == "btn-add-skills":

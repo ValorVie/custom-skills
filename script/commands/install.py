@@ -80,11 +80,6 @@ def install(
         False, "--skip-repos", help="跳過 Git 儲存庫 Clone"
     ),
     skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
-    sync_project: bool = typer.Option(
-        True,
-        "--sync-project/--no-sync-project",
-        help="是否同步到專案目錄（預設：是）",
-    ),
 ):
     """首次安裝 AI 開發環境。"""
     console.print("[bold blue]開始安裝...[/bold blue]")
@@ -303,21 +298,7 @@ def install(
         console.print("[yellow]跳過複製 Skills[/yellow]")
     else:
         console.print("[green]正在同步 Skills 與設定...[/green]")
-        copy_skills(sync_project=sync_project)
-
-    # 確認專案層級的 .git/info/exclude
-    if sync_project:
-        cwd = Path.cwd()
-        from script.utils.project_tracking import get_git_exclude_config
-        from script.utils.git_exclude import ensure_ai_exclude
-
-        exclude_config = get_git_exclude_config(cwd)
-        if exclude_config and exclude_config.get("enabled"):
-            patterns = exclude_config.get("patterns", [])
-            if patterns:
-                modified, _, _ = ensure_ai_exclude(cwd, patterns)
-                if modified:
-                    console.print("[dim]✓ .git/info/exclude 已確認同步[/dim]")
+        copy_skills(sync_project=False)
 
     # 6. 顯示已安裝的 Skills 警告
     console.print()
