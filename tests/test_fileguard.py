@@ -61,3 +61,26 @@ class TestExtractPaths(unittest.TestCase):
         tool_input = {}
         paths = fileguard.extract_paths("Bash", tool_input, "/home")
         self.assertEqual(paths, [])
+
+
+class TestNormalizePath(unittest.TestCase):
+    """Test normalize_path() for various edge cases."""
+
+    def test_absolute_path_unchanged(self):
+        result = fileguard.normalize_path("/Users/arlen/file.txt", "/home")
+        # realpath resolves symlinks; result should be lowercase
+        self.assertEqual(result, os.path.realpath("/Users/arlen/file.txt").lower())
+
+    def test_relative_path_joined_with_cwd(self):
+        result = fileguard.normalize_path("sub/file.txt", "/Users/arlen/project")
+        expected = os.path.realpath("/Users/arlen/project/sub/file.txt").lower()
+        self.assertEqual(result, expected)
+
+    def test_dot_dot_resolved(self):
+        result = fileguard.normalize_path("/Users/arlen/project/../.ssh/id_rsa", "/home")
+        expected = os.path.realpath("/Users/arlen/.ssh/id_rsa").lower()
+        self.assertEqual(result, expected)
+
+    def test_case_normalized_to_lower(self):
+        result = fileguard.normalize_path("/Users/Arlen/.SSH/ID_RSA", "/home")
+        self.assertTrue(result.islower() or result == result.lower())

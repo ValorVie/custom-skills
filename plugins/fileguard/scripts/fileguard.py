@@ -33,3 +33,16 @@ def extract_paths(tool_name: str, tool_input: dict, cwd: str) -> list[str]:
         return [command] if command else []
 
     return []
+
+
+def normalize_path(path: str, cwd: str) -> str:
+    """Normalize a file path for consistent matching.
+
+    - Joins relative paths with cwd
+    - Resolves ../, symlinks via realpath
+    - Lowercases for macOS case-insensitive comparison
+    """
+    if not os.path.isabs(path):
+        path = os.path.join(cwd, path)
+    path = os.path.realpath(path)
+    return path.lower()
