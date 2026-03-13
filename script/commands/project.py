@@ -25,6 +25,7 @@ from ..utils.project_projection import (
     PROJECT_TEMPLATE_URL,
     get_project_template_dir,
 )
+from ..utils.manifest import compute_file_hash
 from ..utils.smart_merge import merge_file
 
 app = typer.Typer(help="專案級別的初始化與更新操作")
@@ -168,6 +169,82 @@ def _backup_diff_files(
         backed_up_files.append(Path(item_name) / relative_path)
 
     return backed_up_files
+
+
+def _iter_template_files(root_dir: Path) -> list[Path]:
+    """遞迴列出模板目錄內需處理的檔案相對路徑。"""
+    root_dir = Path(root_dir)
+    file_paths: list[Path] = []
+
+    def _walk(current_dir: Path) -> None:
+        entries = sorted(current_dir.iterdir(), key=lambda path: path.name)
+        ignored = _project_init_ignore(str(current_dir), [entry.name for entry in entries])
+
+        for entry in entries:
+            if entry.name in ignored:
+                continue
+            if entry.is_dir():
+                _walk(entry)
+            elif entry.is_file():
+                file_paths.append(entry.relative_to(root_dir))
+
+    if root_dir.exists() and root_dir.is_dir():
+        _walk(root_dir)
+
+    return file_paths
+
+
+def _merge_existing_directory(
+    src_dir: Path,
+    dst_dir: Path,
+    item_name: str,
+    *,
+    force: bool,
+    backup_base_dir: Optional[Path],
+    backed_up_files: list[Path],
+) -> tuple[int, int]:
+    """將既有同名目錄遞迴合併到檔案層級。"""
+    copied_count = 0
+    skipped_count = 0
+
+    for relative_path in _iter_template_files(src_dir):
+        src_file = src_dir / relative_path
+        dst_file = dst_dir / relative_path
+        display_path = Path(item_name) / relative_path
+
+        if dst_file.exists() and dst_file.is_dir():
+            console.print(
+                f"  [yellow]跳過[/yellow] {display_path.as_posix()}（已存在同名目錄，保留現況）"
+            )
+            skipped_count += 1
+            continue
+
+        src_hash = compute_file_hash(src_file)
+        dst_hash = None
+        if dst_file.exists() and dst_file.is_file():
+            dst_hash = compute_file_hash(dst_file)
+
+            if force and backup_base_dir is not None and src_hash != dst_hash:
+                backup_file = backup_base_dir / display_path
+                backup_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(dst_file, backup_file)
+                backed_up_files.append(display_path)
+
+        result = merge_file(
+            src=src_file,
+            dst=dst_file,
+            relative_path=display_path.as_posix(),
+            force=force,
+            show_prompt_hint=not force,
+            src_hash=src_hash,
+            dst_hash=dst_hash,
+        )
+        if result == "skipped":
+            skipped_count += 1
+        else:
+            copied_count += 1
+
+    return copied_count, skipped_count
 
 
 # 支援的工具（用於 update 指令）
@@ -340,8 +417,6 @@ def init(
     skipped_count = 0
     backup_base_dir: Optional[Path] = None
     backed_up_files: list[Path] = []
-    prompt_hint_shown = False
-
     if force:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_base_dir = target_dir / "_backup_after_init_force" / timestamp
@@ -355,12 +430,24 @@ def init(
             continue
 
         if src.is_dir():
-            if dst.exists():
-                existing_type = "目錄" if dst.is_dir() else "檔案"
+            if dst.exists() and not dst.is_dir():
                 console.print(
-                    f"  [yellow]跳過[/yellow] {item.name}/（已存在同名{existing_type}，保留現況）"
+                    f"  [yellow]跳過[/yellow] {item.name}/（已存在同名檔案，保留現況）"
                 )
                 skipped_count += 1
+                continue
+
+            if dst.exists() and dst.is_dir():
+                merged_count, merged_skipped = _merge_existing_directory(
+                    src,
+                    dst,
+                    item.name,
+                    force=force,
+                    backup_base_dir=backup_base_dir,
+                    backed_up_files=backed_up_files,
+                )
+                copied_count += merged_count
+                skipped_count += merged_skipped
                 continue
 
             try:
@@ -396,15 +483,8 @@ def init(
                 dst=dst,
                 relative_path=item.name,
                 force=force,
-                show_prompt_hint=not prompt_hint_shown and not force,
+                show_prompt_hint=not force,
             )
-            if not prompt_hint_shown and result in (
-                "overwritten",
-                "appended",
-                "incremental",
-                "skipped",
-            ):
-                prompt_hint_shown = True
 
             if result == "skipped":
                 skipped_count += 1

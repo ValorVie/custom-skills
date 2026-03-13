@@ -183,7 +183,7 @@ def test_project_init_interactively_merges_file_and_preserves_existing_directory
         "node_modules/\n.venv/\n.env\n"
     )
     assert (project_root / ".standards" / "custom.ai.yaml").exists()
-    assert not (project_root / ".standards" / "testing.ai.yaml").exists()
+    assert (project_root / ".standards" / "testing.ai.yaml").exists()
     assert "專案已初始化" not in result.stdout
 
 
@@ -206,4 +206,33 @@ def test_project_init_force_overwrites_existing_file_and_preserves_existing_dire
     assert result.exit_code == 0, result.stdout
     assert project_root.joinpath(".editorconfig").read_text(encoding="utf-8") == "root = true\n"
     assert (project_root / ".standards" / "custom.ai.yaml").exists()
-    assert not (project_root / ".standards" / "testing.ai.yaml").exists()
+    assert (project_root / ".standards" / "testing.ai.yaml").exists()
+
+
+def test_project_init_recursively_merges_files_within_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    _write(template_dir / ".standards" / "git-workflow.ai.yaml", "workflow: template\n")
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    _write(project_root / ".standards" / "testing.ai.yaml", "testing: false\n")
+    _write(project_root / ".standards" / "custom.ai.yaml", "custom: true\n")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    with patch("script.utils.smart_merge.Prompt.ask", return_value="O"):
+        result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "跳過 .standards/" not in result.stdout
+    assert ".standards/testing.ai.yaml" in result.stdout
+    assert project_root.joinpath(".standards", "testing.ai.yaml").read_text(
+        encoding="utf-8"
+    ) == "testing: true\n"
+    assert project_root.joinpath(".standards", "git-workflow.ai.yaml").read_text(
+        encoding="utf-8"
+    ) == "workflow: template\n"
+    assert (project_root / ".standards" / "custom.ai.yaml").exists()
