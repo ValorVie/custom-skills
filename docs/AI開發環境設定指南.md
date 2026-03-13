@@ -353,6 +353,10 @@ npx skills update
 # 搜尋與探索 Skills（全局）
 npx skills add https://github.com/vercel-labs/skills -g --skill find-skills
 
+# ── AI 開發相關 ──────────────────────────────────────
+npx skills add anthropics/claude-plugins-official@hook-development -y
+npx skills add anthropics/claude-plugins-official@writing-hookify-rules -y
+
 # ── 前端框架 ──────────────────────────────────────
 # Vue 生態系（3 個）
 npx skills add antfu/skills@vue -y
