@@ -59,15 +59,17 @@ def upsert_managed_block(path: Path, block_id: str, content: str) -> None:
     start_idx, end_idx = _find_block(lines, start_marker, end_marker)
 
     if start_idx is not None and end_idx is not None:
-        block_lines = block_text.splitlines(keepends=True)
-        lines[start_idx : end_idx + 1] = block_lines
-        result = "".join(lines)
+        del lines[start_idx : end_idx + 1]
+        if start_idx > 0 and start_idx - 1 < len(lines) and lines[start_idx - 1].strip() == "":
+            del lines[start_idx - 1]
+        base = "".join(lines).lstrip("\n")
     else:
-        base = existing.rstrip("\n")
-        if base:
-            result = f"{base}\n\n{block_text}"
-        else:
-            result = block_text
+        base = existing.lstrip("\n")
+
+    if base:
+        result = f"{block_text}\n{base}"
+    else:
+        result = block_text
 
     if result and not result.endswith("\n"):
         result += "\n"
@@ -91,6 +93,8 @@ def remove_managed_block(path: Path, block_id: str) -> bool:
     del lines[start_idx : end_idx + 1]
     if start_idx > 0 and start_idx - 1 < len(lines) and lines[start_idx - 1].strip() == "":
         del lines[start_idx - 1]
+    elif start_idx == 0 and lines and lines[0].strip() == "":
+        del lines[0]
 
     result = "".join(lines)
     if result and not result.endswith("\n"):

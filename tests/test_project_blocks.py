@@ -11,7 +11,7 @@ from script.utils.project_blocks import (
 
 
 def test_upsert_managed_block_preserves_user_content(tmp_path: Path):
-    """首次寫入與更新都保留區塊外內容。"""
+    """首次寫入與更新都保留區塊外內容，且 managed block 置頂。"""
     target = tmp_path / "AGENTS.md"
     target.write_text("# User header\n", encoding="utf-8")
 
@@ -19,7 +19,11 @@ def test_upsert_managed_block_preserves_user_content(tmp_path: Path):
     upsert_managed_block(target, "ai-dev-project", "new generated line")
 
     content = target.read_text(encoding="utf-8")
+    start_marker, end_marker = get_block_markers("ai-dev-project")
 
+    assert content.startswith(
+        f"{start_marker}\nnew generated line\n{end_marker}\n\n"
+    )
     assert "# User header" in content
     assert "new generated line" in content
     assert read_managed_block(target, "ai-dev-project") == "new generated line"
@@ -57,3 +61,21 @@ def test_remove_managed_block_preserves_user_content(tmp_path: Path):
 
     assert removed is True
     assert target.read_text(encoding="utf-8") == "# User header\n"
+
+
+def test_upsert_managed_block_moves_existing_block_to_top(tmp_path: Path):
+    """既有 block 不在頂部時，更新後應搬到檔案最上方。"""
+    target = tmp_path / "AGENTS.md"
+    start_marker, end_marker = get_block_markers("ai-dev-project")
+    target.write_text(
+        "# User header\n\n"
+        f"{start_marker}\nold generated line\n{end_marker}\n",
+        encoding="utf-8",
+    )
+
+    upsert_managed_block(target, "ai-dev-project", "new generated line")
+
+    content = target.read_text(encoding="utf-8")
+    assert content.startswith(
+        f"{start_marker}\nnew generated line\n{end_marker}\n\n# User header\n"
+    )
