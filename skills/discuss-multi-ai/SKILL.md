@@ -1,8 +1,8 @@
 ---
-name: discuss-muti-ai
+name: discuss-multi-ai
 description: |
   多 AI 交叉審議工作流。在不同 AI 工具（Claude、Codex、Gemini 等）之間進行程式碼變更的交叉審查。
-  使用時機：使用者呼叫 /discuss-muti-ai、提到要讓其他 AI 審查變更、或貼入包含 commit hash 的審議請求。
+  使用時機：使用者呼叫 /discuss-multi-ai、提到要讓其他 AI 審查變更、或貼入包含 commit hash 的審議請求。
   即使使用者只是說「幫我產出給另一個 AI 的審議文字」或「把這個變更交給其他 AI 看」，也應觸發此技能。
 ---
 
@@ -18,45 +18,24 @@ description: |
 - Google Gemini → `gemini`
 - 其他 → 工具小寫名稱
 
-## 模式一：產出審議提示（`/discuss-muti-ai`）
+## 審議流程
 
-使用者呼叫 `/discuss-muti-ai` 時，執行以下步驟：
-
-### 1. 處理未提交的變更
-
-檢查 `git status`：
-- **有變更**：暫存相關檔案，以 `discuss: [AI名稱] changes` 格式提交
-- **無變更**：使用最新 commit
-
-### 2. 取得 commit 資訊
-
-```bash
-git rev-parse HEAD
-```
-
-### 3. 輸出審議文字
-
-如果使用者有提供 AI 名稱參數（如 `/discuss-muti-ai claude`），則使用該名稱；否則使用「其他 AI」。
-
-輸出文字：
-
-```
-你的修改我跟 [AI名稱或「其他 AI」] 討論後他做了以下變更 commit [完整commit hash] 你評估看看有沒有問題，如果有任何不同意或疑慮的地方請直接修改，並建立文件進行詳細說明。
-```
-
-告知使用者可以複製此文字貼到另一個 AI 工具中。
-
-## 模式二：收到審議請求
-
-當使用者貼入類似「你的修改我跟 XX 討論後他做了以下變更 commit [hash]」的文字時，進入審議流程：
+不論是使用者呼叫 `/discuss-multi-ai`、或貼入包含 commit hash 的審議請求，都走同一個流程。
 
 ### 1. 讀取變更內容
 
+**有指定 commit hash 時：**
+
 ```bash
 git show [commit hash]
+git diff [commit hash]~1..[commit hash]
 ```
 
-如果 commit 包含多個檔案，也可以用 `git diff [commit hash]~1..[commit hash]` 查看完整 diff。
+**無指定 commit hash 時：**
+
+檢查 `git status`：
+- **有未提交變更**：先理解變更內容再進入審查
+- **無變更**：使用最新 commit（`git show HEAD`）
 
 ### 2. 逐項審查
 
@@ -106,7 +85,7 @@ git show [commit hash]
 
 ### 4. 提交變更
 
-使用格式：
+將所有修改（包含程式碼修正和說明文件）一起提交：
 
 ```
 discuss: [AI名稱] changes
@@ -114,7 +93,23 @@ discuss: [AI名稱] changes
 [簡述本次審議的重點]
 ```
 
-提交後，提醒使用者可以呼叫 `/discuss-muti-ai` 產出下一輪的審議提示。
+### 5. 輸出審議文字
+
+提交完成後，取得 commit hash 並輸出交接文字：
+
+```bash
+git rev-parse HEAD
+```
+
+如果使用者有提供目標 AI 名稱參數，則使用該名稱；否則使用「其他 AI」。
+
+輸出文字：
+
+```
+你的修改我跟 [AI名稱或「其他 AI」] 討論後他做了以下變更 commit [完整commit hash] 你評估看看有沒有問題，如果有任何不同意或疑慮的地方請直接修改，並建立文件進行詳細說明。
+```
+
+告知使用者可以複製此文字貼到另一個 AI 工具中。
 
 ## 重要原則
 
