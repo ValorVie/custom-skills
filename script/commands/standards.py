@@ -31,6 +31,14 @@ from ..utils.shared import (
 
 app = typer.Typer(help="管理標準體系配置（基於重疊檢測）")
 console = Console()
+VALID_TARGETS = ["claude", "antigravity", "opencode", "codex", "gemini"]
+
+
+def validate_target_or_exit(target: str) -> None:
+    if target not in VALID_TARGETS:
+        console.print(f"[red]無效的目標工具：{target}[/red]")
+        console.print(f"有效選項：{', '.join(VALID_TARGETS)}")
+        raise typer.Exit(code=1)
 
 
 def get_project_root() -> Path:
@@ -73,11 +81,11 @@ def is_standards_initialized() -> bool:
     """檢查專案是否已初始化標準體系
 
     Returns:
-        True if .standards/ 目錄與 active-profile.yaml 都存在，否則 False
+        True if `.standards/profiles/` 已存在且至少有一個 profile，否則 False
     """
     standards_dir = get_standards_dir()
-    active_file = get_active_profile_path()
-    return standards_dir.exists() and active_file.exists()
+    profiles_dir = get_profiles_dir()
+    return standards_dir.is_dir() and profiles_dir.is_dir() and bool(list_profiles())
 
 
 def load_yaml(path: Path) -> dict:
@@ -349,7 +357,7 @@ def sync_resources(disabled: dict, target: str = "claude", dry_run: bool = False
     return result
 
 
-def switch_profile(target_profile: str, dry_run: bool = False, auto_sync: bool = True) -> dict:
+def switch_profile(target_profile: str, dry_run: bool = False, auto_sync: bool = False) -> dict:
     """切換到指定的 Profile
 
     Args:
@@ -521,7 +529,7 @@ def switch(
         return
 
     # 執行切換
-    result = switch_profile(profile_name, dry_run=dry_run)
+    result = switch_profile(profile_name, dry_run=dry_run, auto_sync=False)
 
     if dry_run:
         console.print(f"[cyan]預覽切換到 {profile_name}[/cyan]")
@@ -541,23 +549,12 @@ def switch(
         disabled_items = result.get('disabled_items', [])
         console.print(f"  設定檔更新: 停用 {len(disabled_items)} 個項目")
 
-        # 顯示同步結果
-        sync_result = result.get('sync_result')
-        if sync_result:
-            disabled_count = sync_result.get('disabled_count', 0)
-            enabled_count = sync_result.get('enabled_count', 0)
-            if disabled_count > 0 or enabled_count > 0:
-                console.print(f"  檔案同步: 停用 {disabled_count} 個, 啟用 {enabled_count} 個")
-            else:
-                console.print(f"  檔案同步: 無需變更")
-
         if result.get('warnings'):
             console.print()
             for warning in result['warnings']:
                 console.print(f"[yellow]⚠️  {warning}[/yellow]")
 
-        console.print()
-        console.print("[yellow]⚠️  請重啟 Claude Code 以套用變更[/yellow]")
+        console.print("[dim]提示：如需同步到工具目錄，請另行執行 `ai-dev standards sync --target <tool>`[/dim]")
     else:
         console.print(f"[red]✗ 切換失敗: {result.get('error')}[/red]")
         raise typer.Exit(1)
@@ -663,7 +660,7 @@ def overlaps():
 @app.command()
 def sync(
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="只顯示變更，不實際執行"),
-    target: str = typer.Option("claude", "--target", "-t", help="目標工具 (claude, opencode, etc.)"),
+    target: str | None = typer.Option(None, "--target", "-t", help="目標工具"),
 ):
     """根據 disabled.yaml 同步實際的檔案狀態
 
@@ -678,6 +675,11 @@ def sync(
     if not disabled:
         console.print("[yellow]disabled.yaml 不存在或為空[/yellow]")
         return
+
+    if not target:
+        console.print("[red]請指定目標工具（--target）[/red]")
+        raise typer.Exit(code=1)
+    validate_target_or_exit(target)
 
     profile = disabled.get('_profile', 'unknown')
     console.print(f"[bold]同步 Profile: {profile}[/bold]")

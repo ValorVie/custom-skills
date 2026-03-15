@@ -172,11 +172,11 @@ ai-dev tui
 ### Testing Specific Features
 
 ```bash
-# Test install (skip slow operations)
-ai-dev install --skip-npm --skip-repos
+# Test install pipeline without tool/repo side effects
+ai-dev install --only state,targets --target claude
 
 # Test copy logic only
-ai-dev clone
+ai-dev clone --target claude
 
 # Test status
 ai-dev status

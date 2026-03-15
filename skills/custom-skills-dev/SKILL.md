@@ -96,7 +96,7 @@ ai-dev --version
 ai-dev status
 
 # Test specific command
-ai-dev install --skip-npm --skip-repos
+ai-dev install --only state,targets --target claude
 ```
 
 ## References

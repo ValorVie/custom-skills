@@ -23,7 +23,7 @@
 
 ```bash
 # 初始化同步，指定遠端倉庫
-ai-dev sync init --remote git@github.com:<user>/claude-sync.git
+ai-dev sync init --remote git@github.com:<user>/claude-sync.git --mode bootstrap
 ```
 
 這會：
@@ -37,7 +37,7 @@ ai-dev sync init --remote git@github.com:<user>/claude-sync.git
 
 ```bash
 # 初始化，指向相同遠端倉庫（自動從遠端還原配置 + 安裝 plugin）
-ai-dev sync init --remote git@github.com:<user>/claude-sync.git
+ai-dev sync init --remote git@github.com:<user>/claude-sync.git --mode bootstrap
 
 # 登入 Claude Code（token 存在系統 keychain，不會被同步）
 claude
@@ -134,7 +134,7 @@ ai-dev sync remove ~/.gemini
 
 | 指令 | 說明 | 範例 |
 |------|------|------|
-| `init --remote <url>` | 初始化同步倉庫 | `ai-dev sync init --remote git@github.com:user/repo.git` |
+| `init --remote <url> --mode bootstrap` | 初始化同步倉庫 | `ai-dev sync init --remote git@github.com:user/repo.git --mode bootstrap` |
 | `push` | 推送本機變更到遠端 | `ai-dev sync push` |
 | `pull` | 拉取遠端變更到本機（支援 `--force`、`--no-delete`） | `ai-dev sync pull --force --no-delete` |
 | `status` | 查看同步狀態 | `ai-dev sync status` |

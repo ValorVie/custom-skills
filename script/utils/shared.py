@@ -967,6 +967,8 @@ def copy_custom_skills_to_targets(
     force: bool = False,
     skip_conflicts: bool = False,
     backup: bool = False,
+    selected_targets: tuple[str, ...] | None = None,
+    refresh_state: bool = True,
 ) -> None:
     """Stage 3: 將 custom-skills 分發到各工具目錄。
 
@@ -975,6 +977,8 @@ def copy_custom_skills_to_targets(
         force: 強制覆蓋所有衝突
         skip_conflicts: 跳過有衝突的檔案
         backup: 備份衝突檔案後覆蓋
+        selected_targets: 限制要分發的目標平台
+        refresh_state: 是否在分發前刷新 auto-skill canonical state
     """
     from .manifest import (
         ManifestTracker,
@@ -1003,11 +1007,14 @@ def copy_custom_skills_to_targets(
     src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
     src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
     src_plugins_opencode = get_custom_skills_dir() / "plugins" / "ecc-hooks-opencode"
-    from .auto_skill_state import refresh_auto_skill_state
+    if refresh_state:
+        from .auto_skill_state import refresh_auto_skill_state
 
-    auto_skill_state_dir = refresh_auto_skill_state(
-        template_dir=src_skills / "auto-skill"
-    )
+        auto_skill_state_dir = refresh_auto_skill_state(
+            template_dir=src_skills / "auto-skill"
+        )
+    else:
+        auto_skill_state_dir = get_auto_skill_dir()
 
     # 定義各平台的分發配置
     platform_configs = {
@@ -1058,8 +1065,11 @@ def copy_custom_skills_to_targets(
     version = get_project_version()
     dist_config = _load_distribution_config()
 
+    target_keys = selected_targets or tuple(platform_configs.keys())
+
     # 對每個平台執行分發
-    for target, config in platform_configs.items():
+    for target in target_keys:
+        config = platform_configs[target]
         target_name = config["name"]
 
         # 1. 讀取舊 manifest
@@ -1674,6 +1684,8 @@ def copy_skills(
     force: bool = False,
     skip_conflicts: bool = False,
     backup: bool = False,
+    selected_targets: tuple[str, ...] | None = None,
+    refresh_state: bool = True,
 ) -> None:
     """將 ~/.config/custom-skills 分發到各工具目錄。
 
@@ -1690,6 +1702,8 @@ def copy_skills(
         force: 強制覆蓋所有衝突
         skip_conflicts: 跳過有衝突的檔案
         backup: 備份衝突檔案後覆蓋
+        selected_targets: 限制要分發的目標平台
+        refresh_state: 是否在分發前刷新 auto-skill canonical state
     """
     # Stage 3: 分發到目標目錄
     copy_custom_skills_to_targets(
@@ -1697,6 +1711,8 @@ def copy_skills(
         force=force,
         skip_conflicts=skip_conflicts,
         backup=backup,
+        selected_targets=selected_targets,
+        refresh_state=refresh_state,
     )
 
 

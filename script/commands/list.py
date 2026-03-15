@@ -73,6 +73,7 @@ def list_resources(
     resources = list_installed_resources(target, resource_type)
 
     # 顯示結果
+    rendered_any = False
     for t, types in resources.items():
         for rt, items in types.items():
             if not items:
@@ -86,6 +87,7 @@ def list_resources(
             table.add_column("來源", style="green")
             table.add_column("狀態", style="yellow")
 
+            visible_rows = 0
             for item in items:
                 name = item["name"]
                 source = item["source"]
@@ -98,6 +100,13 @@ def list_resources(
                 status_style = "red" if disabled else "green"
 
                 table.add_row(name, source, f"[{status_style}]{status}[/{status_style}]")
+                visible_rows += 1
 
+            if visible_rows == 0:
+                continue
             console.print(table)
             console.print()
+            rendered_any = True
+
+    if not rendered_any:
+        console.print("[yellow]無符合結果[/yellow]")

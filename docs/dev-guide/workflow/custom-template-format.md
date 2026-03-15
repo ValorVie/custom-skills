@@ -132,7 +132,7 @@ managed_files:
 
 ```bash
 # 在專案目錄執行
-ai-dev init-from --update
+ai-dev init-from update
 ```
 
 此指令會：
@@ -152,7 +152,7 @@ ai-dev update
 ```
 模板 repo 有新更新：
   • qdm-ai-base
-  在需要更新的專案目錄中執行：ai-dev init-from --update
+  在需要更新的專案目錄中執行：ai-dev init-from update
 ```
 
 ---

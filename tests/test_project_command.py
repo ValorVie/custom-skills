@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import subprocess
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -11,7 +12,7 @@ from script.main import app
 from script.utils import project_projection_manifest as ppm
 from script.utils.project_blocks import read_managed_block
 from script.utils.project_projection import PROJECT_TEMPLATE_NAME, PROJECT_TEMPLATE_URL
-from script.utils.project_tracking import save_tracking_file
+from script.utils.project_tracking import load_tracking_file, save_tracking_file
 
 runner = CliRunner()
 
@@ -58,6 +59,7 @@ def test_project_init_creates_intent_and_hydrates(
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     result = runner.invoke(app, ["project", "init", str(project_root)])
 
@@ -111,6 +113,38 @@ def test_project_doctor_reports_ok_for_hydrated_project(
     assert "OK" in result.stdout
 
 
+def test_project_doctor_allows_disabled_exclude(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    manifest_dir = tmp_path / "manifests" / "projects"
+    _seed_project_intent(project_root)
+
+    tracking = load_tracking_file(project_root)
+    assert tracking is not None
+    tracking["git_exclude"] = {
+        "enabled": False,
+        "version": "1",
+        "patterns": [".claude/", "AGENTS.md"],
+        "keep_tracked": [".editorconfig", ".gitattributes", ".gitignore"],
+    }
+    save_tracking_file(tracking, project_root)
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    hydrate_result = runner.invoke(app, ["project", "hydrate", str(project_root)])
+    assert hydrate_result.exit_code == 0, hydrate_result.stdout
+    assert not (project_root / ".git" / "info" / "exclude").exists()
+
+    result = runner.invoke(app, ["project", "doctor", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "OK" in result.stdout
+
+
 def test_project_init_hides_generated_ai_files_from_git_status(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -122,6 +156,7 @@ def test_project_init_hides_generated_ai_files_from_git_status(
 
     monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
     monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
 
     result = runner.invoke(app, ["project", "init", str(project_root)])
     assert result.exit_code == 0, result.stdout
@@ -138,3 +173,346 @@ def test_project_init_hides_generated_ai_files_from_git_status(
     assert ".claude/" not in status
     assert ".ai-dev-project.yaml" not in status
     assert ".standards/" in status
+
+
+def test_project_init_force_in_custom_skills_repo_does_not_switch_to_template_sync(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "repo"
+    project_root.mkdir()
+    (project_root / "pyproject.toml").write_text('name = "ai-dev"\n', encoding="utf-8")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
+
+    result = runner.invoke(app, ["project", "init", "--force", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "反向同步模式" not in result.stdout
+    assert (project_root / ".ai-dev-project.yaml").exists()
+
+
+def test_project_init_interactively_merges_file_and_preserves_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    _write(template_dir / ".gitignore", "node_modules/\n.env\n")
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    _write(project_root / ".gitignore", "node_modules/\n.venv/\n")
+    _write(project_root / ".standards" / "custom.ai.yaml", "custom: true\n")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
+
+    with patch("script.utils.smart_merge.Prompt.ask", return_value="I"):
+        result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert (project_root / ".ai-dev-project.yaml").exists()
+    assert project_root.joinpath(".gitignore").read_text(encoding="utf-8") == (
+        "node_modules/\n.venv/\n.env\n"
+    )
+    assert (project_root / ".standards" / "custom.ai.yaml").exists()
+    assert (project_root / ".standards" / "testing.ai.yaml").exists()
+    assert "專案已初始化" not in result.stdout
+
+
+def test_project_init_force_overwrites_existing_file_and_preserves_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    _write(template_dir / ".editorconfig", "root = true\n")
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    _write(project_root / ".editorconfig", "root = false\n")
+    _write(project_root / ".standards" / "custom.ai.yaml", "custom: true\n")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
+
+    result = runner.invoke(app, ["project", "init", "--force", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert project_root.joinpath(".editorconfig").read_text(encoding="utf-8") == "root = true\n"
+    assert (project_root / ".standards" / "custom.ai.yaml").exists()
+    assert (project_root / ".standards" / "testing.ai.yaml").exists()
+
+
+def test_project_init_recursively_merges_files_within_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    _write(template_dir / ".standards" / "git-workflow.ai.yaml", "workflow: template\n")
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    _write(project_root / ".standards" / "testing.ai.yaml", "testing: false\n")
+    _write(project_root / ".standards" / "custom.ai.yaml", "custom: true\n")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "yes")
+
+    with patch("script.utils.smart_merge.Prompt.ask", return_value="O"):
+        result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "跳過 .standards/" not in result.stdout
+    assert ".standards/testing.ai.yaml" in result.stdout
+    assert project_root.joinpath(".standards", "testing.ai.yaml").read_text(
+        encoding="utf-8"
+    ) == "testing: true\n"
+    assert project_root.joinpath(".standards", "git-workflow.ai.yaml").read_text(
+        encoding="utf-8"
+    ) == "workflow: template\n"
+    assert (project_root / ".standards" / "custom.ai.yaml").exists()
+
+
+def test_project_init_respects_exclude_prompt_choice_no(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    (project_root / ".git" / "info").mkdir(parents=True)
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", lambda patterns: "no")
+
+    result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (project_root / ".git" / "info" / "exclude").exists()
+    tracking = load_tracking_file(project_root)
+    assert tracking is not None
+    assert tracking["git_exclude"]["enabled"] is False
+    assert "後續可用 ai-dev project exclude --enable 啟用" in result.stdout
+
+
+def test_project_init_without_git_repo_warns_and_records_disabled_exclude(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    manifest_dir = tmp_path / "manifests" / "projects"
+    prompt_called = {"value": False}
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    def _unexpected_prompt(patterns):
+        prompt_called["value"] = True
+        return "yes"
+
+    monkeypatch.setattr(project_command, "prompt_exclude_choice", _unexpected_prompt)
+
+    result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert prompt_called["value"] is False
+    tracking = load_tracking_file(project_root)
+    assert tracking is not None
+    assert tracking["git_exclude"]["enabled"] is False
+    assert "尚未偵測到 .git/" in result.stdout
+    assert "建議先執行 `git init`" in result.stdout
+    assert "ai-dev project exclude --enable" in result.stdout
+
+
+def test_project_update_reports_valid_init_commands_when_all_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 1, result.stdout
+    assert "uds init" in result.stdout
+    assert "openspec init" in result.stdout
+    assert "project init --only" not in result.stdout
+
+
+def test_project_update_reports_valid_init_command_when_openspec_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    (project_root / ".standards" / "active-profile.yaml").write_text(
+        "active: ecc\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "openspec init" in result.stdout
+    assert "project init --only" not in result.stdout
+    assert "✓ uds update 完成" in result.stdout
+
+
+def test_project_update_treats_uds_without_active_profile_as_not_initialized(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "openspec").mkdir()
+    (project_root / "openspec" / "project.md").write_text(
+        "project: demo\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec" / "config.yaml").write_text(
+        "schema: spec-driven\nspecs: []\nactive: []\narchived: []\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+
+    result = runner.invoke(app, ["project", "update", "--only", "uds"])
+
+    assert result.exit_code == 1, result.stdout
+    assert "專案尚未初始化" in result.stdout
+    assert "uds init" in result.stdout
+    assert "✓ uds update 完成" not in result.stdout
+
+
+def test_project_update_reports_precise_missing_detail_for_uds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "openspec").mkdir()
+    (project_root / "openspec" / "project.md").write_text(
+        "project: demo\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec" / "config.yaml").write_text(
+        "schema: spec-driven\nspecs: []\nactive: []\narchived: []\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert ".standards/active-profile.yaml 不存在" in result.stdout
+    assert "建議執行 `uds init`" in result.stdout
+
+
+def test_project_update_reports_precise_missing_detail_for_openspec(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        '{"version":"1","standards":[],"integrationConfigs":{},"upstream":{}}\n',
+        encoding="utf-8",
+    )
+    (project_root / ".standards" / "active-profile.yaml").write_text(
+        "active: ecc\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec").mkdir()
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "openspec/project.md 不存在" in result.stdout
+    assert "建議執行 `openspec init`" in result.stdout
+
+
+def test_project_update_reports_invalid_manifest_for_uds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "openspec").mkdir()
+    (project_root / "openspec" / "project.md").write_text(
+        "project: demo\n",
+        encoding="utf-8",
+    )
+    (project_root / "openspec" / "config.yaml").write_text(
+        "schema: spec-driven\nspecs: []\nactive: []\narchived: []\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards").mkdir()
+    (project_root / ".standards" / "manifest.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+    (project_root / ".standards" / "active-profile.yaml").write_text(
+        "active: ecc\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    monkeypatch.setattr(project_command, "run_tool_command", lambda tool, command: True)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 0, result.stdout
+    assert ".standards/manifest.json 結構無效" in result.stdout
+    assert "建議執行 `uds init`" in result.stdout
+
+
+def test_run_tool_command_treats_uds_false_success_as_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    completed = subprocess.CompletedProcess(
+        args=["uds", "update"],
+        returncode=0,
+        stdout="Invalid manifest structure detected\n✗ Could not read manifest file.\n",
+        stderr="",
+    )
+    monkeypatch.setattr(project_command.subprocess, "run", lambda *args, **kwargs: completed)
+
+    assert project_command.run_tool_command("uds", "update") is False
+
+
+def test_run_tool_command_treats_openspec_false_success_as_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    completed = subprocess.CompletedProcess(
+        args=["openspec", "update"],
+        returncode=0,
+        stdout='No configured tools found.\nRun "openspec init" to set up tools.\n',
+        stderr="",
+    )
+    monkeypatch.setattr(project_command.subprocess, "run", lambda *args, **kwargs: completed)
+
+    assert project_command.run_tool_command("openspec", "update") is False

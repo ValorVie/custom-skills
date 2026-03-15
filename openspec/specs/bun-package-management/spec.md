@@ -56,9 +56,9 @@ TBD
 - **AND** 繼續執行其他安裝步驟（不中斷流程）
 
 #### Scenario: 使用者選擇跳過 Bun 套件
-- **WHEN** 使用者執行 `ai-dev install --skip-bun`
-- **THEN** 系統顯示 "跳過 Bun 套件安裝"
-- **AND** 不執行任何 Bun 相關操作
+- **WHEN** 使用者執行 `ai-dev install --only repos,state,targets`
+- **THEN** 系統不執行任何 Bun 相關操作
+- **AND** 仍可完成 repo/state/targets phase
 
 ### Requirement: Bun 套件更新
 系統 SHALL 在 `ai-dev update` 指令中支援 Bun 套件的自動更新。
@@ -76,9 +76,9 @@ TBD
 - **AND** 繼續執行其他更新步驟
 
 #### Scenario: 使用者選擇跳過 Bun 套件
-- **WHEN** 使用者執行 `ai-dev update --skip-bun`
-- **THEN** 系統顯示 "跳過 Bun 套件更新"
-- **AND** 不執行任何 Bun 相關操作
+- **WHEN** 使用者執行 `ai-dev update --only repos,state`
+- **THEN** 系統不執行任何 Bun 相關操作
+- **AND** 仍可完成 repo/state phase
 
 ### Requirement: Bun 安裝指引
 系統 SHALL 在 Bun 未安裝時顯示清晰的安裝指引。

@@ -4,6 +4,9 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from rich.console import Console
+from ..cli.command_manifest import build_command_manifest, get_command_spec
+from ..cli.phase_selection import build_execution_plan
+from ..services.pipeline.update_pipeline import execute_update_plan
 from ..utils.system import (
     run_command,
     check_bun_installed,
@@ -162,26 +165,13 @@ def backup_dirty_files(repo: Path, backup_root: Path) -> bool:
     return False
 
 
-@app.command()
-def update(
-    skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件更新"),
-    skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件更新"),
-    skip_repos: bool = typer.Option(False, "--skip-repos", help="跳過 Git 儲存庫更新"),
-    skip_plugins: bool = typer.Option(
-        False, "--skip-plugins", help="跳過 Claude Code Plugin Marketplace 更新"
-    ),
+def _legacy_update(
+    skip_npm: bool = False,
+    skip_bun: bool = False,
+    skip_repos: bool = False,
+    skip_plugins: bool = False,
 ):
-    """更新工具與拉取儲存庫。
-
-    此指令負責：
-    1. 更新 Claude Code（除非 --skip-npm）
-    2. 更新全域 NPM 套件（除非 --skip-npm）
-    3. 拉取 ~/.config/ 下的所有 repo（除非 --skip-repos）
-    4. 更新 Claude Code Plugin Marketplace（除非 --skip-plugins）
-
-    注意：此指令不會分發 Skills 到各工具目錄。
-    如需分發，請執行 `ai-dev clone`。
-    """
+    """舊版 update 流程快照，僅供 phase pipeline 對照。"""
     console.print("[bold blue]開始更新...[/bold blue]")
 
     # 1. 更新 Claude Code
@@ -293,7 +283,7 @@ def update(
             for repo_path in missing_repos:
                 console.print(f"  • {repo_path}")
             console.print(
-                "[dim]   請執行 `ai-dev install --skip-npm --skip-bun` 來補齊缺失的儲存庫[/dim]"
+                "[dim]   請執行 `ai-dev install --only repos,state,targets` 來補齊缺失的儲存庫[/dim]"
             )
 
         # 更新 custom repos（含 tool 和 template 類型）
@@ -336,7 +326,7 @@ def update(
             for tname in template_repos_with_updates:
                 console.print(f"  • {tname}")
             console.print(
-                "[dim]  在需要更新的專案目錄中執行：ai-dev init-from --update[/dim]"
+                "[dim]  在需要更新的專案目錄中執行：ai-dev init-from update[/dim]"
             )
 
         # 更新完成後刷新 OpenCode symlink（保持冪等）
@@ -389,3 +379,26 @@ def update(
     console.print("[bold green]更新完成！[/bold green]")
     console.print()
     console.print("[dim]提示：如需分發 Skills 到各工具目錄，請執行：ai-dev clone[/dim]")
+
+
+@app.command(name="update")
+def update(
+    only: str | None = typer.Option(None, "--only", help="僅執行指定 phase"),
+    skip: str | None = typer.Option(None, "--skip", help="跳過指定 phase"),
+    target: str | None = typer.Option(None, "--target", help="限制分發 target"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="只顯示執行計畫，不實際寫入"),
+):
+    """更新工具與拉取儲存庫。"""
+    manifest = build_command_manifest()
+    spec = get_command_spec(manifest, ("update",))
+    try:
+        plan = build_execution_plan(
+            spec,
+            only=only,
+            skip=skip,
+            target=target,
+            dry_run=dry_run,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    execute_update_plan(plan)

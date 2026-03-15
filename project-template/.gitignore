@@ -6,6 +6,7 @@ dist/
 .venv
 __pycache__
 .pytest_cache/
+.worktrees/
 
 # macOS
 .DS_Store
@@ -16,6 +17,7 @@ dist
 *.egg-info
 .coverage
 .ruff_cache
+**/tests/tmp-output/
 
 # 專案專用
 logs

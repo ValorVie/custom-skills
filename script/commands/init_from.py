@@ -72,7 +72,7 @@ def init_from(
     ),
     branch: str = typer.Option("main", "--branch", "-b", help="追蹤的分支"),
     update: bool = typer.Option(
-        False, "--update", help="更新模式：從現有 .ai-dev-project.yaml 拉取並重新合併"
+        False, "--update", help="已移除。請改用 `ai-dev init-from update`"
     ),
     force: bool = typer.Option(
         False, "--force", help="強制覆蓋所有衝突檔案，不提示"
@@ -93,21 +93,24 @@ def init_from(
         ai-dev init-from ValorVie/qdm-ai-base
         ai-dev init-from https://github.com/ValorVie/qdm-ai-base
         ai-dev init-from ValorVie/qdm-ai-base --branch develop
-        ai-dev init-from --update
+        ai-dev init-from update
         ai-dev init-from ValorVie/qdm-ai-base --force
         ai-dev init-from ValorVie/qdm-ai-base --skip-conflicts
     """
     cwd = Path.cwd()
 
-    # --update 模式
     if update:
+        console.print("[red]`--update` 已移除，請改用 `ai-dev init-from update`[/red]")
+        raise typer.Exit(1)
+
+    if source == "update":
         _run_update_mode(cwd=cwd, force=force, skip_conflicts=skip_conflicts)
         return
 
     # 首次初始化：需要 source
     if not source:
         console.print(
-            "[red]錯誤：請提供模板 repo 來源，或使用 --update 更新已初始化的專案[/red]"
+            "[red]錯誤：請提供模板 repo 來源，或使用 `ai-dev init-from update` 更新已初始化的專案[/red]"
         )
         console.print(
             "[dim]  範例：ai-dev init-from ValorVie/qdm-ai-base[/dim]"
@@ -241,8 +244,8 @@ def _run_update_mode(
     force: bool,
     skip_conflicts: bool,
 ) -> None:
-    """執行 --update 模式：從現有追蹤檔案拉取並重新合併。"""
-    console.print("[bold blue]更新模板（--update 模式）[/bold blue]")
+    """執行 init-from update 模式：從現有追蹤檔案拉取並重新合併。"""
+    console.print("[bold blue]更新模板（init-from update 模式）[/bold blue]")
 
     # 讀取追蹤檔
     tracking = load_tracking_file(cwd)

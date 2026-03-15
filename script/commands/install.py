@@ -3,6 +3,9 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from ..cli.command_manifest import build_command_manifest, get_command_spec
+from ..cli.phase_selection import build_execution_plan
+from ..services.pipeline.install_pipeline import execute_install_plan
 from ..utils.system import (
     run_command,
     check_command_exists,
@@ -72,21 +75,13 @@ def _is_completion_installed(shell: str) -> bool:
     return False
 
 
-@app.command()
-def install(
-    skip_npm: bool = typer.Option(False, "--skip-npm", help="跳過 NPM 套件安裝"),
-    skip_bun: bool = typer.Option(False, "--skip-bun", help="跳過 Bun 套件安裝"),
-    skip_repos: bool = typer.Option(
-        False, "--skip-repos", help="跳過 Git 儲存庫 Clone"
-    ),
-    skip_skills: bool = typer.Option(False, "--skip-skills", help="跳過複製 Skills"),
-    sync_project: bool = typer.Option(
-        True,
-        "--sync-project/--no-sync-project",
-        help="是否同步到專案目錄（預設：是）",
-    ),
+def _legacy_install(
+    skip_npm: bool = False,
+    skip_bun: bool = False,
+    skip_repos: bool = False,
+    skip_skills: bool = False,
 ):
-    """首次安裝 AI 開發環境。"""
+    """舊版 install 流程快照，僅供 phase pipeline 對照。"""
     console.print("[bold blue]開始安裝...[/bold blue]")
 
     # 1. 檢查前置需求
@@ -303,21 +298,7 @@ def install(
         console.print("[yellow]跳過複製 Skills[/yellow]")
     else:
         console.print("[green]正在同步 Skills 與設定...[/green]")
-        copy_skills(sync_project=sync_project)
-
-    # 確認專案層級的 .git/info/exclude
-    if sync_project:
-        cwd = Path.cwd()
-        from script.utils.project_tracking import get_git_exclude_config
-        from script.utils.git_exclude import ensure_ai_exclude
-
-        exclude_config = get_git_exclude_config(cwd)
-        if exclude_config and exclude_config.get("enabled"):
-            patterns = exclude_config.get("patterns", [])
-            if patterns:
-                modified, _, _ = ensure_ai_exclude(cwd, patterns)
-                if modified:
-                    console.print("[dim]✓ .git/info/exclude 已確認同步[/dim]")
+        copy_skills(sync_project=False)
 
     # 6. 顯示已安裝的 Skills 警告
     console.print()
@@ -363,3 +344,26 @@ def install(
 
     console.print()
     console.print("[bold green]安裝完成！[/bold green]")
+
+
+@app.command(name="install")
+def install(
+    only: str | None = typer.Option(None, "--only", help="僅執行指定 phase"),
+    skip: str | None = typer.Option(None, "--skip", help="跳過指定 phase"),
+    target: str | None = typer.Option(None, "--target", help="限制分發 target"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="只顯示執行計畫，不實際寫入"),
+):
+    """首次安裝 AI 開發環境。"""
+    manifest = build_command_manifest()
+    spec = get_command_spec(manifest, ("install",))
+    try:
+        plan = build_execution_plan(
+            spec,
+            only=only,
+            skip=skip,
+            target=target,
+            dry_run=dry_run,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    execute_install_plan(plan)

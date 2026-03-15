@@ -159,7 +159,7 @@ upstream/
 
 ```bash
 # 1. 先拉取最新
-ai-dev update --skip-npm
+ai-dev update --only repos,state
 
 # 2. 分析變更
 python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py

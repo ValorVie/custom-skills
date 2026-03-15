@@ -114,13 +114,21 @@ def _compute_incremental_lines(src: Path, dst: Path) -> list[str]:
     return new_lines
 
 
-def _prompt_conflict(src: Path, dst: Path, relative_path: str) -> str:
+def _prompt_conflict(
+    src: Path,
+    dst: Path,
+    relative_path: str,
+    *,
+    show_prompt_hint: bool = False,
+) -> str:
     """提示使用者選擇衝突檔案的處理方式。
 
     Returns:
         str: "append" | "overwrite" | "skip" | "incremental"
     """
     while True:
+        if show_prompt_hint:
+            _prompt_hint()
         console.print(
             f"  [yellow]? 衝突：{relative_path}[/yellow] "
             f"[dim]（目標檔案已存在且內容不同）[/dim]"
@@ -162,6 +170,8 @@ def merge_file(
     skip_conflicts: bool = False,
     stats: MergeStats | None = None,
     show_prompt_hint: bool = False,
+    src_hash: str | None = None,
+    dst_hash: str | None = None,
 ) -> str:
     """合併單一檔案。
 
@@ -173,6 +183,8 @@ def merge_file(
         skip_conflicts: 跳過所有衝突，不提示
         stats: 統計物件（若提供則更新）
         show_prompt_hint: 是否顯示互動提示說明
+        src_hash: 預先計算的來源檔案 hash
+        dst_hash: 預先計算的目標檔案 hash
 
     Returns:
         str: "new" | "identical" | "overwritten" | "appended" | "incremental" | "skipped"
@@ -189,7 +201,9 @@ def merge_file(
         return "new"
 
     # 檔案已存在——比較內容
-    if _sha256(src) == _sha256(dst):
+    effective_src_hash = src_hash or _sha256(src)
+    effective_dst_hash = dst_hash or _sha256(dst)
+    if effective_src_hash == effective_dst_hash:
         console.print(f"  [dim]= {relative_path} (相同)[/dim]")
         stats.identical += 1
         return "identical"
@@ -207,9 +221,12 @@ def merge_file(
         return "skipped"
 
     # 互動模式
-    if show_prompt_hint:
-        _prompt_hint()
-    action = _prompt_conflict(src, dst, relative_path)
+    action = _prompt_conflict(
+        src,
+        dst,
+        relative_path,
+        show_prompt_hint=show_prompt_hint,
+    )
 
     if action == "overwrite":
         shutil.copy2(src, dst)

@@ -16,14 +16,29 @@ from ..utils.shared import (
 
 app = typer.Typer(help="ECC Hooks Plugin management commands")
 console = Console()
+SUPPORTED_TARGET = "claude"
+
+
+def _validate_target(target: str) -> None:
+    if target != SUPPORTED_TARGET:
+        console.print(f"[red]目前僅支援 {SUPPORTED_TARGET} target，收到：{target}[/red]")
+        raise typer.Exit(code=1)
 
 
 @app.command()
-def install():
+def install(
+    target: str = typer.Option(
+        ...,
+        "--target",
+        "-t",
+        help="目標工具，目前僅支援 claude",
+    ),
+):
     """Install or update ECC Hooks Plugin.
 
     Install the ECC Hooks Plugin to ~/.claude/plugins/ecc-hooks/
     """
+    _validate_target(target)
     console.print("[bold blue]Installing ECC Hooks Plugin...[/bold blue]")
     success = install_ecc_hooks_plugin()
     if success:
@@ -35,11 +50,19 @@ def install():
 
 
 @app.command()
-def uninstall():
+def uninstall(
+    target: str = typer.Option(
+        ...,
+        "--target",
+        "-t",
+        help="目標工具，目前僅支援 claude",
+    ),
+):
     """Remove ECC Hooks Plugin.
 
     Delete ~/.claude/plugins/ecc-hooks/ directory
     """
+    _validate_target(target)
     status = get_ecc_hooks_status()
     if not status["installed"]:
         console.print("[yellow]ECC Hooks Plugin is not installed[/yellow]")
@@ -58,8 +81,16 @@ def uninstall():
 
 
 @app.command()
-def status():
+def status(
+    target: str = typer.Option(
+        ...,
+        "--target",
+        "-t",
+        help="目標工具，目前僅支援 claude",
+    ),
+):
     """Display ECC Hooks Plugin installation status."""
+    _validate_target(target)
     show_ecc_hooks_status()
 
 

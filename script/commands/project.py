@@ -3,11 +3,11 @@ project 指令群組：專案級別的初始化與更新操作。
 
 採用模板複製模式：
 - init: 從 project-template/ 複製到目標專案
-- init --force（在 custom-skills 專案中）: 反向同步，從專案複製到 project-template/
 - update: 執行 openspec update 和 uds update
 """
 
 import filecmp
+import json
 import os
 import shutil
 import stat
@@ -17,21 +17,30 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 import typer
+import yaml
 from rich.console import Console
 
-from ..utils.git_exclude import GITHUB_AI_PATHS
+from ..utils.git_exclude import (
+    DEFAULT_KEEP_TRACKED,
+    GITHUB_AI_PATHS,
+    ensure_ai_exclude,
+    get_current_patterns,
+    print_exclude_result,
+    prompt_exclude_choice,
+)
 from ..utils.project_projection import (
     FULLY_MANAGED_TOP_LEVEL_ITEMS,
     PROJECT_TEMPLATE_NAME,
     PROJECT_TEMPLATE_URL,
+    get_project_projection_patterns,
     get_project_template_dir,
 )
+from ..utils.manifest import compute_file_hash
+from ..utils.smart_merge import merge_file
+from ..utils.project_tracking import get_git_exclude_config, update_git_exclude_config
 
 app = typer.Typer(help="專案級別的初始化與更新操作")
 console = Console()
-
-# 需要合併而非覆蓋的檔案（保留目標設定並加入來源新增的內容）
-MERGE_FILES = {".gitattributes", ".gitignore"}
 
 # 複製到 project-template 時要排除的檔案名稱（個人設定，不屬於共享範本）
 EXCLUDE_FROM_TEMPLATE = {"settings.local.json"}
@@ -173,68 +182,80 @@ def _backup_diff_files(
     return backed_up_files
 
 
-def _merge_text_file(src: Path, dst: Path) -> tuple[int, int]:
-    """合併文字檔案內容，保留目標設定並加入來源新增的行。
+def _iter_template_files(root_dir: Path) -> list[Path]:
+    """遞迴列出模板目錄內需處理的檔案相對路徑。"""
+    root_dir = Path(root_dir)
+    file_paths: list[Path] = []
 
-    適用於 .gitignore、.gitattributes 等逐行設定的檔案。
-    以行為單位進行去重，保留目標原有順序，將來源的新行附加在尾部。
+    def _walk(current_dir: Path) -> None:
+        entries = sorted(current_dir.iterdir(), key=lambda path: path.name)
+        ignored = _project_init_ignore(str(current_dir), [entry.name for entry in entries])
 
-    Args:
-        src: 來源檔案路徑
-        dst: 目標檔案路徑
+        for entry in entries:
+            if entry.name in ignored:
+                continue
+            if entry.is_dir():
+                _walk(entry)
+            elif entry.is_file():
+                file_paths.append(entry.relative_to(root_dir))
 
-    Returns:
-        tuple[int, int]: (新增行數, 總行數)
-    """
-    # 讀取來源內容
-    src_lines = src.read_text(encoding="utf-8").splitlines()
+    if root_dir.exists() and root_dir.is_dir():
+        _walk(root_dir)
 
-    # 若目標不存在，直接複製
-    if not dst.exists():
-        dst.write_text("\n".join(src_lines) + "\n", encoding="utf-8")
-        return len(src_lines), len(src_lines)
-
-    # 讀取目標內容
-    dst_lines = dst.read_text(encoding="utf-8").splitlines()
-
-    # 建立目標行的集合（用於快速查重，忽略空白差異）
-    dst_lines_normalized = {line.strip() for line in dst_lines if line.strip()}
-
-    # 找出來源中目標沒有的行
-    new_lines = []
-    for line in src_lines:
-        normalized = line.strip()
-        if normalized and normalized not in dst_lines_normalized:
-            new_lines.append(line)
-            dst_lines_normalized.add(normalized)  # 避免來源內的重複
-
-    # 若有新行，附加到目標檔案尾部
-    if new_lines:
-        # 確保目標檔案最後有換行
-        content = dst.read_text(encoding="utf-8")
-        if content and not content.endswith("\n"):
-            content += "\n"
-        # 附加新行
-        content += "\n".join(new_lines) + "\n"
-        dst.write_text(content, encoding="utf-8")
-
-    return len(new_lines), len(dst_lines) + len(new_lines)
+    return file_paths
 
 
-def _is_custom_skills_project(project_root: Path) -> bool:
-    """檢查是否在 custom-skills 專案目錄中。
+def _merge_existing_directory(
+    src_dir: Path,
+    dst_dir: Path,
+    item_name: str,
+    *,
+    force: bool,
+    backup_base_dir: Optional[Path],
+    backed_up_files: list[Path],
+) -> tuple[int, int]:
+    """將既有同名目錄遞迴合併到檔案層級。"""
+    copied_count = 0
+    skipped_count = 0
 
-    透過檢查 pyproject.toml 中的 name = "ai-dev" 來判斷。
-    """
-    pyproject_path = project_root / "pyproject.toml"
-    if not pyproject_path.exists():
-        return False
+    for relative_path in _iter_template_files(src_dir):
+        src_file = src_dir / relative_path
+        dst_file = dst_dir / relative_path
+        display_path = Path(item_name) / relative_path
 
-    try:
-        content = pyproject_path.read_text(encoding="utf-8")
-        return 'name = "ai-dev"' in content
-    except Exception:
-        return False
+        if dst_file.exists() and dst_file.is_dir():
+            console.print(
+                f"  [yellow]跳過[/yellow] {display_path.as_posix()}（已存在同名目錄，保留現況）"
+            )
+            skipped_count += 1
+            continue
+
+        src_hash = compute_file_hash(src_file)
+        dst_hash = None
+        if dst_file.exists() and dst_file.is_file():
+            dst_hash = compute_file_hash(dst_file)
+
+            if force and backup_base_dir is not None and src_hash != dst_hash:
+                backup_file = backup_base_dir / display_path
+                backup_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(dst_file, backup_file)
+                backed_up_files.append(display_path)
+
+        result = merge_file(
+            src=src_file,
+            dst=dst_file,
+            relative_path=display_path.as_posix(),
+            force=force,
+            show_prompt_hint=not force,
+            src_hash=src_hash,
+            dst_hash=dst_hash,
+        )
+        if result == "skipped":
+            skipped_count += 1
+        else:
+            copied_count += 1
+
+    return copied_count, skipped_count
 
 
 # 支援的工具（用於 update 指令）
@@ -276,19 +297,53 @@ def _ensure_project_intent(project_dir: Path) -> None:
     )
 
 
-def _record_project_exclude_config(project_dir: Path, template_dir: Path) -> None:
+def _record_project_exclude_config(project_dir: Path, template_dir: Path, enabled: bool) -> list[str]:
     """將 project-template 對應的排除設定寫入追蹤檔。"""
-    from script.utils.git_exclude import DEFAULT_KEEP_TRACKED
-    from script.utils.project_projection import get_project_projection_patterns
-    from script.utils.project_tracking import update_git_exclude_config
-
     patterns = get_project_projection_patterns(template_dir)
     update_git_exclude_config(
-        enabled=True,
+        enabled=enabled,
         patterns=patterns,
         keep_tracked=DEFAULT_KEEP_TRACKED,
         project_dir=project_dir,
     )
+    return patterns
+
+
+def _ensure_project_exclude_config(project_dir: Path, template_dir: Path) -> list[str]:
+    """補齊 exclude tracking 設定，但不覆蓋既有 enabled 狀態。"""
+    config = get_git_exclude_config(project_dir)
+    if config is not None:
+        enabled = bool(config.get("enabled"))
+    else:
+        enabled = (project_dir / ".git").is_dir() and get_current_patterns(project_dir) is not None
+    return _record_project_exclude_config(project_dir, template_dir, enabled=enabled)
+
+
+def _configure_project_exclude(project_dir: Path, template_dir: Path) -> list[str]:
+    """初始化專案時設定本地 exclude 行為。"""
+    patterns = get_project_projection_patterns(template_dir)
+    git_dir = project_dir / ".git"
+
+    if not git_dir.is_dir():
+        _record_project_exclude_config(project_dir, template_dir, enabled=False)
+        console.print("[yellow]尚未偵測到 .git/，未自動設定本地排除[/yellow]")
+        console.print(
+            "[dim]建議先執行 `git init` 建立專案，或後續手動執行 `ai-dev project exclude --enable` 加入排除。[/dim]"
+        )
+        return patterns
+
+    choice = prompt_exclude_choice(patterns)
+    enabled = choice == "yes"
+    _record_project_exclude_config(project_dir, template_dir, enabled=enabled)
+
+    if enabled:
+        modified, added, skipped = ensure_ai_exclude(project_dir, patterns)
+        if modified:
+            print_exclude_result(added, skipped)
+    else:
+        console.print("[dim]ℹ 已記錄選擇，後續可用 ai-dev project exclude --enable 啟用[/dim]")
+
+    return patterns
 
 
 def _print_projection_summary(action: str, result) -> None:
@@ -324,7 +379,7 @@ def _run_project_projection(
     template_dir = get_project_template_dir()
     on_conflict = _resolve_conflict_mode(force, backup)
 
-    _record_project_exclude_config(target_dir, template_dir)
+    _ensure_project_exclude_config(target_dir, template_dir)
     result = projector(target_dir, template_dir=template_dir, on_conflict=on_conflict)
     _print_projection_summary(action, result)
 
@@ -341,17 +396,119 @@ def run_tool_command(tool: str, command: str) -> bool:
         result = subprocess.run(
             [tool, command],
             check=False,
+            capture_output=True,
+            text=True,
         )
+        if result.stdout:
+            typer.echo(result.stdout, nl=False)
+        if result.stderr:
+            typer.echo(result.stderr, nl=False, err=True)
+
+        output = f"{result.stdout or ''}\n{result.stderr or ''}"
+        false_success_markers = {
+            "uds": [
+                "Standards not initialized in this project.",
+                "Invalid manifest structure detected",
+                "Could not read manifest file.",
+            ],
+            "openspec": [
+                "No configured tools found.",
+                'Run "openspec init" to set up tools.',
+            ],
+        }
+        if result.returncode == 0 and any(
+            marker in output for marker in false_success_markers.get(tool, [])
+        ):
+            return False
+
         return result.returncode == 0
     except FileNotFoundError:
         console.print(f"[bold red]找不到 {tool} 命令[/bold red]")
         return False
 
 
+def _has_valid_json_object(path: Path, required_keys: set[str]) -> bool:
+    """檢查 JSON 檔案是否為包含必要 key 的 object。"""
+    if not path.exists():
+        return False
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+
+    return isinstance(data, dict) and required_keys.issubset(data.keys())
+
+
+def _has_valid_yaml_object(path: Path, required_keys: set[str]) -> bool:
+    """檢查 YAML 檔案是否為包含必要 key 的 object。"""
+    if not path.exists():
+        return False
+
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+
+    return isinstance(data, dict) and required_keys.issubset(data.keys())
+
+
 def check_project_initialized(tool: str) -> bool:
     """檢查專案是否已初始化特定工具。"""
+    if tool == "uds":
+        standards_dir = Path(TOOLS[tool]["check_dir"])
+        return (
+            standards_dir.exists()
+            and _has_valid_json_object(
+                standards_dir / "manifest.json",
+                {"version", "standards", "integrationConfigs", "upstream"},
+            )
+            and (standards_dir / "active-profile.yaml").exists()
+        )
+    if tool == "openspec":
+        openspec_dir = Path(TOOLS[tool]["check_dir"])
+        return (
+            openspec_dir.exists()
+            and (openspec_dir / "project.md").exists()
+            and _has_valid_yaml_object(
+                openspec_dir / "config.yaml",
+                {"schema", "specs", "active", "archived"},
+            )
+        )
+
     check_dir = TOOLS[tool]["check_dir"]
     return Path(check_dir).exists()
+
+
+def _project_init_missing_detail(tool: str) -> str:
+    """回傳指定工具缺少初始化時的缺口描述。"""
+    if tool == "uds":
+        standards_dir = Path(TOOLS[tool]["check_dir"])
+        if not standards_dir.exists():
+            return ".standards/ 不存在"
+        if not (standards_dir / "manifest.json").exists():
+            return ".standards/manifest.json 不存在"
+        if not _has_valid_json_object(
+            standards_dir / "manifest.json",
+            {"version", "standards", "integrationConfigs", "upstream"},
+        ):
+            return ".standards/manifest.json 結構無效"
+        if not (standards_dir / "active-profile.yaml").exists():
+            return ".standards/active-profile.yaml 不存在"
+    if tool == "openspec":
+        openspec_dir = Path(TOOLS[tool]["check_dir"])
+        if not openspec_dir.exists():
+            return "openspec/ 不存在"
+        if not (openspec_dir / "project.md").exists():
+            return "openspec/project.md 不存在"
+        if not (openspec_dir / "config.yaml").exists():
+            return "openspec/config.yaml 不存在"
+        if not _has_valid_yaml_object(
+            openspec_dir / "config.yaml",
+            {"schema", "specs", "active", "archived"},
+        ):
+            return "openspec/config.yaml 結構無效"
+    return f"{TOOLS[tool]['check_dir']}/ 不存在"
 
 
 def get_missing_tools(tools: List[str]) -> List[str]:
@@ -359,84 +516,13 @@ def get_missing_tools(tools: List[str]) -> List[str]:
     return [t for t in tools if not check_tool_installed(t)]
 
 
-def _sync_to_project_template(project_root: Path, template_dir: Path) -> None:
-    """反向同步：從專案複製到 project-template（開發者模式）。
-
-    當在 custom-skills 專案中執行 `ai-dev project init --force` 時，
-    會將專案根目錄的模板檔案同步回 project-template/ 目錄。
-
-    同步的檔案清單由 template_dir 中現有的檔案決定，包含隱藏檔案和目錄。
-    """
-    console.print(
-        "[bold yellow]偵測到 custom-skills 專案：啟用反向同步模式[/bold yellow]"
-    )
-    console.print(f"[dim]專案根目錄：{project_root}[/dim]")
-    console.print(f"[dim]模板目錄：{template_dir}[/dim]")
-    console.print()
-    console.print("[bold cyan]同步方向：專案 → project-template/[/bold cyan]")
-    console.print()
-
-    copied_count = 0
-    skipped_count = 0
-
-    # 根據 template_dir 中現有的檔案來決定要同步哪些項目
-    for item in template_dir.iterdir():
-        item_name = item.name
-        src = project_root / item_name
-        dst = template_dir / item_name
-
-        # 合併檔案（保留目標設定並加入來源新增的內容）
-        if item_name in MERGE_FILES:
-            if not src.exists():
-                console.print(f"  [yellow]跳過[/yellow] {item_name}（來源不存在）")
-                skipped_count += 1
-                continue
-            try:
-                added, total = _merge_text_file(src, dst)
-                if added > 0:
-                    console.print(
-                        f"  [blue]合併[/blue] {item_name}（+{added} 行，共 {total} 行）"
-                    )
-                else:
-                    console.print(f"  [dim]無變更[/dim] {item_name}（內容相同）")
-                copied_count += 1
-            except Exception as e:
-                console.print(f"  [red]✗[/red] {item_name}：{e}")
-            continue
-
-        if not src.exists():
-            console.print(f"  [yellow]跳過[/yellow] {item_name}（來源不存在）")
-            skipped_count += 1
-            continue
-
-        try:
-            if src.is_dir():
-                if dst.exists():
-                    _safe_rmtree(dst)
-                shutil.copytree(src, dst, ignore=_template_ignore)
-                console.print(f"  [green]✓[/green] {item_name}/ → project-template/")
-            else:
-                if src.name in EXCLUDE_FROM_TEMPLATE:
-                    console.print(
-                        f"  [yellow]排除[/yellow] {item_name}（不屬於共享範本）"
-                    )
-                    skipped_count += 1
-                    continue
-                shutil.copy2(src, dst)
-                console.print(f"  [green]✓[/green] {item_name} → project-template/")
-            copied_count += 1
-        except Exception as e:
-            console.print(f"  [red]✗[/red] {item_name}：{e}")
-
-    console.print()
-    console.print(f"[green]同步完成：{copied_count} 個項目[/green]")
-    if skipped_count > 0:
-        console.print(f"[yellow]跳過：{skipped_count} 個項目[/yellow]")
-
-    console.print()
-    console.print("[bold green]模板更新完成！[/bold green]")
-    console.print()
-    console.print("[dim]提示：記得提交 project-template/ 的變更[/dim]")
+def _project_init_hint_for_tool(tool: str) -> str:
+    """回傳指定工具缺少初始化時的建議指令。"""
+    hints = {
+        "openspec": "openspec init",
+        "uds": "uds init",
+    }
+    return hints.get(tool, "ai-dev project init")
 
 
 @app.command()
@@ -445,7 +531,7 @@ def init(
         False,
         "--force",
         "-f",
-        help="強制重新初始化（覆蓋現有檔案）；在 custom-skills 專案中會反向同步到 project-template",
+        help="強制重新初始化（覆蓋現有檔案）",
     ),
     target: Optional[str] = typer.Argument(
         None,
@@ -457,9 +543,10 @@ def init(
     此指令會將 project-template 中需納入 repo 的 tracked 檔案複製到目標專案，
     然後建立 .ai-dev-project.yaml 並執行 hydrate，將 AI 檔投影到專案內。
 
-    特殊行為：
-    - 在 custom-skills 專案中使用 --force 時，會反向同步（專案 → project-template/）
-    - 這允許開發者更新模板後同步回 project-template/ 目錄
+    行為規則：
+    - 同名檔案：`init` 進行內容級別分析，提供覆蓋 / 增量 / 查看差異 / 跳過
+    - 同名檔案：`init --force` 直接覆蓋
+    - 同名目錄：遞迴到檔案層級處理；只處理模板中存在的對應檔案，目標額外檔案保留
     """
     # 決定目標目錄
     target_dir = _resolve_target_dir(target)
@@ -472,19 +559,9 @@ def init(
         console.print("[yellow]請先執行 `ai-dev install` 確保環境已安裝[/yellow]")
         raise typer.Exit(code=1)
 
-    # 特殊處理：在 custom-skills 專案中使用 --force 時反向同步
-    # 反向同步目標固定為 repo 內的 project-template/，不使用 get_project_template_dir()
-    if force and _is_custom_skills_project(target_dir):
-        local_template_dir = target_dir / "project-template"
-        _sync_to_project_template(target_dir, local_template_dir)
-        return
-
-    # 檢查是否已初始化
     standards_dir = target_dir / ".standards"
-    if standards_dir.exists() and not force:
-        console.print("[yellow]專案已初始化（.standards 目錄已存在）[/yellow]")
-        console.print("[dim]使用 --force 強制重新初始化[/dim]")
-        return
+    if standards_dir.exists():
+        console.print("[dim]偵測到既有 .standards，將依項目規則合併或保留現況[/dim]")
 
     console.print("[bold blue]開始初始化專案...[/bold blue]")
     console.print(f"[dim]模板目錄：{template_dir}[/dim]")
@@ -496,7 +573,6 @@ def init(
     skipped_count = 0
     backup_base_dir: Optional[Path] = None
     backed_up_files: list[Path] = []
-
     if force:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_base_dir = target_dir / "_backup_after_init_force" / timestamp
@@ -509,98 +585,74 @@ def init(
             console.print(f"  [dim]交由 hydrate 管理[/dim] {item.name}")
             continue
 
-        # 合併檔案（保留目標設定並加入來源新增的內容）
-        if item.name in MERGE_FILES:
+        if src.is_dir():
+            if dst.exists() and not dst.is_dir():
+                console.print(
+                    f"  [yellow]跳過[/yellow] {item.name}/（已存在同名檔案，保留現況）"
+                )
+                skipped_count += 1
+                continue
+
+            if dst.exists() and dst.is_dir():
+                merged_count, merged_skipped = _merge_existing_directory(
+                    src,
+                    dst,
+                    item.name,
+                    force=force,
+                    backup_base_dir=backup_base_dir,
+                    backed_up_files=backed_up_files,
+                )
+                copied_count += merged_count
+                skipped_count += merged_skipped
+                continue
+
             try:
-                dst_existed = dst.exists()
-                added, total = _merge_text_file(src, dst)
-                if dst_existed and added > 0:
-                    console.print(
-                        f"  [blue]合併[/blue] {item.name}（+{added} 行，共 {total} 行）"
-                    )
-                elif dst_existed:
-                    console.print(f"  [dim]無變更[/dim] {item.name}（內容相同）")
-                else:
-                    console.print(f"  [green]✓[/green] {item.name}")
+                shutil.copytree(src, dst, ignore=_project_init_ignore)
+                console.print(f"  [green]✓[/green] {item.name}/")
                 copied_count += 1
             except Exception as e:
                 console.print(f"  [red]✗[/red] {item.name}：{e}")
             continue
 
-        # 檢查是否需要跳過
-        if dst.exists() and not force:
-            console.print(f"  [yellow]跳過[/yellow] {item.name}（已存在）")
+        if dst.exists() and dst.is_dir():
+            console.print(
+                f"  [yellow]跳過[/yellow] {item.name}（已存在同名目錄，保留現況）"
+            )
             skipped_count += 1
             continue
 
-        # 複製檔案或目錄
         try:
-            if src.is_dir():
-                if dst.exists():
-                    if force and backup_base_dir is not None:
-                        if dst.is_dir():
-                            diff_files = _collect_diff_files(src, dst)
-                            if diff_files:
-                                backed_up_files.extend(
-                                    _backup_diff_files(
-                                        target_dir=target_dir,
-                                        diff_files=diff_files,
-                                        item_name=item.name,
-                                        backup_dir=backup_base_dir,
-                                    )
-                                )
-                        elif dst.is_file():
-                            backup_file = backup_base_dir / item.name
-                            backup_file.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(dst, backup_file)
-                            backed_up_files.append(Path(item.name))
+            if force and backup_base_dir is not None and dst.exists() and dst.is_file():
+                try:
+                    files_differ = not filecmp.cmp(src, dst, shallow=False)
+                except OSError:
+                    files_differ = True
 
-                    if dst.is_dir():
-                        _safe_rmtree(dst)
-                    else:
-                        dst.unlink()
-                shutil.copytree(src, dst, ignore=_project_init_ignore)
-                console.print(f"  [green]✓[/green] {item.name}/")
+                if files_differ:
+                    backup_file = backup_base_dir / item.name
+                    backup_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(dst, backup_file)
+                    backed_up_files.append(Path(item.name))
+
+            result = merge_file(
+                src=src,
+                dst=dst,
+                relative_path=item.name,
+                force=force,
+                show_prompt_hint=not force,
+            )
+
+            if result == "skipped":
+                skipped_count += 1
             else:
-                if force and backup_base_dir is not None and dst.exists():
-                    if dst.is_file():
-                        try:
-                            files_differ = not filecmp.cmp(src, dst, shallow=False)
-                        except OSError:
-                            files_differ = True
-
-                        if files_differ:
-                            backup_file = backup_base_dir / item.name
-                            backup_file.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(dst, backup_file)
-                            backed_up_files.append(Path(item.name))
-                    elif dst.is_dir():
-                        diff_files = _collect_diff_files(src, dst)
-                        if diff_files:
-                            backed_up_files.extend(
-                                _backup_diff_files(
-                                    target_dir=target_dir,
-                                    diff_files=diff_files,
-                                    item_name=item.name,
-                                    backup_dir=backup_base_dir,
-                                )
-                            )
-
-                if dst.exists() and dst.is_dir():
-                    _safe_rmtree(dst)
-
-                shutil.copy2(src, dst)
-                console.print(f"  [green]✓[/green] {item.name}")
-            copied_count += 1
+                copied_count += 1
         except Exception as e:
             console.print(f"  [red]✗[/red] {item.name}：{e}")
 
     console.print()
     console.print(f"[green]複製完成：{copied_count} 個項目[/green]")
     if skipped_count > 0:
-        console.print(
-            f"[yellow]跳過：{skipped_count} 個項目（使用 --force 覆蓋）[/yellow]"
-        )
+        console.print(f"[yellow]跳過：{skipped_count} 個項目（保留目標現況）[/yellow]")
 
     if backed_up_files and backup_base_dir is not None:
         backup_files_display = sorted({path.as_posix() for path in backed_up_files})
@@ -614,7 +666,7 @@ def init(
     from script.utils.project_projection import hydrate_project
 
     _ensure_project_intent(target_dir)
-    _record_project_exclude_config(target_dir, template_dir)
+    _configure_project_exclude(target_dir, template_dir)
     hydrate_result = hydrate_project(
         target_dir,
         template_dir=template_dir,
@@ -684,7 +736,10 @@ def doctor(
     if manifest is None:
         issues.append("缺少 project projection manifest")
 
-    if (target_dir / ".git").is_dir() and not get_current_patterns(target_dir):
+    exclude_config = tracking.get("git_exclude")
+    exclude_required = True if exclude_config is None else bool(exclude_config.get("enabled"))
+
+    if (target_dir / ".git").is_dir() and exclude_required and not get_current_patterns(target_dir):
         issues.append(".git/info/exclude 缺少 ai-dev 管理區塊")
 
     if issues:
@@ -731,20 +786,20 @@ def update(
     not_init = [t for t in tools_to_update if not check_project_initialized(t)]
     if not_init:
         if len(not_init) == len(tools_to_update):
-            # 全部都沒初始化
             console.print("[bold red]專案尚未初始化。[/bold red]")
-            console.print("[yellow]請先執行 `ai-dev project init`[/yellow]")
+            console.print("[yellow]請先完成必要初始化：[/yellow]")
+            for tool in not_init:
+                console.print(
+                    f"  - {tool}: [dim]{_project_init_hint_for_tool(tool)}[/dim]"
+                )
             raise typer.Exit(code=1)
         else:
-            # 部分初始化
             console.print("[yellow]以下工具尚未初始化：[/yellow]")
             for tool in not_init:
-                check_dir = TOOLS[tool]["check_dir"]
-                console.print(f"  - {tool}: {check_dir}/ 不存在")
-            console.print()
-            console.print(
-                f"[dim]建議執行 `ai-dev project init --only {not_init[0]}`[/dim]"
-            )
+                console.print(f"  - {tool}: {_project_init_missing_detail(tool)}")
+                console.print(
+                    f"    [dim]建議執行 `{_project_init_hint_for_tool(tool)}`[/dim]"
+                )
             console.print()
 
             # 只更新已初始化的工具
@@ -815,6 +870,10 @@ def exclude(
         raise typer.Exit(1)
 
     if enable:
+        if not (cwd / ".git").is_dir():
+            console.print("[yellow]尚未偵測到 .git/，請先執行 `git init` 再啟用本地排除[/yellow]")
+            raise typer.Exit(1)
+
         config = get_git_exclude_config(cwd)
         patterns = config["patterns"] if config and config.get("patterns") else []
         if not patterns:

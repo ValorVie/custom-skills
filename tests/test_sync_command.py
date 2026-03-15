@@ -61,7 +61,7 @@ def test_sync_init_writes_default_config(tmp_path: Path, monkeypatch):
     )
 
     result = runner.invoke(
-        app, ["sync", "init", "--remote", "git@example.com:me/sync.git"]
+        app, ["sync", "init", "--remote", "git@example.com:me/sync.git", "--mode", "bootstrap"]
     )
 
     assert result.exit_code == 0
@@ -116,12 +116,22 @@ def test_sync_init_existing_repo_runs_lfs_migrate(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(sync_cmd, "save_sync_config", lambda *_args, **_kwargs: None)
 
     result = runner.invoke(
-        app, ["sync", "init", "--remote", "git@example.com:me/sync.git"]
+        app, ["sync", "init", "--remote", "git@example.com:me/sync.git", "--mode", "bootstrap"]
     )
 
     assert result.exit_code == 0
     assert captured["migrated"] is True
     assert captured["patterns"] == ["*.sqlite3"]
+
+
+def test_sync_init_requires_bootstrap_mode():
+    sync_cmd.get_sync_config_path = lambda: Path("/tmp/nonexistent-sync-config-for-test.yaml")
+    result = runner.invoke(
+        app, ["sync", "init", "--remote", "git@example.com:me/sync.git"]
+    )
+
+    assert result.exit_code == 1
+    assert "bootstrap" in result.stdout
 
 
 def test_sync_add_updates_config(tmp_path: Path, monkeypatch):

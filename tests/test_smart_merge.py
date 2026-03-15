@@ -1,10 +1,13 @@
 """smart_merge.py 的單元測試。"""
 
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from rich.console import Console
 
+from script.utils import smart_merge
 from script.utils.smart_merge import (
     MergeStats,
     _compute_incremental_lines,
@@ -137,6 +140,28 @@ def test_merge_file_interactive_skip(tmp_path: Path):
 
     assert result == "skipped"
     assert dst.read_text() == "old"  # 未被修改
+
+
+def test_merge_file_reprints_prompt_hint_after_showing_diff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    src = tmp_path / "src" / "a.md"
+    dst = tmp_path / "dst" / "a.md"
+    _write(src, "new\n")
+    _write(dst, "old\n")
+
+    buffer = StringIO()
+    monkeypatch.setattr(
+        smart_merge,
+        "console",
+        Console(file=buffer, force_terminal=False, color_system=None, width=120),
+    )
+
+    with patch("script.utils.smart_merge.Prompt.ask", side_effect=["D", "S"]):
+        result = merge_file(src, dst, "a.md", show_prompt_hint=True)
+
+    assert result == "skipped"
+    assert buffer.getvalue().count("[A] 附加到尾部  [I] 增量附加  [O] 覆蓋整份  [S] 跳過  [D] 顯示差異") == 2
 
 
 def test_merge_file_interactive_incremental(tmp_path: Path):
