@@ -285,6 +285,17 @@ ai-dev status
 /help
 ```
 
+#### 其他 AI 工具的 Plugin 安裝
+```shell
+# superpowers
+- https://github.com/obra/superpowers
+## for codex
+Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
+## for opencode
+Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
+```
+
+
 ### 第四步：設定 MCP Server
 
 MCP (Model Context Protocol) Server 可以擴充 AI 工具的能力，例如查詢最新文件、安全掃描等。
