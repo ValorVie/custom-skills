@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 
 from script.utils import project_projection_manifest as ppm
-from script.utils.project_blocks import read_managed_block
+from script.utils.project_blocks import (
+    get_block_markers,
+    read_managed_block,
+    render_managed_block,
+)
 from script.utils.project_projection import (
     PROJECT_TEMPLATE_NAME,
     PROJECT_TEMPLATE_URL,
@@ -73,6 +77,29 @@ def test_hydrate_project_generates_files_and_manifest(
     assert tracking is not None
     assert "AGENTS.md" in tracking["managed_files"]
     assert ".claude" in tracking["managed_files"]
+
+
+def test_hydrate_project_unwraps_managed_block_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    template_dir = _make_template(tmp_path)
+    project_root = _make_project(tmp_path)
+    manifest_dir = tmp_path / "manifests" / "projects"
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    _write(
+        template_dir / "AGENTS.md",
+        render_managed_block("ai-dev-project", "# Project instructions\n"),
+    )
+
+    hydrate_project(project_root, template_dir=template_dir)
+
+    start_marker, end_marker = get_block_markers("ai-dev-project")
+    content = (project_root / "AGENTS.md").read_text(encoding="utf-8")
+
+    assert content.count(start_marker) == 1
+    assert content.count(end_marker) == 1
+    assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Project instructions"
 
 
 def test_reconcile_project_skips_conflicting_managed_block_by_default(

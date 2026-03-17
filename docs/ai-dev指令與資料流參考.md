@@ -145,7 +145,7 @@ flowchart LR
 - AI projection 例如 `.claude/`、`.codex/`、`.gemini/`、`.opencode/`、`AGENTS.md`、`CLAUDE.md`
 
 AI projection 依型態再分三類：
-- `managed_block`：`AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`INSTRUCTIONS.md`。只在檔案最上方插入或更新 ai-dev 管理區塊，檔案其他內容保留。
+- `managed_block`：`AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`INSTRUCTIONS.md`。只在檔案最上方插入或更新 ai-dev 管理區塊，檔案其他內容保留；若模板來源本身已帶有同名 ai-dev 區塊，hydrate 只會取用區塊內文，避免產生巢狀 marker。
 - `dir`：`.claude/`、`.codex/`、`.gemini/`、`.opencode/`、`.agent/`、`.agents/`、`.github/skills/`、`.github/prompts/` 等投影目錄。
 - `file`：例如 `.github/copilot-instructions.md` 這類單檔投影。
 

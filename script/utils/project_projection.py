@@ -134,7 +134,7 @@ def _collect_projection_entries(template_dir: Path) -> list[ProjectionEntry]:
 
 def _get_expected_hash(entry: ProjectionEntry) -> str:
     if entry.kind == "managed_block":
-        return compute_text_hash(entry.source_path.read_text(encoding="utf-8"))
+        return compute_text_hash(_read_managed_block_source(entry.source_path))
     if entry.kind == "dir":
         return compute_dir_hash(entry.source_path)
     return compute_file_hash(entry.source_path)
@@ -200,7 +200,7 @@ def _apply_projection_entry(project_root: Path, entry: ProjectionEntry) -> None:
         upsert_managed_block(
             target_path,
             PROJECT_MANAGED_BLOCK_ID,
-            entry.source_path.read_text(encoding="utf-8"),
+            _read_managed_block_source(entry.source_path),
         )
         return
 
@@ -210,6 +210,14 @@ def _apply_projection_entry(project_root: Path, entry: ProjectionEntry) -> None:
         return
 
     shutil.copy2(entry.source_path, target_path)
+
+
+def _read_managed_block_source(source_path: Path) -> str:
+    """讀取 managed block 來源內容；若來源已含 ai-dev block，則只取區塊內文。"""
+    block_content = read_managed_block(source_path, PROJECT_MANAGED_BLOCK_ID)
+    if block_content is not None:
+        return block_content
+    return source_path.read_text(encoding="utf-8")
 
 
 def hydrate_project(
