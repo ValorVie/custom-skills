@@ -286,14 +286,15 @@ ai-dev status
 ```
 
 #### 其他 AI 工具的 Plugin 安裝
-```shell
-# superpowers
-- https://github.com/obra/superpowers
-## for codex
+
+- Superpowers 專案：[obra/superpowers](https://github.com/obra/superpowers)
+- Codex：可直接把以下提示交給 Codex 執行
+
+```text
 Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
-## for opencode
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
 ```
+
+- OpenCode：請直接參考下方的 [安裝 OpenCode Superpowers](#安裝-opencode-superpowers) 章節
 
 
 ### 第四步：設定 MCP Server

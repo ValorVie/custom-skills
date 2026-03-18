@@ -12,7 +12,12 @@ from typing import Literal
 from .git_exclude import ALWAYS_EXCLUDE, GITHUB_AI_PATHS, ensure_ai_exclude
 from .manifest import compute_dir_hash, compute_file_hash
 from .paths import get_custom_skills_dir
-from .project_blocks import read_managed_block, remove_managed_block, upsert_managed_block
+from .project_blocks import (
+    read_managed_block,
+    read_managed_block_text,
+    remove_managed_block,
+    upsert_managed_block,
+)
 from .project_projection_manifest import read_project_manifest, write_project_manifest
 from .project_tracking import load_tracking_file, update_tracking_file
 
@@ -132,9 +137,22 @@ def _collect_projection_entries(template_dir: Path) -> list[ProjectionEntry]:
     return sorted(entries, key=lambda entry: entry.relative_path)
 
 
-def _get_expected_hash(entry: ProjectionEntry) -> str:
+def _extract_managed_block_content(source_path: Path) -> str:
+    """讀取 managed block 來源內容；若來源已含 ai-dev block，則只取區塊內文。"""
+    source_text = source_path.read_text(encoding="utf-8")
+    block_content = read_managed_block_text(source_text, PROJECT_MANAGED_BLOCK_ID)
+    if block_content is not None:
+        return block_content
+    return source_text
+
+
+def _get_expected_hash(
+    entry: ProjectionEntry, managed_block_content: str | None = None
+) -> str:
     if entry.kind == "managed_block":
-        return compute_text_hash(_read_managed_block_source(entry.source_path))
+        if managed_block_content is None:
+            managed_block_content = _extract_managed_block_content(entry.source_path)
+        return compute_text_hash(managed_block_content)
     if entry.kind == "dir":
         return compute_dir_hash(entry.source_path)
     return compute_file_hash(entry.source_path)
@@ -193,14 +211,20 @@ def _remove_path(project_root: Path, relative_path: str, kind: str) -> None:
         target_path.unlink()
 
 
-def _apply_projection_entry(project_root: Path, entry: ProjectionEntry) -> None:
+def _apply_projection_entry(
+    project_root: Path,
+    entry: ProjectionEntry,
+    managed_block_content: str | None = None,
+) -> None:
     target_path = project_root / entry.relative_path
 
     if entry.kind == "managed_block":
+        if managed_block_content is None:
+            managed_block_content = _extract_managed_block_content(entry.source_path)
         upsert_managed_block(
             target_path,
             PROJECT_MANAGED_BLOCK_ID,
-            _read_managed_block_source(entry.source_path),
+            managed_block_content,
         )
         return
 
@@ -210,14 +234,6 @@ def _apply_projection_entry(project_root: Path, entry: ProjectionEntry) -> None:
         return
 
     shutil.copy2(entry.source_path, target_path)
-
-
-def _read_managed_block_source(source_path: Path) -> str:
-    """讀取 managed block 來源內容；若來源已含 ai-dev block，則只取區塊內文。"""
-    block_content = read_managed_block(source_path, PROJECT_MANAGED_BLOCK_ID)
-    if block_content is not None:
-        return block_content
-    return source_path.read_text(encoding="utf-8")
 
 
 def hydrate_project(
@@ -264,7 +280,11 @@ def hydrate_project(
 
     for entry in entries:
         target_path = project_root / entry.relative_path
-        expected_hash = _get_expected_hash(entry)
+        managed_block_content = None
+        if entry.kind == "managed_block":
+            managed_block_content = _extract_managed_block_content(entry.source_path)
+
+        expected_hash = _get_expected_hash(entry, managed_block_content)
         previous_record = old_files.get(entry.relative_path)
         current_hash = _get_current_hash(target_path, entry.kind)
 
@@ -292,7 +312,7 @@ def hydrate_project(
         if conflict and on_conflict == "backup" and backup_root is not None and target_path.exists():
             _backup_path(project_root, entry.relative_path, backup_root)
 
-        _apply_projection_entry(project_root, entry)
+        _apply_projection_entry(project_root, entry, managed_block_content)
         result.generated.append(entry.relative_path)
         new_files[entry.relative_path] = _build_manifest_record(entry, expected_hash)
 

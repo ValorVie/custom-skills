@@ -11,6 +11,7 @@ from script.utils.project_blocks import (
     render_managed_block,
 )
 from script.utils.project_projection import (
+    PROJECT_MANAGED_BLOCK_ID,
     PROJECT_TEMPLATE_NAME,
     PROJECT_TEMPLATE_URL,
     hydrate_project,
@@ -79,7 +80,7 @@ def test_hydrate_project_generates_files_and_manifest(
     assert ".claude" in tracking["managed_files"]
 
 
-def test_hydrate_project_unwraps_managed_block_source(
+def test_hydrate_project_unwraps_managed_block_source_without_second_run_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     template_dir = _make_template(tmp_path)
@@ -89,17 +90,22 @@ def test_hydrate_project_unwraps_managed_block_source(
 
     _write(
         template_dir / "AGENTS.md",
-        render_managed_block("ai-dev-project", "# Project instructions\n"),
+        render_managed_block(PROJECT_MANAGED_BLOCK_ID, "# Project instructions\n"),
     )
 
-    hydrate_project(project_root, template_dir=template_dir)
+    first_result = hydrate_project(project_root, template_dir=template_dir)
+    second_result = hydrate_project(project_root, template_dir=template_dir)
 
-    start_marker, end_marker = get_block_markers("ai-dev-project")
+    start_marker, end_marker = get_block_markers(PROJECT_MANAGED_BLOCK_ID)
     content = (project_root / "AGENTS.md").read_text(encoding="utf-8")
 
     assert content.count(start_marker) == 1
     assert content.count(end_marker) == 1
-    assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Project instructions"
+    assert read_managed_block(project_root / "AGENTS.md", PROJECT_MANAGED_BLOCK_ID) == "# Project instructions"
+    assert first_result.generated
+    assert second_result.generated == []
+    assert second_result.conflicts == []
+    assert second_result.skipped == []
 
 
 def test_reconcile_project_skips_conflicting_managed_block_by_default(
@@ -115,13 +121,13 @@ def test_reconcile_project_skips_conflicting_managed_block_by_default(
     _write(template_dir / "AGENTS.md", "# Updated instructions\n")
     from script.utils.project_blocks import upsert_managed_block
 
-    upsert_managed_block(project_root / "AGENTS.md", "ai-dev-project", manual_content)
+    upsert_managed_block(project_root / "AGENTS.md", PROJECT_MANAGED_BLOCK_ID, manual_content)
 
     result = reconcile_project(project_root, template_dir=template_dir)
 
     assert "AGENTS.md" in result.conflicts
     assert "AGENTS.md" in result.skipped
-    assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == manual_content.strip()
+    assert read_managed_block(project_root / "AGENTS.md", PROJECT_MANAGED_BLOCK_ID) == manual_content.strip()
 
 
 def test_reconcile_project_force_overwrites_conflicting_managed_block(
@@ -135,14 +141,14 @@ def test_reconcile_project_force_overwrites_conflicting_managed_block(
     hydrate_project(project_root, template_dir=template_dir)
     from script.utils.project_blocks import upsert_managed_block
 
-    upsert_managed_block(project_root / "AGENTS.md", "ai-dev-project", "# manual\n")
+    upsert_managed_block(project_root / "AGENTS.md", PROJECT_MANAGED_BLOCK_ID, "# manual\n")
     _write(template_dir / "AGENTS.md", "# Updated instructions\n")
 
     result = reconcile_project(project_root, template_dir=template_dir, on_conflict="force")
 
     assert "AGENTS.md" not in result.conflicts
     assert "AGENTS.md" in result.generated
-    assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Updated instructions"
+    assert read_managed_block(project_root / "AGENTS.md", PROJECT_MANAGED_BLOCK_ID) == "# Updated instructions"
 
 
 def test_reconcile_project_backup_preserves_conflicting_file(
@@ -156,7 +162,7 @@ def test_reconcile_project_backup_preserves_conflicting_file(
     hydrate_project(project_root, template_dir=template_dir)
     from script.utils.project_blocks import upsert_managed_block
 
-    upsert_managed_block(project_root / "AGENTS.md", "ai-dev-project", "# manual\n")
+    upsert_managed_block(project_root / "AGENTS.md", PROJECT_MANAGED_BLOCK_ID, "# manual\n")
     _write(template_dir / "AGENTS.md", "# Updated instructions\n")
 
     result = reconcile_project(project_root, template_dir=template_dir, on_conflict="backup")
@@ -164,7 +170,7 @@ def test_reconcile_project_backup_preserves_conflicting_file(
     backup_root = project_root / "_backup_project_projection"
 
     assert "AGENTS.md" in result.generated
-    assert read_managed_block(project_root / "AGENTS.md", "ai-dev-project") == "# Updated instructions"
+    assert read_managed_block(project_root / "AGENTS.md", PROJECT_MANAGED_BLOCK_ID) == "# Updated instructions"
     assert backup_root.exists()
     assert any(path.name == "AGENTS.md" for path in backup_root.rglob("AGENTS.md"))
 

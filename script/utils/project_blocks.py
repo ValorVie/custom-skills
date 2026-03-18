@@ -34,19 +34,24 @@ def render_managed_block(block_id: str, content: str) -> str:
     return f"{start_marker}\n{normalized_content}\n{end_marker}\n"
 
 
-def read_managed_block(path: Path, block_id: str) -> str | None:
-    """讀取既有 managed block 的內容。"""
-    if not path.exists():
-        return None
-
+def read_managed_block_text(text: str, block_id: str) -> str | None:
+    """從既有文字內容中讀取 managed block。"""
     start_marker, end_marker = get_block_markers(block_id)
-    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    lines = text.splitlines(keepends=True)
     start_idx, end_idx = _find_block(lines, start_marker, end_marker)
 
     if start_idx is None or end_idx is None:
         return None
 
     return "".join(lines[start_idx + 1 : end_idx]).rstrip("\n")
+
+
+def read_managed_block(path: Path, block_id: str) -> str | None:
+    """讀取既有 managed block 的內容。"""
+    if not path.exists():
+        return None
+
+    return read_managed_block_text(path.read_text(encoding="utf-8"), block_id)
 
 
 def upsert_managed_block(path: Path, block_id: str, content: str) -> None:
