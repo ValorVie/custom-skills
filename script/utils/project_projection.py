@@ -25,6 +25,8 @@ PROJECT_PROJECTION_SCHEMA_VERSION = "1"
 PROJECT_TEMPLATE_NAME = "project-template"
 PROJECT_TEMPLATE_URL = f"local://{PROJECT_TEMPLATE_NAME}"
 PROJECT_MANAGED_BLOCK_ID = "ai-dev-project"
+MANAGED_BLOCK_OPEN_LABEL = "⚠️ 以下為 ai-dev 管理的專案規則，必須遵守"
+MANAGED_BLOCK_CLOSE_LABEL = "以上規則結束，確認已理解再開始任務"
 MANAGED_BLOCK_FILES = {
     "AGENTS.md",
     "CLAUDE.md",
@@ -225,6 +227,8 @@ def _apply_projection_entry(
             target_path,
             PROJECT_MANAGED_BLOCK_ID,
             managed_block_content,
+            open_label=MANAGED_BLOCK_OPEN_LABEL,
+            close_label=MANAGED_BLOCK_CLOSE_LABEL,
         )
         return
 

@@ -79,3 +79,72 @@ def test_upsert_managed_block_moves_existing_block_to_top(tmp_path: Path):
     assert content.startswith(
         f"{start_marker}\nnew generated line\n{end_marker}\n\n# User header\n"
     )
+
+
+def test_get_block_markers_with_labels():
+    """帶 label 的 marker 包含語義文字。"""
+    start, end = get_block_markers(
+        "ai-dev-project", open_label="rules here", close_label="end of rules"
+    )
+
+    assert start == "<!-- >>> ai-dev:ai-dev-project | rules here -->"
+    assert end == "<!-- <<< ai-dev:ai-dev-project | end of rules -->"
+
+
+def test_get_block_markers_without_labels():
+    """不帶 label 時保持舊格式（向下相容）。"""
+    start, end = get_block_markers("ai-dev-project")
+
+    assert start == "<!-- >>> ai-dev:ai-dev-project -->"
+    assert end == "<!-- <<< ai-dev:ai-dev-project -->"
+
+
+def test_upsert_with_labels_produces_labeled_markers(tmp_path: Path):
+    """帶 label 的 upsert 產出帶語義的 marker。"""
+    target = tmp_path / "CLAUDE.md"
+
+    upsert_managed_block(
+        target, "ai-dev-project", "content",
+        open_label="⚠️ 必須遵守", close_label="規則結束",
+    )
+
+    text = target.read_text(encoding="utf-8")
+    assert "<!-- >>> ai-dev:ai-dev-project | ⚠️ 必須遵守 -->" in text
+    assert "<!-- <<< ai-dev:ai-dev-project | 規則結束 -->" in text
+    assert read_managed_block(target, "ai-dev-project") == "content"
+
+
+def test_upsert_with_labels_finds_old_format_block(tmp_path: Path):
+    """帶 label 的 upsert 能正確找到並替換舊格式（無 label）的 block。"""
+    target = tmp_path / "CLAUDE.md"
+    # 先用舊格式建立
+    upsert_managed_block(target, "ai-dev-project", "old content")
+    assert "<!-- >>> ai-dev:ai-dev-project -->" in target.read_text(encoding="utf-8")
+
+    # 再用新格式更新
+    upsert_managed_block(
+        target, "ai-dev-project", "new content",
+        open_label="⚠️ 必須遵守",
+    )
+
+    text = target.read_text(encoding="utf-8")
+    assert "<!-- >>> ai-dev:ai-dev-project | ⚠️ 必須遵守 -->" in text
+    assert "<!-- >>> ai-dev:ai-dev-project -->" not in text  # 舊格式已被替換
+    assert read_managed_block(target, "ai-dev-project") == "new content"
+
+
+def test_read_and_remove_work_with_labeled_markers(tmp_path: Path):
+    """read 和 remove 在帶 label 的 marker 上正常運作。"""
+    target = tmp_path / "CLAUDE.md"
+    target.write_text("# User content\n", encoding="utf-8")
+
+    upsert_managed_block(
+        target, "ai-dev-project", "managed content",
+        open_label="rules", close_label="end",
+    )
+
+    assert read_managed_block(target, "ai-dev-project") == "managed content"
+
+    removed = remove_managed_block(target, "ai-dev-project")
+    assert removed is True
+    assert target.read_text(encoding="utf-8") == "# User content\n"

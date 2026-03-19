@@ -11,6 +11,8 @@ from script.utils.project_blocks import (
     render_managed_block,
 )
 from script.utils.project_projection import (
+    MANAGED_BLOCK_CLOSE_LABEL,
+    MANAGED_BLOCK_OPEN_LABEL,
     PROJECT_MANAGED_BLOCK_ID,
     PROJECT_TEMPLATE_NAME,
     PROJECT_TEMPLATE_URL,
@@ -96,7 +98,11 @@ def test_hydrate_project_unwraps_managed_block_source_without_second_run_drift(
     first_result = hydrate_project(project_root, template_dir=template_dir)
     second_result = hydrate_project(project_root, template_dir=template_dir)
 
-    start_marker, end_marker = get_block_markers(PROJECT_MANAGED_BLOCK_ID)
+    start_marker, end_marker = get_block_markers(
+        PROJECT_MANAGED_BLOCK_ID,
+        open_label=MANAGED_BLOCK_OPEN_LABEL,
+        close_label=MANAGED_BLOCK_CLOSE_LABEL,
+    )
     content = (project_root / "AGENTS.md").read_text(encoding="utf-8")
 
     assert content.count(start_marker) == 1
