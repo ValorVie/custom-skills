@@ -294,8 +294,31 @@
 
 ---
 
+## Marketplace Plugin 生態系
+
+Superpowers 除了核心技能庫外，還透過 `obra/superpowers-marketplace` 提供 **9 個可選 plugin**，涵蓋自動繼續、語義記憶、瀏覽器自動化、多 session 協調等功能。
+
+完整分析見 **[SUPERPOWERS-MARKETPLACE-PLUGINS.md](SUPERPOWERS-MARKETPLACE-PLUGINS.md)**，包含：
+- 每個 plugin 的功能與安裝元件（skills / hooks / agents / MCP servers）
+- 與現有工具的重疊比較
+- Hook 衝突注意事項
+- 推薦安裝優先級
+
+### 快速推薦
+
+| 優先級 | Plugin | 一句話 |
+|--------|--------|--------|
+| 必裝 | superpowers | 核心技能庫（本文件內容） |
+| 強烈推薦 | double-shot-latte | 自動判斷是否繼續，減少手動中斷 |
+| 推薦 | superpowers-developing-for-claude-code | Plugin 開發完整參考 |
+| 視需求 | episodic-memory | 跨 session 語義搜尋（與 claude-mem 重疊） |
+| 觀望 | superpowers-lab | 實驗性功能 |
+
+---
+
 ## 參考資源
 
 - [Superpowers GitHub](https://github.com/obra/superpowers) — 原始碼與文件（v5.0）
 - [高見龍的 Superpowers 心得](https://kaochenlong.com/ai-superpowers-skills) — 實戰經驗分享
+- [SUPERPOWERS-MARKETPLACE-PLUGINS.md](SUPERPOWERS-MARKETPLACE-PLUGINS.md) — Marketplace Plugin 完整分析
 - [TOOL-DECISION-GUIDE.md](TOOL-DECISION-GUIDE.md) — 本專案工具選擇決策指南
