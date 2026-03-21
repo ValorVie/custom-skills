@@ -33,6 +33,7 @@ from .paths import (
     get_anthropic_skills_dir,
     get_auto_skill_dir,
     get_auto_skill_repo_dir,
+    get_ai_dev_config_dir,
     get_project_root,
 )
 from .system import run_command
@@ -1371,7 +1372,12 @@ def _distribute_custom_repos(
 
 
 def _load_distribution_config() -> dict | None:
-    """讀取並解析 upstream/distribution.yaml。
+    """讀取並解析 upstream/distribution.yaml，再合併使用者層級 ecc-profile.yaml。
+
+    合併邏輯：
+    - 使用者 exclude_skills → 加入專案排除清單
+    - 使用者 include_skills → 從排除清單中移除（覆蓋專案排除）
+    - 最終排除 = (專案排除 + 使用者排除) - 使用者包含
 
     source_path 中的 ~ 會自動展開為絕對路徑。
 
@@ -1389,6 +1395,20 @@ def _load_distribution_config() -> dict | None:
 
     if config and "source_path" in config:
         config["source_path"] = str(Path(config["source_path"]).expanduser())
+
+    # 合併使用者層級 ecc-profile.yaml
+    user_profile_path = get_ai_dev_config_dir() / "ecc-profile.yaml"
+    if config and user_profile_path.exists():
+        with open(user_profile_path, encoding="utf-8") as f:
+            user_profile = yaml.safe_load(f)
+        if user_profile:
+            exclude = config.get("exclude", {})
+            project_skills = set(exclude.get("skills", []))
+            user_exclude = set(user_profile.get("exclude_skills", []))
+            user_include = set(user_profile.get("include_skills", []))
+            merged = sorted((project_skills | user_exclude) - user_include)
+            exclude["skills"] = merged
+            config["exclude"] = exclude
 
     return config
 

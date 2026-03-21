@@ -1,0 +1,28 @@
+# ECC 使用者層級 Profile
+# 路徑: ~/.config/ai-dev/ecc-profile.yaml
+#
+# 用途: 個人化 ECC skills 分發，不修改專案設定
+# 與專案層級 upstream/distribution.yaml 的 exclude.skills 合併
+#
+# 合併邏輯:
+#   最終排除 = (專案排除 + exclude_skills) - include_skills
+#
+# exclude_skills: 額外排除的 skills（加入專案排除清單）
+# include_skills: 重新啟用的 skills（從排除清單中移除，覆蓋專案預設）
+
+# 額外排除（專案沒排除但你不需要的）
+exclude_skills: []
+  # - some-skill-i-dont-need
+
+# 重新啟用（專案排除了但你需要的）
+include_skills: []
+  # - laravel-patterns
+  # - laravel-security
+  # - laravel-tdd
+  # - laravel-verification
+  # - kotlin-patterns
+  # - kotlin-testing
+  # - rust-patterns
+  # - rust-testing
+  # - article-writing
+  # - video-editing

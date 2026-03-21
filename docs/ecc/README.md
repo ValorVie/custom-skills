@@ -56,22 +56,43 @@ ai-dev install / ai-dev update
 ## 目前狀態
 
 - ECC 上游共 116 個 skills
-- `distribution.yaml` 已排除 18 個語言/框架特定 skills
-- 實際分發到使用者環境約 91 個 ECC skills（扣除與 ai-dev 同名的不會重複）
-- 未來目標：根據使用者實際需求進一步精簡排除清單
+- `distribution.yaml` 排除 57 個（語言/框架/領域特定 skills）
+- 實際分發到使用者環境約 53 個 ECC skills
+- 支援使用者層級 `ecc-profile.yaml` 個人化覆寫
+
+## 兩層設定機制
+
+```
+專案層級                          使用者層級
+upstream/distribution.yaml        ~/.config/ai-dev/ecc-profile.yaml
+├─ exclude.skills (57 項)         ├─ exclude_skills: 額外排除
+└─ 由專案維護者管理                └─ include_skills: 重新啟用
+
+合併邏輯:
+  最終排除 = (專案排除 + 使用者排除) - 使用者包含
+```
+
+使用者不需要修改專案檔案。只需建立 `~/.config/ai-dev/ecc-profile.yaml`：
+
+```yaml
+# 額外排除
+exclude_skills: []
+
+# 重新啟用（覆蓋專案排除）
+include_skills:
+  - laravel-patterns
+  - laravel-security
+```
+
+範本：`docs/ecc/ecc-profile.yaml.example`
 
 ## 維護流程
 
 1. ECC 上游新增 skill 時 → 更新 `ECC-skills-參考指南.md` 與 `ecc-skills-profile.yaml`
-2. 決定排除某 skill 時 → 加入 `upstream/distribution.yaml` 的 `exclude.skills`
-3. 執行 `ai-dev update` 後排除即生效
+2. 專案層級排除 → 修改 `upstream/distribution.yaml` 的 `exclude.skills`
+3. 使用者個人化 → 修改 `~/.config/ai-dev/ecc-profile.yaml`
+4. 執行 `ai-dev clone` 或 `ai-dev update` 後生效（orphan cleanup 自動清理）
 
 ## 未來目標
-
-**短期：** 透過維護 `distribution.yaml` 的 exclude 清單，精簡不相關的 ECC skills。
-
-**中期：** 設計使用者層級的 profile 機制，讓使用者可在自己的 config 目錄（如 `~/.config/ai-dev/ecc-profile.yaml`）覆寫專案預設的排除清單，無需修改專案檔案。屆時 `_distribute_ecc_selective()` 需讀取兩層設定：
-1. 專案層級 `upstream/distribution.yaml`（預設）
-2. 使用者層級 `~/.config/ai-dev/ecc-profile.yaml`（覆寫）
 
 **長期：** 提供 TUI 介面讓使用者互動式選擇要啟用的 ECC skill 分類。
