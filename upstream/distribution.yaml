@@ -43,6 +43,7 @@ skip_directories: []
 # commands/agents: 依平台排除
 exclude:
   skills:
+    # === 語言/框架特定（無對應專案時不需要）===
     # C++
     - cpp-coding-standards
     - cpp-testing
@@ -61,10 +62,58 @@ exclude:
     - springboot-security
     - springboot-tdd
     - springboot-verification
-    # Swift
+    # Swift (特定模式)
     - swift-actor-persistence
     - swift-protocol-di-testing
-    # 特定產品
+    # Kotlin / KMP
+    - kotlin-coroutines-flows
+    - kotlin-exposed-patterns
+    - kotlin-ktor-patterns
+    - kotlin-patterns
+    - kotlin-testing
+    # Perl
+    - perl-patterns
+    - perl-security
+    - perl-testing
+    # Rust
+    - rust-patterns
+    - rust-testing
+    # Laravel
+    - laravel-patterns
+    - laravel-security
+    - laravel-tdd
+    - laravel-verification
+    # Apple / iOS
+    - foundation-models-on-device
+    - liquid-glass-design
+    - swift-concurrency-6-2
+    - swiftui-patterns
+    # Android / Flutter
+    - android-clean-architecture
+    - compose-multiplatform-patterns
+    - flutter-dart-code-review
+    # === 內容創作 / 媒體 ===
+    - article-writing
+    - content-engine
+    - crosspost
+    - fal-ai-media
+    - frontend-slides
+    - video-editing
+    - videodb
+    - x-api
+    # === 投資 / 募資 ===
+    - investor-materials
+    - investor-outreach
+    # === 供應鏈 / 製造 / 商業領域 ===
+    - carrier-relationship-management
+    - customs-trade-compliance
+    - energy-procurement
+    - inventory-demand-planning
+    - logistics-exception-management
+    - production-scheduling
+    - quality-nonconformance
+    - returns-reverse-logistics
+    # === 特定產品 ===
     - clickhouse-io
     - nutrient-document-processing
   commands:

@@ -1,27 +1,26 @@
 # ECC Skills Profile — 分類與分發管理
 # 最後更新: 2026-03-21
 #
-# 用途: 記錄 ECC skills 的分類、相關程度與分發建議
+# 用途: 記錄 ECC skills 的分類、相關程度與分發狀態
 # 配套文件: ECC-skills-參考指南.md（人讀說明）
 # 控制檔案: upstream/distribution.yaml（實際排除清單）
 #
 # 欄位說明:
 #   relevance: high / medium / low / none — 對通用軟體開發的相關程度
-#   action: keep / evaluate / exclude — 建議處理方式
-#   status: distributed / excluded — 在 distribution.yaml 中的實際狀態
+#   action: keep / exclude — 實際處理結果
 #   note: 備註（選填）
 
-version: 2
-generated: "2026-03-21"
+version: 3
+updated: "2026-03-21"
 
 # ECC 上游 skill 總數
 ecc_total: 116
 
 # ============================================================
-# 已分發的 ECC skills（按分類）
+# 分發中的 ECC skills（53 項）
 # ============================================================
 distributed:
-  count: 91
+  count: 53
 
   categories:
 
@@ -143,33 +142,6 @@ distributed:
         - visa-doc-translate
 
     # --------------------------------------------------------
-    lang-laravel:
-      description: Laravel 框架全套（架構、安全、TDD、驗證）
-      relevance: medium
-      action: evaluate
-      note: 有 Laravel 專案時保留，否則可排除
-      count: 4
-      skills:
-        - laravel-patterns
-        - laravel-security
-        - laravel-tdd
-        - laravel-verification
-
-    # --------------------------------------------------------
-    lang-kotlin:
-      description: Kotlin / KMP / Ktor / Exposed
-      relevance: low
-      action: evaluate
-      note: 有 Kotlin 專案時保留，否則可排除
-      count: 5
-      skills:
-        - kotlin-coroutines-flows
-        - kotlin-exposed-patterns
-        - kotlin-ktor-patterns
-        - kotlin-patterns
-        - kotlin-testing
-
-    # --------------------------------------------------------
     lang-python:
       description: Python idioms / pytest / PyTorch
       relevance: medium
@@ -181,103 +153,16 @@ distributed:
         - python-testing
         - pytorch-patterns
 
-    # --------------------------------------------------------
-    lang-perl:
-      description: Modern Perl 5.36+（idioms、security、testing）
-      relevance: low
-      action: evaluate
-      note: 有 Perl 專案時保留，否則可排除
-      count: 3
-      skills:
-        - perl-patterns
-        - perl-security
-        - perl-testing
-
-    # --------------------------------------------------------
-    lang-rust:
-      description: Rust patterns / testing
-      relevance: low
-      action: evaluate
-      note: 有 Rust 專案時保留，否則可排除
-      count: 2
-      skills:
-        - rust-patterns
-        - rust-testing
-
-    # --------------------------------------------------------
-    mobile-apple:
-      description: SwiftUI / Swift 6.2 / Liquid Glass / FoundationModels
-      relevance: low
-      action: evaluate
-      note: 有 iOS/macOS 專案時保留，否則可排除
-      count: 4
-      skills:
-        - foundation-models-on-device
-        - liquid-glass-design
-        - swift-concurrency-6-2
-        - swiftui-patterns
-
-    # --------------------------------------------------------
-    mobile-android:
-      description: Android Clean Architecture / Compose / Flutter
-      relevance: low
-      action: evaluate
-      note: 有 Android/Flutter 專案時保留，否則可排除
-      count: 3
-      skills:
-        - android-clean-architecture
-        - compose-multiplatform-patterns
-        - flutter-dart-code-review
-
-    # --------------------------------------------------------
-    content-media:
-      description: 文章寫作、社群內容、影片、AI 媒體生成
-      relevance: medium
-      action: evaluate
-      count: 8
-      skills:
-        - article-writing
-        - content-engine
-        - crosspost
-        - fal-ai-media
-        - frontend-slides
-        - video-editing
-        - videodb
-        - x-api
-
-    # --------------------------------------------------------
-    investment:
-      description: 投資人文件、募資 outreach
-      relevance: low
-      action: evaluate
-      count: 2
-      skills:
-        - investor-materials
-        - investor-outreach
-
-    # --------------------------------------------------------
-    supply-chain:
-      description: 供應鏈、物流、採購、製造、品質管理
-      relevance: none
-      action: exclude
-      note: 高度特定的產業領域，除非從事相關業務否則不需要
-      count: 8
-      skills:
-        - carrier-relationship-management
-        - customs-trade-compliance
-        - energy-procurement
-        - inventory-demand-planning
-        - logistics-exception-management
-        - production-scheduling
-        - quality-nonconformance
-        - returns-reverse-logistics
-
 # ============================================================
-# 已排除的 ECC skills（distribution.yaml 現行）
+# 已排除的 ECC skills（56 項）
+# 控制檔: upstream/distribution.yaml exclude.skills
 # ============================================================
 excluded:
-  count: 18
+  count: 57
+
   categories:
+
+    # --- 語言/框架特定 ---
 
     lang-cpp:
       description: C++ 編碼標準與測試
@@ -313,13 +198,106 @@ excluded:
         - springboot-tdd
         - springboot-verification
 
-    lang-swift-specific:
-      description: Swift 特定模式（actor persistence、protocol DI）
-      note: 通用 Swift/SwiftUI skills 在 mobile-apple 分類中仍分發
+    lang-kotlin:
+      description: Kotlin / KMP / Ktor / Exposed
+      count: 5
+      skills:
+        - kotlin-coroutines-flows
+        - kotlin-exposed-patterns
+        - kotlin-ktor-patterns
+        - kotlin-patterns
+        - kotlin-testing
+
+    lang-perl:
+      description: Modern Perl 5.36+
+      count: 3
+      skills:
+        - perl-patterns
+        - perl-security
+        - perl-testing
+
+    lang-rust:
+      description: Rust patterns / testing
+      count: 2
+      skills:
+        - rust-patterns
+        - rust-testing
+
+    lang-laravel:
+      description: Laravel 框架全套
+      count: 4
+      skills:
+        - laravel-patterns
+        - laravel-security
+        - laravel-tdd
+        - laravel-verification
+
+    lang-swift:
+      description: Swift 特定模式
       count: 2
       skills:
         - swift-actor-persistence
         - swift-protocol-di-testing
+
+    # --- 行動平台 ---
+
+    mobile-apple:
+      description: SwiftUI / Swift 6.2 / Liquid Glass / FoundationModels
+      count: 4
+      skills:
+        - foundation-models-on-device
+        - liquid-glass-design
+        - swift-concurrency-6-2
+        - swiftui-patterns
+
+    mobile-android:
+      description: Android Clean Architecture / Compose / Flutter
+      count: 3
+      skills:
+        - android-clean-architecture
+        - compose-multiplatform-patterns
+        - flutter-dart-code-review
+
+    # --- 內容創作 / 媒體 ---
+
+    content-media:
+      description: 文章寫作、社群內容、影片、AI 媒體生成
+      count: 8
+      skills:
+        - article-writing
+        - content-engine
+        - crosspost
+        - fal-ai-media
+        - frontend-slides
+        - video-editing
+        - videodb
+        - x-api
+
+    # --- 投資 / 募資 ---
+
+    investment:
+      description: 投資人文件、募資 outreach
+      count: 2
+      skills:
+        - investor-materials
+        - investor-outreach
+
+    # --- 供應鏈 / 製造 / 商業領域 ---
+
+    supply-chain:
+      description: 供應鏈、物流、採購、製造、品質管理
+      count: 8
+      skills:
+        - carrier-relationship-management
+        - customs-trade-compliance
+        - energy-procurement
+        - inventory-demand-planning
+        - logistics-exception-management
+        - production-scheduling
+        - quality-nonconformance
+        - returns-reverse-logistics
+
+    # --- 特定產品 ---
 
     product-specific:
       description: 特定產品整合
@@ -331,10 +309,7 @@ excluded:
 # ============================================================
 # 彙總
 # ============================================================
-summary:
-  keep: 53       # 通用性高，建議保留
-  evaluate: 30   # 依使用者需求決定
-  exclude: 8     # 建議加入 distribution.yaml 排除
-  already_excluded: 18  # 已排除
-  # keep + evaluate + exclude = 91 (distributed)
-  # 91 + 18 = 109 (≠ 116，差距來自與 ai-dev 自有 skills 同名的項目)
+# distributed: 53 (9 categories)
+# excluded:    57 (15 categories)
+# 合計 ECC 管理: 110
+# 差距 116 - 110 = 6: 與 ai-dev 自有 skills 同名的項目（由 custom-skills 優先提供）
