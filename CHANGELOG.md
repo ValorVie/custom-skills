@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ECC Skills 分類管理與使用者層級覆寫**
+  - 審計 `~/.claude/skills/` 共 156 個 skills，識別 5 種安裝來源
+  - 將 91 個 ECC skills 分為 18 類，依相關程度標記 keep/evaluate/exclude
+  - 精簡 `distribution.yaml` 排除項從 18 擴充至 57，保留 53 個通用性高的 ECC skills
+  - 新增使用者層級 `~/.config/ai-dev/ecc-profile.yaml` 覆寫機制
+  - 支援 `exclude_skills`（額外排除）和 `include_skills`（覆蓋專案排除）
+  - 合併邏輯：最終排除 = (專案排除 + 使用者排除) - 使用者包含
+  - 新增 `docs/ecc/` 目錄：README、參考指南、分類 profile、範本
+
 - **新增 auto-skill canonical state 與多工具投影**
   - 新增 canonical state 路徑：`~/.config/ai-dev/skills/auto-skill`
   - 新增 `script/utils/auto_skill_state.py`，將 template 與 upstream merge 到 canonical state

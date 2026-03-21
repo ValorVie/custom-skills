@@ -41,6 +41,7 @@
 | `~/.config/custom-skills/toggle-config.yaml` | toggle 資源開關狀態 | `toggle` |
 | `<custom-skills repo>/upstream/sources.yaml` | 上游來源註冊表 | `add-repo`, repo 維護者手動維護 |
 | `~/.config/ai-dev/repos.yaml` | custom repo / template repo 註冊表 | `add-custom-repo`, `init-from` |
+| `~/.config/ai-dev/ecc-profile.yaml` | 使用者層級 ECC skills 排除/包含覆寫（與專案 `distribution.yaml` 合併） | `clone`, `install`, `update` |
 | `~/.config/ai-dev/skills/auto-skill` | `auto-skill` canonical state | `install`, `update`, `clone`, `maintain clone` |
 | `~/.config/ai-dev/projections/<target>/auto-skill` | 各 target 的 `auto-skill` shadow state | `install`, `clone` |
 | `~/.config/ai-dev/manifests/projects/<project_id>.yaml` | 專案 AI projection manifest | `init-from`, `project init`, `project hydrate`, `project reconcile` |
@@ -68,6 +69,8 @@ flowchart LR
     A["GitHub / upstream repos"] --> B["~/.config/* cloned repos (Stage 1)"]
     B --> C["~/.config/custom-skills (distribution source repo)"]
     C --> D["Tool dirs: ~/.claude ~/.codex ~/.gemini ~/.config/opencode"]
+    B --> G["~/.config/everything-claude-code (ECC)"]
+    G -->|"distribution.yaml + ecc-profile.yaml 篩選"| D
     B --> E["~/.config/ai-dev/skills/auto-skill (canonical)"]
     E --> F["~/.config/ai-dev/projections/<target>/auto-skill (shadow)"]
     F --> D
