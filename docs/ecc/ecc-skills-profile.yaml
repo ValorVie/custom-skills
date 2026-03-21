@@ -1,0 +1,340 @@
+# ECC Skills Profile — 分類與分發管理
+# 最後更新: 2026-03-21
+#
+# 用途: 記錄 ECC skills 的分類、相關程度與分發建議
+# 配套文件: ECC-skills-參考指南.md（人讀說明）
+# 控制檔案: upstream/distribution.yaml（實際排除清單）
+#
+# 欄位說明:
+#   relevance: high / medium / low / none — 對通用軟體開發的相關程度
+#   action: keep / evaluate / exclude — 建議處理方式
+#   status: distributed / excluded — 在 distribution.yaml 中的實際狀態
+#   note: 備註（選填）
+
+version: 2
+generated: "2026-03-21"
+
+# ECC 上游 skill 總數
+ecc_total: 116
+
+# ============================================================
+# 已分發的 ECC skills（按分類）
+# ============================================================
+distributed:
+  count: 91
+
+  categories:
+
+    # --------------------------------------------------------
+    claude-code-meta:
+      description: Claude Code 工具鏈 — agent 編排、context 管理、學習、eval
+      relevance: high
+      action: keep
+      count: 20
+      skills:
+        - agent-eval
+        - agent-harness-construction
+        - agentic-engineering
+        - autonomous-loops
+        - blueprint
+        - claude-api
+        - claude-devfleet
+        - configure-ecc
+        - context-budget
+        - continuous-agent-loop
+        - continuous-learning
+        - continuous-learning-v2
+        - cost-aware-llm-pipeline
+        - dmux-workflows
+        - iterative-retrieval
+        - nanoclaw-repl
+        - ralphinho-rfc-pipeline
+        - rules-distill
+        - skill-stocktake
+        - strategic-compact
+
+    # --------------------------------------------------------
+    web-frontend:
+      description: React / Next.js / Nuxt / Bun 前端框架
+      relevance: medium
+      action: keep
+      count: 5
+      skills:
+        - bun-runtime
+        - coding-standards
+        - frontend-patterns
+        - nextjs-turbopack
+        - nuxt4-patterns
+
+    # --------------------------------------------------------
+    web-backend:
+      description: API 設計、後端架構、MCP server
+      relevance: high
+      action: keep
+      count: 3
+      skills:
+        - api-design
+        - backend-patterns
+        - mcp-server-patterns
+
+    # --------------------------------------------------------
+    database:
+      description: PostgreSQL、資料庫遷移
+      relevance: high
+      action: keep
+      count: 2
+      skills:
+        - database-migrations
+        - postgres-patterns
+
+    # --------------------------------------------------------
+    devops:
+      description: Docker、部署、CI/CD、企業 agent 營運、安全掃描
+      relevance: medium
+      action: keep
+      count: 4
+      skills:
+        - deployment-patterns
+        - docker-patterns
+        - enterprise-agent-ops
+        - security-scan
+
+    # --------------------------------------------------------
+    testing:
+      description: E2E 測試、AI 回歸測試
+      relevance: medium
+      action: keep
+      count: 2
+      skills:
+        - ai-regression-testing
+        - e2e-testing
+
+    # --------------------------------------------------------
+    research:
+      description: 深度研究、搜尋、onboarding、資料採集
+      relevance: high
+      action: keep
+      count: 5
+      skills:
+        - codebase-onboarding
+        - data-scraper-agent
+        - deep-research
+        - documentation-lookup
+        - exa-search
+
+    # --------------------------------------------------------
+    utility:
+      description: ADR、prompt 優化、快取模式、品質工具等通用工具
+      relevance: medium
+      action: keep
+      count: 12
+      skills:
+        - ai-first-engineering
+        - architecture-decision-records
+        - content-hash-cache-pattern
+        - market-research
+        - plankton-code-quality
+        - project-guidelines-example
+        - prompt-optimizer
+        - regex-vs-llm-structured-text
+        - search-first
+        - team-builder
+        - verification-loop
+        - visa-doc-translate
+
+    # --------------------------------------------------------
+    lang-laravel:
+      description: Laravel 框架全套（架構、安全、TDD、驗證）
+      relevance: medium
+      action: evaluate
+      note: 有 Laravel 專案時保留，否則可排除
+      count: 4
+      skills:
+        - laravel-patterns
+        - laravel-security
+        - laravel-tdd
+        - laravel-verification
+
+    # --------------------------------------------------------
+    lang-kotlin:
+      description: Kotlin / KMP / Ktor / Exposed
+      relevance: low
+      action: evaluate
+      note: 有 Kotlin 專案時保留，否則可排除
+      count: 5
+      skills:
+        - kotlin-coroutines-flows
+        - kotlin-exposed-patterns
+        - kotlin-ktor-patterns
+        - kotlin-patterns
+        - kotlin-testing
+
+    # --------------------------------------------------------
+    lang-python:
+      description: Python idioms / pytest / PyTorch
+      relevance: medium
+      action: keep
+      note: ai-dev 本身是 Python 專案
+      count: 3
+      skills:
+        - python-patterns
+        - python-testing
+        - pytorch-patterns
+
+    # --------------------------------------------------------
+    lang-perl:
+      description: Modern Perl 5.36+（idioms、security、testing）
+      relevance: low
+      action: evaluate
+      note: 有 Perl 專案時保留，否則可排除
+      count: 3
+      skills:
+        - perl-patterns
+        - perl-security
+        - perl-testing
+
+    # --------------------------------------------------------
+    lang-rust:
+      description: Rust patterns / testing
+      relevance: low
+      action: evaluate
+      note: 有 Rust 專案時保留，否則可排除
+      count: 2
+      skills:
+        - rust-patterns
+        - rust-testing
+
+    # --------------------------------------------------------
+    mobile-apple:
+      description: SwiftUI / Swift 6.2 / Liquid Glass / FoundationModels
+      relevance: low
+      action: evaluate
+      note: 有 iOS/macOS 專案時保留，否則可排除
+      count: 4
+      skills:
+        - foundation-models-on-device
+        - liquid-glass-design
+        - swift-concurrency-6-2
+        - swiftui-patterns
+
+    # --------------------------------------------------------
+    mobile-android:
+      description: Android Clean Architecture / Compose / Flutter
+      relevance: low
+      action: evaluate
+      note: 有 Android/Flutter 專案時保留，否則可排除
+      count: 3
+      skills:
+        - android-clean-architecture
+        - compose-multiplatform-patterns
+        - flutter-dart-code-review
+
+    # --------------------------------------------------------
+    content-media:
+      description: 文章寫作、社群內容、影片、AI 媒體生成
+      relevance: medium
+      action: evaluate
+      count: 8
+      skills:
+        - article-writing
+        - content-engine
+        - crosspost
+        - fal-ai-media
+        - frontend-slides
+        - video-editing
+        - videodb
+        - x-api
+
+    # --------------------------------------------------------
+    investment:
+      description: 投資人文件、募資 outreach
+      relevance: low
+      action: evaluate
+      count: 2
+      skills:
+        - investor-materials
+        - investor-outreach
+
+    # --------------------------------------------------------
+    supply-chain:
+      description: 供應鏈、物流、採購、製造、品質管理
+      relevance: none
+      action: exclude
+      note: 高度特定的產業領域，除非從事相關業務否則不需要
+      count: 8
+      skills:
+        - carrier-relationship-management
+        - customs-trade-compliance
+        - energy-procurement
+        - inventory-demand-planning
+        - logistics-exception-management
+        - production-scheduling
+        - quality-nonconformance
+        - returns-reverse-logistics
+
+# ============================================================
+# 已排除的 ECC skills（distribution.yaml 現行）
+# ============================================================
+excluded:
+  count: 18
+  categories:
+
+    lang-cpp:
+      description: C++ 編碼標準與測試
+      count: 2
+      skills:
+        - cpp-coding-standards
+        - cpp-testing
+
+    lang-django:
+      description: Django 框架全套
+      count: 4
+      skills:
+        - django-patterns
+        - django-security
+        - django-tdd
+        - django-verification
+
+    lang-go:
+      description: Go 語言
+      count: 2
+      skills:
+        - golang-patterns
+        - golang-testing
+
+    lang-java:
+      description: Java / Spring Boot 全套
+      count: 6
+      skills:
+        - java-coding-standards
+        - jpa-patterns
+        - springboot-patterns
+        - springboot-security
+        - springboot-tdd
+        - springboot-verification
+
+    lang-swift-specific:
+      description: Swift 特定模式（actor persistence、protocol DI）
+      note: 通用 Swift/SwiftUI skills 在 mobile-apple 分類中仍分發
+      count: 2
+      skills:
+        - swift-actor-persistence
+        - swift-protocol-di-testing
+
+    product-specific:
+      description: 特定產品整合
+      count: 2
+      skills:
+        - clickhouse-io
+        - nutrient-document-processing
+
+# ============================================================
+# 彙總
+# ============================================================
+summary:
+  keep: 53       # 通用性高，建議保留
+  evaluate: 30   # 依使用者需求決定
+  exclude: 8     # 建議加入 distribution.yaml 排除
+  already_excluded: 18  # 已排除
+  # keep + evaluate + exclude = 91 (distributed)
+  # 91 + 18 = 109 (≠ 116，差距來自與 ai-dev 自有 skills 同名的項目)
