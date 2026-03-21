@@ -2,7 +2,7 @@
 # Line 1: ~/dir - main*
 # Line 2: Opus 4.6 (1M context) | ctx 42% | 5h: 40% | 7d: 15% | 03-21 13:19
 
-$input_json = $input | Out-String | ConvertFrom-Json
+$input_json = [Console]::In.ReadToEnd() | ConvertFrom-Json
 
 $cwd   = $input_json.workspace.current_dir
 $model = $input_json.model.display_name
@@ -36,10 +36,11 @@ function Get-PctColor($val) {
 }
 
 # --- Directory (replace home with ~, truncate if too long) ---
-$home_path = $env:USERPROFILE
-$dir = if ($cwd -and $cwd.StartsWith($home_path)) {
-    "~" + $cwd.Substring($home_path.Length).Replace('\', '/')
-} else { $cwd }
+$home_path = $env:USERPROFILE.Replace('\', '/')
+$cwd_norm = if ($cwd) { $cwd.Replace('\', '/') } else { "" }
+$dir = if ($cwd_norm -and $cwd_norm.StartsWith($home_path)) {
+    "~" + $cwd_norm.Substring($home_path.Length)
+} else { $cwd_norm }
 if ($dir.Length -gt 40) {
     $parts = $dir.TrimStart('/').Split('/')
     $last3 = $parts[-3..-1] -join '/'

@@ -33,7 +33,9 @@ pct_color() {
 }
 
 # --- Directory (truncate if too long) ---
-dir="${cwd/#$HOME/~}"
+# Normalize Windows paths: C:/Users/... -> /c/Users/... for $HOME comparison
+norm_cwd=$(echo "$cwd" | sed -E 's|^([A-Z]):|/\L\1|')
+dir="${norm_cwd/#"$HOME"/\~}"
 max_dir_len=40
 if [ ${#dir} -gt $max_dir_len ]; then
   last3=$(echo "$dir" | awk -F'/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
