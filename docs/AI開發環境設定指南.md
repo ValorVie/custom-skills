@@ -329,7 +329,7 @@ claude mcp remove <name>
 
 ```shell
 # 尋找 Skills 的 SKILL
-npx skills add https://github.com/vercel-labs/skills --skill find-skills
+npx skills add https://github.com/vercel-labs/skills --skill find-skills -g -y
 ```
 
 ```shell
