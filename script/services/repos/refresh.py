@@ -15,6 +15,7 @@ from script.utils.paths import (
     get_claude_config_dir,
     get_claude_workflows_dir,
     get_codex_config_dir,
+    get_codex_superpowers_dir,
     get_config_dir,
     get_custom_skills_dir,
     get_gemini_cli_config_dir,
@@ -26,7 +27,12 @@ from script.utils.paths import (
     get_superpowers_dir,
     get_uds_dir,
 )
-from script.utils.shared import REPOS, sync_opencode_superpowers_repo
+from script.utils.shared import (
+    REPOS,
+    migrate_opencode_superpowers,
+    sync_codex_superpowers_repo,
+    refresh_codex_superpowers_symlinks,
+)
 from script.utils.system import check_command_exists, run_command
 
 console = Console()
@@ -178,8 +184,12 @@ def _run_install_repos_phase() -> None:
         else:
             console.print(f"{path} 已存在，跳過 Clone。")
 
-    repo_path = sync_opencode_superpowers_repo()
-    console.print(f"[dim]OpenCode superpowers repo: {repo_path}[/dim]")
+    # OpenCode superpowers：遷移至 plugin 機制
+    migrate_opencode_superpowers()
+
+    # Codex superpowers：clone + symlink
+    codex_sp_repo = sync_codex_superpowers_repo()
+    refresh_codex_superpowers_symlinks(codex_sp_repo)
 
     custom_repos = load_custom_repos().get("repos", {})
     if custom_repos:
@@ -201,13 +211,14 @@ def _run_install_repos_phase() -> None:
 
 def _run_update_repos_phase() -> None:
     console.print("[green]正在更新儲存庫...[/green]")
-    sync_opencode_superpowers_repo()
+    # OpenCode superpowers：遷移至 plugin 機制
+    migrate_opencode_superpowers()
 
     repos = [
         get_custom_skills_dir(),
         get_superpowers_dir(),
         get_uds_dir(),
-        get_opencode_config_dir() / "superpowers",
+        get_codex_superpowers_dir(),
         get_obsidian_skills_dir(),
         get_anthropic_skills_dir(),
         get_ecc_dir(),
@@ -233,6 +244,11 @@ def _run_update_repos_phase() -> None:
             backup_dirty_files(repo, backup_root)
         remote_ref = f"origin/{branch}" if branch else "origin/HEAD"
         run_command(["git", "reset", "--hard", remote_ref], cwd=str(repo), check=False)
+
+    # Codex superpowers symlink 刷新
+    codex_sp = get_codex_superpowers_dir()
+    if codex_sp.exists() and (codex_sp / ".git").exists():
+        refresh_codex_superpowers_symlinks(codex_sp)
 
     if missing_repos:
         console.print()
