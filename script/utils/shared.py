@@ -114,27 +114,33 @@ def _ensure_opencode_superpowers_plugin(opencode_json_path: Path) -> bool:
     plugin_entry = f"superpowers@git+{SUPERPOWERS_GIT_URL}"
 
     if not opencode_json_path.exists():
-        console.print(f"[yellow]⚠ {shorten_path(opencode_json_path)} 不存在，跳過 plugin 注入[/yellow]")
+        console.print(f"[dim]{shorten_path(opencode_json_path)} 不存在，跳過 plugin 注入[/dim]")
         return False
 
     try:
         original_content = opencode_json_path.read_text(encoding="utf-8")
-        # opencode.json 可能包含尾端逗號（JSONC 格式），需先移除
-        clean_content = re.sub(r",(\s*[}\]])", r"\1", original_content)
+    except OSError as e:
+        console.print(f"[yellow]⚠ 讀取 opencode.json 失敗：{e}[/yellow]")
+        return False
+
+    # 快速路徑：plugin 已存在則跳過解析
+    if "superpowers" in original_content:
+        console.print("[dim]OpenCode superpowers plugin 已存在[/dim]")
+        return True
+
+    try:
+        # opencode.json 為 JSONC 格式，需先移除整行註解與尾端逗號
+        # 僅移除行首 // 註解，避免誤傷字串值中的 // (如 URL)
+        clean_content = re.sub(r"(?m)^\s*//.*$", "", original_content)
+        clean_content = re.sub(r",(\s*[}\]])", r"\1", clean_content)
         config = json.loads(clean_content)
     except (json.JSONDecodeError, OSError) as e:
-        console.print(f"[yellow]⚠ 讀取 opencode.json 失敗：{e}[/yellow]")
+        console.print(f"[yellow]⚠ 解析 opencode.json 失敗：{e}[/yellow]")
         return False
 
     plugins = config.get("plugin", [])
     if not isinstance(plugins, list):
         plugins = []
-
-    # 檢查是否已有 superpowers 條目
-    has_superpowers = any("superpowers" in p for p in plugins if isinstance(p, str))
-    if has_superpowers:
-        console.print("[dim]OpenCode superpowers plugin 已存在[/dim]")
-        return True
 
     # 需要新增 — 備份後寫入
     plugins.append(plugin_entry)
@@ -175,15 +181,13 @@ def migrate_opencode_superpowers() -> None:
     if has_old_setup:
         console.print("[yellow]偵測到舊版 OpenCode superpowers 安裝，正在遷移...[/yellow]")
 
-        # 移除舊 symlinks
+        # 移除舊 symlinks（僅移除 symlink，不刪除使用者手動建立的真實目錄）
         for old_link in (old_plugin_link, old_skills_link):
-            if old_link.is_symlink() or old_link.exists():
-                try:
-                    old_link.unlink()
-                    console.print(f"[dim]已移除：{shorten_path(old_link)}[/dim]")
-                except (OSError, PermissionError):
-                    shutil.rmtree(old_link, ignore_errors=True)
-                    console.print(f"[dim]已移除：{shorten_path(old_link)}[/dim]")
+            if old_link.is_symlink():
+                old_link.unlink()
+                console.print(f"[dim]已移除 symlink：{shorten_path(old_link)}[/dim]")
+            elif old_link.exists():
+                console.print(f"[yellow]⚠ {shorten_path(old_link)} 非 symlink，已跳過[/yellow]")
 
         # 移除舊 repo（先檢查是否為 symlink，避免誤刪目標）
         if old_repo.is_symlink():
@@ -235,12 +239,23 @@ def sync_codex_superpowers_repo() -> Path:
 
 def refresh_codex_superpowers_symlinks(repo_path: Path) -> bool:
     """建立或刷新 Codex superpowers 的 ~/.agents/skills/superpowers symlink。"""
+    if not (repo_path / ".git").exists():
+        return False
+
     skills_src = repo_path / "skills"
     skills_dst = get_agents_skills_dir() / "superpowers"
 
     if not skills_src.exists():
         console.print("[red]✗ 找不到 Codex superpowers skills 目錄[/red]")
         return False
+
+    # 已指向正確目標則跳過
+    if skills_dst.is_symlink():
+        try:
+            if Path(os.readlink(skills_dst)).resolve() == skills_src.resolve():
+                return True
+        except OSError:
+            pass
 
     skills_dst.parent.mkdir(parents=True, exist_ok=True)
 

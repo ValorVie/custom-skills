@@ -245,10 +245,8 @@ def _run_update_repos_phase() -> None:
         remote_ref = f"origin/{branch}" if branch else "origin/HEAD"
         run_command(["git", "reset", "--hard", remote_ref], cwd=str(repo), check=False)
 
-    # Codex superpowers symlink 刷新
-    codex_sp = get_codex_superpowers_dir()
-    if codex_sp.exists() and (codex_sp / ".git").exists():
-        refresh_codex_superpowers_symlinks(codex_sp)
+    # Codex superpowers symlink 刷新（callee 內部檢查 .git 存在性）
+    refresh_codex_superpowers_symlinks(get_codex_superpowers_dir())
 
     if missing_repos:
         console.print()

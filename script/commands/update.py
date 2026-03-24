@@ -225,7 +225,6 @@ def _legacy_update(
     else:
         console.print("[green]正在更新儲存庫...[/green]")
 
-        # 確保 OpenCode superpowers 存在（git pull，若不存在則 clone）
         # OpenCode superpowers：遷移至 plugin 機制
         migrate_opencode_superpowers()
 
@@ -332,11 +331,8 @@ def _legacy_update(
                 "[dim]  在需要更新的專案目錄中執行：ai-dev init-from update[/dim]"
             )
 
-        # 更新完成後刷新 OpenCode symlink（保持冪等）
-        # Codex superpowers symlink 刷新
-        codex_sp = get_codex_superpowers_dir()
-        if codex_sp.exists() and (codex_sp / ".git").exists():
-            refresh_codex_superpowers_symlinks(codex_sp)
+        # Codex superpowers symlink 刷新（callee 內部檢查 .git 存在性）
+        refresh_codex_superpowers_symlinks(get_codex_superpowers_dir())
         state_dir = refresh_auto_skill_state()
         if state_dir is not None:
             console.print(
