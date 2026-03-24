@@ -3,6 +3,7 @@ install 與 maintain 指令的共用函式與配置。
 """
 
 import os
+import re
 import stat
 import errno
 import shutil
@@ -118,7 +119,9 @@ def _ensure_opencode_superpowers_plugin(opencode_json_path: Path) -> bool:
 
     try:
         original_content = opencode_json_path.read_text(encoding="utf-8")
-        config = json.loads(original_content)
+        # opencode.json 可能包含尾端逗號（JSONC 格式），需先移除
+        clean_content = re.sub(r",(\s*[}\]])", r"\1", original_content)
+        config = json.loads(clean_content)
     except (json.JSONDecodeError, OSError) as e:
         console.print(f"[yellow]⚠ 讀取 opencode.json 失敗：{e}[/yellow]")
         return False
