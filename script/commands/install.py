@@ -35,8 +35,9 @@ from ..utils.shared import (
     show_skills_npm_hint,
     show_claude_status,
     get_npm_package_version,
-    sync_opencode_superpowers_repo,
-    refresh_opencode_superpowers_symlinks,
+    migrate_opencode_superpowers,
+    sync_codex_superpowers_repo,
+    refresh_codex_superpowers_symlinks,
 )
 
 app = typer.Typer()
@@ -265,9 +266,12 @@ def _legacy_install(
             else:
                 console.print(f"{path} 已存在，跳過 Clone。")
 
-        # OpenCode superpowers：獨立於 Claude Code 追蹤路徑
-        repo_path = sync_opencode_superpowers_repo()
-        refresh_opencode_superpowers_symlinks(repo_path)
+        # OpenCode superpowers：遷移至 plugin 機制
+        migrate_opencode_superpowers()
+
+        # Codex superpowers：clone + symlink
+        codex_sp_repo = sync_codex_superpowers_repo()
+        refresh_codex_superpowers_symlinks(codex_sp_repo)
 
     # 4.5 Clone custom repos
     if not skip_repos:
