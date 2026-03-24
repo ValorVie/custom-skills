@@ -4,10 +4,11 @@ from rich.console import Console
 
 from script.models.execution_plan import ExecutionPlan
 from script.utils.auto_skill_state import refresh_auto_skill_state
-from script.utils.paths import get_opencode_superpowers_dir
-from script.utils.shared import refresh_opencode_superpowers_symlinks
+from script.utils.paths import get_codex_superpowers_dir
+from script.utils.shared import refresh_codex_superpowers_symlinks
 
 console = Console()
+
 
 def run_state_phase(*, plan: ExecutionPlan) -> None:
     """Run state refresh work for a pipeline plan."""
@@ -18,9 +19,9 @@ def run_state_phase(*, plan: ExecutionPlan) -> None:
         return
 
     if plan.command_name in {"install", "update"}:
-        repo_path = get_opencode_superpowers_dir()
+        repo_path = get_codex_superpowers_dir()
         if (repo_path / ".git").exists():
-            refresh_opencode_superpowers_symlinks(repo_path)
+            refresh_codex_superpowers_symlinks(repo_path)
 
     state_dir = refresh_auto_skill_state()
     if state_dir is not None:
