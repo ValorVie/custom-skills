@@ -95,6 +95,17 @@ flowchart LR
 - `--dry-run`：只顯示執行計畫，不寫入任何檔案
 - `clone` 額外保留 `--force`、`--skip-conflicts`、`--backup` 作為衝突處理策略
 
+#### Superpowers 處理
+
+| 工具 | 安裝方式 | 路徑 |
+|------|----------|------|
+| Claude Code | Plugin 系統自動管理 | `~/.claude/plugins/` |
+| OpenCode | `opencode.json` plugin 陣列 | `plugin: ["superpowers@git+https://..."]` |
+| Codex | git clone + symlink | `~/.codex/superpowers` → `~/.agents/skills/superpowers` |
+
+- `ai-dev install`：OpenCode 遷移至 plugin（若偵測到舊 symlink 安裝自動清除）；Codex clone + symlink
+- `ai-dev update`：OpenCode 遷移檢查；Codex git pull + symlink 刷新
+
 注意：
 - `--only` 與 `--skip` 不能同時使用
 - 若命令不支援某 phase，CLI 會以參數錯誤直接返回，不會噴 traceback
