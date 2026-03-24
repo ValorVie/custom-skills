@@ -78,6 +78,16 @@ def get_codex_config_dir() -> Path:
     return get_home_dir() / ".codex"
 
 
+def get_codex_superpowers_dir() -> Path:
+    """回傳 Codex 專用的 superpowers 目錄。"""
+    return get_codex_config_dir() / "superpowers"
+
+
+def get_agents_skills_dir() -> Path:
+    """回傳 Codex agents skills 目錄（~/.agents/skills）。"""
+    return get_home_dir() / ".agents" / "skills"
+
+
 def get_gemini_cli_config_dir() -> Path:
     """回傳 Gemini CLI 的配置目錄路徑。"""
     return get_home_dir() / ".gemini"
