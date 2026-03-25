@@ -96,25 +96,34 @@ Reference: .standards/checkin-standards.md
 ---
 
 <!-- UDS:STANDARDS:START -->
+<!-- WARNING: This block is managed by UDS (universal-dev-standards). DO NOT manually edit. Use 'npx uds install' or 'npx uds update' to modify. -->
+<!-- WARNING: This block is managed by UDS (universal-dev-standards). DO NOT manually edit. Use 'npx uds install' or 'npx uds update' to modify. -->
+## 提交訊息語言
+所有提交訊息必須使用**繁體中文**撰寫。
+格式：`<類型>(<範圍>): <主旨>`
+
 ## Standards Compliance Instructions
 
-**MUST follow** (always required):
+**MUST follow** (每次都要遵守):
 | Task | Standard | When |
 |------|----------|------|
 | Writing commits | [commit-message.ai.yaml](.standards/commit-message.ai.yaml) | Every commit |
+| Workflow gates | [workflow-enforcement.ai.yaml](.standards/workflow-enforcement.ai.yaml) | Before any workflow phase |
+| Project context | [project-context-memory.ai.yaml](.standards/project-context-memory.ai.yaml) | Planning & Coding |
 
-**SHOULD follow** (when relevant):
+**SHOULD follow** (相關任務時參考):
 | Task | Standard | When |
 |------|----------|------|
 | Git workflow | [git-workflow.ai.yaml](.standards/git-workflow.ai.yaml) | Branch/merge decisions |
 | Writing tests | [testing.ai.yaml](.standards/testing.ai.yaml) | When creating tests |
+| Developer memory | [developer-memory.ai.yaml](.standards/developer-memory.ai.yaml) | Always (protocol) |
 
 
 ## Installed Standards Index
 
-This project has adopted **Level 3** standards. All standards are in `.standards/`:
+本專案採用 UDS 標準。所有規範位於 `.standards/`：
 
-### Core (31 standards)
+### Core (59 standards)
 - `anti-hallucination.ai.yaml` - anti-hallucination.ai.yaml
 - `ai-friendly-architecture.ai.yaml` - ai-friendly-architecture.ai.yaml
 - `commit-message.ai.yaml` - 提交訊息格式
@@ -130,6 +139,8 @@ This project has adopted **Level 3** standards. All standards are in `.standards
 - `testing.ai.yaml` - 測試標準
 - `unit-testing.ai.yaml` - unit-testing.ai.yaml
 - `integration-testing.ai.yaml` - integration-testing.ai.yaml
+- `system-testing.ai.yaml` - system-testing.ai.yaml
+- `e2e-testing.ai.yaml` - e2e-testing.ai.yaml
 - `documentation-structure.ai.yaml` - documentation-structure.ai.yaml
 - `documentation-writing-standards.ai.yaml` - documentation-writing-standards.ai.yaml
 - `ai-instruction-standards.ai.yaml` - ai-instruction-standards.ai.yaml
@@ -146,7 +157,32 @@ This project has adopted **Level 3** standards. All standards are in `.standards
 - `requirement-checklist.md` - requirement-checklist.md
 - `requirement-template.md` - requirement-template.md
 - `requirement-document-template.md` - requirement-document-template.md
-
+- `deployment-standards.ai.yaml` - deployment-standards.ai.yaml
+- `api-design-standards.ai.yaml` - api-design-standards.ai.yaml
+- `database-standards.ai.yaml` - database-standards.ai.yaml
+- `test-governance.ai.yaml` - test-governance.ai.yaml
+- `structured-task-definition.ai.yaml` - structured-task-definition.ai.yaml
+- `workflow-state-protocol.ai.yaml` - workflow-state-protocol.ai.yaml
+- `workflow-enforcement.ai.yaml` - 工作流程強制執行
+- `ai-agreement-standards.ai.yaml` - ai-agreement-standards.ai.yaml
+- `ai-command-behavior.ai.yaml` - ai-command-behavior.ai.yaml
+- `virtual-organization-standards.ai.yaml` - virtual-organization-standards.ai.yaml
+- `requirement-engineering.ai.yaml` - requirement-engineering.ai.yaml
+- `security-standards.ai.yaml` - security-standards.ai.yaml
+- `performance-standards.ai.yaml` - performance-standards.ai.yaml
+- `accessibility-standards.ai.yaml` - accessibility-standards.ai.yaml
+- `developer-memory.ai.yaml` - 開發者持久記憶
+- `project-context-memory.ai.yaml` - 專案情境記憶
+- `context-aware-loading.ai.yaml` - context-aware-loading.ai.yaml
+- `pipeline-integration-standards.ai.yaml` - pipeline-integration-standards.ai.yaml
+- `acceptance-criteria-traceability.ai.yaml` - acceptance-criteria-traceability.ai.yaml
+- `change-batching-standards.ai.yaml` - change-batching-standards.ai.yaml
+- `systematic-debugging.ai.yaml` - systematic-debugging.ai.yaml
+- `agent-dispatch.ai.yaml` - agent-dispatch.ai.yaml
+- `model-selection.ai.yaml` - model-selection.ai.yaml
+- `git-worktree.ai.yaml` - git-worktree.ai.yaml
+- `branch-completion.ai.yaml` - branch-completion.ai.yaml
+- `verification-evidence.ai.yaml` - verification-evidence.ai.yaml
 <!-- UDS:STANDARDS:END -->
 
 ---

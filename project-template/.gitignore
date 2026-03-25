@@ -6,8 +6,6 @@ dist/
 .venv
 __pycache__
 .pytest_cache/
-.worktrees/
-
 # macOS
 .DS_Store
 
@@ -24,6 +22,7 @@ logs
 backups
 disabled
 .env
+.worktrees/
 
 # Test coverage output
 plugins/ecc-hooks/coverage

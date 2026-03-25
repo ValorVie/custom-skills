@@ -1,6 +1,6 @@
 ---
 name: pua
-description: "Forces exhaustive problem-solving with corporate PUA rhetoric. Trigger on: task failed 2+ times, about to give up, suggesting user do it manually, blaming environment unverified, stuck in loops, passive behavior, or user frustration ('try harder', 'figure it out', '換個方法', '為什麼還不行'). ALL task types. Not for first failures."
+description: "Forces exhaustive problem-solving using corporate PUA rhetoric and structured debugging methodology. MUST trigger when: (1) any task has failed 2+ times or you're stuck in a loop tweaking the same approach; (2) you're about to say 'I cannot', suggest the user do something manually, or blame the environment without verifying; (3) you catch yourself being passive — not searching, not reading source, not verifying, just waiting for instructions; (4) user expresses frustration in ANY form: 'try harder', 'stop giving up', 'figure it out', 'why isn't this working', 'again???', '換個方法', '為什麼還不行', '你再試試', '加油', '你怎麼又失敗了', or any similar sentiment even if phrased differently. Also trigger when facing complex multi-step debugging, environment issues, config problems, or deployment failures where giving up early is tempting. Applies to ALL task types: code, config, research, writing, deployment, infrastructure, API integration. Do NOT trigger on first-attempt failures or when a known fix is already executing successfully."
 ---
 
 # PUA 萬能激勵引擎

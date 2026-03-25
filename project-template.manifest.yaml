@@ -18,13 +18,20 @@ include:
   - INSTRUCTIONS.md
 
 exclude:
+  - .claude/settings.json
   - .claude/skills/auto-skill
   - .claude/skills/bun-development
   - .claude/skills/javascript-testing-patterns
   - .claude/skills/typescript-advanced-types
+  - .claude/skills/hook-development
+  - .claude/skills/writing-hookify-rules
   - .agents/skills/bun-development
   - .agents/skills/javascript-testing-patterns
   - .agents/skills/typescript-advanced-types
+  - .agents/skills/hook-development
+  - .agents/skills/writing-hookify-rules
   - .agent/skills/bun-development
   - .agent/skills/javascript-testing-patterns
   - .agent/skills/typescript-advanced-types
+  - .agent/skills/hook-development
+  - .agent/skills/writing-hookify-rules
