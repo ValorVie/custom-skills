@@ -1,0 +1,54 @@
+"*":
+  core:
+    disabledPackages: [
+      "wrap-guide"
+    ]
+    excludeVcsIgnoredPaths: true
+    ignoredNames: [
+      ".git"
+      ".svn"
+      ".hg"
+      ".DS_Store"
+      "node_modules"
+      "dist"
+      "build"
+      ".next"
+      ".nuxt"
+      ".output"
+      ".cache"
+      ".venv"
+      "__pycache__"
+      ".pytest_cache"
+      "coverage"
+    ]
+  editor:
+    fontFamily: "Maple Mono NL NF CN"
+    scrollPastEnd: true
+    showIndentGuide: true
+    showInvisibles: false
+    softTabs: true
+    softWrap: true
+    tabLength: 2
+  "exception-reporting":
+    userId: "fa6b0c9e-947e-47cb-af5b-dff48f5220e5"
+  "fuzzy-finder":
+    ignoredNames: [
+      ".git"
+      ".DS_Store"
+      "node_modules"
+      "dist"
+      "build"
+      ".next"
+      ".nuxt"
+      ".output"
+      ".cache"
+      ".venv"
+      "__pycache__"
+      ".pytest_cache"
+      "coverage"
+    ]
+  welcome:
+    showOnStartup: false
+".python.source":
+  editor:
+    tabLength: 4

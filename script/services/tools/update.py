@@ -161,14 +161,28 @@ def _run_update_tools_phase() -> None:
         run_command(["npm", "install", "-g", package])
 
     if check_uds_initialized():
-        console.print("[green]正在更新專案 Standards...[/green]")
+        console.print()
+        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
+        console.print("[bold red]  ⬇ 以下為 uds (Universal Dev Standards) 指令輸出[/bold red]")
+        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
         run_command(["uds", "update"], check=False)
+        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
+        console.print("[bold red]  ⬆ uds 指令執行完畢，以下回到 ai-dev 流程[/bold red]")
+        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
+        console.print()
     else:
         console.print("[dim]ℹ️  當前目錄未初始化 Standards（跳過 uds update）[/dim]")
         console.print("[dim]   如需在此專案使用，請執行: uds init[/dim]")
 
-    console.print("[green]正在更新已安裝的 Skills...[/green]")
+    console.print()
+    console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
+    console.print("[bold red]  ⬇ 以下為 npx skills (Skills CLI) 指令輸出[/bold red]")
+    console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
     run_command(["npx", "skills", "update"], check=False)
+    console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
+    console.print("[bold red]  ⬆ npx skills 指令執行完畢，以下回到 ai-dev 流程[/bold red]")
+    console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
+    console.print()
 
     console.print("[green]正在更新 Bun 套件...[/green]")
     if check_bun_installed():

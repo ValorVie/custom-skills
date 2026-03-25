@@ -38,6 +38,12 @@
 | [GIT-SUBMODULE-PERFORMANCE.md](git/GIT-SUBMODULE-PERFORMANCE.md) | Git Submodule 效能優化 |
 | [Git Submodule 操作指南.md](git/Git%20Submodule%20操作指南.md) | Git Submodule 操作指南 |
 
+## IDE / 編輯器 (`ide/`)
+
+| 文件 | 說明 |
+|------|------|
+| [PULSAR-GUIDE.md](ide/PULSAR-GUIDE.md) | Pulsar Editor 完整指南（Atom 社群繼承者，安裝/設定/插件/快捷鍵） |
+
 ## 終端工具 (`terminal/`)
 
 | 文件 | 說明 |
