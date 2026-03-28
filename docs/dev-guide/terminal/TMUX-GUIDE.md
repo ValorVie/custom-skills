@@ -213,85 +213,163 @@ tmux kill-server
 
 ## 快捷鍵速查表
 
-> 以下使用推薦設定（prefix = `Ctrl+A`）。標記「預設」的為 tmux 原始設定，標記「自訂」的為推薦設定新增。
+> 以下使用推薦設定（prefix = `Ctrl+A`）。
 > 在 tmux 中按 `prefix + ?` 可顯示互動式速查彈窗。
+>
+> **欄位說明：**
+> - **來源**：`預設` = tmux 原始設定、`自訂` = 推薦設定新增/覆寫、`TPM` = Plugin 提供
+> - **預設該鍵功能**：該按鍵在 tmux 預設設定中的原始行為（`—` 表示該鍵預設未綁定，「相同」表示未修改）
 
 ### Session
 
-| 快捷鍵 | 功能 | 來源 |
-|---------|------|------|
-| `prefix + d` | Detach（脫離 session） | 預設 |
-| `prefix + s` | 列出所有 session（互動式切換） | 預設 |
-| `prefix + $` | 重新命名當前 session | 預設 |
-| `prefix + (` | 切換至上一個 session | 預設 |
-| `prefix + )` | 切換至下一個 session | 預設 |
+| 快捷鍵 | 功能（推薦設定） | 來源 | 預設該鍵功能 |
+|---------|------------------|------|--------------|
+| `prefix + d` | Detach（脫離 session） | 預設 | 相同 |
+| `prefix + s` | 列出所有 session（互動式切換） | 預設 | 相同 |
+| `prefix + $` | 重新命名當前 session | 預設 | 相同 |
+| `prefix + (` | 切換至上一個 session | 預設 | 相同 |
+| `prefix + )` | 切換至下一個 session | 預設 | 相同 |
+| `prefix + D` | 選擇要 detach 的 client | 預設 | 相同 |
 
 ### Window
 
-| 快捷鍵 | 功能 | 來源 |
-|---------|------|------|
-| `prefix + c` | 新建 window | 預設 |
-| `prefix + ,` | 重新命名 window | 預設 |
-| `prefix + &` | 關閉 window | 預設 |
-| `prefix + w` | 列出所有 window（互動式） | 預設 |
-| `prefix + 1-9` | 切換至指定編號 | 預設 |
-| `prefix + [` | 上一個 window | 自訂 |
-| `prefix + ]` | 下一個 window | 自訂 |
-| `prefix + Space` | 最近使用的 window | 自訂 |
+| 快捷鍵 | 功能（推薦設定） | 來源 | 預設該鍵功能 |
+|---------|------------------|------|--------------|
+| `prefix + c` | 新建 window（保留當前路徑） | 自訂 | `new-window`（不保留路徑） |
+| `prefix + ,` | 重新命名 window | 預設 | 相同 |
+| `prefix + &` | 關閉 window（會確認） | 預設 | 相同 |
+| `prefix + w` | 列出所有 window（互動式） | 預設 | 相同 |
+| `prefix + 0-9` | 切換至指定編號 | 預設 | 相同 |
+| `prefix + [` | 上一個 window | 自訂 | `copy-mode`（進入複製模式） |
+| `prefix + ]` | 下一個 window | 自訂 | `paste-buffer`（貼上緩衝區） |
+| `prefix + Space` | 切換到上次使用的 window | 自訂 | `next-layout`（切換 pane 排列方式） |
+| `prefix + S-Left` | 將 window 左移一位 | 自訂 | — |
+| `prefix + S-Right` | 將 window 右移一位 | 自訂 | — |
+
+> **被覆寫的預設 window 快捷鍵：**
+>
+> | 預設快捷鍵 | 預設功能 | 覆寫為 | 替代方式 |
+> |------------|----------|--------|----------|
+> | `prefix + n` | 下一個 window | 未覆寫，仍可用 | 也可用 `prefix + ]` |
+> | `prefix + p` | 上一個 window | 未覆寫，仍可用 | 也可用 `prefix + [` |
+> | `prefix + l` | 上次使用的 window | 覆寫為 pane 導航（右） | 改用 `prefix + Space` |
+> | `prefix + [` | 進入 copy mode | 覆寫為上一個 window | 改用 `prefix + v` |
+> | `prefix + ]` | 貼上緩衝區 | 覆寫為下一個 window | 改用 `prefix + =` 選擇緩衝區 |
+> | `prefix + Space` | 切換 pane layout | 覆寫為上次使用的 window | 改用 `prefix + M-1` 至 `M-5` 選擇 layout |
 
 ### Pane
 
-| 快捷鍵 | 功能 | 來源 |
-|---------|------|------|
-| `prefix + \|` | 水平分割（左右） | 自訂 |
-| `prefix + -` | 垂直分割（上下） | 自訂 |
-| `prefix + x` | 關閉 pane | 預設 |
-| `prefix + z` | 全螢幕切換 | 預設 |
-| `prefix + q` | 顯示 pane 編號 | 預設 |
-| `prefix + h/j/k/l` | Vim 風格面板導航 | 自訂 |
-| `prefix + H/J/K/L` | Vim 風格調整大小 | 自訂 |
-| `prefix + >` | 與下方 pane 交換 | 自訂 |
-| `prefix + <` | 與上方 pane 交換 | 自訂 |
+| 快捷鍵 | 功能（推薦設定） | 來源 | 預設該鍵功能 |
+|---------|------------------|------|--------------|
+| `prefix + \|` | 水平分割（左右，保留路徑） | 自訂 | — |
+| `prefix + -` | 垂直分割（上下，保留路徑） | 自訂 | `delete-buffer`（刪除緩衝區） |
+| `prefix + "` | 垂直分割（上下，保留路徑） | 自訂 | `split-window`（不保留路徑） |
+| `prefix + %` | 水平分割（左右，保留路徑） | 自訂 | `split-window -h`（不保留路徑） |
+| `prefix + x` | 關閉 pane（會確認） | 預設 | 相同 |
+| `prefix + z` | 全螢幕切換（Zoom） | 預設 | 相同 |
+| `prefix + q` | 顯示 pane 編號 | 預設 | 相同 |
+| `prefix + h` | 導航至左方 pane | 自訂 | — |
+| `prefix + j` | 導航至下方 pane | 自訂 | — |
+| `prefix + k` | 導航至上方 pane | 自訂 | — |
+| `prefix + l` | 導航至右方 pane | 自訂 | `last-window`（上次使用的 window） |
+| `prefix + H` | 向左擴大 5 格（可連按） | 自訂 | — |
+| `prefix + J` | 向下擴大 5 格（可連按） | 自訂 | — |
+| `prefix + K` | 向上擴大 5 格（可連按） | 自訂 | — |
+| `prefix + L` | 向右擴大 5 格（可連按） | 自訂 | `switch-client -l`（上次使用的 session） |
+| `prefix + >` | 與下方 pane 交換 | 自訂 | `display-menu`（Pane 右鍵選單） |
+| `prefix + <` | 與上方 pane 交換 | 自訂 | `display-menu`（Window 右鍵選單） |
+
+> **被覆寫的預設 pane 快捷鍵：**
+>
+> | 預設快捷鍵 | 預設功能 | 覆寫為 | 替代方式 |
+> |------------|----------|--------|----------|
+> | `prefix + o` | 循環切換 pane | 未覆寫，仍可用 | 也可用 `h/j/k/l` 導航 |
+> | `prefix + ;` | 上次使用的 pane | 未覆寫，仍可用 | — |
+> | `prefix + {` | 與上方 pane 交換 | 未覆寫，仍可用 | 也可用 `prefix + <` |
+> | `prefix + }` | 與下方 pane 交換 | 未覆寫，仍可用 | 也可用 `prefix + >` |
+> | `prefix + -` | 刪除緩衝區 | 覆寫為垂直分割 | 改用 `tmux delete-buffer` 命令 |
+> | `prefix + L` | 切換到上次 session | 覆寫為調整 pane 大小 | 改用 `prefix + (` / `)` 切換 session |
 
 ### Copy Mode（Vi 模式）
 
-| 快捷鍵 | 功能 | 來源 |
-|---------|------|------|
-| `prefix + v` | 進入 copy mode | 自訂 |
-| `v` | 開始選取 | 自訂 |
-| `V` | 整行選取 | 自訂 |
-| `Ctrl+v` | 矩形選取切換 | 自訂 |
-| `y` | 複製選取並離開 | 自訂 |
-| `/` | 搜尋（向前） | 預設 |
-| `?` | 搜尋（向後） | 預設 |
-| `n` | 下一個搜尋結果 | 預設 |
-| `N` | 上一個搜尋結果 | 預設 |
-| `q` | 離開 copy mode | 預設 |
+> 以下快捷鍵在 copy mode 內使用。推薦設定使用 `mode-keys vi`（預設為 `emacs`）。
+
+| 快捷鍵 | 功能（推薦設定） | 來源 | Vi 預設行為 |
+|---------|------------------|------|-------------|
+| `prefix + v` | 進入 copy mode | 自訂 | — （預設用 `prefix + [` 進入） |
+| `v` | 開始選取 | 自訂 | `rectangle-toggle`（矩形選取切換） |
+| `V` | 整行選取 | 預設 | 相同 |
+| `Ctrl+v` | 矩形選取切換 | 自訂 | 相同（`C-v` 預設也是 `rectangle-toggle`） |
+| `y` | 複製選取並離開 | 自訂 | — （預設用 `Enter` 複製） |
+| `Enter` | 複製選取並離開 | 預設 | 相同 |
+| `/` | 搜尋（向下） | 預設 | 相同 |
+| `?` | 搜尋（向上） | 預設 | 相同 |
+| `n` | 下一個搜尋結果 | 預設 | 相同 |
+| `N` | 上一個搜尋結果 | 預設 | 相同 |
+| `q` | 離開 copy mode | 預設 | 相同 |
+| `Escape` | 清除選取 | 預設 | 相同 |
+| `Space` | 開始選取 | 預設 | 相同 |
+| `h/j/k/l` | 方向移動 | 預設 | 相同 |
+| `w/b/e` | 按單字移動 | 預設 | 相同 |
+| `0/$` | 行首/行尾 | 預設 | 相同 |
+| `^` | 行首非空白字元 | 預設 | 相同（`back-to-indentation`） |
+| `g/G` | 跳至頂部/底部 | 預設 | 相同 |
+| `H/M/L` | 跳至畫面頂/中/底 | 預設 | 相同 |
+| `Ctrl+u/Ctrl+d` | 上/下半頁 | 預設 | 相同 |
+| `Ctrl+b/Ctrl+f` | 上/下一頁 | 預設 | 相同 |
+| `{/}` | 上/下一段 | 預設 | 相同 |
+| `o` | 移至選取的另一端 | 預設 | 相同 |
+| `滑鼠拖曳` | 選取後不離開 copy mode | 自訂 | 選取後自動複製並離開 |
+
+> **Copy Mode 按鍵模式對照（Vi vs Emacs）：**
+>
+> | 功能 | Vi 模式 | Emacs 模式（預設） |
+> |------|---------|-------------------|
+> | 開始選取 | `Space` | `Ctrl+Space` |
+> | 複製 | `Enter` | `M-w` / `Ctrl+w` |
+> | 取消選取 | `Escape` | `Ctrl+g` |
+> | 搜尋（向下） | `/` | `Ctrl+s` |
+> | 搜尋（向上） | `?` | `Ctrl+r` |
+> | 方向移動 | `h/j/k/l` | `Ctrl+b/n/p/f` |
+> | 按單字移動 | `w/b` | `M-f/M-b` |
+> | 行首/行尾 | `0/$` | `Ctrl+a/Ctrl+e` |
+> | 頂部/底部 | `g/G` | `M-<` / `M->` |
+> | 上/下半頁 | `Ctrl+u/Ctrl+d` | `M-Up/M-Down` |
 
 ### 其他
 
-| 快捷鍵 | 功能 | 來源 |
-|---------|------|------|
-| `prefix + :` | 命令提示字元 | 預設 |
-| `prefix + ?` | 快捷鍵速查彈窗 | 自訂 |
-| `prefix + r` | 重新載入設定檔 | 自訂 |
-| `prefix + I` | 安裝 TPM plugin | TPM |
-| `prefix + U` | 更新 TPM plugin | TPM |
+| 快捷鍵 | 功能（推薦設定） | 來源 | 預設該鍵功能 |
+|---------|------------------|------|--------------|
+| `prefix + :` | 命令提示字元 | 預設 | 相同 |
+| `prefix + ?` | 快捷鍵速查彈窗 | 自訂 | `list-keys -N`（列出快捷鍵清單） |
+| `prefix + r` | 重新載入設定檔 | 自訂 | `refresh-client`（重新整理終端顯示） |
+| `prefix + I` | 安裝 TPM plugin | TPM | — |
+| `prefix + U` | 更新 TPM plugin | TPM | — |
+| `prefix + i` | 顯示當前 pane 資訊 | 預設 | 相同 |
+| `prefix + t` | 顯示時鐘 | 預設 | 相同 |
+| `prefix + ~` | 顯示歷史訊息 | 預設 | 相同 |
+| `prefix + C` | 自訂選項介面 | 預設 | 相同 |
+| `prefix + M-1~5` | 選擇預設 pane layout | 預設 | 相同 |
 
 ### 與 Zellij / WezTerm 快捷鍵對照
 
-| 功能 | tmux（推薦設定） | Zellij | WezTerm |
-|------|-------------------|--------|---------|
-| 水平分割 | `prefix + \|` | `Ctrl+p` → `d` | `Ctrl+Shift+D` |
-| 垂直分割 | `prefix + -` | `Ctrl+p` → `n` | `Ctrl+Shift+%` |
-| 面板導航 | `prefix + h/j/k/l` | `Ctrl+p` → `h/j/k/l` | `Ctrl+Shift+方向鍵` |
-| 關閉面板 | `prefix + x` | `Ctrl+p` → `x` | `Ctrl+Shift+W` |
-| 全螢幕 | `prefix + z` | `Ctrl+p` → `f` | `Ctrl+Shift+Z` |
-| 新建分頁 | `prefix + c` | `Ctrl+t` → `n` | `Ctrl+Shift+T` |
-| 切換分頁 | `prefix + 1-9` | `Ctrl+t` → `1-9` | `Ctrl+1-9` |
-| 離開/Detach | `prefix + d` | `Ctrl+o` → `d` | 不支援 |
-| 搜尋 | `prefix + v` → `/` | `Ctrl+s` → `s` | `Ctrl+Shift+F` |
-| 鍵盤提示 | `prefix + ?` | 畫面底部常駐 | `Ctrl+Shift+L` |
+| 功能 | tmux 預設 | tmux 推薦設定 | Zellij | WezTerm |
+|------|-----------|---------------|--------|---------|
+| 水平分割 | `prefix + %` | `prefix + \|` | `Ctrl+p` → `d` | `Ctrl+Shift+D` |
+| 垂直分割 | `prefix + "` | `prefix + -` | `Ctrl+p` → `n` | `Ctrl+Shift+%` |
+| 面板導航 | `prefix + o`（循環） | `prefix + h/j/k/l` | `Ctrl+p` → `h/j/k/l` | `Ctrl+Shift+方向鍵` |
+| 上次面板 | `prefix + ;` | `prefix + ;`（保留） | — | — |
+| 關閉面板 | `prefix + x` | `prefix + x` | `Ctrl+p` → `x` | `Ctrl+Shift+W` |
+| 全螢幕 | `prefix + z` | `prefix + z` | `Ctrl+p` → `f` | `Ctrl+Shift+Z` |
+| 新建分頁 | `prefix + c` | `prefix + c`（保留路徑） | `Ctrl+t` → `n` | `Ctrl+Shift+T` |
+| 上/下分頁 | `prefix + p/n` | `prefix + [/]` | `Ctrl+t` → `h/l` | `Ctrl+Tab` |
+| 切換分頁 | `prefix + 0-9` | `prefix + 0-9` | `Ctrl+t` → `1-9` | `Ctrl+1-9` |
+| 上次分頁 | `prefix + l` | `prefix + Space` | — | — |
+| 離開/Detach | `prefix + d` | `prefix + d` | `Ctrl+o` → `d` | 不支援 |
+| 進入複製 | `prefix + [` | `prefix + v` | `Ctrl+s` | — |
+| 搜尋 | copy mode → `/` | `prefix + v` → `/` | `Ctrl+s` → `s` | `Ctrl+Shift+F` |
+| 貼上緩衝區 | `prefix + ]` | `prefix + =`（選擇式） | — | `Ctrl+Shift+V` |
+| 鍵盤提示 | `prefix + ?` | `prefix + ?`（彈窗） | 畫面底部常駐 | `Ctrl+Shift+L` |
 
 ---
 
@@ -333,18 +411,29 @@ source-file /path/to/file.conf
 
 ### 重要選項說明
 
-| 選項 | 說明 | 推薦值 |
-|------|------|--------|
-| `default-terminal` | 終端類型 | `"tmux-256color"` |
-| `terminal-overrides` | True Color 覆寫 | `",*256col*:Tc"` |
-| `mouse` | 滑鼠支援 | `on` |
-| `base-index` | Window 起始編號 | `1` |
-| `pane-base-index` | Pane 起始編號 | `1` |
-| `escape-time` | Esc 鍵延遲（ms） | `0` |
-| `history-limit` | 捲動歷史行數 | `50000` |
-| `renumber-windows` | 自動重新編號 | `on` |
-| `mode-keys` | Copy mode 按鍵風格 | `vi` |
-| `set-clipboard` | 系統剪貼簿 | `on` |
+| 選項 | 說明 | 預設值 | 推薦值 |
+|------|------|--------|--------|
+| `prefix` | Prefix 鍵 | `C-b` | `C-a` |
+| `default-terminal` | 終端類型 | `"tmux-256color"` | `"tmux-256color"` |
+| `terminal-overrides` | True Color 覆寫 | （無） | `",*256col*:Tc"` |
+| `mouse` | 滑鼠支援 | `off` | `on` |
+| `base-index` | Window 起始編號 | `0` | `1` |
+| `pane-base-index` | Pane 起始編號 | `0` | `1` |
+| `escape-time` | Esc 鍵延遲（ms） | `10` | `0` |
+| `history-limit` | 捲動歷史行數 | `2000` | `50000` |
+| `renumber-windows` | 自動重新編號 | `off` | `on` |
+| `mode-keys` | Copy mode 按鍵風格 | `emacs` | `vi` |
+| `set-clipboard` | 系統剪貼簿 | `external` | `on` |
+| `set-titles` | 設定終端標題 | `off` | `on` |
+| `display-time` | 訊息顯示時間（ms） | `750` | `3000` |
+| `display-panes-time` | 面板編號顯示時間（ms） | `1000` | `2000` |
+| `monitor-activity` | 監控 Window 活動 | `off` | `on` |
+| `visual-activity` | 活動通知方式 | `off` | `off` |
+| `status-interval` | 狀態列更新間隔（秒） | `15` | `5` |
+| `status-position` | 狀態列位置 | `bottom` | `bottom` |
+| `status-justify` | Window 列表對齊 | `left` | `centre` |
+| `status-left-length` | 左側最大長度 | `10` | `40` |
+| `status-right-length` | 右側最大長度 | `40` | `60` |
 
 ---
 
