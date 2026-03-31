@@ -257,6 +257,14 @@ ai-dev status
 /plugin install auto-skill-hooks@custom-skills
 /plugin install custom-skills-notify@custom-skills
 
+# 安裝 Codex Plugin（選用，需 Codex API Key）
+# 詳見 [CODEX-PLUGIN-CC-GUIDE](dev-guide/ai-tools/CODEX-PLUGIN-CC-GUIDE.md)
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/reload-plugins
+/codex:setup
+
+
 # 安裝 PHP LSP
 /plugin install php-lsp
 

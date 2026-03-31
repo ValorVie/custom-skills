@@ -26,6 +26,7 @@
 | [MCP-SERVER-GUIDE.md](ai-tools/MCP-SERVER-GUIDE.md) | MCP Server 設定指南（Claude Code / OpenCode 通用） |
 | [CLAUDE-CODE-SYNC.md](ai-tools/CLAUDE-CODE-SYNC.md) | Claude Code 跨裝置同步指南（Syncthing / Git） |
 | [CLAUDE-CODE-AGENT-TEAMS.md](ai-tools/CLAUDE-CODE-AGENT-TEAMS.md) | Claude Code Agent Teams 指南（多實例協作 vs Subagents） |
+| [CODEX-PLUGIN-CC-GUIDE.md](ai-tools/CODEX-PLUGIN-CC-GUIDE.md) | Codex Plugin for Claude Code 指南（跨 AI 協作：review、委派、審查門檻） |
 
 ## Git 操作 (`git/`)
 
