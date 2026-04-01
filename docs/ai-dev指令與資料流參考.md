@@ -86,14 +86,21 @@ flowchart LR
 | `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml`；`--target` 必填，支援 `--dry-run` 預覽 |
 
 共享 phase 參數：
-- `install`：允許 `tools,repos,state,targets`
-- `update`：允許 `tools,repos,state`
-- `clone`：允許 `state,targets`
-- `--only <phase,...>`：只執行指定 phase
-- `--skip <phase,...>`：從預設 phase 集合中移除指定 phase
-- `--target <tool,...>`：限制 `targets` phase 的分發目標；目前只對 `install` / `clone` 有效
+
+| 命令 | 預設 phases | 允許 phases |
+|------|-------------|-------------|
+| `install` | `tools`, `repos`, `state`, `targets` | `tools`, `repos`, `state`, `targets` |
+| `update` | `tools`, `repos`, `state` | `tools`, `repos`, `state` |
+| `clone` | `state`, `targets` | `state`, `targets` |
+
+- `--only <phase,...>`：只執行指定 phase；值必須在該命令的允許 phases 內，以逗號分隔多值
+- `--skip <phase,...>`：從預設 phase 集合中移除指定 phase；值必須在該命令的允許 phases 內，以逗號分隔多值
+- `--target <tool,...>`：限制 `targets` phase 的分發目標，以逗號分隔多值；可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`；僅在 phases 包含 `targets` 時有效（`install` / `clone`）
 - `--dry-run`：只顯示執行計畫，不寫入任何檔案
-- `clone` 額外保留 `--force`、`--skip-conflicts`、`--backup` 作為衝突處理策略
+- `clone` 額外衝突處理參數（三者互斥）：
+  - `--force` / `-f`：強制覆蓋所有衝突檔案（不提示）
+  - `--skip-conflicts` / `-s`：跳過有衝突的檔案，僅分發無衝突的檔案
+  - `--backup` / `-b`：備份衝突檔案後再覆蓋
 
 #### Superpowers 處理
 
@@ -124,22 +131,26 @@ flowchart LR
 
 ### `ai-dev status`
 
-- 支援 `--section tools|repos|sync`
-- `tools` 會顯示核心工具與全域 NPM 套件
-- `repos` 會顯示設定儲存庫狀態
-- `sync` 會顯示上游同步狀態
+- `--section` / `-s`：只顯示指定區塊；可用值：`tools`、`repos`、`sync`；省略時顯示全部
+  - `tools`：顯示核心工具與全域 NPM 套件
+  - `repos`：顯示設定儲存庫狀態
+  - `sync`：顯示上游同步狀態
 
 ### `ai-dev list`
 
-- `--target` 可省略；未指定時代表所有 targets
-- `--type` 可過濾 `skills / commands / agents / workflows`
+- `--target` / `-t`：可省略；未指定時代表所有 targets；可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`
+- `--type` / `-T`：過濾資源類型；可用值：`skills`、`commands`、`agents`、`workflows`
+- `--hide-disabled` / `-H`：隱藏已停用的資源
 - 若沒有符合結果，會顯示 `無符合結果`
 
 ### `ai-dev toggle`
 
-- `--target`、`--type`、`--name` 為寫入前必要資訊
-- `--enable` 與 `--disable` 二擇一
-- `--dry-run` 只預覽，不移動或還原實體資源
+- `--target` / `-t`：目標工具（必填）；可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`
+- `--type` / `-T`：資源類型（必填）；可用值：`skills`、`commands`、`agents`、`workflows`
+- `--name` / `-n`：資源名稱（必填）
+- `--enable` / `-e` 與 `--disable` / `-d`：二擇一，指定啟用或停用
+- `--list` / `-l`：列出目前的開關狀態（不需要其他參數）
+- `--dry-run`：只預覽變更，不移動或還原實體資源
 
 ### `ai-dev init-from`
 
@@ -240,7 +251,7 @@ exclude 規則：
 
 用途：
 - 代理執行 `uds update` 與 `openspec update`
-- 可用 `--only uds` 或 `--only openspec` 限縮範圍
+- `--only` / `-o`：只更新特定工具；可用值：`openspec`、`uds`
 
 初始化檢查規則：
 - 若 `uds` 尚未初始化（例如缺少 `.standards/manifest.json`、`.standards/active-profile.yaml`，或 manifest 結構無效），提示執行 `uds init`
@@ -288,10 +299,10 @@ exclude 規則：
 |--------|----------|-------------------|
 | `standards status` | 顯示目前啟用的 profile 與 disabled 統計。 | 未初始化時只提示，不寫入。 |
 | `standards list` | 列出可用 profiles、顯示名稱、重疊偏好與目前啟用狀態。 | 讀取 `.standards/profiles/*.yaml`；未初始化時只提示。 |
-| `standards switch` | 切換 profile，重算 profile-based disabled 清單。 | 僅更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`；不再自動同步任何 target。 |
+| `standards switch` | 切換 profile，重算 profile-based disabled 清單。 | 僅更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`；不再自動同步任何 target；支援 `--dry-run` / `-n` 預覽。 |
 | `standards show` | 顯示單一 profile 的詳細內容與 overlap 選擇。 | 純讀取，不寫入。 |
 | `standards overlaps` | 顯示 `overlaps.yaml` 摘要。 | 純讀取，不寫入。 |
-| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | `--target` 必填；`standards (*.ai.yaml)` 不會被此命令搬移。 |
+| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | `--target` / `-t` 必填，可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`；支援 `--dry-run` / `-n`；`standards (*.ai.yaml)` 不會被此命令搬移。 |
 
 主要狀態：
 - `.standards/active-profile.yaml`：目前啟用的 profile
