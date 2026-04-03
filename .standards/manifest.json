@@ -68,7 +68,16 @@
     "ai/standards/model-selection.ai.yaml",
     "ai/standards/git-worktree.ai.yaml",
     "ai/standards/branch-completion.ai.yaml",
-    "ai/standards/verification-evidence.ai.yaml"
+    "ai/standards/verification-evidence.ai.yaml",
+    "ai/standards/adr-standards.ai.yaml",
+    "ai/standards/deprecation-standards.ai.yaml",
+    "ai/standards/documentation-lifecycle.ai.yaml",
+    "core/code-review-checklist.md",
+    "ai/standards/test-data-standards.ai.yaml",
+    "ai/standards/tech-debt-standards.ai.yaml",
+    "ai/standards/knowledge-transfer-standards.ai.yaml",
+    "ai/standards/design-document-standards.ai.yaml",
+    "core/guides/file-placement-guide.md"
   ],
   "extensions": [
     "extensions/locales/zh-tw.md"
