@@ -2,8 +2,8 @@
   "version": "3.3.0",
   "upstream": {
     "repo": "AsiaOstrich/universal-dev-standards",
-    "version": "5.0.0",
-    "installed": "2026-03-25"
+    "version": "5.1.0-beta.4",
+    "installed": "2026-04-03"
   },
   "level": 3,
   "format": "ai",
