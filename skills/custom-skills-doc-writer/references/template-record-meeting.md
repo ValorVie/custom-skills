@@ -2,14 +2,14 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: record/meeting
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}（紀錄人）
 status: draft
 ---
 
-# {title}
+# {標題}
 
 ## 會議資訊
 

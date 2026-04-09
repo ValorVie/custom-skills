@@ -2,16 +2,16 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: tutorial
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
 level: beginner | intermediate | advanced
-estimated_time: {N} 分鐘
+estimated_time: {預估分鐘數} 分鐘
 ---
 
-# {title}
+# {標題}
 
 ## 學習目標
 
@@ -27,7 +27,7 @@ estimated_time: {N} 分鐘
 ## 環境準備
 
 ### 必要工具
-- 工具 1（版本 X.Y）
+- 工具 1（版本 {版本號}）
 - 工具 2
 
 ### 安裝步驟

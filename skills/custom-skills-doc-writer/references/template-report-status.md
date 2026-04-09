@@ -2,15 +2,15 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: report/status
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
 period: {YYYY-MM-DD} ~ {YYYY-MM-DD}
 ---
 
-# {title}
+# {標題}
 
 ## 報告期間
 
@@ -24,7 +24,7 @@ period: {YYYY-MM-DD} ~ {YYYY-MM-DD}
 
 | 項目 | 狀態 | 進度 | 備註 |
 |------|------|------|------|
-| ... | 完成/進行中/延遲/阻塞 | X% | ... |
+| ... | 完成/進行中/延遲/阻塞 | {百分比}% | ... |
 
 ### 整體進度
 

@@ -2,26 +2,26 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: record/incident
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
 severity: critical | high | medium | low
 ---
 
-# {title}
+# {標題}
 
 ## 事件摘要
 
 | 項目 | 內容 |
 |------|------|
-| 事件 ID | {ID} |
+| 事件 ID | {事件編號} |
 | 嚴重度 | {critical/high/medium/low} |
 | 發生時間 | {YYYY-MM-DD HH:MM} |
 | 發現時間 | {YYYY-MM-DD HH:MM} |
 | 解決時間 | {YYYY-MM-DD HH:MM} |
-| 影響時長 | {N} 小時 {N} 分鐘 |
+| 影響時長 | {時數} 小時 {分鐘數} 分鐘 |
 | 影響範圍 | {受影響的服務/使用者數} |
 
 ## 事件描述

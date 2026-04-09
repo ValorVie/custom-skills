@@ -2,14 +2,14 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: report/investigation
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
 ---
 
-# {title}
+# {標題}
 
 ## 摘要
 

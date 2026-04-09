@@ -2,14 +2,14 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: plan/migration
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
 ---
 
-# {title}
+# {標題}
 
 ## 摘要
 
@@ -47,21 +47,21 @@ status: draft
 
 ## 遷移步驟
 
-### Phase 1: 準備
+### 階段 1：準備
 - [ ] 環境建置
 - [ ] 資料備份
 - [ ] 通知相關方
 
-### Phase 2: 執行
+### 階段 2：執行
 - [ ] 步驟 1
 - [ ] 步驟 2
 
-### Phase 3: 驗證
+### 階段 3：驗證
 - [ ] 功能驗證
 - [ ] 資料驗證
 - [ ] 效能驗證
 
-### Phase 4: 切換
+### 階段 4：切換
 - [ ] 流量切換方式
 - [ ] 監控確認
 - [ ] 舊系統下線時程

@@ -2,15 +2,15 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: standard
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
 version: 1.0.0
 ---
 
-# {title}
+# {標題}
 
 ## 目的
 
@@ -76,7 +76,7 @@ version: 1.0.0
 
 | 版本 | 日期 | 變更 |
 |------|------|------|
-| 1.0.0 | {date} | 初版 |
+| 1.0.0 | {YYYYMMDDhh-NN} | 初版 |
 
 ## 參考資料
 

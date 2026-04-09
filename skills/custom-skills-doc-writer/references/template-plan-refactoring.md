@@ -2,14 +2,14 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: plan/refactoring
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
 ---
 
-# {title}
+# {標題}
 
 ## 摘要
 
@@ -45,7 +45,7 @@ status: draft
 | A: ... | ... | ... | ... |
 | B: ... | ... | ... | ... |
 
-**選擇方案**: X — 理由：...
+**選擇方案**: {選定方案} — 理由：...
 
 ### 重構方法
 

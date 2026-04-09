@@ -2,18 +2,21 @@
 
 ```markdown
 ---
-title: {title}
+title: {標題}
 type: record/decision
-date: {date}
+date: {YYYYMMDDhh-NN}
 author: {author}
-status: proposed | accepted | deprecated | superseded
+# 狀態值：proposed（提議中）| accepted（已採納）| deprecated（已棄用）| superseded（已取代）
+status: {狀態}
 ---
 
-# {title}
+# {標題}
 
 ## 狀態
 
-{proposed | accepted | deprecated | superseded}
+{狀態}
+
+> 可選值：proposed（提議中）、accepted（已採納）、deprecated（已棄用）、superseded（已取代）
 
 ## 背景
 
@@ -53,7 +56,7 @@ status: proposed | accepted | deprecated | superseded
 
 ## 決策
 
-選擇方案 {X}。
+選擇方案 {選定方案}。
 
 **理由**: 說明為什麼選擇這個方案。
 
