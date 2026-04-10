@@ -372,6 +372,8 @@ npx skills update
 # ── 工具管理 ──────────────────────────────────────
 # 搜尋與探索 Skills（全局）
 npx skills add https://github.com/vercel-labs/skills -g --skill find-skills
+# AI 管理工具（全局）
+npx skills add tanweai/pua --skill pua -g -y
 
 # ── AI 開發相關 ──────────────────────────────────────
 npx skills add anthropics/claude-plugins-official@hook-development -y
