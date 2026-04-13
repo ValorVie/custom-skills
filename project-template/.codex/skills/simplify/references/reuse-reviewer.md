@@ -8,9 +8,9 @@ Constraints:
 - Focus only on changed files and closely adjacent reusable code
 
 Review checklist:
-1. Search for existing utilities, helpers, or shared modules that could replace newly written code
-2. Flag any new function that duplicates existing functionality
-3. Flag inline logic that should use an existing utility
+1. **Search for existing utilities and helpers** that could replace newly written code. Look for similar patterns elsewhere in the codebase — common locations are utility directories, shared modules, and files adjacent to the changed ones.
+2. **Flag any new function that duplicates existing functionality.** Suggest the existing function to use instead.
+3. **Flag any inline logic that could use an existing utility** — hand-rolled string manipulation, manual path handling, custom environment checks, ad-hoc type guards, and similar patterns are common candidates.
 4. Prefer concrete file references and exact replacement suggestions
 
 Return format:
