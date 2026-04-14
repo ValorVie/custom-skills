@@ -147,9 +147,11 @@ def init_from(
     console.print(f"  目標: {cwd}")
     console.print()
 
-    # Clone（若目錄已存在則跳過）
+    # Clone（若目錄已存在則拉取最新，否則 clone）
     if target_dir.exists():
-        console.print(f"[yellow]⚠ 模板目錄已存在，跳過 clone：{target_dir}[/yellow]")
+        console.print(f"[dim]模板目錄已存在，拉取最新：{target_dir}[/dim]")
+        if not _pull_template_repo(target_dir, final_branch):
+            raise typer.Exit(1)
     else:
         if not _clone_template_repo(clone_url, target_dir):
             raise typer.Exit(1)
