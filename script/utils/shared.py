@@ -1012,7 +1012,8 @@ def _copy_with_log(
                         actual_source = _project_auto_skill(item, dst_item)
                         if actual_source is not None:
                             if record_method:
-                                record_method(item.name, actual_source, source=source)
+                                # 用 dst_item 而非來源路徑：多來源合併後目標內容可能與任一來源不同
+                                record_method(item.name, dst_item, source=source)
                             continue
                     policy = _load_clone_policy(item)
                     if policy is not None:
@@ -1026,7 +1027,7 @@ def _copy_with_log(
                     else:
                         shutil.copytree(item, dst_item, dirs_exist_ok=True)
                     if record_method:
-                        record_method(item.name, item, source=source)
+                        record_method(item.name, dst_item, source=source)
         elif resource_type == "plugins":
             # Plugins 可能包含任意檔案結構（ts/json/scripts），直接複製整個目錄
             shutil.copytree(src, dst, dirs_exist_ok=True)
@@ -1046,7 +1047,7 @@ def _copy_with_log(
                     dst_item = dst / item.name
                     shutil.copy2(item, dst_item)
                     if record_method:
-                        record_method(name, item, source=source)
+                        record_method(name, dst_item, source=source)
     else:
         # 無 tracker，仍需尊重 clone policy
         if resource_type == "skills":
@@ -1628,7 +1629,8 @@ def _distribute_ecc_selective(
                         continue
                     dst_item = dst / item.name
                     shutil.copytree(item, dst_item, dirs_exist_ok=True)
-                    tracker.record_skill(item.name, item, source="ecc")
+                    # 用 dst_item 而非來源路徑：多來源合併後目標內容可能與任一來源不同
+                    tracker.record_skill(item.name, dst_item, source="ecc")
 
     # Commands
     commands_config = distribute.get("commands", {})
@@ -1653,7 +1655,7 @@ def _distribute_ecc_selective(
                         continue
                     dst_item = dst / item.name
                     shutil.copy2(item, dst_item)
-                    tracker.record_command(name, item, source="ecc")
+                    tracker.record_command(name, dst_item, source="ecc")
 
     # Agents
     agents_config = distribute.get("agents", {})
@@ -1678,7 +1680,7 @@ def _distribute_ecc_selective(
                         continue
                     dst_item = dst / item.name
                     shutil.copy2(item, dst_item)
-                    tracker.record_agent(name, item, source="ecc")
+                    tracker.record_agent(name, dst_item, source="ecc")
 
 
 def _is_custom_skills_project(project_root: Path) -> bool:
