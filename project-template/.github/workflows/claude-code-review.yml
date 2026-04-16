@@ -40,12 +40,21 @@ jobs:
             請審查此 Pull Request #${{ github.event.pull_request.number }}
 
             ## 任務
-            1. 使用 `gh pr diff ${{ github.event.pull_request.number }}` 查看變更
-            2. 根據 .github/prompts/code-review.md 的標準進行審查
-            3. **重要**：審查完成後，必須使用以下命令發表評論：
+            1. 使用 `gh pr view ${{ github.event.pull_request.number }} --json body -q .body` 讀取 PR 描述
+            2. 若 PR 描述包含 **"Pre-Review Summary"** 或 **"Design Notes"** 段落，這是提交者透過本地雙視角審查產生的脈絡說明。你必須：
+               - 先閱讀 Design Notes 理解專案決策背景
+               - 先閱讀 Review Decisions 理解已仲裁的分歧（若存在）
+               - 審查時將這些脈絡納入考量，避免重複質疑已有合理解釋的模式
+            3. 使用 `gh pr diff ${{ github.event.pull_request.number }}` 查看變更
+            4. 根據 .github/prompts/code-review.md 的標準進行審查
+            5. **重要**：審查完成後，必須使用以下命令發表評論：
                ```
                gh pr comment ${{ github.event.pull_request.number }} --body "你的審查結果"
                ```
+
+            ## 審查原則
+            - 若 PR 描述的 Design Notes 已解釋某寫法的專案脈絡，且你認為解釋合理，則不應將該寫法標記為問題
+            - 若你仍然認為該寫法有問題（即使有 Design Notes 解釋），請明確說明你不同意的理由，並引用 Design Notes 中的解釋加以回應
 
             ## 回覆格式
             - 語言：繁體中文（專有名詞保留原文）
