@@ -116,6 +116,46 @@ exclude:
     # === 特定產品 ===
     - clickhouse-io
     - nutrient-document-processing
+    # === 區塊鏈 / DeFi / Web3 ===
+    - defi-amm-security
+    - evm-token-decimals
+    - llm-trading-agent-security
+    - nodejs-keccak256
+    - agent-payment-x402
+    # === 醫療 / HIPAA ===
+    - healthcare-cdss-patterns
+    - healthcare-emr-patterns
+    - healthcare-eval-harness
+    - healthcare-phi-compliance
+    - hipaa-compliance
+    # === C# / .NET ===
+    - csharp-testing
+    - dotnet-patterns
+    # === Dart / Flutter ===
+    - dart-flutter-patterns
+    # === 深度學習 ===
+    - pytorch-patterns
+    # === 動畫影片 ===
+    - manim-video
+    # === 娛樂 / 人格 ===
+    - openclaw-persona-forge
+    # === ECC 內部操作流程 ===
+    - customer-billing-ops
+    - finance-billing-ops
+    - ecc-tools-cost-audit
+    - email-ops
+    - messages-ops
+    - unified-notifications-ops
+    - configure-ecc
+    - skill-comply
+    # === 社交 / 業務開發 ===
+    - connections-optimizer
+    - social-graph-ranker
+    - lead-intelligence
+    # === 低頻使用 ===
+    - google-workspace-ops
+    - seo
+    - visa-doc-translate
   commands:
     claude: []
     opencode: []
