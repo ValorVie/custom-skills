@@ -299,6 +299,18 @@ def _run_update_repos_phase() -> None:
     else:
         console.print("[dim]所有儲存庫皆為最新[/dim]")
 
+    try:
+        from script.services.npx_skills import ensure_user_yaml
+        from script.utils.paths import get_ai_dev_config_dir
+
+        project_yaml = get_custom_skills_dir() / "upstream" / "npx-skills.yaml"
+        user_yaml = get_ai_dev_config_dir() / "npx-skills.yaml"
+        if project_yaml.exists():
+            ensure_user_yaml(project_path=project_yaml, user_path=user_yaml)
+            console.print(f"[dim]同步 {user_yaml.name} 到 user-level[/dim]")
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[yellow]警告：npx-skills.yaml 同步失敗：{exc}[/yellow]")
+
 
 def run_repos_phase(*, plan: ExecutionPlan) -> None:
     """Run repo refresh work for a pipeline plan."""
