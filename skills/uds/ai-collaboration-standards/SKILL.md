@@ -17,6 +17,16 @@ description: |
 
 ---
 
+## AI Skills Hierarchy | AI 技能層級
+
+This skill is part of a three-layer AI collaboration system:
+
+| Layer | Skill | Question it Answers | 回答的問題 |
+|-------|-------|-------------------|-----------|
+| **Behavior** (Immediate) | `/ai-collaboration` (this) | "How should AI respond accurately?" | 「AI 如何準確回應？」 |
+| **Configuration** (Session) | `/ai-instruction-standards` | "What to write in CLAUDE.md?" | 「CLAUDE.md 該寫什麼？」 |
+| **Architecture** (Long-term) | `/ai-friendly-architecture` | "How to structure code for AI?" | 「如何讓專案對 AI 友善？」 |
+
 ## Purpose
 
 This skill ensures AI assistants provide accurate, evidence-based responses without hallucination.
@@ -172,6 +182,17 @@ This project uses **English** certainty tags.
 - [Unknown] - Information not available
 - [Need Confirmation] - Requires user clarification
 ```
+
+---
+
+## Next Steps Guidance | 下一步引導
+
+After `/ai-collaboration` completes, the AI assistant should suggest:
+
+> **AI 協作行為規範已掌握。建議下一步 / AI collaboration behavior standards understood. Suggested next steps:**
+> - 執行 `/ai-instructions` 建立或更新 CLAUDE.md 等 AI 指令檔案 ⭐ **Recommended / 推薦** — 將協作標準寫入專案配置 / Write collaboration standards into project configuration
+> - 執行 `/ai-friendly-architecture` 設計 AI 友善架構 — 從長期架構層面優化 AI 協作 / Optimize AI collaboration at the architecture level
+> - 執行 `/review` 運用確定性標籤進行程式碼審查 — 實踐基於證據的分析 / Practice evidence-based analysis
 
 ---
 
