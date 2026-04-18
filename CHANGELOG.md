@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **新增 `custom-skills-upstream-ops` 統一上游操作 skill** (upstream-ops 重構)
+  - 統一上游操作入口：`skills/custom-skills-upstream-ops/`
+  - 內含 `SKILL.md` + `modes/{audit,uds-check,overlap,maintenance}` + `references/{install-methods,decision-patterns}` + `scripts/check_uds.py`
+  - 新增 `commands/{claude,opencode}/custom-skills-upstream-ops.md`
+  - 新增 `docs/superpowers/specs/2026-04-18-upstream-ops-refactor-design.md`（本重構設計文件）
+  - 新增 `docs/superpowers/plans/2026-04-18-upstream-ops-refactor.md`（17-task 實作計畫）
+
 - **ECC Skills 分類管理與使用者層級覆寫**
   - 審計 `~/.claude/skills/` 共 156 個 skills，識別 5 種安裝來源
   - 將 91 個 ECC skills 分為 18 類，依相關程度標記 keep/evaluate/exclude
@@ -162,6 +169,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **refactor(skills): 合併上游操作 skills 為 `custom-skills-upstream-ops`**
+  - 合併 `custom-skills-upstream-sync`、`custom-skills-upstream-compare`、`custom-skills-uds-update` 為單一 `custom-skills-upstream-ops`
+  - 以 `modes/` 子目錄區分 audit / uds-check / overlap / maintenance 四種功能
+  - 僅保留 SHA-256 檔案比對的 Python 腳本（`scripts/check_uds.py`），其餘轉為純 AI workflow
+
+- **refactor(ai-dev): `add-repo --analyze` 改以 AI workflow 提示取代 subprocess**
+  - 不再 subprocess 呼叫 `analyze_upstream.py`
+  - 改為提示使用者執行 `/custom-skills-upstream-ops overlap/audit`
+
+- **docs(spec): 重寫 `openspec/specs/overlap-detection/spec.md`**
+  - 移除自動寫入 `overlaps.yaml.draft` 的行為
+  - 保留「偵測重疊、輸出建議 YAML 片段」核心意圖
+  - 觸發入口改為 `/custom-skills-upstream-ops overlap`
+
 - **Commands 重命名**
   - `/custom-skills-test` → `/custom-skills-python-test`
   - `/custom-skills-coverage` → `/custom-skills-python-coverage`
@@ -216,6 +237,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `suggest-compact.py` 改進匯入路徑處理
 
 ### Removed
+
+- **上游操作 skills 合併後移除舊目錄** (upstream-ops 重構)
+  - `skills/custom-skills-upstream-sync/`（含 1284 行 `analyze_upstream.py`、`sync_upstream.py`）
+  - `skills/custom-skills-upstream-compare/`
+  - `skills/custom-skills-uds-update/`（`check_uds.py` 已搬至 `custom-skills-upstream-ops/scripts/`）
+  - `commands/{claude,opencode}/custom-skills-upstream-sync.md`
+  - `commands/{claude,opencode}/uds-update.md`
 
 - **`/test-coverage` 命令移除** (**BREAKING CHANGE**)
   - 功能已整合至 `/coverage --generate`
