@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write  # 需要 write 權限才能發表評論
+      pull-requests: write # 需要 write 權限才能發表評論
       issues: read
       id-token: write
 
