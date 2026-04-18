@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-01-19
 
-> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/reverse-engineer/bdd-extraction.md)
+> **Language**: English | [繁體中文](../../locales/zh-TW/skills/reverse-engineer/bdd-extraction.md)
 
 This guide provides detailed workflows for extracting BDD (Behavior-Driven Development) scenarios from SDD specifications.
 

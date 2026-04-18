@@ -1,6 +1,6 @@
 # Semantic Versioning Guide
 
-> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/release-standards/semantic-versioning.md)
+> **Language**: English | [繁體中文](../../locales/zh-TW/skills/release-standards/semantic-versioning.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -222,7 +222,7 @@ version-1.0.0   ❌ Avoid (too verbose)
 
 ## Related Standards
 
-- [Versioning Standards](../../../core/versioning.md)
+- [Versioning Standards](../../core/versioning.md)
 - [Changelog Format Guide](./changelog-format.md)
 
 ---

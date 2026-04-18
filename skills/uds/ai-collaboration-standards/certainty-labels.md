@@ -1,9 +1,9 @@
 # Certainty Labels Reference
 
-> **Language**: English | [繁體中文](../../../../locales/zh-TW/skills/claude-code/ai-collaboration-standards/certainty-labels.md)
+> **Language**: English | [繁體中文](../../locales/zh-TW/skills/ai-collaboration-standards/certainty-labels.md)
 
-**Version**: 1.1.1
-**Last Updated**: 2026-01-30
+**Version**: 1.1.0
+**Last Updated**: 2026-01-25
 **Applicability**: Claude Code Skills
 
 ---
@@ -129,7 +129,7 @@ Did you read the actual code/doc?
 ## Related Standards
 
 - [Anti-Hallucination Guidelines](./anti-hallucination.md)
-- [Anti-Hallucination Standards](../../../core/anti-hallucination.md)
+- [Anti-Hallucination Standards](../../core/anti-hallucination.md)
 
 ---
 

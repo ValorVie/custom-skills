@@ -30,7 +30,7 @@ UDS（universal-dev-standards）的 `.standards/` 與鏡像 `skills/<id>/` SHA-2
 | 本地位置 | 上游來源 |
 |---------|---------|
 | `.standards/` | `~/.config/universal-dev-standards/ai/standards/` |
-| `skills/<id>/`（僅同名目錄） | `~/.config/universal-dev-standards/skills/<id>/` |
+| `skills/uds/<id>/`（僅同名目錄） | `~/.config/universal-dev-standards/skills/<id>/` |
 
 ## 輸出分類
 

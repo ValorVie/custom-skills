@@ -1,5 +1,4 @@
 ---
-name: logging-guide
 scope: universal
 description: |
   Implement structured logging with proper log levels and sensitive data handling.
@@ -9,7 +8,7 @@ description: |
 
 # Logging Guide
 
-> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/logging-guide/SKILL.md)
+> **Language**: English | [繁體中文](../../locales/zh-TW/skills/logging-guide/SKILL.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-30
@@ -17,7 +16,7 @@ description: |
 
 ---
 
-> **Core Standard**: This skill implements [Logging Standards](../../../core/logging-standards.md). For comprehensive methodology documentation, refer to the core standard.
+> **Core Standard**: This skill implements [Logging Standards](../../core/logging-standards.md). For comprehensive methodology documentation, refer to the core standard.
 
 ## Purpose
 
@@ -106,7 +105,7 @@ Use `snake_case` and prefix with domain:
 ## Detailed Guidelines
 
 For complete standards, see:
-- [Logging Standards](../../../core/logging-standards.md)
+- [Logging Standards](../../core/logging-standards.md)
 
 ### AI-Optimized Format (Token-Efficient)
 
@@ -261,10 +260,21 @@ Never log: passwords, tokens, credit cards, SSN
 
 ---
 
+## Next Steps Guidance | 下一步引導
+
+After `/logging` completes, the AI assistant should suggest:
+
+> **日誌標準已掌握。建議下一步 / Logging standards understood. Suggested next steps:**
+> - 根據日誌指南在程式碼中實作結構化日誌 ⭐ **Recommended / 推薦** — 立即將日誌標準應用到專案 / Apply logging standards to the project immediately
+> - 執行 `/errors` 設計錯誤碼以配合日誌系統 — 讓錯誤追蹤更有效率 / Make error tracking more efficient
+> - 執行 `/sdd` 將可觀測性需求納入規格 — 確保日誌需求在規格中有定義 / Ensure logging requirements are defined in specs
+
+---
+
 ## Related Standards
 
-- [Logging Standards](../../../core/logging-standards.md)
-- [Error Code Standards](../../../core/error-code-standards.md)
+- [Logging Standards](../../core/logging-standards.md)
+- [Error Code Standards](../../core/error-code-standards.md)
 
 ---
 

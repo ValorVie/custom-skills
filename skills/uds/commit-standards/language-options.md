@@ -1,6 +1,6 @@
-# Commit Message Language Options
+# Output Language Options
 
-> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/commit-standards/language-options.md)
+> **Language**: English | [繁體中文](../../locales/zh-TW/skills/commit-standards/language-options.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -126,7 +126,7 @@ Closes #123
 Document your choice in `CONTRIBUTING.md`:
 
 ```markdown
-## Commit Message Language
+## Output Language
 
 This project uses **[English / Traditional Chinese / Bilingual]** commit types.
 
@@ -144,7 +144,7 @@ This project uses **[English / Traditional Chinese / Bilingual]** commit types.
 
 ## Related Standards
 
-- [Commit Message Guide](../../../core/commit-message-guide.md)
+- [Commit Message Guide](../../core/commit-message-guide.md)
 - [Conventional Commits Guide](./conventional-commits.md)
 
 ---

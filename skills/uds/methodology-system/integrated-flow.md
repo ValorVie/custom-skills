@@ -67,7 +67,7 @@ Choose your development approach based on project context:
 │  └─ User story backlog                                                  │
 │       │                                                                 │
 │       ▼                                                                 │
-│  📝 SDD: SPEC PROPOSAL (/spec)                                          │
+│  📝 SDD: SPEC PROPOSAL (/sdd)                                           │
 │  ├─ Write technical specification (SPEC.md)                             │
 │  ├─ Define acceptance criteria                                          │
 │  └─ Output: SPEC-XXX document (authoritative source)                    │
@@ -421,7 +421,7 @@ Feature: User Authentication
 
 | Command | System | Description |
 |---------|--------|-------------|
-| `/spec` | A: SDD | Start SDD spec proposal |
+| `/sdd` | A: SDD | Start SDD spec proposal |
 | `/derive-all` | A: SDD | Generate tests from spec |
 | `/bdd` | B: Double-Loop TDD | Start BDD outer loop |
 | `/tdd` | B: Double-Loop TDD | Start TDD inner loop |
@@ -430,13 +430,57 @@ Feature: User Authentication
 
 ---
 
+## Cross-Command Handoff Guidance / 跨指令銜接指引
+
+When one command completes, AI assistants should suggest the logical next step based on the user's workflow context.
+
+### `/discover` → Next Steps
+
+After outputting a discovery report, append:
+
+> **建議下一步 / Suggested Next Steps:**
+> Based on the assessment results:
+> - **New feature** → `/sdd` to create a specification
+> - **Legacy code** → `/reverse spec` to extract existing behavior into a spec
+> - **Refactoring** → `/refactor decide` to choose a refactoring strategy
+> - **Quick fix** → `/tdd` to write a targeted test and fix
+
+### `/reverse spec` → SDD Review
+
+After generating a reverse-engineered SPEC, append:
+
+> **已產生 SPEC 文件。建議下一步：**
+> - 執行 `/sdd` 審查並核准此規格 (review and approve this spec)
+> - 執行 `/derive` 從規格推導測試 (requires spec approval first)
+> - 手動審查規格中的 `[Inferred]` 和 `[Unknown]` 標記
+
+### `/release` → Post-Release
+
+After completing a release, append:
+
+> **發布完成。後續步驟：**
+> - Verify npm publication: `npm view <package> dist-tags`
+> - Monitor CI/CD pipeline for deployment status
+> - Announce release to stakeholders if applicable
+
+### `/derive` → Implementation
+
+After generating derived tests, append:
+
+> **測試骨架已產生。建議下一步：**
+> - 執行 `/bdd-review` 審查產生的 .feature 檔案
+> - 開始實作，使用 `/tdd` 循環填入測試實作
+> - 確認所有 `[TODO]` 標記已替換為實際程式碼
+
+---
+
 ## Related Standards
 
-- [Spec-Driven Development](../../../core/spec-driven-development.md)
-- [Behavior-Driven Development](../../../core/behavior-driven-development.md)
-- [Test-Driven Development](../../../core/test-driven-development.md)
-- [Acceptance Test-Driven Development](../../../core/acceptance-test-driven-development.md)
-- [Forward Derivation Standards](../../../core/forward-derivation-standards.md)
+- [Spec-Driven Development](../../core/spec-driven-development.md)
+- [Behavior-Driven Development](../../core/behavior-driven-development.md)
+- [Test-Driven Development](../../core/test-driven-development.md)
+- [Acceptance Test-Driven Development](../../core/acceptance-test-driven-development.md)
+- [Forward Derivation Standards](../../core/forward-derivation-standards.md)
 
 ---
 
@@ -444,6 +488,7 @@ Feature: User Authentication
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.1.0 | 2026-02-12 | Add cross-command handoff guidance section |
 | 2.0.0 | 2026-01-25 | Major refactor: Two independent systems, ATDD as optional input |
 | 1.0.0 | 2026-01-19 | Initial release |
 

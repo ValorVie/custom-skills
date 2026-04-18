@@ -1,6 +1,6 @@
 # Git Workflow Strategies
 
-> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/git-workflow-guide/git-workflow.md)
+> **Language**: English | [繁體中文](../../locales/zh-TW/skills/git-workflow-guide/git-workflow.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -292,9 +292,9 @@ git merge --ff-only feature/user-auth
 
 ## Related Standards
 
-- [Git Workflow](../../../core/git-workflow.md)
+- [Git Workflow](../../core/git-workflow.md)
 - [Branch Naming Reference](./branch-naming.md)
-- [Commit Message Guide](../../../core/commit-message-guide.md)
+- [Commit Message Guide](../../core/commit-message-guide.md)
 
 ---
 

@@ -442,5 +442,5 @@ AfterAll(async function () {
 ## Related Resources
 
 - [BDD Workflow Guide](./bdd-workflow.md)
-- [BDD Core Standard](../../../core/behavior-driven-development.md)
+- [BDD Core Standard](../../core/behavior-driven-development.md)
 - [Official Gherkin Reference](https://cucumber.io/docs/gherkin/reference/)

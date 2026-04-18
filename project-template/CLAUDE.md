@@ -37,7 +37,7 @@
 **MUST** commit 訊息規範 [commit-message.ai.yaml](.standards/commit-message.ai.yaml)（每次提交），目前使用英文類型 + 中文訊息，例如 `fix(API): 解決並發更新使用者資料時的競爭條件`
 **SHOULD** git 工作流規範 [git-workflow.ai.yaml](.standards/git-workflow.ai.yaml)、[testing.ai.yaml](.standards/testing.ai.yaml)
 
-完整標準在 `.standards/`（Level 3，58 個標準）。
+完整標準在 `.standards/`（Level 3，89 個標準）。
 
 <!-- UDS:STANDARDS:END -->
 

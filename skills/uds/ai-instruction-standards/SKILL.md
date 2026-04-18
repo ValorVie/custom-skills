@@ -1,5 +1,4 @@
 ---
-name: ai-instruction-standards
 scope: partial
 description: |
   Create and maintain AI instruction files (CLAUDE.md, .cursorrules, etc.) with proper structure.
@@ -9,7 +8,7 @@ description: |
 
 # AI Instruction File Standards Guide
 
-> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/ai-instruction-standards/SKILL.md)
+> **Language**: English | [繁體中文](../../locales/zh-TW/skills/ai-instruction-standards/SKILL.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2026-01-25
@@ -17,7 +16,17 @@ description: |
 
 ---
 
-> **Core Standard**: This skill implements [AI Instruction File Standards](../../../core/ai-instruction-standards.md). For comprehensive methodology documentation, refer to the core standard.
+> **Core Standard**: This skill implements [AI Instruction File Standards](../../core/ai-instruction-standards.md). For comprehensive methodology documentation, refer to the core standard.
+
+## AI Skills Hierarchy | AI 技能層級
+
+This skill is part of a three-layer AI collaboration system:
+
+| Layer | Skill | Question it Answers | 回答的問題 |
+|-------|-------|-------------------|-----------|
+| **Behavior** (Immediate) | `/ai-collaboration` | "How should AI respond accurately?" | 「AI 如何準確回應？」 |
+| **Configuration** (Session) | `/ai-instruction-standards` (this) | "What to write in CLAUDE.md?" | 「CLAUDE.md 該寫什麼？」 |
+| **Architecture** (Long-term) | `/ai-friendly-architecture` | "How to structure code for AI?" | 「如何讓專案對 AI 友善？」 |
 
 ## Purpose
 
@@ -73,7 +82,7 @@ This skill helps create and maintain AI instruction files with proper separation
 ## Detailed Guidelines
 
 For complete standards, see:
-- [AI Instruction File Standards](../../../core/ai-instruction-standards.md)
+- [AI Instruction File Standards](../../core/ai-instruction-standards.md)
 
 ### AI-Optimized Format (Token-Efficient)
 
@@ -186,12 +195,23 @@ If no AI instruction file found:
 
 ---
 
+## Next Steps Guidance | 下一步引導
+
+After `/ai-instructions` completes, the AI assistant should suggest:
+
+> **AI 指令檔案標準已掌握。建議下一步 / AI instruction file standards understood. Suggested next steps:**
+> - 建立或更新專案的 `CLAUDE.md`（或對應的 AI 指令檔案） ⭐ **Recommended / 推薦** — 立即將標準應用到專案中 / Apply standards to the project immediately
+> - 執行 `/ai-friendly-architecture` 從架構層面優化 AI 協作 — 配合指令檔案提升 AI 理解力 / Enhance AI understanding alongside instruction files
+> - 執行 `/ai-collaboration` 複習 AI 行為準則 — 確保指令檔案中的規則與行為標準一致 / Ensure instruction file rules align with behavior standards
+
+---
+
 ## Related Standards
 
-- [AI Instruction File Standards](../../../core/ai-instruction-standards.md) - Core standard
-- [Documentation Writing Standards](../../../core/documentation-writing-standards.md) - Writing guidelines
-- [Anti-Hallucination Guidelines](../../../core/anti-hallucination.md) - AI accuracy rules
-- [AI-Friendly Architecture](../../../core/ai-friendly-architecture.md) - Context optimization
+- [AI Instruction File Standards](../../core/ai-instruction-standards.md) - Core standard
+- [Documentation Writing Standards](../../core/documentation-writing-standards.md) - Writing guidelines
+- [Anti-Hallucination Guidelines](../../core/anti-hallucination.md) - AI accuracy rules
+- [AI-Friendly Architecture](../../core/ai-friendly-architecture.md) - Context optimization
 
 ---
 

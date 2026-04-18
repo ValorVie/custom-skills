@@ -27,7 +27,8 @@ REPORT_DIR = PROJECT_ROOT / "upstream" / "reports" / "uds-update"
 
 STANDARDS_LOCAL = PROJECT_ROOT / ".standards"
 STANDARDS_UPSTREAM_REL = Path("ai/standards")
-SKILLS_LOCAL = PROJECT_ROOT / "skills"
+# UDS 鏡像 skill 存放於 skills/uds/<name>/（與 2026-04-18 子目錄化一致）
+SKILLS_LOCAL = PROJECT_ROOT / "skills" / "uds"
 SKILLS_UPSTREAM_REL = Path("skills")
 
 UDS_KEY = "universal-dev-standards"

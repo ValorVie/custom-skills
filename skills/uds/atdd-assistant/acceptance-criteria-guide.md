@@ -415,6 +415,6 @@ Scenario: Successful password reset
 ## Related Resources
 
 - [ATDD Workflow Guide](./atdd-workflow.md)
-- [ATDD Core Standard](../../../core/acceptance-test-driven-development.md)
+- [ATDD Core Standard](../../core/acceptance-test-driven-development.md)
 - [Gherkin Guide](../bdd-assistant/gherkin-guide.md)
 - [Requirement Assistant](../requirement-assistant/SKILL.md)

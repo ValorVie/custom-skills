@@ -568,6 +568,6 @@ Feature: Order Confirmation Email
 ## Related Resources
 
 - [Acceptance Criteria Guide](./acceptance-criteria-guide.md)
-- [ATDD Core Standard](../../../core/acceptance-test-driven-development.md)
+- [ATDD Core Standard](../../core/acceptance-test-driven-development.md)
 - [BDD Workflow](../bdd-assistant/bdd-workflow.md)
 - [TDD Workflow](../tdd-assistant/tdd-workflow.md)
