@@ -6,7 +6,7 @@ from pathlib import Path
 from rich.console import Console
 
 from script.models.execution_plan import ExecutionPlan
-from script.utils.paths import get_claude_config_dir
+from script.utils.paths import get_claude_config_dir, get_custom_skills_dir
 from script.utils.shared import (
     BUN_PACKAGES,
     NPM_PACKAGES,
@@ -26,6 +26,18 @@ from script.utils.system import (
 )
 
 console = Console()
+
+
+def _read_ai_dev_version() -> str | None:
+    try:
+        pyproject = get_custom_skills_dir() / "pyproject.toml"
+        if not pyproject.exists():
+            return None
+        import tomllib
+        return tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+    except Exception:
+        return None
+
 
 def _is_completion_installed(shell: str) -> bool:
     home = Path.home()
@@ -233,17 +245,28 @@ def _show_install_skill_hints() -> None:
 
 def run_tools_phase(*, plan: ExecutionPlan) -> None:
     """Run tools-related work for a pipeline plan."""
+    version_before = _read_ai_dev_version()
+
     if plan.dry_run:
         console.print(f"[dim][dry-run] {plan.command_name}: tools[/dim]")
         return
 
     if plan.command_name == "install":
         _run_install_tools_phase()
-        return
-    if plan.command_name == "update":
+    elif plan.command_name == "update":
         _run_update_tools_phase()
-        return
-    raise ValueError(f"Unsupported tools phase for {plan.command_name}")
+    else:
+        raise ValueError(f"Unsupported tools phase for {plan.command_name}")
+
+    version_after = _read_ai_dev_version()
+    if version_before and version_after and version_before != version_after:
+        console.print()
+        console.print(
+            f"[bold yellow]⚠  ai-dev 本體已升級 {version_before} → {version_after}[/bold yellow]"
+        )
+        console.print("[yellow]請重新執行原本的命令，以確保後續 phase 使用新程式。[/yellow]")
+        import sys
+        sys.exit(0)
 
 
 def run_install_postflight() -> None:
