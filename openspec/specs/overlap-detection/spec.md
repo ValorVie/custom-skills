@@ -2,103 +2,97 @@
 
 ## Purpose
 
-定義功能重疊偵測機制，用於識別本地資源與上游 repo 之間的功能重疊，並輔助 Profile 切換決策。
+定義功能重疊偵測機制，用於識別任一 repo（上游或新候選）與本專案之間的功能重疊，並輔助 Profile 切換決策。
+
+重疊偵測由 `/custom-skills-upstream-ops overlap <target>` mode 提供（原 `/upstream-compare --new-repo` 與 `--generate-overlaps` 能力合併於此）。
 
 ## Requirements
 
 ### Requirement: 重疊偵測功能
 
-系統 SHALL 提供功能重疊偵測能力，識別本地資源與上游 repo 之間的功能重疊。
+系統 SHALL 提供功能重疊偵測能力，識別目標 repo 與本專案之間的功能重疊。
 
-#### Scenario: 自動重疊偵測
+#### Scenario: 對已註冊來源偵測
 
-- **GIVEN** 使用者執行 `/upstream-sync --new-repo` 或 `/upstream-compare`
-- **WHEN** 分析 repo 內容
-- **THEN** 比較 skills, commands, agents 的功能相似度
-- **AND** 識別名稱相似的項目（Levenshtein distance < 3）
-- **AND** 識別功能關鍵字匹配（tdd, test, commit, review 等）
-- **AND** 輸出 `overlap_analysis` 欄位
+- **GIVEN** 使用者執行 `/custom-skills-upstream-ops overlap <source-name>`
+- **WHEN** target 存在於 `upstream/sources.yaml`
+- **THEN** 讀取該來源的 `local_path`
+- **AND** 比較 target 的 skills/commands/agents 與本專案對應目錄
+- **AND** 輸出重疊清單（exact match / similar names / functional overlap）
 
-#### Scenario: 重疊相似度計算
+#### Scenario: 對任意本地目錄偵測
 
-- **GIVEN** 需要比較兩個項目
-- **WHEN** 計算相似度
-- **THEN** 考慮名稱相似度（權重 40%）
-- **AND** 考慮功能關鍵字匹配（權重 30%）
-- **AND** 考慮目錄結構相似（權重 30%）
-- **AND** 相似度 > 0.7 視為重疊
+- **GIVEN** 使用者執行 `/custom-skills-upstream-ops overlap <local-path>`
+- **WHEN** 指定路徑是有效的本地目錄（不必為 git repo）
+- **THEN** 掃描該目錄的 skills/commands/agents
+- **AND** 比較本專案對應目錄
+- **AND** 輸出重疊清單
 
-### Requirement: overlaps.yaml 生成
+#### Scenario: 重疊判斷依據
 
-系統 SHALL 支援自動生成 overlaps.yaml 草稿。
+- **GIVEN** 比較兩個項目
+- **WHEN** AI 判斷是否重疊
+- **THEN** 考慮名稱完全相同（exact match）
+- **AND** 考慮名稱相似（Levenshtein distance < 3 或縮寫／同義詞）
+- **AND** 考慮功能關鍵字匹配（tdd、test、commit、review 等領域詞）
+- **AND** 考慮 frontmatter description 與前 20 行的語意相似
+- **AND** 不使用硬性數值門檻（由 AI 當下判斷）
 
-#### Scenario: 生成重疊定義草稿
+### Requirement: overlaps.yaml 片段建議
 
-- **GIVEN** 使用者執行 `/upstream-compare --generate-overlaps`
-- **WHEN** 分析完成
-- **THEN** 在 `profiles/overlaps.yaml.draft` 生成草稿
-- **AND** 包含偵測到的重疊群組
-- **AND** 包含建議的 uds/ecc 對應
-- **AND** 標記需要人工確認的項目
+系統 SHALL 在偵測到重疊時輸出可複製到 `.standards/profiles/overlaps.yaml` 的 YAML 片段。
 
-#### Scenario: 增量更新建議
+#### Scenario: 對話輸出片段
 
-- **GIVEN** 已存在 `profiles/overlaps.yaml`
-- **WHEN** 分析發現新的重疊
-- **THEN** 在報告中輸出 `suggested_overlaps_yaml_update`
-- **AND** 提供可直接複製的 YAML 片段
-- **AND** 不自動修改現有 overlaps.yaml
+- **GIVEN** overlap mode 偵測到重疊
+- **WHEN** 產出報告
+- **THEN** 報告內含「建議 overlaps.yaml 片段」章節
+- **AND** 片段符合 `overlaps.yaml` 現有 groups/mutual_exclusive 結構
+- **AND** 片段標註「需人工審閱後再貼上」
+- **AND** **不自動寫檔**——不建立 `overlaps.yaml.draft`，不修改 `overlaps.yaml`
+
+#### Scenario: 無重疊時不生成片段
+
+- **GIVEN** overlap mode 分析結果無重疊
+- **WHEN** 產出報告
+- **THEN** 報告僅列「全新項目」清單
+- **AND** 不輸出 YAML 片段
 
 ### Requirement: 重疊分析報告
 
-系統 SHALL 在 upstream-compare 報告中包含詳細的重疊分析。
+系統 SHALL 在 overlap mode 輸出結構化的 Markdown 報告。
 
-#### Scenario: 重疊項目列表
+#### Scenario: 報告包含重疊分類
 
-- **GIVEN** upstream-compare 分析完成
+- **GIVEN** 偵測完成
 - **WHEN** 輸出報告
-- **THEN** 包含 `detected_overlaps` 列表
-- **AND** 每個重疊項包含 local 和 upstream 對應項目
-- **AND** 包含建議的處理方式
+- **THEN** 包含「重疊清單」章節，分為 Exact Match / Similar Names / Functional Overlap 三類
+- **AND** 每個重疊項包含本地 ↔ 目標對應項目與類型
 
-#### Scenario: 新增非重疊項目
+#### Scenario: 報告包含全新項目
 
-- **GIVEN** 上游有本地沒有的項目
-- **WHEN** 該項目無重疊對應
-- **THEN** 列在 `new_items_not_overlapping` 中
-- **AND** 建議直接整合（無需在 overlaps.yaml 定義）
-
-#### Scenario: 整合建議
-
-- **GIVEN** 偵測到重疊
+- **GIVEN** 目標 repo 有本專案無的項目
 - **WHEN** 輸出報告
-- **THEN** 提供 recommendation 欄位
-- **AND** 說明哪個版本更適合哪個 profile
-- **AND** 提供整合步驟建議
+- **THEN** 列在「全新項目」章節
+- **AND** 建議直接整合／評估後整合／跳過
+
+#### Scenario: 報告包含下一步
+
+- **GIVEN** 分析完成
+- **WHEN** 輸出報告
+- **THEN** 包含「下一步」章節
+- **AND** 建議可能動作：整合（audit mode）、排除（distribution.yaml）、Profile 管理（overlaps.yaml）
 
 ### Requirement: 重疊驗證
 
-系統 SHALL 驗證 overlaps.yaml 的正確性。
+系統 SHALL 驗證 `.standards/profiles/overlaps.yaml` 的正確性。
+
+> 此 Requirement 不屬於 overlap mode 的責任，由 `ai-dev standards validate-overlaps` 指令處理，維持原有實作。此處僅保留 Requirement 供交叉引用。
 
 #### Scenario: 項目存在性驗證
 
-- **GIVEN** overlaps.yaml 定義了項目
+- **GIVEN** `overlaps.yaml` 定義了項目
 - **WHEN** 執行 `ai-dev standards validate-overlaps`
 - **THEN** 檢查所有列出的 skills 是否存在
 - **AND** 檢查所有列出的 standards 是否存在
 - **AND** 報告不存在的項目
-
-#### Scenario: 格式驗證
-
-- **GIVEN** overlaps.yaml 存在
-- **WHEN** 載入時
-- **THEN** 驗證 version 欄位存在
-- **AND** 驗證 groups 結構正確
-- **AND** 驗證每個體系至少有一個項目
-
-#### Scenario: 完整性檢查
-
-- **GIVEN** 重疊定義完成
-- **WHEN** 切換 profile
-- **THEN** 確保不會遺漏未定義的重疊
-- **AND** 警告可能的重複功能（名稱相似但未在 overlaps.yaml）
