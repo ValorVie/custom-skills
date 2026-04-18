@@ -23,8 +23,15 @@ def test_reference_doc_mentions_default_phase_strings() -> None:
 
     for spec in manifest.commands:
         if len(spec.path) == 1:
-            phase_text = ",".join(spec.default_phases)
-            assert phase_text in doc
+            # 允許 compact／space-comma／arrow 三種書寫格式
+            candidates = [
+                ",".join(spec.default_phases),
+                ", ".join(spec.default_phases),
+                " → ".join(spec.default_phases),
+            ]
+            assert any(text in doc for text in candidates), (
+                f"{spec.path} default_phases 未出現在文件中：{candidates}"
+            )
 
 
 def test_taxonomy_and_assessment_docs_exist() -> None:

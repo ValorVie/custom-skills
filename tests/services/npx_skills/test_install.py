@@ -33,10 +33,21 @@ def test_build_add_command_project_scope_omits_global():
     ]
 
 
-def test_build_update_command_uses_skill_only():
+def test_build_update_command_global_scope_includes_g():
     entry = SkillEntry(repo="anthropics/skills", skill="claude-api", source="anthropic")
-    defaults = NpxDefaults()
+    defaults = NpxDefaults()  # default scope=global, yes=True
 
     cmd = build_update_command(entry, defaults)
 
-    assert cmd == ["npx", "skills", "update", "claude-api", "-y"]
+    assert cmd == ["npx", "skills", "update", "claude-api", "-g", "-y"]
+
+
+def test_build_update_command_project_scope_omits_g():
+    entry = SkillEntry(repo="x/y", skill="z", source="x")
+    defaults = NpxDefaults(agents="claude", scope="project", yes=False)
+
+    cmd = build_update_command(entry, defaults)
+
+    assert "-g" not in cmd
+    assert "-y" not in cmd
+    assert cmd == ["npx", "skills", "update", "z"]

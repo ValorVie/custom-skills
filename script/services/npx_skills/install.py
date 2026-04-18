@@ -11,7 +11,7 @@ from script.services.npx_skills.config import (
     SkillEntry,
     ensure_user_yaml,
 )
-from script.utils.system import run_command
+from script.utils.system import check_command_exists, run_command
 
 console = Console()
 
@@ -29,7 +29,13 @@ def build_add_command(entry: SkillEntry, defaults: NpxDefaults) -> list[str]:
 
 
 def build_update_command(entry: SkillEntry, defaults: NpxDefaults) -> list[str]:
-    return ["npx", "skills", "update", entry.skill, "-y"]
+    # npx skills update 僅支援 -g / -p / -y（不支援 -a）；agents 綁定由安裝時決定。
+    cmd = ["npx", "skills", "update", entry.skill]
+    if defaults.scope == "global":
+        cmd.append("-g")
+    if defaults.yes:
+        cmd.append("-y")
+    return cmd
 
 
 def run_npx_skills_phase(
@@ -40,6 +46,12 @@ def run_npx_skills_phase(
     dry_run: bool = False,
 ) -> None:
     """執行 npx-skills phase。mode=add 用於 install；mode=update 用於 update。"""
+    if not check_command_exists("npx"):
+        console.print(
+            "[red]✗ npx 未安裝，略過 npx-skills phase。請先安裝 Node.js（或 npm/npx）。[/red]"
+        )
+        return
+
     ensure_user_yaml(project_path=project_yaml, user_path=user_yaml)
     config = NpxSkillsConfig.load(user_yaml)
     total = len(config.entries)
@@ -63,5 +75,12 @@ def run_npx_skills_phase(
         result = run_command(cmd, check=False)
         if result.returncode == 0:
             console.print(f"  [green]✓[/green] 完成")
+        elif mode == "update":
+            console.print(
+                f"  [yellow]⚠[/yellow] 退出碼 {result.returncode}"
+                "（skill 可能尚未安裝，請先執行 ai-dev install-npx-skills）"
+            )
         else:
-            console.print(f"  [yellow]⚠[/yellow] 退出碼 {result.returncode}（可能已裝）")
+            console.print(
+                f"  [yellow]⚠[/yellow] 退出碼 {result.returncode}（可能已裝或來源不符）"
+            )

@@ -18,7 +18,13 @@ def test_command_manifest_registers_expected_default_phases() -> None:
         "tools",
         "repos",
         "state",
+        "npx-skills",
         "targets",
     )
-    assert commands[("update",)].default_phases == ("tools", "repos", "state")
+    assert commands[("update",)].default_phases == (
+        "tools",
+        "repos",
+        "state",
+        "npx-skills",
+    )
     assert commands[("clone",)].default_phases == ("state", "targets")

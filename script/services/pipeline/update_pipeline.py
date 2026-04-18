@@ -32,7 +32,7 @@ def execute_update_plan(plan: ExecutionPlan) -> None:
                 mode="update",
                 project_yaml=get_npx_skills_project_yaml(),
                 user_yaml=get_npx_skills_user_yaml(),
-                dry_run=False,
+                dry_run=plan.dry_run,
             )
         else:
             raise ValueError(f"Unsupported update phase: {phase}")
