@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ai-dev install-npx-skills` 命令：依 `upstream/npx-skills.yaml` 批次安裝 npx skills
+- 新 pipeline phase `npx-skills`，整合進 install/update 預設流程
+- `upstream/npx-skills.yaml`：定義由 npx 維護的官方/權威 skill 清單（12 個 skill、3 個 package）
+- `skills/uds/` 子目錄：明確標示 24 個 UDS 上游鏡像 skill 來源
+- 遷移 marker `~/.config/ai-dev/.npx-migration-v1-done`：半自動遷移完成標記
+
+### Changed
+
+- `copy_custom_skills_to_targets` 支援 `skills/uds/` 扁平化展開
+- `get_source_skills` 支援 skills/ 下的子分類目錄
+- `repos` phase 末尾同步 `upstream/npx-skills.yaml` 到 `~/.config/ai-dev/`
+- `tools` phase 偵測到 ai-dev 本體升級後退出，提示重新執行（防止新舊程式混用）
+
+### Removed
+
+- 12 個本地 skill 鏡像（改由 npx skills 安裝並分發）：
+  - anthropics/skills: claude-api, skill-creator
+  - kepano/obsidian-skills: defuddle, json-canvas, obsidian-bases, obsidian-cli, obsidian-markdown
+  - affaan-m/everything-claude-code: codebase-onboarding, context-budget, mcp-server-patterns, safety-guard, security-scan
+
+### Added
+
 - **新增 `custom-skills-upstream-ops` 統一上游操作 skill** (upstream-ops 重構)
   - 統一上游操作入口：`skills/custom-skills-upstream-ops/`
   - 內含 `SKILL.md` + `modes/{audit,uds-check,overlap,maintenance}` + `references/{install-methods,decision-patterns}` + `scripts/check_uds.py`

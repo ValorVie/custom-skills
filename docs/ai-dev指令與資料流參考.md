@@ -13,7 +13,7 @@
 
 | 分類 | 命令 | 作用 |
 |------|------|------|
-| 環境安裝與分發 | `install`, `update`, `clone`, `status`, `list`, `toggle` | 安裝工具、更新倉庫、分發資源、檢查與切換資源狀態 |
+| 環境安裝與分發 | `install`, `install-npx-skills`, `update`, `clone`, `status`, `list`, `toggle` | 安裝工具、更新倉庫、分發資源、批次安裝 npx skills、檢查與切換資源狀態 |
 | Repo 註冊 | `add-repo`, `add-custom-repo`, `update-custom-repo` | 管理上游 repo 與自訂 repo |
 | 專案模板與投影 | `init-from`, `project init`, `project hydrate`, `project reconcile`, `project doctor`, `project update`, `project exclude` | 初始化專案、投影 AI 檔、檢查與維護專案內狀態 |
 | custom-skills 自維護 | `maintain clone`, `maintain template` | 維護 `custom-skills` repo 本身 |
@@ -42,6 +42,8 @@
 | `<custom-skills repo>/upstream/sources.yaml` | 上游來源註冊表 | `add-repo`, repo 維護者手動維護 |
 | `~/.config/ai-dev/repos.yaml` | custom repo / template repo 註冊表 | `add-custom-repo`, `init-from` |
 | `~/.config/ai-dev/ecc-profile.yaml` | 使用者層級 ECC skills 排除/包含覆寫（與專案 `distribution.yaml` 合併） | `clone`, `install`, `update` |
+| `~/.config/ai-dev/npx-skills.yaml` | 由 npx 維護的 skills 清單（由 `upstream/npx-skills.yaml` 同步而來） | `install`（repos phase）, `update`（repos phase） |
+| `~/.config/ai-dev/.npx-migration-v1-done` | npx skills 半自動遷移完成 marker | `npx-skills` phase |
 | `~/.config/ai-dev/skills/auto-skill` | `auto-skill` canonical state | `install`, `update`, `clone`, `maintain clone` |
 | `~/.config/ai-dev/projections/<target>/auto-skill` | 各 target 的 `auto-skill` shadow state | `install`, `clone` |
 | `~/.config/ai-dev/manifests/projects/<project_id>.yaml` | 專案 AI projection manifest | `init-from`, `project init`, `project hydrate`, `project reconcile` |
@@ -78,8 +80,9 @@ flowchart LR
 
 | 命令 | 主要副作用 |
 |------|------------|
-| `ai-dev install` | 預設依序執行 `tools → repos → state → targets`，建立工具環境、Clone repo、刷新 canonical state，最後分發到各工具目錄 |
-| `ai-dev update` | 預設依序執行 `tools → repos → state`，更新工具與本機 repo，刷新 `auto-skill` canonical state，不直接動 target shadow |
+| `ai-dev install` | 預設依序執行 `tools → repos → state → npx-skills → targets`，建立工具環境、Clone repo、刷新 canonical state、批次安裝 npx skills，最後分發到各工具目錄 |
+| `ai-dev install-npx-skills` | 等同 `install --only npx-skills`，僅執行 npx skills 批次安裝 |
+| `ai-dev update` | 預設依序執行 `tools → repos → state → npx-skills`，更新工具與本機 repo、刷新 `auto-skill` canonical state、更新 npx skills，不直接動 target shadow |
 | `ai-dev clone` | 預設依序執行 `state → targets`，先刷新 `auto-skill` canonical state，再從 `~/.config/custom-skills` 分發資源到各工具目錄並更新各 target shadow |
 | `ai-dev status` | 讀取工具安裝狀態；對 repo 會比對 local HEAD 與 `origin/main`，若在 repo 內且存在上游同步紀錄，也會讀 `upstream/last-sync.yaml` / `upstream/sources.yaml` 顯示同步狀態 |
 | `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state；`--target` 可省略，省略時等於列出所有 target，若無符合項目會顯示提示 |
@@ -89,8 +92,8 @@ flowchart LR
 
 | 命令 | 預設 phases | 允許 phases |
 |------|-------------|-------------|
-| `install` | `tools`, `repos`, `state`, `targets` | `tools`, `repos`, `state`, `targets` |
-| `update` | `tools`, `repos`, `state` | `tools`, `repos`, `state` |
+| `install` | `tools`, `repos`, `state`, `npx-skills`, `targets` | `tools`, `repos`, `state`, `npx-skills`, `targets` |
+| `update` | `tools`, `repos`, `state`, `npx-skills` | `tools`, `repos`, `state`, `npx-skills` |
 | `clone` | `state`, `targets` | `state`, `targets` |
 
 - `--only <phase,...>`：只執行指定 phase；值必須在該命令的允許 phases 內，以逗號分隔多值
@@ -101,6 +104,27 @@ flowchart LR
   - `--force` / `-f`：強制覆蓋所有衝突檔案（不提示）
   - `--skip-conflicts` / `-s`：跳過有衝突的檔案，僅分發無衝突的檔案
   - `--backup` / `-b`：備份衝突檔案後再覆蓋
+
+#### `tools` phase 升級偵測
+
+- `tools` phase 完成後會比對執行前後 ai-dev 本體 `pyproject.toml` 的 `version`
+- 若版本改變，代表 ai-dev CLI 本身已被升級；此時直接印出升級提示並以 `sys.exit(0)` 結束，不再執行後續 phase（`repos` / `state` / `npx-skills` / `targets`）
+- 設計用意：避免新舊版程式混用造成行為不一致；使用者依提示重新執行同一命令即可
+
+#### `npx-skills` phase
+
+- 觸發命令：`install`、`update`、`install-npx-skills`
+- 資料來源：`~/.config/ai-dev/npx-skills.yaml`（由 repos phase 從 `upstream/npx-skills.yaml` 同步）
+- 實際動作：
+  - `install` 模式：對清單中每個 entry 執行 `npx skills add <pkg>@<skill> -g -a '*' --yes`
+  - `update` 模式：對清單中每個 entry 執行 `npx skills update <pkg>@<skill> -g -a '*' --yes`
+- 安裝參數語意：
+  - `-g`：user-level（全域）安裝
+  - `-a '*'`：套用到所有 agents
+  - `--yes`：跳過互動確認
+- 跳過方式：`ai-dev install --skip npx-skills` 或 `ai-dev update --skip npx-skills`
+- 僅執行：`ai-dev install-npx-skills`（等同 `install --only npx-skills`）
+- 遷移 marker：首次成功執行後會建立 `~/.config/ai-dev/.npx-migration-v1-done`，代表半自動遷移已完成
 
 #### Superpowers 處理
 
@@ -121,8 +145,9 @@ flowchart LR
 
 | 命令 | intent | side_effect_class | target_mode | 主要狀態寫入 |
 |------|--------|-------------------|-------------|--------------|
-| `ai-dev install` | 初始化或補齊全域 AI 開發環境 | `multi_stage_pipeline + system_level_operation` | `explicit_multi` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/projections/<target>/auto-skill` |
-| `ai-dev update` | 刷新工具、repo 與 canonical state | `multi_stage_pipeline + system_level_operation` | `none` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill` |
+| `ai-dev install` | 初始化或補齊全域 AI 開發環境 | `multi_stage_pipeline + system_level_operation` | `explicit_multi` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/projections/<target>/auto-skill`, `~/.config/ai-dev/npx-skills.yaml`, `~/.config/ai-dev/.npx-migration-v1-done` |
+| `ai-dev install-npx-skills` | 依 `npx-skills.yaml` 批次安裝 npx skills | `single_write` | `none` | npx skills 全域安裝結果、`~/.config/ai-dev/.npx-migration-v1-done` |
+| `ai-dev update` | 刷新工具、repo 與 canonical state，並更新 npx skills | `multi_stage_pipeline + system_level_operation` | `none` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/npx-skills.yaml` |
 | `ai-dev clone` | 將目前 state 套用到 targets | `multi_stage_pipeline` | `explicit_multi` | `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/projections/<target>/auto-skill` |
 | `ai-dev status` | 聚合顯示工具、repo、同步狀態 | `read_only` | `none` | 無 |
 | `ai-dev list` | 列出 target 資源與停用狀態 | `read_only` | `implicit_default` | 無 |
@@ -396,8 +421,9 @@ exclude 規則：
 
 ```mermaid
 flowchart TD
-    A["install"] --> B["建立本機 repo + 分發到工具目錄"]
-    C["update"] --> D["刷新 repo 與 auto-skill canonical"]
+    A["install"] --> B["建立本機 repo + npx skills + 分發到工具目錄"]
+    C["update"] --> D["刷新 repo、auto-skill canonical 與 npx skills"]
+    R["install-npx-skills"] --> S["依 npx-skills.yaml 批次安裝 npx skills"]
     E["clone"] --> F["從 ~/.config/custom-skills 分發到工具目錄"]
     G["maintain clone"] --> H["整合外部來源到 custom-skills repo"]
     I["maintain template"] --> J["同步 project-template/"]

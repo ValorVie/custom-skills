@@ -125,3 +125,19 @@ custom-skills-tool-overlap-analyzer, custom-skills-upstream-ops
 - `npx skills` 是 https://skills.sh 的 CLI，支援 `add/remove/list/find/update`
 - 支援專案層級（`./node_modules` 或 `skills-lock.json`）與全域層級（`-g`）
 - 若改用 npx，需更新 `ai-dev` 相關流程（例如 `ai-dev clone` 是否涵蓋 npx skills）
+
+---
+
+## 執行結果（2026-04-18）
+
+本盤點的遷移建議已完整執行：
+
+- **A 組 7 個 + B 組 5 個共 12 個 skill** 已改用 npx 維護
+  - 見 `upstream/npx-skills.yaml`
+  - 安裝指令：`ai-dev install-npx-skills`
+- **C 組 24 個 UDS 鏡像**已移至 `skills/uds/` 子目錄（commit `e472d92`）
+- 本地 12 個鏡像已移除（commit `8d14135`）
+
+### 相關文件
+- 設計稿：`docs/plans/2026-04-18-npx-skills-migration-design.md`
+- 實作計畫：`docs/plans/2026-04-18-npx-skills-migration-impl.md`
