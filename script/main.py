@@ -59,6 +59,23 @@ def main_callback(
 app.command()(install)
 app.command()(update)
 app.command()(clone)
+
+
+@app.command("install-npx-skills")
+def install_npx_skills_cmd(
+    dry_run: bool = typer.Option(False, "--dry-run", help="顯示將執行的命令但不實際執行"),
+) -> None:
+    """安裝 upstream/npx-skills.yaml 列出的 skill（等同 install --only npx-skills）。"""
+    from script.services.npx_skills import run_npx_skills_phase
+    from script.utils.paths import get_ai_dev_config_dir, get_custom_skills_dir
+
+    run_npx_skills_phase(
+        mode="add",
+        project_yaml=get_custom_skills_dir() / "upstream" / "npx-skills.yaml",
+        user_yaml=get_ai_dev_config_dir() / "npx-skills.yaml",
+        dry_run=dry_run,
+    )
+
 app.command()(status)
 app.command(name="list")(list_resources)
 app.command()(toggle)
