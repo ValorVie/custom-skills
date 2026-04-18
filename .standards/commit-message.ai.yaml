@@ -53,8 +53,10 @@ standard:
         select: bilingual
 
   options:
-    commit_language:
+    output_language:
       default: english
+      deprecated_aliases: [commit_language]
+      shared_with: documentation-writing-standards
       choices:
         - id: english
           file: options/commit-message/english.ai.yaml
@@ -115,3 +117,9 @@ physical_spec:
   simulator:
     type: command
     command: 'echo "{input}" | npx commitlint'
+
+enforcement:
+  hook_type: PreCommit
+  script_ref: "scripts/hooks/validate-commit-msg.js"
+  severity: error
+  timeout_ms: 500
