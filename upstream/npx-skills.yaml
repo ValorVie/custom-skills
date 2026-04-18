@@ -1,0 +1,58 @@
+# npx skills 安裝清單
+#
+# 由 ai-dev 觸發 `npx skills add` 的官方/權威 skill 列表。
+# 執行：
+#   ai-dev install-npx-skills               # 僅跑此 phase
+#   ai-dev update --only npx-skills         # 同上
+#   ai-dev update                           # 預設流程會一併執行
+#
+# 欄位說明：
+#   version        : 設定檔版本
+#   defaults.scope : 安裝範圍（global|project）
+#   defaults.agents: 分發到哪些 agent 目錄（* 為全部）
+#   packages[].repo: GitHub owner/repo
+#   packages[].skills: 要安裝的 skill 名稱列表（對應 npx skills add repo@skill）
+#   packages[].source: 來源註記（文件用）
+#   packages[].rationale: 為何採用（文件用）
+#
+# 新增 skill：
+#   1. 先 `npx skills find <query>` 確認權威來源
+#   2. diff 本地版與 npx 版，確認無重要客製會被覆蓋
+#   3. 加入對應 packages 下的 skills
+#   4. `ai-dev install-npx-skills` 執行安裝
+#   5. `git rm -r skills/<name>` 移除本地鏡像
+
+version: 1
+
+defaults:
+  scope: global       # 安裝到各 agent 的全域 skills 目錄
+  agents: "*"         # claude / opencode / gemini / codex / antigravity
+  yes: true           # 跳過互動提示
+
+packages:
+  - repo: anthropics/skills
+    source: anthropic-official
+    rationale: Anthropic 官方維護，版本權威
+    skills:
+      - claude-api
+      - skill-creator
+
+  - repo: kepano/obsidian-skills
+    source: kepano-obsidian
+    rationale: Obsidian 官方作者 kepano 維護
+    skills:
+      - defuddle
+      - json-canvas
+      - obsidian-bases
+      - obsidian-cli
+      - obsidian-markdown
+
+  - repo: affaan-m/everything-claude-code
+    source: everything-claude-code
+    rationale: 本地版經比對後無實質客製（僅差 origin 欄位），改用上游
+    skills:
+      - codebase-onboarding
+      - context-budget
+      - mcp-server-patterns
+      - safety-guard
+      - security-scan
