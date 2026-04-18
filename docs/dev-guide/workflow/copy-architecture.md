@@ -57,7 +57,7 @@ upstream/
 └── superpowers/
 ```
 
-使用 `/custom-skills-upstream-sync` skill 進行上游同步分析與審核。
+使用 `/custom-skills-upstream-ops` skill 進行上游同步分析與審核（預設 audit mode）。
 
 ---
 
