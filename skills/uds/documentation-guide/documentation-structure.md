@@ -1,6 +1,6 @@
 # Documentation Structure Reference
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/documentation-guide/documentation-structure.md)
+> **Language**: English | [繁體中文](../../../../locales/zh-TW/skills/claude-code/documentation-guide/documentation-structure.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -328,8 +328,8 @@ Every document should end with:
 
 ## Related Standards
 
-- [Documentation Structure](../../core/documentation-structure.md)
-- [Documentation Writing Standards](../../core/documentation-writing-standards.md)
+- [Documentation Structure](../../../core/documentation-structure.md)
+- [Documentation Writing Standards](../../../core/documentation-writing-standards.md)
 - [README Template](./readme-template.md)
 
 ---

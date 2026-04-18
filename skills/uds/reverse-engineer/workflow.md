@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2026-01-19
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/reverse-engineer/workflow.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/reverse-engineer/workflow.md)
 
 This guide provides detailed workflows for reverse engineering code into SDD specifications.
 
@@ -260,7 +260,7 @@ Assign confidence to each extracted item:
 
 ### 4.1 Use Template
 
-Apply the [reverse-spec-template.md](../../templates/reverse-spec-template.md):
+Apply the [reverse-spec-template.md](../../../templates/reverse-spec-template.md):
 
 ```markdown
 # [SPEC-XXX] Feature Name (Reverse Engineered)

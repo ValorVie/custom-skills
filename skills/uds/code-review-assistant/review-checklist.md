@@ -1,6 +1,6 @@
 # Code Review Checklist
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/code-review-assistant/review-checklist.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/code-review-assistant/review-checklist.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -217,8 +217,8 @@ This document provides a comprehensive checklist for code review to ensure code 
 
 ## Related Standards
 
-- [Code Review Checklist](../../core/code-review-checklist.md)
-- [Checkin Standards](../../core/checkin-standards.md)
+- [Code Review Checklist](../../../core/code-review-checklist.md)
+- [Checkin Standards](../../../core/checkin-standards.md)
 - [Pre-Commit Checklist](./checkin-checklist.md)
 
 ---

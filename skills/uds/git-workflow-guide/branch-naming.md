@@ -1,6 +1,6 @@
 # Branch Naming Reference
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/git-workflow-guide/branch-naming.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/git-workflow-guide/branch-naming.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -193,7 +193,7 @@ git branch --show-current
 ## Related Standards
 
 - [Git Workflow Strategies](./git-workflow.md)
-- [Git Workflow](../../core/git-workflow.md)
+- [Git Workflow](../../../core/git-workflow.md)
 
 ---
 

@@ -1,6 +1,6 @@
 # Conventional Commits Guide
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/commit-standards/conventional-commits.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/commit-standards/conventional-commits.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -235,9 +235,9 @@ fix: change line 45 from getUserById to getUserByEmail
 
 ## Related Standards
 
-- [Commit Message Guide](../../core/commit-message-guide.md)
+- [Commit Message Guide](../../../core/commit-message-guide.md)
 - [Language Options](./language-options.md)
-- [Git Workflow](../../core/git-workflow.md)
+- [Git Workflow](../../../core/git-workflow.md)
 
 ---
 

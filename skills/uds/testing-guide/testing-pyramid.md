@@ -1,9 +1,9 @@
 # Testing Pyramid Guide
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/testing-guide/testing-pyramid.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/testing-guide/testing-pyramid.md)
 
-**Version**: 1.1.0
-**Last Updated**: 2025-12-29
+**Version**: 1.1.1
+**Last Updated**: 2026-01-30
 **Applicability**: Claude Code Skills
 
 ---
@@ -419,8 +419,8 @@ Ratio: UT 70% | IT 20% | E2E 10%
 
 ## Related Standards
 
-- [Testing Standards](../../core/testing-standards.md)
-- [Code Review Checklist](../../core/code-review-checklist.md)
+- [Testing Standards](../../../core/testing-standards.md)
+- [Code Review Checklist](../../../core/code-review-checklist.md)
 
 ---
 

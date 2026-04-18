@@ -1,6 +1,6 @@
 # README Template & Best Practices
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/documentation-guide/readme-template.md)
+> **Language**: English | [繁體中文](../../../../locales/zh-TW/skills/claude-code/documentation-guide/readme-template.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -385,7 +385,7 @@ See [documentation](docs/old-path.md) for more info.  ← Link doesn't exist
 ## Related Standards
 
 - [Documentation Structure Reference](./documentation-structure.md)
-- [Documentation Writing Standards](../../core/documentation-writing-standards.md)
+- [Documentation Writing Standards](../../../core/documentation-writing-standards.md)
 
 ---
 

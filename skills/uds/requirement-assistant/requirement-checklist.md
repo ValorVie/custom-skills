@@ -1,6 +1,6 @@
 # Requirement Completeness Checklist
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/requirement-assistant/requirement-checklist.md)
+> **Language**: English | [繁體中文](../../../../locales/zh-TW/skills/claude-code/requirement-assistant/requirement-checklist.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -298,7 +298,7 @@ Before submitting for development:
 ## Related Standards
 
 - [Requirement Writing Guide](./requirement-writing.md)
-- [Spec-Driven Development](../../core/spec-driven-development.md)
+- [Spec-Driven Development](../../../core/spec-driven-development.md)
 
 ---
 

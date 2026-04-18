@@ -1,6 +1,6 @@
 # Changelog Format Guide
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/release-standards/changelog-format.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/release-standards/changelog-format.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -219,7 +219,7 @@ conventional-changelog -p angular -i CHANGELOG.md -s
 
 ## Related Standards
 
-- [Changelog Standards](../../core/changelog-standards.md)
+- [Changelog Standards](../../../core/changelog-standards.md)
 - [Semantic Versioning Guide](./semantic-versioning.md)
 
 ---

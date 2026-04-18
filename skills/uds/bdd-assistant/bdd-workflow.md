@@ -394,5 +394,5 @@ Then('I should see error {string}', async function (message) {
 ## Related Resources
 
 - [Gherkin Quick Reference](./gherkin-guide.md)
-- [BDD Core Standard](../../core/behavior-driven-development.md)
+- [BDD Core Standard](../../../core/behavior-driven-development.md)
 - [TDD Workflow](../tdd-assistant/tdd-workflow.md)

@@ -1,6 +1,6 @@
 # Pre-Commit Checklist
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/code-review-assistant/checkin-checklist.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/code-review-assistant/checkin-checklist.md)
 
 **Version**: 1.0.0
 **Last Updated**: 2025-12-24
@@ -228,9 +228,9 @@ git commit -m "feat(module-c): add export feature"
 
 ## Related Standards
 
-- [Checkin Standards](../../core/checkin-standards.md)
+- [Checkin Standards](../../../core/checkin-standards.md)
 - [Code Review Checklist](./review-checklist.md)
-- [Commit Message Guide](../../core/commit-message-guide.md)
+- [Commit Message Guide](../../../core/commit-message-guide.md)
 
 ---
 

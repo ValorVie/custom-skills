@@ -1,6 +1,6 @@
 # Methodology Runtime Guide
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/methodology-system/runtime.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/methodology-system/runtime.md)
 
 > [!WARNING]
 > **Experimental Feature / 實驗性功能**
@@ -153,7 +153,7 @@ AI should detect methodology context from:
    - "Create a spec for this change"
 
 3. **Command Invocation**
-   - `/tdd`, `/bdd`, `/sdd`, `/atdd`
+   - `/tdd`, `/bdd`, `/spec`, `/atdd`
    - `/methodology switch <id>`
 
 ### Loading Methodology Definition
@@ -264,26 +264,8 @@ prompt: promptZh || prompt
 
 ---
 
-## 6. Prerequisite Checking / 前置步驟檢查
-
-Before executing any slash command, follow the prerequisite checking protocol
-defined in [`prerequisite-check.md`](./prerequisite-check.md).
-
-**Priority**: This check runs BEFORE phase tracking and methodology detection.
-
-**Integration with Phase Tracking**:
-- If user is in an active methodology session, use the methodology's phase
-  sequence as the primary prerequisite source
-- If no active methodology, use [`workflow-prerequisites.yaml`](../../methodologies/workflow-prerequisites.yaml) as fallback
-- If multiple workflows contain the command, only ONE needs to be satisfied
-
-**Reference**: See [`prerequisite-check.md`](./prerequisite-check.md) for the full algorithm, evidence detection rules, and user prompt templates.
-
----
-
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.1.0 | 2026-02-12 | Add §6 Prerequisite Checking integration |
 | 1.0.0 | 2026-01-12 | Initial runtime specification |

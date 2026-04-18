@@ -1,4 +1,5 @@
 ---
+name: testing-guide
 scope: uds-specific
 description: |
   Testing pyramid and test writing standards for UT/IT/ST/E2E.
@@ -9,10 +10,10 @@ description: |
 
 # Testing Guide
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/testing-guide/SKILL.md)
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/testing-guide/SKILL.md)
 
-**Version**: 1.2.0
-**Last Updated**: 2026-01-29
+**Version**: 1.1.1
+**Last Updated**: 2026-01-30
 **Applicability**: Claude Code Skills
 
 ---
@@ -20,29 +21,6 @@ description: |
 ## Purpose
 
 This skill provides testing pyramid standards and best practices for systematic testing, supporting both ISTQB and Industry Pyramid frameworks.
-
-## Testing Skills Navigator | 測試技能導航
-
-UDS provides 6 testing-related skills. Use this decision tree to find the right one:
-
-```
-What do you want to do? | 你想做什麼？
-├── Measure code coverage (lines/branches/functions)    → /coverage
-├── Track which requirements have tests (AC traceability) → /ac-coverage
-├── Develop with Test-Driven Development (Red-Green-Refactor) → /tdd
-├── Write BDD scenarios (Given-When-Then)               → /bdd
-├── Define acceptance tests with stakeholders            → /atdd
-└── Learn testing standards and best practices           → /testing (this skill)
-```
-
-| Skill | Focus | 焦點 |
-|-------|-------|------|
-| `/testing` | Standards and best practices reference | 測試標準與最佳實踐參考 |
-| `/coverage` | Code-level coverage analysis | 程式碼層級覆蓋率分析 |
-| `/ac-coverage` | Requirement-level AC traceability | 需求層級 AC 可追蹤性 |
-| `/tdd` | Red-Green-Refactor development cycle | 紅-綠-重構開發循環 |
-| `/bdd` | Behavior scenarios with Given-When-Then | Given-When-Then 行為場景 |
-| `/atdd` | Acceptance criteria with stakeholders | 與利害關係人定義驗收條件 |
 
 ## Framework Selection
 
@@ -93,10 +71,7 @@ What do you want to do? | 你想做什麼？
 ## Detailed Guidelines
 
 For complete standards, see:
-- [Testing Standards](../../core/testing-standards.md) - Actionable rules
-- [Testing Theory](./testing-theory.md) - Educational knowledge base
-- [Testing Pyramid](./testing-pyramid.md) - Detailed pyramid ratios
-- [Test Skeleton Templates](./test-skeleton-templates.md) - Multi-language skeletons for UT/IT/ST/Perf/Contract
+- [Testing Pyramid](./testing-pyramid.md)
 
 ### AI-Optimized Format (Token-Efficient)
 
@@ -110,10 +85,6 @@ For AI assistants, use the YAML format files for reduced token usage:
   - Integration Testing: `ai/options/testing/integration-testing.ai.yaml`
   - System Testing: `ai/options/testing/system-testing.ai.yaml`
   - E2E Testing: `ai/options/testing/e2e-testing.ai.yaml`
-  - Security Testing: `ai/options/testing/security-testing.ai.yaml`
-  - Performance Testing: `ai/options/testing/performance-testing.ai.yaml`
-  - Contract Testing: `ai/options/testing/contract-testing.ai.yaml`
-- Skeleton templates (all levels, multi-language): [test-skeleton-templates.md](./test-skeleton-templates.md)
 
 ## Naming Conventions
 
@@ -325,21 +296,9 @@ In project's `CONTRIBUTING.md`:
 
 ---
 
-## Next Steps Guidance | 下一步引導
-
-After `/testing` completes, the AI assistant should suggest:
-
-> **測試標準與最佳實踐已掌握。建議下一步 / Testing standards and best practices understood. Suggested next steps:**
-> - 執行 `/tdd` 開始測試驅動開發（紅-綠-重構循環） ⭐ **Recommended / 推薦** — 將測試知識立即轉化為實踐 / Turn testing knowledge into practice immediately
-> - 執行 `/coverage` 分析目前程式碼覆蓋率 — 找出測試缺口 / Identify testing gaps
-> - 執行 `/bdd` 撰寫行為驅動的 Given-When-Then 場景 — 從使用者角度定義測試 / Define tests from user perspective
-
----
-
 ## Related Standards
 
-- [Testing Standards](../../core/testing-standards.md) - Actionable rules
-- [Testing Theory](./testing-theory.md) - Educational knowledge base
+- [Testing Standards](../../core/testing-standards.md)
 - [Code Review Checklist](../../core/code-review-checklist.md)
 
 ---
@@ -348,9 +307,7 @@ After `/testing` completes, the AI assistant should suggest:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.2.0 | 2026-01-29 | Added links to new testing-theory.md knowledge base |
-| 1.1.0 | 2025-12-29 | Added Testing Theory Essentials YAML section |
-| 1.0.0 | 2025-12-24 | Initial: Standard sections (Purpose, Related Standards, Version History, License) |
+| 1.0.0 | 2025-12-24 | Added: Standard sections (Purpose, Related Standards, Version History, License) |
 
 ---
 

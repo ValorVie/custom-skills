@@ -1,9 +1,9 @@
 # Anti-Hallucination Guidelines
 
-> **Language**: English | [繁體中文](../../locales/zh-TW/skills/ai-collaboration-standards/anti-hallucination.md)
+> **Language**: English | [繁體中文](../../../../locales/zh-TW/skills/claude-code/ai-collaboration-standards/anti-hallucination.md)
 
-**Version**: 1.1.0
-**Last Updated**: 2026-01-25
+**Version**: 1.1.1
+**Last Updated**: 2026-01-30
 **Applicability**: Claude Code Skills
 
 ---
@@ -213,7 +213,7 @@ AI assistants MUST NOT:
 
 ## Related Standards
 
-- [Anti-Hallucination Standards](../../core/anti-hallucination.md)
+- [Anti-Hallucination Standards](../../../core/anti-hallucination.md)
 - [Certainty Labels Reference](./certainty-labels.md)
 
 ---

@@ -1,102 +1,194 @@
 ---
-name: release
+name: release-standards
 scope: universal
-description: "[UDS] Guide release process and changelogs"
-allowed-tools: Read, Write, Grep, Bash(git:*), Bash(npm version:*)
-argument-hint: "[version]"
-prerequisites: ["release-check"]
-disable-model-invocation: true
+description: |
+  Semantic versioning and changelog formatting for software releases.
+  Use when: preparing releases, updating version numbers, writing changelogs.
+  Keywords: version, release, changelog, semver, major, minor, patch, 版本, 發布, 變更日誌.
 ---
 
-# Release Assistant | 發布助手
+# Release Standards
 
-Guide the release process following Semantic Versioning and changelog best practices.
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/release-standards/SKILL.md)
 
-引導遵循語義化版本和變更日誌最佳實踐的發布流程。
+**Version**: 1.1.1
+**Last Updated**: 2026-01-30
+**Applicability**: Claude Code Skills
 
-## Subcommands | 子命令
+---
 
-| Subcommand | Mode | Description | 說明 |
-|------------|------|-------------|------|
-| `start` | All | Start a release branch/process | 開始發布流程 |
-| `finish` | CI/CD | Finalize release (tag, merge) | 完成發布（標籤、合併） |
-| `promote` | Manual/Hybrid | Promote RC to Stable | RC → Stable 晉升 |
-| `deploy` | Manual/Hybrid | Record deployment to environment | 記錄部署紀錄 |
-| `manifest` | Manual/Hybrid | Generate build-manifest.json | 產生打包資訊清單 |
-| `verify` | Manual/Hybrid | Verify manifest consistency | 驗證清單一致性 |
-| `changelog` | All | Generate or update CHANGELOG.md | 產生或更新變更日誌 |
-| `check` | All | Run pre-release verification | 執行發布前檢查 |
+> **Core Standard**: This skill implements [Versioning](../../../core/versioning.md). For comprehensive methodology documentation, refer to the core standard.
 
-## Release Modes | 發布模式
+## Purpose
 
-Configure via `uds init` or `uds config --type release_mode`:
+This skill provides semantic versioning and changelog formatting standards.
 
-| Mode | Description | 說明 |
-|------|-------------|------|
-| `ci-cd` | Automatic publishing via CI/CD pipeline (default) | CI/CD 自動發布（預設） |
-| `manual` | Manual packaging + RC workflow | 手動打包 + RC 工作流程 |
-| `hybrid` | CI builds artifact + manual deployment | CI 建置 + 手動部署 |
+## Quick Reference
 
-## Version Types | 版本類型
+### Semantic Versioning Format
 
-| Type | Pattern | npm Tag | 用途 |
-|------|---------|---------|------|
-| Stable | `X.Y.Z` | `@latest` | Production release | 正式版 |
-| Beta | `X.Y.Z-beta.N` | `@beta` | Public testing | 公開測試 |
-| Alpha | `X.Y.Z-alpha.N` | `@alpha` | Internal testing | 內部測試 |
-| RC | `X.Y.Z-rc.N` | `@rc` | Release candidate | 候選版本 |
+```
+MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
 
-## Workflow | 工作流程
+Examples:
+2.3.1
+1.0.0-alpha.1
+3.2.0-beta.2+20250112
+```
 
-1. **Determine version** - Decide version type based on changes (MAJOR/MINOR/PATCH)
-2. **Update version files** - Update package.json and related version references
-3. **Update CHANGELOG** - Move [Unreleased] entries to new version section
-4. **Run pre-release checks** - Verify tests, lint, and standards compliance
-5. **Create git tag** - Tag with `vX.Y.Z` format
-6. **Commit and push** - Commit version bump and push tags
+### Version Incrementing Rules
 
-### Version Increment Rules | 版本遞增規則
+| Component | When to Increment | Example |
+|-----------|-------------------|----------|
+| **MAJOR** | Breaking changes | 1.9.5 → 2.0.0 |
+| **MINOR** | New features (backward-compatible) | 2.3.5 → 2.4.0 |
+| **PATCH** | Bug fixes (backward-compatible) | 3.1.2 → 3.1.3 |
 
-| Change Type | Increment | Example |
-|-------------|-----------|---------|
-| Breaking changes | MAJOR | 1.9.5 → 2.0.0 |
-| New features (backward-compatible) | MINOR | 2.3.5 → 2.4.0 |
-| Bug fixes (backward-compatible) | PATCH | 3.1.2 → 3.1.3 |
+### Pre-release Identifiers
 
-## Usage | 使用方式
+| Identifier | Stability | Audience |
+|------------|-----------|----------|
+| `alpha` | Unstable | Internal team |
+| `beta` | Mostly stable | Early adopters |
+| `rc` | Stable | Beta testers |
 
-### CI/CD Mode (default)
-- `/release start 1.2.0` - Start release process for v1.2.0
-- `/release changelog 1.2.0` - Update CHANGELOG for v1.2.0
-- `/release finish 1.2.0` - Finalize and tag v1.2.0
-- `/release check` - Run pre-release verification
+### CHANGELOG Categories
 
-### Manual Mode (RC workflow)
-- `/release start 1.2.0-rc.1` - Create RC version
-- `uds release manifest` - Generate build-manifest.json
-- `uds release deploy staging` - Record staging deployment
-- `uds release deploy staging --result passed` - Record test result
-- `/release promote 1.2.0` - Promote RC to stable
-- `uds release deploy production` - Record production deployment
-- `uds release verify` - Verify manifest consistency
+| Category | Usage |
+|----------|-------|
+| **Added** | New features |
+| **Changed** | Changes in existing functionality |
+| **Deprecated** | Soon to be removed |
+| **Removed** | Removed features |
+| **Fixed** | Bug fixes |
+| **Security** | Vulnerability fixes |
 
-## Next Steps Guidance | 下一步引導
+## Detailed Guidelines
 
-After `/release` completes, the AI assistant should suggest:
+For complete standards, see:
+- [Semantic Versioning Guide](./semantic-versioning.md)
+- [Changelog Format](./changelog-format.md)
+- [Release Workflow Guide](./release-workflow.md) - Complete release process for this project
 
-> **發布流程完成。建議下一步 / Release process complete. Suggested next steps:**
-> - 驗證 npm 發布狀態 `npm view <pkg> dist-tags` ⭐ **Recommended / 推薦** — Verify npm publication status
-> - 建立 GitHub Release 並撰寫發布說明 — Create GitHub Release with notes
-> - 通知利害關係人新版本已發布 — Notify stakeholders of new release
+### AI-Optimized Format (Token-Efficient)
 
-## Reference | 參考
+For AI assistants, use the YAML format file for reduced token usage:
+- Changelog: `ai/standards/changelog.ai.yaml`
 
-- Detailed guide: [guide.md](./guide.md)
-- Core standard: [versioning.md](../../core/versioning.md)
+## CHANGELOG Entry Format
 
+```markdown
+## [VERSION] - YYYY-MM-DD
 
-## AI Agent Behavior | AI 代理行為
+### Added
+- Add user dashboard with customizable widgets (#123)
 
-> 完整的 AI 行為定義請參閱對應的命令文件：[`/release`](../commands/release.md#ai-agent-behavior--ai-代理行為)
->
-> For complete AI agent behavior definition, see the corresponding command file: [`/release`](../commands/release.md#ai-agent-behavior--ai-代理行為)
+### Changed
+- **BREAKING**: Change API response format from XML to JSON
+
+### Fixed
+- Fix memory leak when processing large files (#456)
+
+### Security
+- Fix SQL injection vulnerability (CVE-2025-12345)
+```
+
+## Breaking Changes
+
+Mark breaking changes with **BREAKING** prefix:
+
+```markdown
+### Changed
+- **BREAKING**: Remove deprecated `getUserById()`, use `getUser()` instead
+```
+
+## Git Tagging
+
+```bash
+# Create annotated tag (recommended)
+git tag -a v1.2.0 -m "Release version 1.2.0"
+
+# Push tag to remote
+git push origin v1.2.0
+```
+
+## Version Ordering
+
+```
+1.0.0-alpha.1 < 1.0.0-alpha.2 < 1.0.0-beta.1 < 1.0.0-rc.1 < 1.0.0
+```
+
+---
+
+## Configuration Detection
+
+This skill supports project-specific configuration.
+
+### Detection Order
+
+1. Check `CONTRIBUTING.md` for "Disabled Skills" section
+   - If this skill is listed, it is disabled for this project
+2. Check `CONTRIBUTING.md` for "Release Standards" section
+3. If not found, **default to Semantic Versioning and Keep a Changelog format**
+
+### First-Time Setup
+
+If no configuration found and context is unclear:
+
+1. Ask the user: "This project hasn't configured release standards. Would you like to use Semantic Versioning?"
+2. After user selection, suggest documenting in `CONTRIBUTING.md`:
+
+```markdown
+## Release Standards
+
+### Versioning
+This project uses **Semantic Versioning** (MAJOR.MINOR.PATCH).
+
+### Changelog
+This project follows **Keep a Changelog** format.
+```
+
+### Configuration Example
+
+In project's `CONTRIBUTING.md`:
+
+```markdown
+## Release Standards
+
+### Versioning
+This project uses **Semantic Versioning** (MAJOR.MINOR.PATCH).
+
+### Changelog
+This project follows **Keep a Changelog** format.
+
+### Release Process
+1. Update version in package.json
+2. Update CHANGELOG.md
+3. Create git tag with `v` prefix (e.g., v1.2.0)
+4. Push tag to trigger release workflow
+```
+
+---
+
+## Related Standards
+
+- [Versioning](../../../core/versioning.md) - Core semantic versioning standard
+- [Changelog Standards](../../../core/changelog-standards.md) - Keep a Changelog format
+- [Git Workflow](../../../core/git-workflow.md) - Git tagging and release branches
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.1.0 | 2026-01-02 | Added: Release Workflow Guide with complete release process |
+| 1.0.0 | 2025-12-24 | Added: Standard sections (Purpose, Related Standards, Version History, License) |
+
+---
+
+## License
+
+This skill is released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+**Source**: [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)

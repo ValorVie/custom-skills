@@ -1,131 +1,403 @@
 ---
-name: reverse
+name: reverse-engineer
 scope: partial
-description: "[UDS] System archeology — reverse engineer code across Logic, Data, and Runtime dimensions"
-allowed-tools: Read, Grep, Glob, Bash(pg_dump:*), Bash(mysql:*), Bash(sqlite3:*), Bash(npm run:*), Bash(cat:*), Bash(docker:*)
-argument-hint: "[spec|data|runtime|bdd|tdd] <input>"
-disable-model-invocation: true
+description: |
+  Reverse engineer existing code into SDD specification documents.
+  Use when: analyzing legacy code, documenting undocumented systems, creating specs from existing implementations.
+  Keywords: reverse engineering, legacy code, documentation, spec extraction, code archaeology, 反向工程, 舊有程式碼, 規格提取.
 ---
 
-# Reverse Engineering Assistant | 反向工程助手
+# Reverse Engineering to SDD Specification Guide
 
-System archeology framework: reverse engineer existing systems across three dimensions — **Logic**, **Data**, and **Runtime**.
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/reverse-engineer/SKILL.md)
 
-系統考古框架：從三個維度反向工程既有系統——**邏輯**、**資料**、**執行環境**。
+**Version**: 1.2.0
+**Last Updated**: 2026-01-25
+**Applicability**: Claude Code Skills
 
-## Three Dimensions | 三大維度
+> **Core Standard**: This skill implements [Reverse Engineering Standards](../../../core/reverse-engineering-standards.md). For comprehensive methodology documentation accessible by any AI tool, refer to the core standard.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│              System Archeology Framework                   │
-├──────────┬──────────────┬────────────────────────────────┤
-│  Logic   │     Data     │          Runtime               │
-│ (spec)   │    (data)    │         (runtime)              │
-├──────────┼──────────────┼────────────────────────────────┤
-│ APIs     │ DB Schemas   │ Logs & Error Patterns          │
-│ Modules  │ ORMs/Models  │ Config & Environment           │
-│ Flows    │ Migrations   │ Metrics & Performance          │
-│ Tests    │ Seed Data    │ Infra & Deployment             │
-└──────────┴──────────────┴────────────────────────────────┘
-```
+---
 
-## Subcommands | 子命令
+## Purpose
 
-| Subcommand | Dimension | Input | Output | 說明 |
-|------------|-----------|-------|--------|------|
-| *(none)* | All | Project root | Full Archeology Report | 三維度全面分析 |
-| `spec` | Logic | Code files/dirs | `SPEC-XXX.md` | 從程式碼提取規格 |
-| `data` | Data | DB schemas, ORMs, migrations | Data Model Spec | 分析資料模型與結構 |
-| `runtime` | Runtime | Logs, configs, metrics | Runtime Baseline | 分析執行環境基準 |
-| `bdd` | — | `SPEC-XXX.md` | `.feature` | 將 AC 轉為 Gherkin |
-| `tdd` | — | `.feature` | Coverage Report | 分析測試覆蓋率 |
+This skill guides you through reverse engineering existing code into SDD (Spec-Driven Development) specification documents, with strict adherence to Anti-Hallucination standards.
 
-## Full Analysis Mode | 全面分析模式
+## Quick Reference
 
-When `/reverse` is invoked without a subcommand, execute all three dimensions sequentially:
-
-1. **Data** → Scan schemas, ORMs, migrations
-2. **Runtime** → Analyze logs, configs, deployment
-3. **Logic (spec)** → Extract APIs, flows, tests → Generate SPEC
-
-Output: Integrated **System Archeology Report** combining all three dimensions.
-
-## Dimension Details | 維度詳情
-
-### spec: Logic Dimension (既有)
-
-1. **Scan** - Read source files and identify public APIs, data flows, and business logic
-2. **Classify** - Tag each finding as `[Confirmed]`, `[Inferred]`, or `[Unknown]`
-3. **Structure** - Organize into SDD spec format with Acceptance Criteria
-4. **Attribute** - Cite every reversed item with `file:line` source reference
-
-### data: Data Dimension (新增)
-
-1. **Discover** - Find database schemas, ORM models, migration files, seed data
-2. **Map** - Build entity-relationship model from code evidence
-3. **Classify** - Tag relationships as `[Confirmed]` (FK constraints) or `[Inferred]` (code patterns)
-4. **Report** - Output data model spec with:
-   - Entity list with fields and types
-   - Relationship map (1:1, 1:N, M:N)
-   - Index and constraint inventory
-   - Migration history summary
-   - Data flow paths (write → read)
-
-**Evidence sources**: `schema.prisma`, `*.migration.*`, `models/`, `entities/`, `knexfile.*`, `sequelize`, `typeorm`, SQL files, `docker-compose.yml` (DB services)
-
-### runtime: Runtime Dimension (新增)
-
-1. **Scan configs** - Environment variables, config files, feature flags
-2. **Analyze logs** - Log patterns, error frequency, log levels
-3. **Check infra** - Docker configs, CI/CD pipelines, deployment manifests
-4. **Baseline** - Output runtime baseline with:
-   - Environment variable inventory (names only, **never values/secrets**)
-   - Config file map and hierarchy
-   - External service dependencies (APIs, queues, caches)
-   - Deployment topology (containers, services)
-   - Health check and monitoring endpoints
-
-**Evidence sources**: `.env.example`, `docker-compose.yml`, `Dockerfile`, `*.config.*`, CI/CD files, `k8s/`, log files (patterns only)
-
-**Security**: NEVER output actual secret values. Only list variable names and describe their purpose.
-
-## Anti-Hallucination Rules | 防幻覺規則
-
-| Rule | Requirement | 要求 |
-|------|-------------|------|
-| **Certainty Tags** | Use `[Confirmed]`, `[Inferred]`, `[Unknown]` for all findings | 所有發現須標注確定性 |
-| **Source Attribution** | Cite `file:line` for every reversed item | 每項反向結果須引用來源 |
-| **No Fabrication** | Never invent APIs or behaviors not found in code | 不得捏造程式碼中不存在的 API 或行為 |
-| **No Secrets** | Never output secret values from configs or env files | 不得輸出設定檔或環境變數的密鑰值 |
-
-## Usage | 使用方式
+### Reverse Engineering Workflow
 
 ```
-/reverse                              - Full 3-dimension analysis | 三維度全面分析
-/reverse spec src/auth/               - Logic: extract spec | 邏輯：提取規格
-/reverse data                         - Data: analyze schemas & models | 資料：分析結構
-/reverse runtime                      - Runtime: analyze configs & infra | 執行環境：分析配置
-/reverse bdd specs/SPEC-AUTH.md       - Convert spec ACs to Gherkin
-/reverse tdd features/auth.feature    - Analyze test coverage
+┌─────────────────────────────────────────────────────────────────┐
+│              Reverse Engineering Workflow                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1️⃣  Code Analysis (AI Automated)                              │
+│      ├─ Scan code structure, APIs, data models                 │
+│      ├─ Parse existing tests for acceptance criteria           │
+│      └─ Generate draft spec (with uncertainty labels)          │
+│                                                                 │
+│  2️⃣  Human Input (Required)                                    │
+│      ├─ Write Motivation (why this feature exists)             │
+│      ├─ Add Risk Assessment                                    │
+│      └─ Verify dependencies and business context               │
+│                                                                 │
+│  3️⃣  Review & Confirm                                          │
+│      ├─ Discuss with stakeholders                              │
+│      └─ Confirm [Confirmed] / [Inferred] / [Unknown] labels    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Next Steps Guidance | 下一步引導
+### What Can vs Cannot Be Extracted
 
-After `/reverse` (full or `spec`) completes, the AI assistant should suggest:
+| Aspect | Extractable | Certainty | Notes |
+|--------|-------------|-----------|-------|
+| **API Endpoints** | ✅ Yes | [Confirmed] | Route definitions, HTTP methods |
+| **Data Models** | ✅ Yes | [Confirmed] | Types, interfaces, schemas |
+| **Function Signatures** | ✅ Yes | [Confirmed] | Parameters, return types |
+| **Test Cases** | ✅ Yes | [Confirmed] | → Acceptance Criteria |
+| **Dependencies** | ✅ Yes | [Confirmed] | Package references |
+| **Behavior Patterns** | ⚠️ Partial | [Inferred] | From code analysis |
+| **Motivation/Why** | ❌ No | [Unknown] | Needs human input |
+| **Business Context** | ❌ No | [Unknown] | Needs human input |
+| **Risk Assessment** | ❌ No | [Unknown] | Needs domain expertise |
+| **Trade-off Decisions** | ❌ No | [Unknown] | Historical context missing |
 
-> **系統考古完成。建議下一步 / System archeology complete. Suggested next steps:**
-> - 執行 `/sdd` 審查並核准此規格 ⭐ **Recommended / 推薦** — Review and approve the generated spec
-> - 執行 `/derive` 從規格推導測試 — Derive tests from spec (requires approval first)
-> - 審查規格中的 `[Inferred]` 和 `[Unknown]` 標記 — Review uncertainty tags manually
+## Core Principles
 
-## Reference | 參考
+### 1. Anti-Hallucination Compliance
 
-- Detailed guide: [guide.md](./guide.md)
-- Core standard: [reverse-engineering-standards.md](../../core/reverse-engineering-standards.md)
+**CRITICAL**: This skill MUST strictly follow [Anti-Hallucination Standards](../../../core/anti-hallucination.md).
 
+#### Certainty Labels (from Unified Tag System)
 
-## AI Agent Behavior | AI 代理行為
+This skill uses **Certainty Tags** for analyzing existing code. See [Anti-Hallucination Standards](../../../core/anti-hallucination.md#unified-tag-system) for the complete tag reference.
 
-> 完整的 AI 行為定義請參閱對應的命令文件：[`/reverse`](../commands/reverse.md#ai-agent-behavior--ai-代理行為)
->
-> For complete AI agent behavior definition, see the corresponding command file: [`/reverse`](../commands/reverse.md#ai-agent-behavior--ai-代理行為)
+| Tag | Use When | Example |
+|-----|----------|---------|
+| `[Confirmed]` | Direct evidence from code/tests | API endpoint at `src/api/users.ts:15` |
+| `[Inferred]` | Logical deduction from patterns | "Likely uses dependency injection based on constructor pattern" |
+| `[Unknown]` | Cannot determine from code | Motivation, business requirements |
+| `[Need Confirmation]` | Requires human verification | Design intent, edge case handling |
+
+#### Source Attribution
+
+Every extracted item MUST include source attribution:
+
+```markdown
+## API Design
+
+### User Authentication
+[Confirmed] POST /api/auth/login endpoint accepts email and password
+- [Source: Code] src/controllers/AuthController.ts:25-45
+- [Source: Code] src/routes/auth.ts:8
+
+### Session Management
+[Inferred] Sessions expire after 24 hours based on JWT expiry configuration
+- [Source: Code] src/config/auth.ts:12 - TOKEN_EXPIRY=86400
+- [Source: Knowledge] Standard JWT expiry interpretation (⚠️ Verify intent)
+```
+
+### 2. Progressive Disclosure
+
+Start with high-level architecture, then drill down:
+
+1. **System Overview**: Entry points, main components
+2. **Component Details**: Individual modules, their responsibilities
+3. **Implementation Specifics**: Algorithms, data flows
+
+### 3. Test-to-Requirement Mapping
+
+Extract acceptance criteria from tests:
+
+```javascript
+// Test file: src/tests/auth.test.ts
+describe('Authentication', () => {
+  it('should return 401 for invalid credentials', () => {...});
+  it('should issue JWT token on successful login', () => {...});
+  it('should refresh token before expiry', () => {...});
+});
+```
+
+Becomes:
+
+```markdown
+## Acceptance Criteria
+[Inferred] From test analysis (src/tests/auth.test.ts):
+- [ ] Return 401 status code for invalid credentials
+- [ ] Issue JWT token on successful login
+- [ ] Support token refresh before expiry
+```
+
+## Workflow Stages
+
+### Stage 1: Code Scanning
+
+**Input**: File path or directory
+**Output**: Code structure analysis
+
+**Actions**:
+1. Identify entry points (main functions, API routes, event handlers)
+2. Map module dependencies
+3. Extract type definitions and interfaces
+4. List configuration sources
+
+### Stage 2: Test Analysis
+
+**Input**: Test files
+**Output**: Acceptance criteria candidates
+
+**Actions**:
+1. Parse test case names
+2. Extract Given-When-Then patterns (if BDD-style)
+3. Identify boundary conditions
+4. Note coverage gaps
+
+### Stage 3: Gap Identification
+
+**Input**: Code + test analysis
+**Output**: List of unknowns requiring human input
+
+**Required Human Input**:
+- [ ] Motivation: Why was this feature built?
+- [ ] User Story: Who uses this and for what purpose?
+- [ ] Risks: What could go wrong?
+- [ ] Trade-offs: Why this approach over alternatives?
+- [ ] Out of Scope: What was explicitly excluded?
+
+### Stage 4: Spec Generation
+
+**Input**: All analysis results
+**Output**: Draft specification document
+
+**Template**: Use [reverse-spec-template.md](../../../templates/reverse-spec-template.md)
+
+### Stage 5: Human Review
+
+**Input**: Draft specification
+**Output**: Validated specification
+
+**Review Checklist**:
+- [ ] All `[Confirmed]` items verified accurate
+- [ ] All `[Inferred]` items validated or corrected
+- [ ] All `[Unknown]` items filled in by human
+- [ ] Source citations checked
+- [ ] Business context added
+
+## Examples
+
+### Example 1: API Endpoint Extraction
+
+**Input Code** (`src/controllers/UserController.ts`):
+```typescript
+export class UserController {
+  @Get('/users/:id')
+  @Authorize('admin', 'user')
+  async getUser(@Param('id') id: string): Promise<User> {
+    return this.userService.findById(id);
+  }
+}
+```
+
+**Extracted Specification**:
+```markdown
+## API Endpoints
+
+### GET /users/:id
+[Confirmed] Retrieves a user by ID
+- [Source: Code] src/controllers/UserController.ts:3-7
+
+**Authorization**: [Confirmed] Requires 'admin' or 'user' role
+- [Source: Code] @Authorize decorator at line 4
+
+**Parameters**:
+- `id` (path, required): User identifier [Confirmed]
+
+**Response**: [Confirmed] Returns User object
+- [Source: Code] Return type at line 5
+
+**Error Handling**: [Unknown] Error responses not evident from code
+```
+
+### Example 2: Test-to-Criteria Extraction
+
+**Input Test** (`src/tests/cart.test.ts`):
+```typescript
+describe('Shopping Cart', () => {
+  it('should add item to empty cart', () => {...});
+  it('should increment quantity for duplicate items', () => {...});
+  it('should not exceed maximum quantity of 99', () => {...});
+  it('should calculate total with tax', () => {...});
+});
+```
+
+**Extracted Acceptance Criteria**:
+```markdown
+## Acceptance Criteria
+
+[Inferred] From test analysis (src/tests/cart.test.ts):
+- [ ] Can add item to empty cart (line 2)
+- [ ] Increments quantity for duplicate items (line 3)
+- [ ] Maximum quantity limit: 99 items (line 4)
+- [ ] Total calculation includes tax (line 5)
+
+[Unknown] Tax calculation rules not specified in tests
+[Need Confirmation] What happens when cart exceeds 99 items? (reject or cap?)
+```
+
+## Integration with Other Skills
+
+### With /spec (Spec-Driven Development)
+
+1. Generate reverse-engineered spec using `/reverse-spec`
+2. Review and fill in `[Unknown]` sections
+3. Use `/spec review` to validate completeness
+4. Proceed with normal SDD workflow for enhancements
+
+### With /tdd (Test-Driven Development)
+
+1. Extract existing test patterns
+2. Identify test coverage gaps
+3. Use `/tdd` to add missing tests
+4. Update spec with new acceptance criteria
+
+### With /bdd (Behavior-Driven Development)
+
+1. Convert extracted acceptance criteria to Gherkin format
+2. Use `/bdd` to formalize scenarios
+3. Validate scenarios with stakeholders
+
+## Complete Reverse Engineering Pipeline
+
+The reverse engineering skill supports a complete SDD → BDD → TDD pipeline:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                   Complete Reverse Engineering Pipeline                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Code + Tests                                                          │
+│        │                                                                │
+│        ▼                                                                │
+│   /reverse-spec                                                         │
+│        │                                                                │
+│        └─→ Generate SPEC-XXX with Acceptance Criteria                   │
+│                │                                                        │
+│                ▼                                                        │
+│   /reverse-bdd                                                          │
+│        │                                                                │
+│        ├─→ AC → Gherkin scenario conversion                             │
+│        ├─→ Auto-transform bullet points to Given-When-Then              │
+│        └─→ Generate .feature files                                      │
+│                │                                                        │
+│                ▼                                                        │
+│   /reverse-tdd                                                          │
+│        │                                                                │
+│        ├─→ Analyze existing unit tests                                  │
+│        └─→ Generate coverage report with gaps                           │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Pipeline Commands
+
+| Command | Input | Output | Purpose |
+|---------|-------|--------|---------|
+| `/reverse-spec` | Code directory | SPEC-XXX.md | Extract requirements from code |
+| `/reverse-bdd` | SPEC file | .feature files | Convert AC to Gherkin scenarios |
+| `/reverse-tdd` | .feature files | Coverage report | Map scenarios to unit tests |
+
+### Usage Example
+
+```bash
+# Step 1: Reverse engineer code to SDD specification
+/reverse-spec src/auth/
+
+# Step 2: Transform acceptance criteria to BDD scenarios
+/reverse-bdd specs/SPEC-AUTH.md
+
+# Step 3: Analyze test coverage against BDD scenarios
+/reverse-tdd features/auth.feature
+```
+
+### Detailed Guides
+
+- [BDD Extraction Workflow](./bdd-extraction.md) - Detailed guide for AC → Gherkin transformation
+- [TDD Analysis Workflow](./tdd-analysis.md) - Detailed guide for BDD → TDD coverage analysis
+
+## Anti-Patterns to Avoid
+
+### ❌ Don't Do This
+
+1. **Fabricating Motivation**
+   - Wrong: "This feature was built to improve user experience"
+   - Right: "[Unknown] Motivation requires human input"
+
+2. **Assuming Requirements**
+   - Wrong: "The system requires SSO support"
+   - Right: "[Need Confirmation] SSO configuration found in code - is this a requirement?"
+
+3. **Speculating About Unread Code**
+   - Wrong: "The PaymentService handles Stripe integration"
+   - Right: "[Unknown] PaymentService functionality - need to read src/services/PaymentService.ts"
+
+4. **Presenting Options Without Uncertainty**
+   - Wrong: "The code uses Redis for caching"
+   - Right: "[Confirmed] Redis client configured in src/config/cache.ts:5"
+
+## Best Practices
+
+### Do's
+
+- ✅ Read all relevant files before making claims
+- ✅ Tag every statement with certainty level
+- ✅ Include source citations with file:line
+- ✅ Clearly list what needs human input
+- ✅ Preserve original code comments as context
+
+### Don'ts
+
+- ❌ Assume motivation or business context
+- ❌ Present inferences as confirmed facts
+- ❌ Skip source attribution
+- ❌ Generate specs for unread code
+- ❌ Fill in `[Unknown]` sections without human input
+
+---
+
+## Configuration Detection
+
+This skill auto-detects project configuration:
+
+1. Check for existing `specs/` directory
+2. Check for SDD tooling (OpenSpec, Spec Kit)
+3. Detect test framework for acceptance criteria extraction
+4. Identify code patterns (MVC, DDD, etc.)
+
+---
+
+## Related Standards
+
+- [Reverse Engineering Standards](../../../core/reverse-engineering-standards.md) - **Core methodology standard (primary reference)**
+- [Spec-Driven Development](../../../core/spec-driven-development.md) - Output format and review process
+- [Anti-Hallucination Guidelines](../../../core/anti-hallucination.md) - Evidence-based analysis requirements
+- [Code Review Checklist](../../../core/code-review-checklist.md) - Review guidelines
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.2.0 | 2026-01-25 | Added: Reference to Unified Tag System |
+| 1.1.0 | 2026-01-19 | Add BDD/TDD pipeline integration; Add core standard reference |
+| 1.0.0 | 2026-01-19 | Initial release |
+
+---
+
+## License
+
+This skill is released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+**Source**: [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)

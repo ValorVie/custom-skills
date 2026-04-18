@@ -1,70 +1,223 @@
 ---
-name: review
+name: code-review-assistant
 scope: universal
-description: "[UDS] Perform systematic code review with checklist"
-allowed-tools: Read, Grep, Glob, Bash(git diff:*), Bash(git log:*), Bash(git show:*)
-argument-hint: "[file path or branch | 檔案路徑或分支名稱]"
-disable-model-invocation: true
+description: |
+  Systematic code review checklist and pre-commit quality gates for PRs.
+  Use when: reviewing pull requests, checking code quality, before committing code.
+  Keywords: review, PR, pull request, checklist, quality, commit, 審查, 檢查, 簽入.
 ---
 
-# Code Review Assistant | 程式碼審查助手
+# Code Review Assistant
 
-Perform systematic code review using standardized checklists and comment prefixes.
+> **Language**: English | [繁體中文](../../../locales/zh-TW/skills/claude-code/code-review-assistant/SKILL.md)
 
-執行系統性的程式碼審查，使用標準化的檢查清單和評論前綴。
+**Version**: 1.0.0
+**Last Updated**: 2025-12-24
+**Applicability**: Claude Code Skills
 
-## Workflow | 工作流程
+---
 
-1. **Identify changes** - Get diff of files to review via `git diff` or `git show`
-2. **Apply checklist** - Check each review category systematically
-3. **Generate report** - Output findings with standard comment prefixes
-4. **Summarize** - Provide overall assessment and recommended actions
+> **Core Standard**: This skill implements [Code Review Checklist](../../../core/code-review-checklist.md). For comprehensive methodology documentation, refer to the core standard.
 
-## Review Categories | 審查類別
+## Purpose
 
-1. **Functionality** - Does it work correctly? | 功能是否正確？
-2. **Design** - Is the architecture appropriate? | 架構是否合適？
-3. **Quality** - Is the code clean and maintainable? | 程式碼是否乾淨可維護？
-4. **Readability** - Is it easy to understand? | 是否容易理解？
-5. **Tests** - Is there adequate test coverage? | 測試覆蓋是否足夠？
-6. **Security** - Are there any vulnerabilities? | 是否有安全漏洞？
-7. **Performance** - Is it efficient? | 是否有效率？
-8. **Error Handling** - Are errors handled properly? | 錯誤處理是否妥當？
+This skill provides systematic checklists for code review and pre-commit verification.
 
-## Comment Prefixes | 評論前綴
+## Quick Reference
 
-| Prefix | Meaning | Action | 動作 |
-|--------|---------|--------|------|
-| **BLOCKING** | Must fix before merge | Required | 必須修復 |
-| **IMPORTANT** | Should fix | Recommended | 建議修復 |
-| **SUGGESTION** | Nice-to-have | Optional | 可選改善 |
-| **QUESTION** | Need clarification | Discuss | 需要討論 |
-| **NOTE** | Informational | FYI | 僅供參考 |
+### Comment Prefixes
 
-## Usage | 使用方式
+| Prefix | Meaning | Action Required |
+|--------|---------|------------------|
+| **❗ BLOCKING** | Must fix before merge | 🔴 Required |
+| **⚠️ IMPORTANT** | Should fix, but not blocking | 🟡 Recommended |
+| **💡 SUGGESTION** | Nice-to-have improvement | 🟢 Optional |
+| **❓ QUESTION** | Need clarification | 🔵 Discuss |
+| **📝 NOTE** | Informational, no action | ⚪ Informational |
 
-- `/review` - Review all changes in current branch
-- `/review src/auth.js` - Review specific file
-- `/review feature/login` - Review specific branch
+### Review Checklist Categories
 
-## Next Steps Guidance | 下一步引導
+1. **Functionality** - Does it work?
+2. **Design** - Right architecture?
+3. **Quality** - Clean code?
+4. **Readability** - Easy to understand?
+5. **Tests** - Adequate coverage?
+6. **Security** - No vulnerabilities?
+7. **Performance** - Efficient?
+8. **Errors** - Properly handled?
+9. **Docs** - Updated?
+10. **Dependencies** - Necessary?
 
-After `/review` completes, the AI assistant should suggest:
+### Pre-Commit Checklist
 
-> **程式碼審查完成。建議下一步 / Code review complete. Suggested next steps:**
-> - 有 ❗ BLOCKING 項目 → 修復後重新執行 `/review` — Fix issues then re-run `/review`
-> - 全部通過 → 執行 `/checkin` 品質關卡 ⭐ **Recommended / 推薦** — All passed → Run `/checkin` quality gates
-> - 僅有 💡 SUGGESTION → 執行 `/commit` 提交變更 — Only suggestions → Run `/commit`
-> - 審查中發現規範不實用或缺失 → 執行 `/audit --report` 回報 — Found impractical or missing standards → Run `/audit --report`
+- [ ] Build succeeds (zero errors, zero warnings)
+- [ ] All tests pass
+- [ ] Code follows project standards
+- [ ] No security vulnerabilities
+- [ ] Documentation updated
+- [ ] Branch synced with target
 
-## Reference | 參考
+## Detailed Guidelines
 
-- Detailed guide: [guide.md](./guide.md)
-- Core standard: [code-review-checklist.md](../../core/code-review-checklist.md)
+For complete standards, see:
+- [Review Checklist](./review-checklist.md)
+- [Pre-Commit Checklist](./checkin-checklist.md)
 
+### AI-Optimized Format (Token-Efficient)
 
-## AI Agent Behavior | AI 代理行為
+For AI assistants, use the YAML format file for reduced token usage:
+- Base standard: `ai/standards/code-review.ai.yaml`
 
-> 完整的 AI 行為定義請參閱對應的命令文件：[`/review`](../commands/review.md#ai-agent-behavior--ai-代理行為)
->
-> For complete AI agent behavior definition, see the corresponding command file: [`/review`](../commands/review.md#ai-agent-behavior--ai-代理行為)
+## Example Review Comments
+
+```markdown
+❗ BLOCKING: Potential SQL injection vulnerability here.
+Please use parameterized queries instead of string concatenation.
+
+⚠️ IMPORTANT: This method is doing too much (120 lines).
+Consider extracting validation logic to a separate method.
+
+💡 SUGGESTION: Consider using a Map here instead of an array for O(1) lookup.
+
+❓ QUESTION: Why are we using setTimeout here instead of async/await?
+
+📝 NOTE: This is a clever solution! Nice use of reduce here.
+```
+
+## Core Principles
+
+1. **Be Respectful** - Review code, not the person
+2. **Be Thorough** - Check functionality, not just syntax
+3. **Be Timely** - Review within 24 hours
+4. **Be Clear** - Explain WHY, not just WHAT
+
+---
+
+## Checkin Quality Gates (YAML Compressed)
+
+```yaml
+# === MANDATORY CHECKLIST ===
+build:
+  - code_compiles: "zero errors, zero warnings"
+  - dependencies: "all installed, versions locked"
+  verify: "run build locally, exit code 0"
+
+test:
+  - existing_pass: "100% pass rate (unit/integration/e2e)"
+  - new_code_tested: "features→tests, bugfix→regression"
+  - coverage: "not decreased, critical paths tested"
+  verify: "run all suites, review coverage report"
+
+quality:
+  - standards: "naming, formatting, comments"
+  - no_smells: "methods≤50 lines, nesting≤3, complexity≤10, no duplication"
+  - security: "no hardcoded secrets, no SQLi, no XSS, no insecure deps"
+  verify: "run linter, static analysis, security scanner"
+
+docs:
+  - api_docs: "public APIs documented"
+  - readme: "updated if needed"
+  - changelog: "user-facing changes → [Unreleased]"
+
+workflow:
+  - branch_naming: "feature/, fix/, docs/, chore/"
+  - commit_message: "conventional commits format"
+  - synced: "merged/rebased with target branch"
+
+# === NEVER COMMIT WHEN ===
+blockers:
+  - "Build has errors"
+  - "Tests failing"
+  - "Feature incomplete (would break functionality)"
+  - "Contains WIP/TODO in critical logic"
+  - "Contains debugging code (console.log, print)"
+  - "Contains commented-out code blocks"
+
+# === COMMIT TIMING ===
+good_times:
+  - "Completed functional unit"
+  - "Specific bug fixed with regression test"
+  - "Independent refactor (all tests pass)"
+  - "Runnable state"
+
+bad_times:
+  - "Build failures"
+  - "Test failures"
+  - "Incomplete features"
+  - "Experimental code with TODOs"
+
+# === GRANULARITY ===
+ideal_size:
+  files: "1-10 (split if >10)"
+  lines: "50-300"
+  scope: "single concern"
+
+split_principle:
+  combine: ["feature + its tests", "tightly related multi-file"]
+  separate: ["Feature A + Feature B", "refactor + new feature", "bugfix + incidental refactor"]
+```
+
+---
+
+## Configuration Detection
+
+This skill supports project-specific configuration.
+
+### Detection Order
+
+1. Check `CONTRIBUTING.md` for "Disabled Skills" section
+   - If this skill is listed, it is disabled for this project
+2. Check `CONTRIBUTING.md` for "Code Review Language" section
+3. If not found, **default to English**
+
+### First-Time Setup
+
+If no configuration found and context is unclear:
+
+1. Ask the user: "This project hasn't configured code review language. Which option would you like? (English / 中文)"
+2. After user selection, suggest documenting in `CONTRIBUTING.md`:
+
+```markdown
+## Code Review Language
+
+This project uses **[chosen option]** for code review comments.
+<!-- Options: English | 中文 -->
+```
+
+### Configuration Example
+
+In project's `CONTRIBUTING.md`:
+
+```markdown
+## Code Review Language
+
+This project uses **English** for code review comments.
+<!-- Options: English | 中文 -->
+
+### Comment Prefixes
+BLOCKING, IMPORTANT, SUGGESTION, QUESTION, NOTE
+```
+
+---
+
+## Related Standards
+
+- [Code Review Checklist](../../../core/code-review-checklist.md) - Core code review standard
+- [Checkin Standards](../../../core/checkin-standards.md) - Pre-commit quality gates
+- [Testing Standards](../../../core/testing-standards.md) - Testing requirements
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2025-12-24 | Added: Standard sections (Purpose, Related Standards, Version History, License) |
+
+---
+
+## License
+
+This skill is released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+**Source**: [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)
