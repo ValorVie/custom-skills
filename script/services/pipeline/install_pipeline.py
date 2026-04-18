@@ -3,10 +3,12 @@ from __future__ import annotations
 from rich.console import Console
 
 from script.models.execution_plan import ExecutionPlan
+from script.services.npx_skills import run_npx_skills_phase
 from script.services.repos.refresh import run_repos_phase
 from script.services.state.auto_skill import run_state_phase
 from script.services.targets.distribute import run_targets_phase
 from script.services.tools.update import run_install_postflight, run_tools_phase
+from script.utils.paths import get_ai_dev_config_dir, get_custom_skills_dir
 
 console = Console()
 
@@ -27,6 +29,13 @@ def execute_install_plan(plan: ExecutionPlan) -> None:
             run_repos_phase(plan=plan)
         elif phase == "state":
             run_state_phase(plan=plan)
+        elif phase == "npx-skills":
+            run_npx_skills_phase(
+                mode="add",
+                project_yaml=get_custom_skills_dir() / "upstream" / "npx-skills.yaml",
+                user_yaml=get_ai_dev_config_dir() / "npx-skills.yaml",
+                dry_run=False,
+            )
         elif phase == "targets":
             run_targets_phase(plan=plan)
         else:
