@@ -39,6 +39,16 @@ def get_sync_repo_dir() -> Path:
     return get_ai_dev_config_dir() / "sync-repo"
 
 
+def get_npx_skills_project_yaml() -> Path:
+    """專案權威 npx skills 清單（團隊共用）。"""
+    return get_custom_skills_dir() / "upstream" / "npx-skills.yaml"
+
+
+def get_npx_skills_user_yaml() -> Path:
+    """由 repos phase 從專案 yaml 同步過來的 user-level 副本。"""
+    return get_ai_dev_config_dir() / "npx-skills.yaml"
+
+
 def get_claude_config_dir() -> Path:
     return get_home_dir() / ".claude"
 

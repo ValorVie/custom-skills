@@ -30,18 +30,22 @@ class NpxSkillsConfig:
     def load(cls, path: Path) -> NpxSkillsConfig:
         if not path.exists():
             raise FileNotFoundError(f"npx-skills.yaml not found: {path}")
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-        defaults_raw = data.get("defaults", {}) or {}
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        if not isinstance(data, dict):
+            raise ValueError(f"npx-skills.yaml 根節點必須是 mapping: {path}")
+        defaults_raw = data.get("defaults") or {}
         defaults = NpxDefaults(
             agents=defaults_raw.get("agents", "*"),
             scope=defaults_raw.get("scope", "global"),
             yes=bool(defaults_raw.get("yes", True)),
         )
         entries: list[SkillEntry] = []
-        for pkg in data.get("packages", []) or []:
+        for pkg in data.get("packages") or []:
+            if "repo" not in pkg:
+                raise ValueError(f"npx-skills.yaml package 缺少 repo 欄位: {pkg}")
             repo = pkg["repo"]
             source = pkg.get("source", repo)
-            for skill in pkg.get("skills", []) or []:
+            for skill in pkg.get("skills") or []:
                 entries.append(SkillEntry(repo=repo, skill=skill, source=source))
         return cls(
             version=int(data.get("version", 1)),

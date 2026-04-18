@@ -67,12 +67,12 @@ def install_npx_skills_cmd(
 ) -> None:
     """安裝 upstream/npx-skills.yaml 列出的 skill（等同 install --only npx-skills）。"""
     from script.services.npx_skills import run_npx_skills_phase
-    from script.utils.paths import get_ai_dev_config_dir, get_custom_skills_dir
+    from script.utils.paths import get_npx_skills_project_yaml, get_npx_skills_user_yaml
 
     run_npx_skills_phase(
         mode="add",
-        project_yaml=get_custom_skills_dir() / "upstream" / "npx-skills.yaml",
-        user_yaml=get_ai_dev_config_dir() / "npx-skills.yaml",
+        project_yaml=get_npx_skills_project_yaml(),
+        user_yaml=get_npx_skills_user_yaml(),
         dry_run=dry_run,
     )
 
