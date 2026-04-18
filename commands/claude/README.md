@@ -42,7 +42,7 @@ Commands for development workflow automation.
 | [`/derive-tdd`](./derive-tdd.md) | Derive TDD test skeletons from spec | 從規格推演 TDD 骨架 |
 | [`/derive-atdd`](./derive-atdd.md) | (Optional) Derive ATDD acceptance tests | （可選）推演 ATDD 測試 |
 | [`/derive-all`](./derive-all.md) | Derive all test structures from spec | 從規格推演完整測試結構 |
-| [`/custom-skills-upstream-sync`](./custom-skills-upstream-sync.md) | Sync and analyze upstream repos | 上游同步與分析 |
+| [`/custom-skills-upstream-ops`](./custom-skills-upstream-ops.md) | Upstream ops: sync / compare / update / check | 上游操作：同步／比對／更新／檢查 |
 
 ### Methodology | 方法論
 
