@@ -1375,6 +1375,10 @@ def _scan_repo_resources(
     source: str,
 ) -> None:
     """掃描單一 repo 的資源並記錄到 tracker。"""
+    from script.services.npx_skills import get_npx_managed_skill_names
+
+    npx_managed = get_npx_managed_skill_names()
+
     # Skills（所有平台共用）
     skills_dir = repo_dir / "skills"
     if skills_dir.exists():
@@ -1382,6 +1386,9 @@ def _scan_repo_resources(
         if record:
             for item in skills_dir.iterdir():
                 if item.is_dir() and not item.name.startswith("."):
+                    # 已交接給 npx 管理的 skill 不記錄，避免 conflict 誤判
+                    if item.name in npx_managed:
+                        continue
                     # 含 clone policy 的 skill 跳過 prescan（衝突在檔案層級處理）
                     if _load_clone_policy(item, show_warning=False) is not None:
                         continue
@@ -1561,6 +1568,9 @@ def _prescan_ecc(
     if skills_config and target in skills_config.get("targets", []):
         src = source_base / skills_config["source_path"]
         if src.exists():
+            from script.services.npx_skills import get_npx_managed_skill_names
+
+            npx_managed = get_npx_managed_skill_names()
             record = record_method_map.get("skills")
             exclude_skills = set(exclude.get("skills", []))
             if record:
@@ -1570,6 +1580,7 @@ def _prescan_ecc(
                         and not item.name.startswith(".")
                         and item.name not in skip_dirs
                         and item.name not in exclude_skills
+                        and item.name not in npx_managed
                     ):
                         record(item.name, item, source="ecc")
 

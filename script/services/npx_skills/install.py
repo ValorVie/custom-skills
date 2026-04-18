@@ -84,3 +84,17 @@ def run_npx_skills_phase(
             console.print(
                 f"  [yellow]⚠[/yellow] 退出碼 {result.returncode}（可能已裝或來源不符）"
             )
+
+    # add 模式執行完畢後，把 npx 接管的 skill 從 ai-dev manifest 移除，
+    # 避免 clone 的 conflict 誤判與 upstream prescan 重新記錄。
+    if mode == "add" and not dry_run:
+        from script.services.npx_skills.manifest_sync import cleanup_skills_from_manifests
+
+        npx_names = [entry.skill for entry in config.entries]
+        removed = cleanup_skills_from_manifests(npx_names)
+        if removed:
+            total_removed = sum(len(v) for v in removed.values())
+            console.print(
+                f"[dim]已從 {len(removed)} 個 target manifest 移除 "
+                f"{total_removed} 個條目（改由 npx 管理）[/dim]"
+            )
