@@ -48,3 +48,12 @@ class NpxSkillsConfig:
             defaults=defaults,
             entries=tuple(entries),
         )
+
+
+def ensure_user_yaml(*, project_path: Path, user_path: Path) -> Path:
+    """Copy project yaml to user-level location, overwriting any existing file."""
+    if not project_path.exists():
+        raise FileNotFoundError(f"project npx-skills.yaml missing: {project_path}")
+    user_path.parent.mkdir(parents=True, exist_ok=True)
+    user_path.write_bytes(project_path.read_bytes())
+    return user_path
