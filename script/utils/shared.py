@@ -694,6 +694,30 @@ def _migrate_opencode_plugin_dir_if_needed() -> None:
     )
 
 
+# Skills 來源目錄中，下列子目錄名視為「分類容器」而非 skill 本身。
+# 掃描時會扁平化：`skills/<subdir>/<name>/` 中的每個 `<name>/` 都會被當作 skill。
+# 將來可擴充（例如加入 "ecc"、"obsidian" 等分類子目錄）。
+SKILL_SUBDIRS: tuple[str, ...] = ("uds",)
+
+
+def _iter_skill_source_dirs(src: Path):
+    """回傳應視為 skill 的來源目錄（扁平化 skills/<name>/ 與 skills/<subdir>/<name>/）。
+
+    若 src 內有以 SKILL_SUBDIRS 中名稱的子目錄（如 'uds'），該子目錄下的每個
+    直屬目錄都會被視為 skill。其他不在 SKILL_SUBDIRS 中的子目錄則視為
+    skill 本身（扁平模式）。隱藏目錄（以 "." 開頭）一律跳過。
+    """
+    for item in src.iterdir():
+        if not item.is_dir() or item.name.startswith("."):
+            continue
+        if item.name in SKILL_SUBDIRS:
+            for child in item.iterdir():
+                if child.is_dir() and not child.name.startswith("."):
+                    yield child
+        else:
+            yield item
+
+
 def _load_clone_policy(skill_dir: Path, show_warning: bool = True) -> dict | None:
     """載入並驗證 skill 目錄中的 .clonepolicy.json。"""
     policy_file = skill_dir / ".clonepolicy.json"
@@ -1001,33 +1025,32 @@ def _copy_with_log(
         }.get(resource_type)
 
         if resource_type == "skills":
-            # Skills 是目錄結構
-            for item in src.iterdir():
-                if item.is_dir() and not item.name.startswith("."):
-                    if skip_names and item.name in skip_names:
-                        console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")
+            # Skills 是目錄結構；支援 skills/<subdir>/<name>/ 扁平化
+            for item in _iter_skill_source_dirs(src):
+                if skip_names and item.name in skip_names:
+                    console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")
+                    continue
+                dst_item = dst / item.name
+                if item.name == "auto-skill":
+                    actual_source = _project_auto_skill(item, dst_item)
+                    if actual_source is not None:
+                        if record_method:
+                            # 用 dst_item 而非來源路徑：多來源合併後目標內容可能與任一來源不同
+                            record_method(item.name, dst_item, source=source)
                         continue
-                    dst_item = dst / item.name
-                    if item.name == "auto-skill":
-                        actual_source = _project_auto_skill(item, dst_item)
-                        if actual_source is not None:
-                            if record_method:
-                                # 用 dst_item 而非來源路徑：多來源合併後目標內容可能與任一來源不同
-                                record_method(item.name, dst_item, source=source)
-                            continue
-                    policy = _load_clone_policy(item)
-                    if policy is not None:
-                        _copy_skill_with_policy(
-                            item,
-                            dst_item,
-                            policy,
-                            force=force,
-                            skip_conflicts=skip_conflicts,
-                        )
-                    else:
-                        shutil.copytree(item, dst_item, dirs_exist_ok=True)
-                    if record_method:
-                        record_method(item.name, dst_item, source=source)
+                policy = _load_clone_policy(item)
+                if policy is not None:
+                    _copy_skill_with_policy(
+                        item,
+                        dst_item,
+                        policy,
+                        force=force,
+                        skip_conflicts=skip_conflicts,
+                    )
+                else:
+                    shutil.copytree(item, dst_item, dirs_exist_ok=True)
+                if record_method:
+                    record_method(item.name, dst_item, source=source)
         elif resource_type == "plugins":
             # Plugins 可能包含任意檔案結構（ts/json/scripts），直接複製整個目錄
             shutil.copytree(src, dst, dirs_exist_ok=True)
@@ -1051,22 +1074,21 @@ def _copy_with_log(
     else:
         # 無 tracker，仍需尊重 clone policy
         if resource_type == "skills":
-            for item in src.iterdir():
-                if item.is_dir() and not item.name.startswith("."):
-                    dst_item = dst / item.name
-                    if item.name == "auto-skill" and _project_auto_skill(item, dst_item) is not None:
-                        continue
-                    policy = _load_clone_policy(item)
-                    if policy is not None:
-                        _copy_skill_with_policy(
-                            item,
-                            dst_item,
-                            policy,
-                            force=force,
-                            skip_conflicts=skip_conflicts,
-                        )
-                    else:
-                        shutil.copytree(item, dst_item, dirs_exist_ok=True)
+            for item in _iter_skill_source_dirs(src):
+                dst_item = dst / item.name
+                if item.name == "auto-skill" and _project_auto_skill(item, dst_item) is not None:
+                    continue
+                policy = _load_clone_policy(item)
+                if policy is not None:
+                    _copy_skill_with_policy(
+                        item,
+                        dst_item,
+                        policy,
+                        force=force,
+                        skip_conflicts=skip_conflicts,
+                    )
+                else:
+                    shutil.copytree(item, dst_item, dirs_exist_ok=True)
         else:
             shutil.copytree(src, dst, dirs_exist_ok=True)
 
@@ -1201,16 +1223,15 @@ def copy_custom_skills_to_targets(
                 continue
             record_method = record_method_map.get(resource_type)
             if resource_type == "skills":
-                for item in src.iterdir():
-                    if item.is_dir() and not item.name.startswith("."):
-                        # 含 .clonepolicy.json 的 skill 跳過 prescan：
-                        # 其衝突在 _copy_skill_with_policy 中以檔案層級處理，
-                        # 不需要目錄層級的衝突檢測。
-                        # copy 階段仍會呼叫 record_method 記錄 hash（用於孤兒清理）。
-                        if _load_clone_policy(item, show_warning=False) is not None:
-                            continue
-                        if record_method:
-                            record_method(item.name, item, source="custom-skills")
+                for item in _iter_skill_source_dirs(src):
+                    # 含 .clonepolicy.json 的 skill 跳過 prescan：
+                    # 其衝突在 _copy_skill_with_policy 中以檔案層級處理，
+                    # 不需要目錄層級的衝突檢測。
+                    # copy 階段仍會呼叫 record_method 記錄 hash（用於孤兒清理）。
+                    if _load_clone_policy(item, show_warning=False) is not None:
+                        continue
+                    if record_method:
+                        record_method(item.name, item, source="custom-skills")
             else:
                 for item in src.iterdir():
                     if item.is_file() and item.suffix == ".md":
@@ -2418,7 +2439,7 @@ def get_source_skills() -> dict[str, set[str]]:
     else:
         sources["auto_skill"] = set()
 
-    # Custom skills (本專案)
+    # Custom skills (本專案)；支援 skills/<subdir>/<name>/ 扁平化
     custom_path = get_custom_skills_dir() / "skills"
     if custom_path.exists():
         # 排除來自其他來源的
@@ -2431,8 +2452,8 @@ def get_source_skills() -> dict[str, set[str]]:
         )
         sources["custom"] = {
             d.name
-            for d in custom_path.iterdir()
-            if d.is_dir() and d.name not in all_known
+            for d in _iter_skill_source_dirs(custom_path)
+            if d.name not in all_known
         }
     else:
         sources["custom"] = set()
