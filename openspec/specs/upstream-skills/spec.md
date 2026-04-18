@@ -20,4 +20,4 @@
 - **WHEN** 某來源的 `install_method` 為 `selective`
 - **THEN** 表示該來源的分發規則定義在 `upstream/distribution.yaml`
 - **THEN** `ai-dev clone` SHALL 讀取 distribution.yaml 執行選擇性分發
-- **THEN** upstream-sync 和 upstream-compare 仍 SHALL 正常追蹤該來源的 commit 差異
+- **THEN** /custom-skills-upstream-ops audit 仍 SHALL 正常追蹤該來源的 commit 差異
