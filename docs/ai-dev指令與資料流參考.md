@@ -111,6 +111,24 @@ flowchart LR
 - 若版本改變，代表 ai-dev CLI 本身已被升級；此時直接印出升級提示並以 `sys.exit(0)` 結束，不再執行後續 phase（`repos` / `state` / `npx-skills` / `targets`）
 - 設計用意：避免新舊版程式混用造成行為不一致；使用者依提示重新執行同一命令即可
 
+#### `tools` phase 內的 npx skills 同步（update 模式）
+
+`update` 命令在 `tools` phase 中會執行兩段 npx skills 同步，分別處理 global 與 project scope：
+
+1. **Global skills**：固定執行 `npx skills update -g -y`
+   - 鎖死 `-g`（global scope）+ `-y`（跳過 scope prompt）
+   - 用意：避免落入 project scope 互動 prompt 觸發 upstream bug
+     [vercel-labs/skills#915](https://github.com/vercel-labs/skills/issues/915)
+     — 該命令在 project 模式下會把 lock 內每個 skill 的來源 repo 全部 skill 一次灌入，並建立 30+ agent 目錄
+2. **Project skills**：解析 cwd 的 `skills-lock.json`，逐個執行
+   `npx skills add <source>[#<ref>] --skill <name> -y`
+   - 跳過 `sourceType` 為 `node_modules` / `local` 的 entry
+   - 跳過缺少 `source` 欄位的 entry
+   - 若 lock 不存在或 `skills` 為空 → 靜默 noop
+   - 用 `add … --skill <name>` 而非 `update <name>`：規避同一 upstream bug，
+     `--skill` filter 確保只裝指定 skill，不會擴張為整個 repo
+   - 入口函式：`script/services/tools/update.py::_update_project_npx_skills_from_lock`
+
 #### `npx-skills` phase
 
 - 觸發命令：`install`、`update`、`install-npx-skills`

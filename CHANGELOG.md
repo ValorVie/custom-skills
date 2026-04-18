@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get_source_skills` 支援 skills/ 下的子分類目錄
 - `repos` phase 末尾同步 `upstream/npx-skills.yaml` 到 `~/.config/ai-dev/`
 - `tools` phase 偵測到 ai-dev 本體升級後退出，提示重新執行（防止新舊程式混用）
+- `update` 命令的 `tools` phase 內 npx skills 同步流程改寫，繞過 upstream
+  bug [vercel-labs/skills#915](https://github.com/vercel-labs/skills/issues/915)：
+  - global skills：`npx skills update -g -y`（鎖死 global、跳過 scope prompt）
+  - project skills：解析 cwd 的 `skills-lock.json`，逐個執行
+    `npx skills add <source> --skill <name> -y`，避免 upstream `update` 把整個來源
+    repo 的所有 skill 灌入專案、並建立 30+ agent 目錄
 
 ### Removed
 
