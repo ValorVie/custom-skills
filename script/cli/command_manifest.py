@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from script.models.command_spec import CommandSpec
 
 
-PIPELINE_PHASES = ("tools", "repos", "state", "targets")
+PIPELINE_PHASES = ("tools", "repos", "state", "npx-skills", "targets")
 TARGETS = ("claude", "codex", "gemini", "opencode", "antigravity")
 PIPELINE_FLAGS = ("only", "skip", "target", "dry_run")
 
@@ -28,19 +28,21 @@ def build_command_manifest() -> CommandManifest:
                 state_writers=(
                     "~/.config/custom-skills/",
                     "~/.config/ai-dev/skills/auto-skill",
+                    "~/.config/ai-dev/npx-skills.yaml",
                     "~/.config/ai-dev/projections/<target>/auto-skill",
                 ),
             ),
             CommandSpec(
                 path=("update",),
                 kind="top_level",
-                default_phases=("tools", "repos", "state"),
-                allowed_phases=("tools", "repos", "state"),
+                default_phases=("tools", "repos", "state", "npx-skills"),
+                allowed_phases=("tools", "repos", "state", "npx-skills"),
                 allowed_targets=TARGETS,
                 flags=PIPELINE_FLAGS,
                 state_writers=(
                     "~/.config/custom-skills/",
                     "~/.config/ai-dev/skills/auto-skill",
+                    "~/.config/ai-dev/npx-skills.yaml",
                 ),
             ),
             CommandSpec(
