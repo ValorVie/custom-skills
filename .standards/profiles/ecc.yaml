@@ -19,6 +19,5 @@ exceptions:
   # 雖然 UDS 獨有，但 ECC 也想使用的項目
   enable:
     - spec-driven-dev     # 規格驅動開發
-    - upstream-sync       # 上游同步
-    - upstream-compare    # 上游比較
+    - custom-skills-upstream-ops  # 上游操作統一入口（audit/uds-check/overlap/maintenance）
     - skill-creator       # skill 建立工具

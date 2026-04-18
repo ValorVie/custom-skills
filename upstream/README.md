@@ -41,11 +41,11 @@ superpowers:
 
 ### reports/structured/
 
-存放 `custom-skills-upstream-sync` 生成的已註冊 repo 分析報告（YAML 格式）。
+存放 `/custom-skills-upstream-ops audit` 生成的已註冊 repo 分析報告（由 AI workflow 處理，不再有固定腳本 schema）。
 
 ### reports/new-repos/
 
-存放 `custom-skills-upstream-sync --new-repo` 生成的新 repo 評估報告。
+存放新 repo 評估報告。
 
 ## 使用流程
 
@@ -59,21 +59,18 @@ superpowers:
 │  1. ai-dev update                                            │
 │     └── 拉取所有上游 repo 到 ~/.config/                      │
 │                        ↓                                     │
-│  2. /custom-skills-upstream-sync                                           │
+│  2. /custom-skills-upstream-ops audit                        │
 │     ├── 分析 commit 差異                                     │
-│     └── 生成 reports/structured/analysis-*.yaml             │
+│     ├── 生成整合建議（AI workflow）                          │
+│     └── 寫入 reports/structured/analysis-*.yaml              │
 │                        ↓                                     │
-│  3. /upstream-compare                                        │
-│     ├── AI 讀取結構化報告                                    │
-│     └── 生成自然語言建議                                     │
-│                        ↓                                     │
-│  4. /openspec:proposal (可選)                                │
+│  3. /openspec:proposal (可選)                                │
 │     └── 建立整合提案                                         │
 │                        ↓                                     │
-│  5. --update-sync                                            │
+│  4. /custom-skills-upstream-ops maintenance --update-sync    │
 │     └── 更新 last-sync.yaml                                  │
 │                        ↓                                     │
-│  6. ai-dev clone                                             │
+│  5. ai-dev clone                                             │
 │     └── 分發內容到各工具目錄                                 │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -89,16 +86,13 @@ superpowers:
 │  1. git clone <repo> ~/.config/<name>                        │
 │     └── Clone 新 repo 到本地                                 │
 │                        ↓                                     │
-│  2. /custom-skills-upstream-sync --new-repo ~/.config/<name>               │
+│  2. /custom-skills-upstream-ops audit --new-repo <name>      │
 │     ├── 全量分析 repo 內容                                   │
-│     └── 生成 reports/new-repos/eval-*.yaml                  │
-│                        ↓                                     │
-│  3. /upstream-compare --new-repo <report>                    │
 │     ├── AI 評估內容品質                                      │
-│     └── 給出整合建議                                         │
+│     └── 生成 reports/new-repos/eval-*.yaml 與整合建議        │
 │                        ↓                                     │
-│  4. 決定是否整合                                             │
-│     ├── 是 → 加入 sources.yaml + /openspec:proposal         │
+│  3. 決定是否整合                                             │
+│     ├── 是 → 加入 sources.yaml + /openspec:proposal          │
 │     └── 否 → 刪除本地 clone                                  │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -110,23 +104,23 @@ superpowers:
 # 拉取上游最新內容
 ai-dev update
 
-# 分析已註冊上游變更
-python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py
+# 分析已註冊上游變更（預設 audit mode）
+/custom-skills-upstream-ops
 
 # 分析特定 repo
-python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --source superpowers
+/custom-skills-upstream-ops audit --source superpowers
 
 # 評估新的本地 repo
-python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo ~/.config/awesome-skills
+/custom-skills-upstream-ops audit --new-repo ~/.config/awesome-skills
+
+# 檢查 UDS .standards/ 檔案級漂移
+/custom-skills-upstream-ops uds-check
+
+# 任一 repo vs 本專案重疊偵測
+/custom-skills-upstream-ops overlap <repo>
 
 # 更新同步狀態
-python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --update-sync
-
-# AI 分析報告
-/upstream-compare
-
-# AI 評估新 repo
-/upstream-compare --new-repo eval-awesome-skills-*.yaml
+/custom-skills-upstream-ops maintenance --update-sync
 
 # 分發到工具目錄
 ai-dev clone
@@ -134,8 +128,7 @@ ai-dev clone
 
 ## 相關 Skills
 
-- `/custom-skills-upstream-sync` - 生成結構化分析報告（支援 --new-repo）
-- `/upstream-compare` - AI 生成自然語言建議（支援 --new-repo）
+- `/custom-skills-upstream-ops` - 上游操作統一入口，支援 `audit`、`uds-check`、`overlap`、`maintenance` 四種 mode（compare 功能已併入 audit）
 
 ## 格式說明
 

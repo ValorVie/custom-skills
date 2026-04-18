@@ -23,8 +23,7 @@ shared:
     - custom-skills-dev
     - custom-skills-git-commit
     - custom-skills-doc-updater
-    - custom-skills-upstream-compare
-    - custom-skills-upstream-sync
+    - custom-skills-upstream-ops
   standards:
     # - anti-hallucination.ai.yaml
     # - ai-instruction-standards.ai.yaml
@@ -193,7 +192,6 @@ exclusive:
     #   - check
     #   - config
     #   - update
-    #   - upstream-sync
     # agents:
     #   - code-architect
     #   - doc-writer

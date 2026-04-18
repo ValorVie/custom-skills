@@ -816,8 +816,9 @@ ai-dev standards sync --target claude
 
 ```bash
 # 使用 Skills 進行上游審核
-/custom-skills-upstream-sync      # 生成結構化分析報告
-/upstream-compare   # AI 生成整合建議
+/custom-skills-upstream-ops              # 預設 audit mode：commit 差異 + 同步建議
+/custom-skills-upstream-ops uds-check    # UDS .standards/ 檔案級漂移
+/custom-skills-upstream-ops overlap <repo>  # 任一 repo vs 本專案重疊偵測
 ```
 
 詳見 `upstream/README.md`。
