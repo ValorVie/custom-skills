@@ -25,8 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bug [vercel-labs/skills#915](https://github.com/vercel-labs/skills/issues/915)：
   - global skills：`npx skills update -g -y`（鎖死 global、跳過 scope prompt）
   - project skills：解析 cwd 的 `skills-lock.json`，逐個執行
-    `npx skills add <source> --skill <name> -y`，避免 upstream `update` 把整個來源
-    repo 的所有 skill 灌入專案、並建立 30+ agent 目錄
+    `npx skills add <source> --skill <name> -a <agents...> -y`
+    - `--skill <name>` 確保只裝指定 skill，不會擴張為整個來源 repo
+    - `-a` 顯式列出 `claude-code codex gemini-cli opencode antigravity
+      kiro-cli universal`（對應 ai-dev `--target` 的 5 個工具加上 `kiro-cli`
+      與 canonical `universal`），避免 detectInstalledAgents 自動 fanout 到
+      30+ agent target 目錄。實測只會建立 `.agents/skills`、`.claude/skills`、
+      `.kiro/skills` 三處
 
 ### Removed
 

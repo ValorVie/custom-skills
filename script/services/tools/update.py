@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -163,6 +164,86 @@ def _run_install_tools_phase() -> None:
         )
 
 
+_NPX_PROJECT_AGENTS: tuple[str, ...] = (
+    "claude-code",
+    "codex",
+    "gemini-cli",
+    "opencode",
+    "antigravity",
+    "kiro-cli",
+    "universal",
+)
+
+
+def _update_project_npx_skills_from_lock(project_dir: Path) -> None:
+    """逐個 `npx skills add <source> --skill <name> -a <agents...> -y` 同步 project skill。
+
+    繞過 `npx skills update`（project scope）的 upstream bug
+    vercel-labs/skills#915 — 該命令對每個 lock entry 內部呼叫 `add <repo>`
+    不帶 --skill filter，會把整個來源 repo 的所有 skill 灌進專案。
+
+    用 `-a` 顯式列出本專案會用到的 agent（對應 ai-dev `--target` 的 5 個
+    工具加上 kiro-cli 與 universal），避免 CLI 預設的 detectInstalledAgents
+    自動 fanout 到 30+ agent target 目錄。實測該列表只會建立
+    `.agents/skills`（universal/codex/gemini-cli/opencode/antigravity 共用）、
+    `.claude/skills`、`.kiro/skills` 三處。
+    """
+    lock_path = project_dir / "skills-lock.json"
+    if not lock_path.exists():
+        return
+
+    try:
+        data = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        console.print(f"[yellow]⚠  讀取 {lock_path} 失敗：{exc}[/yellow]")
+        return
+
+    raw_skills = data.get("skills") if isinstance(data, dict) else None
+    if not isinstance(raw_skills, dict) or not raw_skills:
+        return
+
+    eligible: list[tuple[str, str, str | None]] = []
+    for name, entry in raw_skills.items():
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("sourceType") in ("node_modules", "local"):
+            continue
+        source = entry.get("source")
+        if not source:
+            continue
+        ref = entry.get("ref") or None
+        eligible.append((name, source, ref))
+
+    if not eligible:
+        return
+
+    agents_display = " ".join(_NPX_PROJECT_AGENTS)
+    console.print()
+    console.print(
+        f"[green]同步 project skills（{len(eligible)} 個，逐個 add --skill -a <agents> 規避 upstream bug #915）...[/green]"
+    )
+    total = len(eligible)
+    for idx, (name, source, ref) in enumerate(eligible, start=1):
+        target = f"{source}#{ref}" if ref else source
+        console.print(
+            f"[bold cyan][{idx}/{total}][/bold cyan] {target} --skill {name} -a {agents_display}"
+        )
+        run_command(
+            [
+                "npx",
+                "skills",
+                "add",
+                target,
+                "--skill",
+                name,
+                "-a",
+                *_NPX_PROJECT_AGENTS,
+                "-y",
+            ],
+            check=False,
+        )
+
+
 def _run_update_tools_phase() -> None:
     update_claude_code()
 
@@ -190,7 +271,10 @@ def _run_update_tools_phase() -> None:
     console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
     console.print("[bold red]  ⬇ 以下為 npx skills (Skills CLI) 指令輸出[/bold red]")
     console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-    run_command(["npx", "skills", "update"], check=False)
+    # 鎖死 -g -y：避免落入 project scope 互動 prompt 觸發 upstream bug
+    # vercel-labs/skills#915（在 lock 來源 repo 的所有 skill 會被一次灌入）
+    run_command(["npx", "skills", "update", "-g", "-y"], check=False)
+    _update_project_npx_skills_from_lock(Path.cwd())
     console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
     console.print("[bold red]  ⬆ npx skills 指令執行完畢，以下回到 ai-dev 流程[/bold red]")
     console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")

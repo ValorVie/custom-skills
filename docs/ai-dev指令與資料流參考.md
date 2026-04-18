@@ -121,13 +121,21 @@ flowchart LR
      [vercel-labs/skills#915](https://github.com/vercel-labs/skills/issues/915)
      — 該命令在 project 模式下會把 lock 內每個 skill 的來源 repo 全部 skill 一次灌入，並建立 30+ agent 目錄
 2. **Project skills**：解析 cwd 的 `skills-lock.json`，逐個執行
-   `npx skills add <source>[#<ref>] --skill <name> -y`
+   `npx skills add <source>[#<ref>] --skill <name> -a <agents...> -y`
    - 跳過 `sourceType` 為 `node_modules` / `local` 的 entry
    - 跳過缺少 `source` 欄位的 entry
    - 若 lock 不存在或 `skills` 為空 → 靜默 noop
    - 用 `add … --skill <name>` 而非 `update <name>`：規避同一 upstream bug，
      `--skill` filter 確保只裝指定 skill，不會擴張為整個 repo
+   - `-a` 顯式列出本專案會用到的 agent
+     （`claude-code codex gemini-cli opencode antigravity kiro-cli universal`，
+     對應 ai-dev `--target` 的 5 個工具加上 `kiro-cli` 與 canonical
+     `universal`），避免 CLI 預設的 detectInstalledAgents 自動 fanout 到
+     30+ agent target 目錄；實測該列表只會建立 `.agents/skills`
+     （universal/codex/gemini-cli/opencode/antigravity 共用）、
+     `.claude/skills`、`.kiro/skills` 三處
    - 入口函式：`script/services/tools/update.py::_update_project_npx_skills_from_lock`
+   - Agent 列表常數：`script/services/tools/update.py::_NPX_PROJECT_AGENTS`
 
 #### `npx-skills` phase
 
