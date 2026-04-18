@@ -154,7 +154,7 @@ def add_to_sources_yaml(
             f.write("# 上游來源註冊表 - 記錄所有第三方 repo 的來源資訊\n")
             f.write("#\n")
             f.write("# 用途：\n")
-            f.write("# - custom-skills-upstream-sync 分析上游 commit 差異\n")
+            f.write("# - /custom-skills-upstream-ops 分析上游 commit 差異與重疊\n")
             f.write("# - 記錄 repo 位置與分支資訊\n")
             f.write("#\n")
             f.write("# 注意：\n")
@@ -182,7 +182,7 @@ def add_repo(
     此指令會：
     1. Clone repo 到 ~/.config/<repo-name>/
     2. 將 repo 資訊加入 upstream/sources.yaml
-    3. [可選] 執行 custom-skills-upstream-sync 分析
+    3. [可選] 提示用 /custom-skills-upstream-ops 進行 overlap/audit
 
     範例：
         ai-dev add-repo owner/repo
@@ -243,17 +243,12 @@ def add_repo(
     console.print("[bold green]✓ 完成！[/bold green]")
     console.print()
     console.print("[dim]下一步：[/dim]")
-    console.print(f"[dim]  1. 分析 repo: python skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo {target_dir}[/dim]")
-    console.print(f"[dim]  2. AI 評估: /upstream-compare --new-repo[/dim]")
+    console.print(f"[dim]  1. 重疊偵測: /custom-skills-upstream-ops overlap {name}[/dim]")
+    console.print(f"[dim]  2. commit 稽核: /custom-skills-upstream-ops audit --source {name}[/dim]")
 
-    # 可選：執行分析
+    # 可選：分析提示（原 subprocess 呼叫 analyze_upstream.py 已移除）
     if analyze and target_dir.exists():
         console.print()
-        console.print("[cyan]正在執行分析...[/cyan]")
-        # 找到分析腳本
-        script_path = sources_path.parent.parent / "skills" / "custom-skills-upstream-sync" / "scripts" / "analyze_upstream.py"
-        if script_path.exists():
-            subprocess.run(
-                ["python", str(script_path), "--new-repo", str(target_dir)],
-                check=False,
-            )
+        console.print("[cyan]提示：分析請透過 AI workflow 執行：[/cyan]")
+        console.print(f"[cyan]  /custom-skills-upstream-ops overlap {name}[/cyan]")
+        console.print(f"[cyan]  /custom-skills-upstream-ops audit --source {name}[/cyan]")
