@@ -56,3 +56,10 @@ packages:
       - mcp-server-patterns
       - safety-guard
       - security-scan
+
+  - repo: tanweai/pua
+    source: tanweai
+    rationale: PUA 官方維護
+    skills:
+      - pua
+

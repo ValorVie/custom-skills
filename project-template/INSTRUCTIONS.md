@@ -28,18 +28,4 @@
    - override 到 → 改指向 / 覆寫為
 5. 風格以工程維運文件為準：短句、明確、可執行，不要文案腔。
 
----
-
-<!-- UDS:STANDARDS:START -->
-## Standards
-
-**MUST** 語言完整規範 [zh-tw.md](.standards/zh-tw.md)
-**MUST** commit 訊息規範 [commit-message.ai.yaml](.standards/commit-message.ai.yaml)（每次提交），目前使用英文類型 + 中文訊息，例如 `fix(API): 解決並發更新使用者資料時的競爭條件`
-**SHOULD** git 工作流規範 [git-workflow.ai.yaml](.standards/git-workflow.ai.yaml)、[testing.ai.yaml](.standards/testing.ai.yaml)
-
-完整標準在 `.standards/`（Level 3，89 個標準）。
-
-<!-- UDS:STANDARDS:END -->
-
----
 <!-- <<< ai-dev:ai-dev-project | 以上規則結束，確認已理解再開始任務 -->

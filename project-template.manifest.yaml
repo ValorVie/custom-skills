@@ -8,7 +8,6 @@ include:
   - .gemini/
   - .github/
   - .opencode/
-  - .standards/
   - .editorconfig
   - .gitattributes
   - .gitignore
