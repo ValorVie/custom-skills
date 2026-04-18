@@ -158,6 +158,18 @@ flowchart LR
 - `ai-dev init-from update`：更新既有 init-from 專案
 - 舊的 `--update` 已移除，明確改為 `ai-dev init-from update`
 
+### `ai-dev add-repo`
+
+- `ai-dev add-repo <name> <git-url>`：把上游 repo 註冊到 `<custom-skills repo>/upstream/sources.yaml`，並 clone 到 `~/.config/<name>`
+- `--branch <branch>`：指定追蹤分支（預設 `main`）
+- `--format <uds|claude-code-native>`：標註內容格式，影響後續分發流程
+- `--analyze`：**自 upstream-ops 重構後已變更行為**（2026-04）
+  - 舊：以 subprocess 呼叫 `skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo`，直接產生評估報告
+  - 新：不再呼叫任何 Python 腳本，改為僅輸出建議命令提示：
+    - `/custom-skills-upstream-ops overlap <name>`（偵測與本專案的功能重疊）
+    - `/custom-skills-upstream-ops audit --source <name>`（commit 差異稽核）
+  - 使用者需自行於 AI 對話中呼叫上述 slash commands 完成分析；命令本身不再寫入分析報告檔
+
 ### 2. 專案層：built-in project-template
 
 `project init` 採用兩段式流程：

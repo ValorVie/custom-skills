@@ -9,10 +9,10 @@ upstream/
 ├── sources.yaml              # 上游 repo 註冊表
 ├── last-sync.yaml            # 最後同步狀態
 ├── reports/
-│   ├── structured/
-│   │   └── analysis-YYYY-MM-DD.yaml      # 已註冊 repo 分析報告
+│   ├── audit/
+│   │   └── audit-YYYY-MM-DD.md          # audit --archive 寫出的 Markdown 摘要
 │   └── new-repos/
-│       └── eval-{name}-{timestamp}.yaml  # 新 repo 評估報告
+│       └── eval-{name}-{timestamp}.yaml # 舊版新 repo 評估報告（新架構改走 overlap）
 └── README.md
 ```
 
@@ -39,13 +39,15 @@ superpowers:
   synced_at: "2026-01-24T18:00:00"
 ```
 
-### reports/structured/
+### reports/audit/
 
-存放 `/custom-skills-upstream-ops audit` 生成的已註冊 repo 分析報告（由 AI workflow 處理，不再有固定腳本 schema）。
+存放 `/custom-skills-upstream-ops audit --archive` 寫出的 Markdown 摘要（`audit-YYYY-MM-DD.md`）。預設 audit 只輸出到對話，不寫檔；`--archive` 才會落地。
+
+> 歷史備註：舊版 `custom-skills-upstream-sync` 會輸出 `reports/structured/analysis-*.yaml` 結構化報告，目前 audit mode 已不再產生 YAML。
 
 ### reports/new-repos/
 
-存放新 repo 評估報告。
+存放舊版新 repo 評估報告（新架構改用 `overlap` mode，直接輸出到對話）。
 
 ## 使用流程
 
@@ -62,12 +64,14 @@ superpowers:
 │  2. /custom-skills-upstream-ops audit                        │
 │     ├── 分析 commit 差異                                     │
 │     ├── 生成整合建議（AI workflow）                          │
-│     └── 寫入 reports/structured/analysis-*.yaml              │
+│     └── 預設輸出 Markdown 到對話；--archive 時寫到           │
+│         upstream/reports/audit/audit-YYYY-MM-DD.md           │
 │                        ↓                                     │
 │  3. /openspec:proposal (可選)                                │
 │     └── 建立整合提案                                         │
 │                        ↓                                     │
-│  4. /custom-skills-upstream-ops maintenance --update-sync    │
+│  4. /custom-skills-upstream-ops maintenance \                │
+│         update-last-sync <source>                            │
 │     └── 更新 last-sync.yaml                                  │
 │                        ↓                                     │
 │  5. ai-dev clone                                             │
@@ -86,10 +90,10 @@ superpowers:
 │  1. git clone <repo> ~/.config/<name>                        │
 │     └── Clone 新 repo 到本地                                 │
 │                        ↓                                     │
-│  2. /custom-skills-upstream-ops audit --new-repo <name>      │
-│     ├── 全量分析 repo 內容                                   │
-│     ├── AI 評估內容品質                                      │
-│     └── 生成 reports/new-repos/eval-*.yaml 與整合建議        │
+│  2. /custom-skills-upstream-ops overlap <name>               │
+│     ├── 掃描目標 repo 結構（skills/agents/commands）         │
+│     ├── 與本專案對應目錄比對，標註功能重疊                   │
+│     └── 輸出 Markdown 摘要與可貼的 overlaps.yaml 片段        │
 │                        ↓                                     │
 │  3. 決定是否整合                                             │
 │     ├── 是 → 加入 sources.yaml + /openspec:proposal          │
@@ -110,8 +114,8 @@ ai-dev update
 # 分析特定 repo
 /custom-skills-upstream-ops audit --source superpowers
 
-# 評估新的本地 repo
-/custom-skills-upstream-ops audit --new-repo ~/.config/awesome-skills
+# 評估新的本地 repo（偵測與本專案的功能重疊）
+/custom-skills-upstream-ops overlap ~/.config/awesome-skills
 
 # 檢查 UDS .standards/ 檔案級漂移
 /custom-skills-upstream-ops uds-check
@@ -119,8 +123,8 @@ ai-dev update
 # 任一 repo vs 本專案重疊偵測
 /custom-skills-upstream-ops overlap <repo>
 
-# 更新同步狀態
-/custom-skills-upstream-ops maintenance --update-sync
+# 更新同步狀態（套用完成後使用）
+/custom-skills-upstream-ops maintenance update-last-sync <source>
 
 # 分發到工具目錄
 ai-dev clone
