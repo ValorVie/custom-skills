@@ -4,7 +4,7 @@
     "bun-development": {
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
-      "computedHash": "8729b190cc11927a7d4512037fc68fd4b5145b024d89764dcaf85f0ffa760e1d"
+      "computedHash": "87e59a1e7f7fe512333aad64022955501a4e36be6e65487196dfc311e5b786b7"
     },
     "hook-development": {
       "source": "anthropics/claude-plugins-official",
@@ -14,12 +14,12 @@
     "javascript-testing-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
-      "computedHash": "34219092e71607f9257720b3b43ecd37c8af0d3dbf695e3263f4c68ab0b019e2"
+      "computedHash": "8d0a8d7615ff343770af0218720691d56c55ae258793565936c8b3a97e188f51"
     },
     "typescript-advanced-types": {
       "source": "wshobson/agents",
       "sourceType": "github",
-      "computedHash": "a03a83996ae9d2f4dd6d4db08899d61761c7d5351bce4c695d20a21197742a36"
+      "computedHash": "3a3be8c925f96ac4e1280db28a01677e7ca5197f3792de2bbf35ab3bb324b6dd"
     },
     "writing-hookify-rules": {
       "source": "anthropics/claude-plugins-official",
