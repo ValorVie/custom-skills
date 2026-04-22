@@ -12,7 +12,7 @@ MARKER_END = "# <<< ai-dev"
 DEFAULT_KEEP_TRACKED = [".editorconfig", ".gitattributes", ".gitignore"]
 
 # .github/ 下需要特別處理的 AI 子路徑
-GITHUB_AI_PATHS = ["skills", "prompts", "copilot-instructions.md"]
+GITHUB_AI_PATHS = ["skills", "prompts", "scripts", "copilot-instructions.md"]
 
 # 永遠加入排除的項目（即使模板中沒有）
 ALWAYS_EXCLUDE = [".ai-dev-project.yaml"]
