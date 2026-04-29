@@ -4,26 +4,31 @@
     "bun-development": {
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
+      "skillPath": "skills/bun-development/SKILL.md",
       "computedHash": "87e59a1e7f7fe512333aad64022955501a4e36be6e65487196dfc311e5b786b7"
     },
     "hook-development": {
       "source": "anthropics/claude-plugins-official",
       "sourceType": "github",
+      "skillPath": "plugins/plugin-dev/skills/hook-development/SKILL.md",
       "computedHash": "7bda9057df5162ac7a141dab5d5b4876c2fa37516eb757f3efc6f7dcebe73aa2"
     },
     "javascript-testing-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
+      "skillPath": "plugins/javascript-typescript/skills/javascript-testing-patterns/SKILL.md",
       "computedHash": "8d0a8d7615ff343770af0218720691d56c55ae258793565936c8b3a97e188f51"
     },
     "typescript-advanced-types": {
       "source": "wshobson/agents",
       "sourceType": "github",
+      "skillPath": "plugins/javascript-typescript/skills/typescript-advanced-types/SKILL.md",
       "computedHash": "3a3be8c925f96ac4e1280db28a01677e7ca5197f3792de2bbf35ab3bb324b6dd"
     },
     "writing-hookify-rules": {
       "source": "anthropics/claude-plugins-official",
       "sourceType": "github",
+      "skillPath": "plugins/hookify/skills/writing-rules/SKILL.md",
       "computedHash": "f9705872d7d4b8bd1a6e941f818cdd547a87bac334ee066ad46ec7fa14e3c73b"
     }
   }
