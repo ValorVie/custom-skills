@@ -9,11 +9,11 @@
 | 階段 | 命令 | 說明 |
 |------|------|------|
 | 探索想法 | 直接對話或使用 `/superpowers:brainstorm` | 與 AI 討論想法、釐清方向 |
-| 需求對齊 | `mp-grill-with-docs` | 追問模糊需求、固定專案語言、整理未決問題 |
-| 需求摘要 | `mp-to-prd` | 將既有對話整理成 PRD 或 OpenSpec brief |
-| 工作切片 | `mp-to-issues` | 拆成垂直切片，標示 `AFK` / `HITL` |
-| 任務分流 | `mp-triage` | 判斷工作項目是否 `ready-for-agent` |
-| 架構回看 | `mp-improve-codebase-architecture` | 產出架構改善候選，不直接重構 |
+| 需求對齊 | `/mp-grill-with-docs` | 追問模糊需求、固定專案語言、整理未決問題 |
+| 需求摘要 | `/mp-to-prd` | 將既有對話整理成 PRD 或 OpenSpec brief |
+| 工作切片 | `/mp-to-issues` | 拆成垂直切片，標示 `AFK` / `HITL` |
+| 任務分流 | `/mp-triage` | 判斷工作項目是否 `ready-for-agent` |
+| 架構回看 | `/mp-improve-codebase-architecture` | 產出架構改善候選，不直接重構 |
 | 調研目標 | `/opsx:explore` | 探索程式碼、理解現狀 |
 | 建立提案 | `/opsx:new <name>` | 建立 change 和 proposal |
 | 建立規格 | `/opsx:continue` | 依序建立 design、specs、tasks |
