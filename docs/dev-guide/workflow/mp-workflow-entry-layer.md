@@ -2,6 +2,8 @@
 
 本文件說明本專案如何導入 `mattpocock/skills` 的工作入口層改寫版。
 
+日常操作與情境示範請看 [MP 使用指南](MP-USAGE-GUIDE.md)。
+
 ## 定位
 
 MP 工作入口層負責：

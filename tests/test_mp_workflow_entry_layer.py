@@ -56,6 +56,26 @@ def test_entrypoints_reference_shared_agent_docs():
         assert "docs/agents/domain.md" in text
 
 
+def test_workflow_docs_include_mp_usage_guide():
+    usage_guide = _read_text(
+        ROOT / "docs" / "dev-guide" / "workflow" / "MP-USAGE-GUIDE.md"
+    )
+    dev_workflow = _read_text(
+        ROOT / "docs" / "dev-guide" / "workflow" / "DEVELOPMENT-WORKFLOW.md"
+    )
+    integration_guide = _read_text(
+        ROOT / "docs" / "dev-guide" / "workflow" / "mp-workflow-entry-layer.md"
+    )
+
+    assert "[MP 使用指南](MP-USAGE-GUIDE.md)" in dev_workflow
+    assert "[MP 使用指南](MP-USAGE-GUIDE.md)" in integration_guide
+    assert "### Phase 0.5: MP 工作入口" in dev_workflow
+
+    for skill in MP_SKILLS:
+        assert skill in usage_guide
+        assert skill in dev_workflow
+
+
 def test_upstream_mapping_tracks_selected_and_excluded_skills():
     mapping = yaml.safe_load(
         _read_text(ROOT / "upstream" / "mattpocock-skills" / "mapping.yaml")
