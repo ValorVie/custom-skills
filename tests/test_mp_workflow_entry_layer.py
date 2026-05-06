@@ -14,6 +14,8 @@ MP_SKILLS = [
     "mp-to-prd",
 ]
 
+RUNTIME_MP_SKILLS = [skill for skill in MP_SKILLS if skill != "mp-setup-matt-pocock-skills"]
+
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -38,22 +40,16 @@ def test_mp_skills_have_valid_frontmatter():
         assert "Use when:" in data["description"]
 
 
-def test_mp_skill_projections_match_canonical_source():
-    for skill in MP_SKILLS:
-        canonical = _read_text(ROOT / "skills" / skill / "SKILL.md")
+def test_mp_is_not_project_template_or_project_projection():
+    assert not (ROOT / "project-template" / "docs" / "agents").exists()
+    assert not (ROOT / ".claude" / "skills" / "mp-grill-with-docs").exists()
+    assert not (ROOT / ".codex" / "skills" / "mp-grill-with-docs").exists()
 
-        assert _read_text(ROOT / ".claude" / "skills" / skill / "SKILL.md") == canonical
-        assert _read_text(ROOT / ".codex" / "skills" / skill / "SKILL.md") == canonical
-
-
-def test_entrypoints_reference_shared_agent_docs():
     for entrypoint in ["CLAUDE.md", "AGENTS.md"]:
         text = _read_text(ROOT / entrypoint)
 
-        assert "docs/agents/mp-workflow.md" in text
-        assert "docs/agents/issue-tracker.md" in text
-        assert "docs/agents/triage-states.md" in text
-        assert "docs/agents/domain.md" in text
+        assert "docs/agents/mp-workflow.md" not in text
+        assert "mp-setup-matt-pocock-skills" not in text
 
 
 def test_workflow_docs_include_mp_usage_guide():
@@ -70,10 +66,14 @@ def test_workflow_docs_include_mp_usage_guide():
     assert "[MP 使用指南](MP-USAGE-GUIDE.md)" in dev_workflow
     assert "[MP 使用指南](MP-USAGE-GUIDE.md)" in integration_guide
     assert "### Phase 0.5: MP 工作入口" in dev_workflow
+    assert "project-template" in usage_guide
+    assert "不代表 `project-template` 應該預載 MP 共同文件" in usage_guide
 
-    for skill in MP_SKILLS:
+    for skill in RUNTIME_MP_SKILLS:
         assert skill in usage_guide
         assert skill in dev_workflow
+
+    assert "mp-setup-matt-pocock-skills" in usage_guide
 
 
 def test_upstream_mapping_tracks_selected_and_excluded_skills():
@@ -105,13 +105,15 @@ def test_mp_trigger_boundaries_do_not_replace_openspec_or_superpowers():
     assert not (ROOT / "skills" / "mp-tdd").exists()
     assert not (ROOT / "skills" / "mp-diagnose").exists()
 
-    workflow = _read_text(ROOT / "docs" / "agents" / "mp-workflow.md")
     setup = _read_text(ROOT / "skills" / "mp-setup-matt-pocock-skills" / "SKILL.md")
     to_issues = _read_text(ROOT / "skills" / "mp-to-issues" / "SKILL.md")
+    usage_guide = _read_text(
+        ROOT / "docs" / "dev-guide" / "workflow" / "MP-USAGE-GUIDE.md"
+    )
 
-    assert "proposal、design、tasks、spec、verify、archive" in workflow
-    assert "使用 `openspec-*`" in workflow
-    assert "TDD、除錯、review" in workflow
-    assert "使用 `superpowers:*`" in workflow
+    assert "proposal、design、spec、tasks、verify、archive" in usage_guide
+    assert "OpenSpec 負責正式變更生命週期" in usage_guide
+    assert "TDD、除錯、review" in usage_guide
+    assert "Superpowers 負責任務內執行紀律" in usage_guide
     assert "沒有覆寫 `openspec-*` 或 `superpowers:*`" in setup
     assert "不適用於直接 TDD 實作" in to_issues

@@ -1,6 +1,6 @@
 # MP 使用指南
 
-本指南說明如何在日常開發中使用 `mp-*` 工作入口層。MP 的用途是把模糊需求變成清楚、可切片、可分流、可進入 OpenSpec 或 Superpowers 的工程工作。
+本指南說明如何在日常開發中使用 `mp-*` 工作入口層。MP 是通用工具，不是本專案專屬工作流。它的用途是把模糊需求變成清楚、可切片、可分流、可進入 OpenSpec 或 Superpowers 的工程工作。
 
 MP 不取代 OpenSpec，也不取代 Superpowers：
 
@@ -12,6 +12,7 @@ MP 不取代 OpenSpec，也不取代 Superpowers：
 
 | 你現在的狀態 | 使用技能 | 產出 | 下一步 |
 |---|---|---|---|
+| 專案首次選擇導入 MP | `mp-setup-matt-pocock-skills` | `docs/agents/` 共同規則與入口提示 | 再使用其他 `mp-*` 技能 |
 | 只有模糊想法 | `mp-grill-with-docs` | 已確認的術語、決策、未決問題 | `mp-to-prd` 或 OpenSpec |
 | 已有一段討論但缺需求文件 | `mp-to-prd` | PRD 或 OpenSpec brief | `mp-to-issues` 或 `openspec-new-change` |
 | 需求太大、不知道怎麼做 | `mp-to-issues` | 垂直切片、`AFK` / `HITL` 標記 | OpenSpec tasks 或 issue draft |
@@ -34,14 +35,27 @@ MP 不取代 OpenSpec，也不取代 Superpowers：
 
 ## 共用規則
 
-MP 技能會讀取這些共同文件：
+當目標專案選擇導入 MP 時，MP 技能會讀取該目標專案中的共同文件：
 
 - `docs/agents/mp-workflow.md`
 - `docs/agents/issue-tracker.md`
 - `docs/agents/triage-states.md`
 - `docs/agents/domain.md`
 
-如果這些文件不存在，先執行 `mp-setup-matt-pocock-skills` 或直接補齊文件。
+如果這些文件不存在，先在目標專案執行 `mp-setup-matt-pocock-skills` 或直接補齊文件。
+
+`mp-setup-matt-pocock-skills` 是專案明確選擇 MP 時才使用的初始化器。它不屬於每次開發都要跑的日常流程，也不代表 `project-template` 應該預載 MP 共同文件。
+
+初始化時它會先檢查現有 `CLAUDE.md`、`AGENTS.md`、`docs/agents/`、`CONTEXT.md`、`CONTEXT-MAP.md`、`docs/adr/`、`openspec/` 與 `.scratch/`，再建立或更新：
+
+- `docs/agents/mp-workflow.md`
+- `docs/agents/issue-tracker.md`
+- `docs/agents/triage-states.md`
+- `docs/agents/domain.md`
+
+如果 `CLAUDE.md` 或 `AGENTS.md` 存在，只放 MP 入口提示。詳細規則仍集中在 `docs/agents/`，避免 Claude Code 與 Codex 各自維護不同版本。
+
+其他 `mp-*` 技能不負責自動猜測並建立共同文件；若目標專案缺少 `docs/agents/`，應提醒先使用 `mp-setup-matt-pocock-skills`。
 
 ## 情境 1：一句模糊想法，還不能開 OpenSpec
 
@@ -131,9 +145,9 @@ AI：我會用 mp-to-issues，輸出 OpenSpec tasks 格式。
 
 建議切片：
 1. [AFK] 建立上游 tracking 檔案並驗證 mapping 可讀。
-2. [AFK] 建立 P0 skills，並檢查 frontmatter 與觸發語。
-3. [AFK] 建立 docs/agents 共同規則。
-4. [AFK] 建立 Claude / Codex 投影並檢查一致性。
+2. [AFK] 建立通用 MP 技能來源，並檢查 frontmatter 與觸發語。
+3. [AFK] 建立目標專案的 `docs/agents/` 共同規則。
+4. [AFK] 更新目標專案的 `CLAUDE.md` / `AGENTS.md` 入口提示。
 5. [AFK] 增加觸發案例測試，確保不覆蓋 OpenSpec / Superpowers。
 ```
 
@@ -143,11 +157,11 @@ AI：我會用 mp-to-issues，輸出 OpenSpec tasks 格式。
 - [ ] 1.1 [AFK] 在 `upstream/sources.yaml` 登記 `mattpocock-skills`
   - 驗證：`install_method` 為 `manual`
 
-- [ ] 2.1 [AFK] 建立 `skills/mp-grill-with-docs/SKILL.md`
-  - 驗證：frontmatter name 符合目錄名稱，description 含清楚觸發條件
+- [ ] 2.1 [AFK] 在目標專案建立 `docs/agents/domain.md`
+  - 驗證：明確記錄 single-context 或 multi-context 判斷規則
 
-- [ ] 4.1 [AFK] 建立 `.claude/skills/mp-*` 與 `.codex/skills/mp-*`
-  - 驗證：投影內容與 `skills/mp-*` 無差異
+- [ ] 4.1 [AFK] 更新 `CLAUDE.md` 與 `AGENTS.md` 的 MP 入口提示
+  - 驗證：入口文件只引用 `docs/agents/`，不重複維護規則正文
 ```
 
 ## 情境 3：GitHub issue 進來，但不知道能否交給 agent
@@ -270,11 +284,11 @@ rg -n "MP-USAGE-GUIDE|mp-grill-with-docs|mp-to-issues" docs/dev-guide/workflow
 rg -n "mp-setup-matt-pocock-skills|mp-improve-codebase-architecture" docs
 ```
 
-## 情境 6：需要交給 Claude Code 與 Codex 都能讀懂
+## 情境 6：首次導入 MP，且需要 Claude Code 與 Codex 都能讀懂
 
 ### 使用時機
 
-任務會在 Claude Code 和 Codex 之間切換，或同一儲存庫需要兩邊使用相同工作流。
+目標專案已明確選擇導入 MP，且任務會在 Claude Code 和 Codex 之間切換，或同一儲存庫需要兩邊使用相同工作流。
 
 ### 建議流程
 
@@ -287,7 +301,7 @@ mp-setup-matt-pocock-skills
 ### 對話示範
 
 ```text
-使用者：這套規則要 Claude 跟 Codex 都能用。
+使用者：這個專案想使用 MP，而且規則要 Claude 跟 Codex 都能讀懂。
 
 AI：我建議把共同規則放在 docs/agents/，入口文件只引用。
 理由是 CLAUDE.md 和 AGENTS.md 各寫一份會很快分歧。
@@ -304,14 +318,14 @@ AI：我建議把共同規則放在 docs/agents/，入口文件只引用。
 ### 正確結構
 
 ```text
-skills/mp-*              # 共同技能來源
-  -> .claude/skills/mp-* # Claude Code 投影
-  -> .codex/skills/mp-*  # Codex 投影
+mp-*                     # 通用工具，由目前 AI 環境提供
 
-docs/agents/*            # 共同工作流來源
+docs/agents/*            # 目標專案內的 MP 共同工作流來源
 CLAUDE.md                # 只放入口提示
 AGENTS.md                # 只放入口提示
 ```
+
+不要在目標專案建立 `skills/mp-*` 來保存通用工具。目標專案只保存自己的工作流決策與語言沉澱。
 
 ## 情境 7：沒有 GitHub issue，只想用本地 Markdown
 
@@ -381,7 +395,7 @@ MP 是入口層，不是萬用流程。
 
 MP 使用指南更新時，同步檢查：
 
-- `docs/agents/mp-workflow.md` 是否仍是共同真實來源。
+- 指南是否仍明確說明 MP 是通用工具，不是 `project-template` 預載內容。
 - `docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md` 是否仍描述 MP 入口。
 - `skills/mp-*/SKILL.md` 的觸發條件是否仍不覆蓋 OpenSpec / Superpowers。
 - `upstream/mattpocock-skills/mapping.yaml` 是否仍能追蹤上游來源。

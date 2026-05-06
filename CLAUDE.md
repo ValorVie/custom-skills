@@ -96,20 +96,3 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 
 <!-- <<< ai-dev:ai-dev-project | 以上規則結束，確認已理解再開始任務 -->
-
-## MP 工作入口層
-
-當需求尚未清楚、需要專案語言校準、垂直切片、任務分流或架構候選時，使用 `mp-*` 技能作為工作入口層。
-
-共同規則位於：
-
-- `docs/agents/mp-workflow.md`
-- `docs/agents/issue-tracker.md`
-- `docs/agents/triage-states.md`
-- `docs/agents/domain.md`
-
-邊界：
-
-- 正式 proposal、design、tasks、spec、verify、archive 仍使用 `openspec-*`。
-- TDD、除錯、review、完成前驗證仍使用 `superpowers:*`。
-- `CLAUDE.md` 只保留入口提示；MP 工作流細節以 `docs/agents/` 為準。
