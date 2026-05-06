@@ -261,11 +261,11 @@ source_snapshot: mattpocock/skills@b843cb5
 
 | 候選名稱 | 來源技能 | 導入理由 |
 |---|---|---|
-| `mp-setup-workflow` | `setup-matt-pocock-skills` | 建立儲存庫層級工作規則，支援多投影與本專案目錄慣例 |
+| `mp-setup-matt-pocock-skills` | `setup-matt-pocock-skills` | 建立儲存庫層級工作規則，支援多投影與本專案目錄慣例 |
 | `mp-grill-with-docs` | `grill-with-docs` | 補足需求澄清與專案語言沉澱 |
 | `mp-to-prd` | `to-prd` | 把對話整理成需求文件，可銜接 OpenSpec proposal |
 | `mp-to-issues` | `to-issues` | 把大需求拆成垂直切片，可銜接 issue 或 OpenSpec tasks |
-| `mp-improve-architecture` | `improve-codebase-architecture` | 提供日常架構回看，不直接進入重構 |
+| `mp-improve-codebase-architecture` | `improve-codebase-architecture` | 提供日常架構回看，不直接進入重構 |
 
 ### 第二階段：整合而非重複 TDD / 除錯
 
@@ -285,7 +285,7 @@ source_snapshot: mattpocock/skills@b843cb5
 - 已形成正式變更時，轉入 `openspec-new-change` 或 `openspec-propose`。
 - 已有 PRD 但未拆任務時，用 `mp-to-issues` 產出垂直切片，再轉成 OpenSpec `tasks.md`。
 - 實作中遇到錯誤或測試設計問題時，回到 `superpowers` 的 TDD / 除錯技能。
-- 實作後暴露架構摩擦時，用 `mp-improve-architecture` 產出下一個改善候選，不在原任務中偷偷擴大範圍。
+- 實作後暴露架構摩擦時，用 `mp-improve-codebase-architecture` 產出下一個改善候選，不在原任務中偷偷擴大範圍。
 
 ## 主要風險
 
@@ -307,7 +307,7 @@ source_snapshot: mattpocock/skills@b843cb5
 
 | 優先級 | 行動 | 理由 | 預期效果 |
 |---|---|---|---|
-| P0 | 設計 `mp-setup-workflow` 與 `docs/agents/` 規則 | 沒有儲存庫層級設定，後續技能會各自猜測 | 建立穩定入口 |
+| P0 | 設計 `mp-setup-matt-pocock-skills` 與 `docs/agents/` 規則 | 沒有儲存庫層級設定，後續技能會各自猜測 | 建立穩定入口 |
 | P0 | 改寫 `mp-grill-with-docs` | 這是最能補足現有缺口的技能 | 讓需求澄清可沉澱到 `CONTEXT.md` / ADR |
 | P1 | 改寫 `mp-to-prd` / `mp-to-issues` | 可把討論接到正式工作項 | 減少大需求直接進入實作 |
 | P1 | 定義 `triage` 狀態模型 | 可判斷任務能否交給 agent | 降低代理任務失敗率 |

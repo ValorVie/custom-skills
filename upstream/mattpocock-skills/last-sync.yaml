@@ -1,0 +1,10 @@
+# mattpocock-skills 最後同步資訊
+
+source: mattpocock-skills
+repo: mattpocock/skills
+branch: main
+commit: b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8
+status: manually-adapted
+notes:
+  - 本專案只採用工作入口層相關技能，並改寫為 mp-*。
+  - 上游更新只做 audit 與人工合併，不自動覆蓋 skills/mp-*。

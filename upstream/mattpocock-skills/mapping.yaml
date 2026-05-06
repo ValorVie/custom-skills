@@ -1,0 +1,81 @@
+# mattpocock-skills 檔案對照表
+# 來源: https://github.com/mattpocock/skills
+# 參考快照: b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8
+
+source: mattpocock-skills
+
+skills:
+  setup-matt-pocock-skills:
+    upstream_path: skills/engineering/setup-matt-pocock-skills/
+    local_skill: skills/mp-setup-matt-pocock-skills/
+    priority: P0
+    adaptation: rewritten
+    notes: 改為同時支援 Claude Code 與 Codex，並以 docs/agents/ 作為共同真實來源。
+  grill-with-docs:
+    upstream_path: skills/engineering/grill-with-docs/
+    local_skill: skills/mp-grill-with-docs/
+    priority: P0
+    adaptation: rewritten
+    notes: 保留追問與文件沉澱精神，加入 OpenSpec 入口邊界。
+  to-issues:
+    upstream_path: skills/engineering/to-issues/
+    local_skill: skills/mp-to-issues/
+    priority: P0
+    adaptation: rewritten
+    notes: 改為支援 OpenSpec tasks、GitHub issue draft、本地 Markdown 三種出口。
+  triage:
+    upstream_path: skills/engineering/triage/
+    local_skill: skills/mp-triage/
+    priority: P1
+    adaptation: rewritten
+    notes: 從 label 流程改為 tracker 無關的狀態模型。
+  improve-codebase-architecture:
+    upstream_path: skills/engineering/improve-codebase-architecture/
+    local_skill: skills/mp-improve-codebase-architecture/
+    priority: P1
+    adaptation: rewritten
+    notes: 限制為候選輸出，不直接修改實作程式碼。
+  to-prd:
+    upstream_path: skills/engineering/to-prd/
+    local_skill: skills/mp-to-prd/
+    priority: P2
+    adaptation: rewritten
+    notes: 作為 OpenSpec proposal 前置素材，不重新訪談使用者。
+
+excluded:
+  tdd:
+    upstream_path: skills/engineering/tdd/
+    reason: covered-by-superpowers
+    notes: TDD 執行紀律由 superpowers:test-driven-development 保留。
+  diagnose:
+    upstream_path: skills/engineering/diagnose/
+    reason: covered-by-superpowers
+    notes: 系統化除錯由 superpowers:systematic-debugging 保留。
+  zoom-out:
+    upstream_path: skills/engineering/zoom-out/
+    reason: out-of-initial-scope
+    notes: 與本次 P0-P2 工作入口層不直接相關，未列入第一輪。
+  grill-me:
+    upstream_path: skills/productivity/grill-me/
+    reason: personal-productivity
+    notes: 個人生產力技能，不納入專案工作流。
+  caveman:
+    upstream_path: skills/productivity/caveman/
+    reason: personal-productivity
+    notes: 個人生產力技能，不納入專案工作流。
+  write-a-skill:
+    upstream_path: skills/productivity/write-a-skill/
+    reason: existing-local-workflow
+    notes: 本專案已有 skill-creator 與 custom-skill-creator。
+  personal:
+    upstream_path: skills/personal/
+    reason: personal-scope
+    notes: 個人工作流技能，不納入共享專案工作流。
+  misc:
+    upstream_path: skills/misc/
+    reason: non-core-workflow
+    notes: 雜項技能不屬於 MP 工作入口層。
+  deprecated:
+    upstream_path: skills/deprecated/
+    reason: deprecated-upstream
+    notes: 上游已標記 deprecated，不導入。
