@@ -26,7 +26,8 @@
 
 ## Impact
 
-- 程式碼：`script/utils/smart_merge.py`（3-way 比對、prompt UI）、`script/utils/manifest.py`（v2 schema 讀寫、migration）、`script/services/pipeline/clone_pipeline.py`（summary、3-way dispatch）、`script/commands/clone.py`（無重大改動，傳遞旗標）。
+- 程式碼：`script/utils/manifest.py`（v2 schema、file-level entries、3-way 分類、skip 記憶、per-file prompt UI）、`script/utils/shared.py`（`copy_custom_skills_to_targets` 內 detect 與 dispatch 改採 3-way、移除 batch 5-option UI 改走 per-file）、`script/services/pipeline/clone_pipeline.py`（per-source summary 入口）、`script/commands/clone.py`（不變動 CLI）。
+- **不**動 `script/utils/smart_merge.py`：那是 `project.py` 的專案模板同步路徑，與 clone 無關。
 - 資料檔：`~/.config/ai-dev/manifests/<target>.yaml` schema 升級；首次 clone 觸發 migration。
 - 使用者體驗：來源未變時不再被反覆追問；衝突更精確；多來源狀況一目了然。
 - 文件：`docs/adr/0001-ai-dev-clone-file-level-3way-merge.md`（已 Accepted）為設計依據。
