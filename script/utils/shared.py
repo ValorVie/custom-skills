@@ -1049,7 +1049,7 @@ def _copy_with_log(
                 else:
                     shutil.copytree(item, dst_item, dirs_exist_ok=True)
                 if record_method:
-                    record_method(item.name, dst_item, source=source)
+                    record_method(item.name, dst_item, source=source, src_path=item)
         elif resource_type == "plugins":
             # Plugins 可能包含任意檔案結構（ts/json/scripts），直接複製整個目錄
             shutil.copytree(src, dst, dirs_exist_ok=True)
@@ -1069,7 +1069,7 @@ def _copy_with_log(
                     dst_item = dst / item.name
                     shutil.copy2(item, dst_item)
                     if record_method:
-                        record_method(name, dst_item, source=source)
+                        record_method(name, dst_item, source=source, src_path=item)
     else:
         # 無 tracker，仍需尊重 clone policy
         if resource_type == "skills":
@@ -1090,6 +1090,268 @@ def _copy_with_log(
                     shutil.copytree(item, dst_item, dirs_exist_ok=True)
         else:
             shutil.copytree(src, dst, dirs_exist_ok=True)
+
+
+# ============================================================
+# v2: 3-way merge dispatch helpers
+# ============================================================
+
+
+def _v2_get_dst_path(target: str, resource_type: str, name: str, rel: str | None) -> Path | None:
+    """取得 target 內某資源檔案的實際路徑。"""
+    base_path = get_target_path(target, resource_type)
+    if base_path is None:
+        return None
+    if resource_type == "skills":
+        if rel is None:
+            return base_path / name
+        return base_path / name / rel
+    return base_path / f"{name}.md"
+
+
+def _v2_repo_rel(resource_type: str, name: str, rel: str | None) -> str:
+    """src repo 內的相對路徑，用於 git log 查詢。"""
+    if resource_type == "skills":
+        return f"skills/{name}/{rel}" if rel else f"skills/{name}"
+    if resource_type == "commands":
+        return f"commands/{name}.md"
+    if resource_type == "agents":
+        return f"agents/{name}.md"
+    if resource_type == "workflows":
+        return f"commands/workflows/{name}.md"
+    return name
+
+
+def _v2_classify_and_resolve(
+    *,
+    target: str,
+    tracker,
+    old_manifest: dict | None,
+    force: bool,
+    skip_conflicts: bool,
+    backup: bool,
+):
+    """3-way 預分類，回傳：
+
+    - decisions: dict 含 'overwrite_set' / 'skip_set' / 'no_base_skill_set' 等
+    - preserved_dst: dict[Path, bytes]（pre-copy snapshot，post-copy 還原）
+    - post_overwrite_record: list[tuple]，每筆是要寫 FileEntry 的覆蓋紀錄
+    - source_heads: dict[source, commit]
+    """
+    from .manifest import (
+        is_v2,
+        get_file_entry,
+        is_skipped,
+        is_base_valid,
+        classify_file,
+        get_repo_head,
+        get_file_commit,
+        compute_file_hash,
+        prompt_file_decision,
+        get_repo_blob,
+        clear_skip,
+    )
+
+    decisions = {
+        "overwrite_set": set(),       # (rt, name, rel) — 確定要覆蓋（clean 或 prompt 後 overwrite）
+        "skip_set": set(),            # (rt, name, rel) — 寫 skip 記憶（both-changed 選 skip）
+        "local_only_set": set(),      # (rt, name, rel) — 本地保留、靜默
+        "no_base_skill_set": set(),   # (rt, name) — 退回 batch UI 處理
+    }
+    preserved_dst: dict[Path, bytes] = {}
+    # (rt, name, rel, src_hash, src_commit, src_source, dst_hash_planned, decision_label)
+    post_overwrite_record: list[tuple] = []
+    source_heads: dict[str, str] = {}
+
+    # 先蒐集所有來源 HEAD
+    sources_seen: set[str] = set()
+    for resource_type in ("skills", "commands", "agents", "workflows"):
+        for name, record in getattr(tracker, resource_type).items():
+            sources_seen.add(record.source)
+    for source in sources_seen:
+        head = get_repo_head(source)
+        if head:
+            source_heads[source] = head
+
+    def _snapshot_dst(p: Path) -> None:
+        if p.exists() and p.is_file():
+            try:
+                preserved_dst[p] = p.read_bytes()
+            except Exception:
+                pass
+
+    def _resolve_file(
+        resource_type: str,
+        name: str,
+        rel: str | None,
+        src_hash: str,
+        src_path: Path,
+        source: str,
+    ) -> None:
+        dst_path = _v2_get_dst_path(target, resource_type, name, rel)
+        if dst_path is None:
+            return
+
+        dst_hash = compute_file_hash(dst_path) if dst_path.exists() else ""
+
+        # 取本檔對應 src_commit
+        repo_rel = _v2_repo_rel(resource_type, name, rel)
+        current_src_commit = (
+            get_file_commit(source, repo_rel) or source_heads.get(source) or ""
+        )
+
+        file_entry = get_file_entry(old_manifest, resource_type, name, rel)
+
+        # base 失效 → 視為 no-base
+        if file_entry is not None and not is_base_valid(file_entry):
+            file_entry = None
+
+        # skip 記憶
+        if file_entry is not None and is_skipped(
+            old_manifest, resource_type, name, rel, current_src_commit
+        ):
+            decisions["local_only_set"].add((resource_type, name, rel))
+            _snapshot_dst(dst_path)
+            return
+
+        cls = classify_file(file_entry, src_hash, dst_hash) if file_entry else "no-base"
+
+        if cls == "clean":
+            decisions["overwrite_set"].add((resource_type, name, rel))
+            post_overwrite_record.append(
+                (resource_type, name, rel, src_hash, current_src_commit, source, src_hash, "accepted")
+            )
+            return
+
+        if cls == "local-only":
+            decisions["local_only_set"].add((resource_type, name, rel))
+            _snapshot_dst(dst_path)
+            return
+
+        if cls == "no-base":
+            # 整個 skill 退回 batch；只記 skill-level
+            decisions["no_base_skill_set"].add((resource_type, name))
+            return
+
+        # both-changed
+        if force:
+            decisions["overwrite_set"].add((resource_type, name, rel))
+            post_overwrite_record.append(
+                (resource_type, name, rel, src_hash, current_src_commit, source, src_hash, "overwritten")
+            )
+            return
+        if skip_conflicts:
+            decisions["skip_set"].add((resource_type, name, rel, current_src_commit))
+            _snapshot_dst(dst_path)
+            return
+        if backup:
+            # 備份原檔再覆蓋
+            try:
+                backup_dir = Path.home() / ".config" / "ai-dev" / "backups" / target / resource_type / name
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                ts = datetime.now().strftime("%Y%m%dT%H%M%S")
+                backup_target = backup_dir / f"{rel or name}.{ts}"
+                backup_target.parent.mkdir(parents=True, exist_ok=True)
+                if dst_path.exists():
+                    shutil.copy2(dst_path, backup_target)
+            except Exception:
+                pass
+            decisions["overwrite_set"].add((resource_type, name, rel))
+            post_overwrite_record.append(
+                (resource_type, name, rel, src_hash, current_src_commit, source, src_hash, "overwritten")
+            )
+            return
+
+        # 互動 prompt
+        def base_blob_getter(_rel: str):
+            if file_entry is None:
+                return None
+            return get_repo_blob(file_entry.src_source, file_entry.src_commit, repo_rel)
+
+        action = prompt_file_decision(
+            skill_name=f"{resource_type}/{name}",
+            rel_path=rel or "<file>",
+            src_path=src_path,
+            dst_path=dst_path,
+            base_blob_getter=base_blob_getter,
+        )
+        if action == "overwrite":
+            decisions["overwrite_set"].add((resource_type, name, rel))
+            post_overwrite_record.append(
+                (resource_type, name, rel, src_hash, current_src_commit, source, src_hash, "overwritten")
+            )
+        else:
+            decisions["skip_set"].add((resource_type, name, rel, current_src_commit))
+            _snapshot_dst(dst_path)
+
+    # 走訪 tracker，逐檔分類
+    for name, record in tracker.skills.items():
+        if not record.files:
+            # 沒收到 file map，整個 skill 退回 batch
+            decisions["no_base_skill_set"].add(("skills", name))
+            continue
+        src_root = record.src_path or record.source_path
+        if src_root is None:
+            decisions["no_base_skill_set"].add(("skills", name))
+            continue
+        for rel, src_hash in record.files.items():
+            src_file = src_root / rel
+            _resolve_file("skills", name, rel, src_hash, src_file, record.source)
+
+    for resource_type in ("commands", "agents", "workflows"):
+        for name, record in getattr(tracker, resource_type).items():
+            src_path = record.src_path or record.source_path
+            if src_path is None:
+                continue
+            _resolve_file(resource_type, name, None, record.hash, src_path, record.source)
+
+    return decisions, preserved_dst, post_overwrite_record, source_heads
+
+
+def _v2_restore_preserved(preserved_dst: dict[Path, bytes]) -> None:
+    """post-copy 還原 local-only / skipped 檔案。"""
+    if not preserved_dst:
+        return
+    for path, content in preserved_dst.items():
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        except Exception as e:
+            console.print(f"[yellow]警告：還原 {path} 失敗 ({e})[/yellow]")
+    if preserved_dst:
+        console.print(f"[dim]已還原 {len(preserved_dst)} 個本地保留檔案[/dim]")
+
+
+def _v2_apply_decisions(
+    new_manifest: dict,
+    post_overwrite_record: list[tuple],
+    decisions: dict,
+) -> None:
+    """寫入 v2 file decisions（覆蓋的 FileEntry 與 skip 記憶）。"""
+    from .manifest import (
+        record_file_decision,
+        record_skip,
+    )
+    for entry in post_overwrite_record:
+        rt, name, rel, src_hash, src_commit, src_source, dst_hash, decision = entry
+        if not src_commit:
+            continue
+        record_file_decision(
+            new_manifest,
+            rt,
+            name,
+            rel,
+            src_hash=src_hash,
+            src_commit=src_commit,
+            src_source=src_source,
+            dst_hash=dst_hash,
+            decision=decision,
+        )
+    for entry in decisions.get("skip_set", set()):
+        rt, name, rel, src_commit = entry
+        if not src_commit:
+            continue
+        record_skip(new_manifest, rt, name, rel, src_commit)
 
 
 def copy_custom_skills_to_targets(
@@ -1122,6 +1384,23 @@ def copy_custom_skills_to_targets(
         cleanup_orphans,
         backup_file,
         get_project_version,
+        # v2 helpers
+        is_v2,
+        maybe_migrate_manifest,
+        get_file_entry,
+        is_skipped,
+        is_base_valid,
+        classify_file,
+        record_file_decision,
+        record_skip,
+        clear_skip,
+        update_last_sync_commit,
+        get_repo_head,
+        get_file_commit,
+        get_repo_blob,
+        compute_file_hash,
+        prompt_file_decision,
+        SCHEMA_VERSION,
     )
 
     console.print("[bold cyan]Stage 3: 分發到各工具目錄...[/bold cyan]")
@@ -1244,36 +1523,53 @@ def copy_custom_skills_to_targets(
         if dist_config:
             _prescan_ecc(target, record_method_map, dist_config)
 
-        # 3. 檢測衝突
-        conflicts = detect_conflicts(target, old_manifest, tracker)
+        # 3. v2 file-level 3-way 分類（先 migrate manifest 再分類）
+        if old_manifest is not None and not is_v2(old_manifest):
+            # 觸發 migration 並重新讀
+            old_manifest = maybe_migrate_manifest(target) or old_manifest
+
+        v2_decisions, preserved_dst, post_overwrite_record, source_heads = (
+            _v2_classify_and_resolve(
+                target=target,
+                tracker=tracker,
+                old_manifest=old_manifest,
+                force=force,
+                skip_conflicts=skip_conflicts,
+                backup=backup,
+            )
+        )
+
+        # 3.5 對 no-base 衝突仍走舊 batch UI（保留現行體驗）
+        no_base_conflicts = [
+            c for c in detect_conflicts(target, old_manifest, tracker)
+            if (c.resource_type, c.name) in v2_decisions.get("no_base_skill_set", set())
+        ]
         skip_names: set[str] = set()
 
-        if conflicts:
-            # 決定衝突處理方式
-            if force:
-                action = "force"
-            elif skip_conflicts:
-                action = "skip"
-            elif backup:
-                action = "backup"
-            else:
-                # 互動式詢問（支援查看差異後重新選擇）
-                display_conflicts(conflicts)
-                action = prompt_conflict_action(conflicts)
-                while action == "diff":
-                    show_conflict_diff(conflicts)
-                    display_conflicts(conflicts)
-                    action = prompt_conflict_action(conflicts)
-
+        if no_base_conflicts and not force and not skip_conflicts and not backup:
+            display_conflicts(no_base_conflicts)
+            action = prompt_conflict_action(no_base_conflicts)
+            while action == "diff":
+                show_conflict_diff(no_base_conflicts)
+                display_conflicts(no_base_conflicts)
+                action = prompt_conflict_action(no_base_conflicts)
             if action == "abort":
                 console.print("[yellow]已取消分發[/yellow]")
                 return
             elif action == "skip":
-                skip_names = {c.name for c in conflicts}
-                console.print(f"[yellow]跳過 {len(skip_names)} 個衝突檔案[/yellow]")
+                skip_names = {c.name for c in no_base_conflicts}
+                console.print(f"[yellow]跳過 {len(skip_names)} 個 no-base 衝突檔案[/yellow]")
             elif action == "backup":
-                console.print("[cyan]備份衝突檔案...[/cyan]")
-                for conflict in conflicts:
+                console.print("[cyan]備份 no-base 衝突檔案...[/cyan]")
+                for conflict in no_base_conflicts:
+                    backup_file(target, conflict.resource_type, conflict.name)
+        elif no_base_conflicts:
+            if force:
+                pass  # 直接覆蓋
+            elif skip_conflicts:
+                skip_names = {c.name for c in no_base_conflicts}
+            elif backup:
+                for conflict in no_base_conflicts:
                     backup_file(target, conflict.resource_type, conflict.name)
 
         # 4. 重新建立 tracker（因為可能有跳過的檔案）
@@ -1320,8 +1616,18 @@ def copy_custom_skills_to_targets(
             dist_config=dist_config,
         )
 
-        # 6. 產生新 manifest
-        new_manifest = tracker.to_manifest(version)
+        # 5.7 v2 post-copy: 還原 local-only / skipped 檔案
+        _v2_restore_preserved(preserved_dst)
+
+        # 6. 產生新 manifest（v2，承接舊 manifest 的 FileEntry 與 skipped）
+        new_manifest = tracker.to_manifest(
+            version,
+            previous_manifest=old_manifest,
+            last_sync_commit_by_source=source_heads,
+        )
+
+        # 6.5 v2 寫回本輪覆蓋與 skip 決定
+        _v2_apply_decisions(new_manifest, post_overwrite_record, v2_decisions)
 
         # 7. 處理跳過的衝突檔案
         # 跳過的檔案應保留在 manifest 中（保留舊 hash），這樣下次分發仍可檢測衝突
@@ -1661,7 +1967,7 @@ def _distribute_ecc_selective(
                     dst_item = dst / item.name
                     shutil.copytree(item, dst_item, dirs_exist_ok=True)
                     # 用 dst_item 而非來源路徑：多來源合併後目標內容可能與任一來源不同
-                    tracker.record_skill(item.name, dst_item, source="ecc")
+                    tracker.record_skill(item.name, dst_item, source="ecc", src_path=item)
 
     # Commands
     commands_config = distribute.get("commands", {})
@@ -1686,7 +1992,7 @@ def _distribute_ecc_selective(
                         continue
                     dst_item = dst / item.name
                     shutil.copy2(item, dst_item)
-                    tracker.record_command(name, dst_item, source="ecc")
+                    tracker.record_command(name, dst_item, source="ecc", src_path=item)
 
     # Agents
     agents_config = distribute.get("agents", {})
@@ -1711,7 +2017,7 @@ def _distribute_ecc_selective(
                         continue
                     dst_item = dst / item.name
                     shutil.copy2(item, dst_item)
-                    tracker.record_agent(name, dst_item, source="ecc")
+                    tracker.record_agent(name, dst_item, source="ecc", src_path=item)
 
 
 def _is_custom_skills_project(project_root: Path) -> bool:

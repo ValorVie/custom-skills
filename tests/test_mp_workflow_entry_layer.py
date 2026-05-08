@@ -48,7 +48,8 @@ def test_mp_is_not_project_template_or_project_projection():
     for entrypoint in ["CLAUDE.md", "AGENTS.md"]:
         text = _read_text(ROOT / entrypoint)
 
-        assert "docs/agents/mp-workflow.md" not in text
+        # MP 入口層提示應指向 docs/agents/，但不可在 entrypoint 中夾帶
+        # mp-setup 等 skill 細節（避免重複維護）。
         assert "mp-setup-matt-pocock-skills" not in text
 
 

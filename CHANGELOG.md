@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ai-dev clone**：file-level 3-way merge tracking（OpenSpec change `add-clone-3way-merge-tracking`）。
+  - `~/.config/ai-dev/manifests/<target>.yaml` 升級為 schema v2，記錄 base hash + src commit + decision，支援 `clean / local-only / both-changed / no-base` 分類。
+  - clone 啟動時逐 source 顯示更新摘要（custom-skills、ecc、custom repos）。
+  - both-changed 進入 per-file prompt（`[Ds]/[Dl]/[Dc]` 三向 diff、`[O]/[S]` action）。
+  - skip 記憶以 `(file, src_commit)` 為 key，src_commit 一變立刻重評估。
+  - 詳見 `docs/adr/0001-ai-dev-clone-file-level-3way-merge.md`。
+- **BREAKING**：v1 manifest 在第一次跑 v2 程式時自動 migration 並備份至 `~/.config/ai-dev/manifests/.backup-v1/<target>.yaml.<timestamp>`。對 `dst==src` 的檔案保守標 base、其他退回 no-base。可透過備份 rollback。
 - `ai-dev install-npx-skills` 命令：依 `upstream/npx-skills.yaml` 批次安裝 npx skills
 - 新 pipeline phase `npx-skills`，整合進 install/update 預設流程
 - `upstream/npx-skills.yaml`：定義由 npx 維護的官方/權威 skill 清單（12 個 skill、3 個 package）

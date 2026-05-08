@@ -97,6 +97,13 @@
 - **`--untrack` 反向指令**：本輪不做。
 - **既有 `version: 1.2.8` 欄位**：忽略，以實際檔案為主；v2 用獨立的 `schema_version: 2` 欄位辨識。
 
+## 實作對應
+
+- 主要實作於 `script/utils/manifest.py`（v2 schema、3-way 分類、prompt UI、migration）與 `script/utils/shared.py:copy_custom_skills_to_targets`（dispatch、post-copy restore、寫回 manifest）。
+- per-source summary 於 `script/services/pipeline/clone_pipeline.py:execute_clone_plan`。
+- **不**涉及 `script/utils/smart_merge.py`：那是 `project.py` 的專案模板同步路徑。
+
 ## Status 變更紀錄
 
 - 2026-05-08：Proposed → Accepted（mp-grill-with-docs 對話沉澱、open questions 全數收斂）
+- 2026-05-08：實作完成（OpenSpec change `add-clone-3way-merge-tracking`）
