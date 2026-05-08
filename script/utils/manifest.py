@@ -1,11 +1,20 @@
 """
 Manifest 機制：追蹤分發檔案並管理孤兒清理與衝突檢測。
+
+Schema v2：以 file 為單位記錄 base hash + src commit + decision，支援 3-way
+衝突分類（clean / local-only / both-changed / no-base）與 skip 記憶。
+
+v1 向下相容：v1 manifest 在第一次讀取時自動 migration；下游若需要 v1 view
+可呼叫 `v2_to_v1_view()`。
 """
 
 import hashlib
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 import yaml
 from rich.console import Console
 
@@ -20,6 +29,10 @@ RESOURCE_TYPES: tuple[ResourceType, ...] = (
     "agents",
     "workflows",
 )
+
+SCHEMA_VERSION = 2
+
+ConflictClass = Literal["clean", "local-only", "both-changed", "no-base"]
 
 
 # ============================================================
@@ -41,6 +54,31 @@ def compute_file_hash(path: Path) -> str:
         for chunk in iter(lambda: f.read(8192), b""):
             sha256.update(chunk)
     return f"sha256:{sha256.hexdigest()}"
+
+
+def _is_excluded_for_hash(file_path: Path) -> bool:
+    """檢查檔案是否應被 hash 計算排除。"""
+    if "__pycache__" in file_path.parts:
+        return True
+    if file_path.suffix in {".pyc", ".pyo"}:
+        return True
+    return False
+
+
+def compute_skill_file_map(path: Path) -> dict[str, str]:
+    """對 skill 目錄內每個檔案計算 sha256，回傳 rel_path → sha256 對照表。
+
+    使用與 compute_dir_hash 相同的排除規則。
+    """
+    if not path.is_dir():
+        return {}
+    out: dict[str, str] = {}
+    for file_path in sorted(path.rglob("*"), key=lambda p: str(p.relative_to(path))):
+        if not file_path.is_file() or _is_excluded_for_hash(file_path):
+            continue
+        rel = str(file_path.relative_to(path))
+        out[rel] = compute_file_hash(file_path)
+    return out
 
 
 def compute_dir_hash(path: Path) -> str:
@@ -86,13 +124,75 @@ def compute_dir_hash(path: Path) -> str:
 
 
 @dataclass
+class FileEntry:
+    """單一檔案的 v2 base 紀錄。"""
+
+    src_hash: str
+    src_commit: str
+    src_source: str
+    dst_hash_at_sync: str
+    decision: str
+    decided_at: str
+
+    def to_dict(self) -> dict:
+        return {
+            "src_hash": self.src_hash,
+            "src_commit": self.src_commit,
+            "src_source": self.src_source,
+            "dst_hash_at_sync": self.dst_hash_at_sync,
+            "decision": self.decision,
+            "decided_at": self.decided_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FileEntry | None":
+        required = ("src_hash", "src_commit", "src_source", "dst_hash_at_sync")
+        if not all(k in data for k in required):
+            return None
+        return cls(
+            src_hash=data["src_hash"],
+            src_commit=data["src_commit"],
+            src_source=data["src_source"],
+            dst_hash_at_sync=data["dst_hash_at_sync"],
+            decision=data.get("decision", "accepted"),
+            decided_at=data.get("decided_at", ""),
+        )
+
+
+@dataclass
+class SkippedEntry:
+    """skip 記憶。"""
+
+    src_commit: str
+    decided_at: str
+
+    def to_dict(self) -> dict:
+        return {"src_commit": self.src_commit, "decided_at": self.decided_at}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SkippedEntry | None":
+        if "src_commit" not in data:
+            return None
+        return cls(src_commit=data["src_commit"], decided_at=data.get("decided_at", ""))
+
+
+@dataclass
 class FileRecord:
-    """記錄單一檔案/目錄的資訊。"""
+    """記錄單一檔案/目錄的資訊。
+
+    v2 擴充：
+    - `files`: skill 內 rel_path → sha256 對照（單檔資源為空 dict）。
+    - `src_path`: 真正的 src 來源路徑（用於查 git commit；不寫 manifest）。
+    - `src_commit`: 預先解析的 src commit（不寫到本欄，會落到 FileEntry）。
+    """
 
     name: str
     hash: str
     source: str = "custom-skills"
     source_path: Path | None = None
+    files: dict[str, str] = field(default_factory=dict)
+    src_path: Path | None = None
+    src_commit: str | None = None
 
 
 @dataclass
@@ -118,63 +218,149 @@ class ManifestTracker:
     workflows: dict[str, FileRecord] = field(default_factory=dict)
 
     def record_skill(
-        self, name: str, source_path: Path, source: str = "custom-skills"
+        self,
+        name: str,
+        source_path: Path,
+        source: str = "custom-skills",
+        src_path: Path | None = None,
     ) -> None:
-        """記錄已複製的 skill。"""
+        """記錄已複製的 skill。
+
+        Args:
+            source_path: 用於 hash / file map 計算的路徑（通常是 dst 副本）。
+            src_path: 真正的 src 來源路徑（用於查 git commit）。
+        """
         hash_value = compute_dir_hash(source_path)
+        files_map = compute_skill_file_map(source_path)
         self.skills[name] = FileRecord(
-            name=name, hash=hash_value, source=source, source_path=source_path
+            name=name,
+            hash=hash_value,
+            source=source,
+            source_path=source_path,
+            files=files_map,
+            src_path=src_path or source_path,
         )
 
     def record_command(
-        self, name: str, source_path: Path, source: str = "custom-skills"
+        self,
+        name: str,
+        source_path: Path,
+        source: str = "custom-skills",
+        src_path: Path | None = None,
     ) -> None:
         """記錄已複製的 command。"""
         hash_value = compute_file_hash(source_path)
         self.commands[name] = FileRecord(
-            name=name, hash=hash_value, source=source, source_path=source_path
+            name=name,
+            hash=hash_value,
+            source=source,
+            source_path=source_path,
+            src_path=src_path or source_path,
         )
 
     def record_agent(
-        self, name: str, source_path: Path, source: str = "custom-skills"
+        self,
+        name: str,
+        source_path: Path,
+        source: str = "custom-skills",
+        src_path: Path | None = None,
     ) -> None:
         """記錄已複製的 agent。"""
         hash_value = compute_file_hash(source_path)
         self.agents[name] = FileRecord(
-            name=name, hash=hash_value, source=source, source_path=source_path
+            name=name,
+            hash=hash_value,
+            source=source,
+            source_path=source_path,
+            src_path=src_path or source_path,
         )
 
     def record_workflow(
-        self, name: str, source_path: Path, source: str = "custom-skills"
+        self,
+        name: str,
+        source_path: Path,
+        source: str = "custom-skills",
+        src_path: Path | None = None,
     ) -> None:
         """記錄已複製的 workflow。"""
         hash_value = compute_file_hash(source_path)
         self.workflows[name] = FileRecord(
-            name=name, hash=hash_value, source=source, source_path=source_path
+            name=name,
+            hash=hash_value,
+            source=source,
+            source_path=source_path,
+            src_path=src_path or source_path,
         )
 
-    def to_manifest(self, version: str) -> dict:
-        """轉換為 manifest 字典格式。"""
+    def to_manifest(
+        self,
+        version: str,
+        *,
+        previous_manifest: dict | None = None,
+        last_sync_commit_by_source: dict[str, str] | None = None,
+    ) -> dict:
+        """轉換為 v2 manifest 字典格式。
+
+        Args:
+            version: 專案版本（保留 v1 的 `version` 欄位）。
+            previous_manifest: 既有 manifest，用於保留現有 FileEntry 與 skipped。
+            last_sync_commit_by_source: 本輪結束時各 source 的 HEAD commit。
+        """
+        prev_files = (previous_manifest or {}).get("files", {})
+
+        def build_skill_entry(name: str, record: FileRecord) -> dict:
+            entry: dict = {"hash": record.hash, "source": record.source}
+            prev = prev_files.get("skills", {}).get(name, {})
+            existing_files = prev.get("files", {}) if isinstance(prev, dict) else {}
+            existing_skipped = prev.get("skipped", {}) if isinstance(prev, dict) else {}
+            files_block: dict = {}
+            for rel, file_hash in record.files.items():
+                base = existing_files.get(rel)
+                if isinstance(base, dict):
+                    files_block[rel] = base
+            if files_block:
+                entry["files"] = files_block
+            if existing_skipped:
+                entry["skipped"] = existing_skipped
+            return entry
+
+        def build_single_entry(record: FileRecord, prev_section: dict) -> dict:
+            entry: dict = {"hash": record.hash, "source": record.source}
+            prev = prev_section.get(record.name, {})
+            for k in ("src_hash", "src_commit", "src_source", "dst_hash_at_sync", "decision", "decided_at"):
+                if isinstance(prev, dict) and k in prev:
+                    entry[k] = prev[k]
+            if isinstance(prev, dict) and "skipped" in prev:
+                entry["skipped"] = prev["skipped"]
+            return entry
+
+        prev_commit_map = (previous_manifest or {}).get("last_sync_commit_by_source", {}) or {}
+        merged_commit_map = dict(prev_commit_map)
+        if last_sync_commit_by_source:
+            merged_commit_map.update(last_sync_commit_by_source)
+
         return {
+            "schema_version": SCHEMA_VERSION,
             "managed_by": "ai-dev",
             "version": version,
             "last_sync": datetime.now().astimezone().isoformat(),
             "target": self.target,
+            "last_sync_commit_by_source": merged_commit_map,
             "files": {
                 "skills": {
-                    name: {"hash": record.hash, "source": record.source}
+                    name: build_skill_entry(name, record)
                     for name, record in self.skills.items()
                 },
                 "commands": {
-                    name: {"hash": record.hash, "source": record.source}
+                    name: build_single_entry(record, prev_files.get("commands", {}))
                     for name, record in self.commands.items()
                 },
                 "agents": {
-                    name: {"hash": record.hash, "source": record.source}
+                    name: build_single_entry(record, prev_files.get("agents", {}))
                     for name, record in self.agents.items()
                 },
                 "workflows": {
-                    name: {"hash": record.hash, "source": record.source}
+                    name: build_single_entry(record, prev_files.get("workflows", {}))
                     for name, record in self.workflows.items()
                 },
             },
@@ -606,3 +792,657 @@ def get_project_version() -> str:
         pass
 
     return "unknown"
+
+
+# ============================================================
+# v2: 3-way merge tracking helpers
+# ============================================================
+
+
+SOURCE_REPO_PATHS: dict[str, Path] = {
+    "custom-skills": Path.home() / ".config" / "custom-skills",
+    "ecc": Path.home() / ".config" / "everything-claude-code",
+}
+
+
+def get_source_repo_path(source: str) -> Path | None:
+    """回傳指定 source 的本地 git repo 路徑。"""
+    if source in SOURCE_REPO_PATHS:
+        path = SOURCE_REPO_PATHS[source]
+        return path if path.exists() else None
+    # custom repo：從 repos.yaml 取
+    try:
+        from .custom_repos import load_custom_repos
+
+        repos = load_custom_repos().get("repos", {})
+        info = repos.get(source)
+        if info:
+            local_path = Path(
+                info.get("local_path", "").replace("~", str(Path.home()))
+            )
+            if local_path.exists():
+                return local_path
+    except Exception:
+        return None
+    return None
+
+
+def _git(repo: Path, *args: str) -> str | None:
+    """執行 git 指令並回傳 stdout strip 後的字串；失敗回 None。"""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+        return result.stdout.strip()
+    except Exception:
+        return None
+
+
+def get_repo_head(source: str) -> str | None:
+    """取得指定 source 當前 HEAD commit。"""
+    repo = get_source_repo_path(source)
+    if not repo:
+        return None
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def get_file_commit(source: str, rel_path: str, before: str | None = None) -> str | None:
+    """取得 source repo 內指定 rel_path 的最後 commit。
+
+    Args:
+        before: ISO 時間戳，若提供則取該時間之前最新的 commit。
+    """
+    repo = get_source_repo_path(source)
+    if not repo:
+        return None
+    args = ["log", "-1", "--format=%H"]
+    if before:
+        args.extend(["--before", before])
+    args.extend(["--", rel_path])
+    return _git(repo, *args)
+
+
+def get_repo_blob(source: str, commit: str, rel_path: str) -> bytes | None:
+    """取得 source repo 內指定 commit:rel_path 的 blob 內容。"""
+    repo = get_source_repo_path(source)
+    if not repo:
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "show", f"{commit}:{rel_path}"],
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+        return result.stdout
+    except Exception:
+        return None
+
+
+def is_commit_valid(source: str, commit: str) -> bool:
+    """檢查 commit 是否仍存在於 source repo。"""
+    repo = get_source_repo_path(source)
+    if not repo:
+        return False
+    result = _git(repo, "cat-file", "-e", f"{commit}^{{commit}}")
+    # cat-file -e 成功時無 stdout，失敗回 None
+    return result is not None or _git(repo, "rev-parse", "--verify", f"{commit}^{{commit}}") is not None
+
+
+def list_changed_files(source: str, last_commit: str, head: str) -> list[str]:
+    """回傳 last_commit..head 之間變動的檔案清單。"""
+    repo = get_source_repo_path(source)
+    if not repo:
+        return []
+    out = _git(repo, "diff", "--name-only", f"{last_commit}..{head}")
+    if not out:
+        return []
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+# ------------------------------------------------------------
+# Schema 偵測 / file entry 存取
+# ------------------------------------------------------------
+
+
+def is_v2(manifest: dict | None) -> bool:
+    return bool(manifest) and int(manifest.get("schema_version", 0) or 0) >= 2
+
+
+def get_file_entry(
+    manifest: dict | None,
+    resource_type: ResourceType,
+    name: str,
+    rel_path: str | None = None,
+) -> FileEntry | None:
+    """取得 v2 manifest 內某 file 的 FileEntry。
+
+    對 commands/agents/workflows 不傳 rel_path（單檔）。
+    """
+    if not is_v2(manifest):
+        return None
+    section = manifest.get("files", {}).get(resource_type, {})
+    entry_block = section.get(name)
+    if not isinstance(entry_block, dict):
+        return None
+    if resource_type == "skills":
+        if rel_path is None:
+            return None
+        files = entry_block.get("files", {})
+        raw = files.get(rel_path)
+        return FileEntry.from_dict(raw) if isinstance(raw, dict) else None
+    return FileEntry.from_dict(entry_block)
+
+
+def get_skipped_entry(
+    manifest: dict | None,
+    resource_type: ResourceType,
+    name: str,
+    rel_path: str | None = None,
+) -> SkippedEntry | None:
+    if not is_v2(manifest):
+        return None
+    section = manifest.get("files", {}).get(resource_type, {})
+    entry_block = section.get(name)
+    if not isinstance(entry_block, dict):
+        return None
+    skipped = entry_block.get("skipped", {})
+    if resource_type == "skills":
+        if rel_path is None:
+            return None
+        raw = skipped.get(rel_path) if isinstance(skipped, dict) else None
+    else:
+        raw = skipped if isinstance(skipped, dict) else None
+    return SkippedEntry.from_dict(raw) if isinstance(raw, dict) else None
+
+
+# ------------------------------------------------------------
+# 3-way 分類
+# ------------------------------------------------------------
+
+
+def classify_file(
+    file_entry: FileEntry | None,
+    src_hash: str,
+    dst_hash: str,
+) -> ConflictClass:
+    """3-way 衝突分類。"""
+    if file_entry is None:
+        return "no-base"
+    if not file_entry.src_hash or not file_entry.dst_hash_at_sync:
+        return "no-base"
+    src_eq_base = src_hash == file_entry.src_hash
+    dst_eq_base = dst_hash == file_entry.dst_hash_at_sync
+    if src_eq_base and dst_eq_base:
+        return "clean"  # 無變動，由呼叫端決定不動作
+    if dst_eq_base and not src_eq_base:
+        return "clean"
+    if src_eq_base and not dst_eq_base:
+        return "local-only"
+    return "both-changed"
+
+
+def is_skipped(
+    manifest: dict | None,
+    resource_type: ResourceType,
+    name: str,
+    rel_path: str | None,
+    current_src_commit: str,
+) -> bool:
+    """檢查 (rel, current_src_commit) 是否命中 skipped 記憶。"""
+    skipped = get_skipped_entry(manifest, resource_type, name, rel_path)
+    if skipped is None:
+        return False
+    return skipped.src_commit == current_src_commit
+
+
+def is_base_valid(file_entry: FileEntry | None) -> bool:
+    """檢查 base 是否仍可用（src_commit 仍存在於來源 git）。"""
+    if file_entry is None:
+        return False
+    return is_commit_valid(file_entry.src_source, file_entry.src_commit)
+
+
+# ------------------------------------------------------------
+# v2 寫入：file decision / skip
+# ------------------------------------------------------------
+
+
+def _ensure_resource_section(manifest: dict, resource_type: ResourceType) -> dict:
+    files = manifest.setdefault("files", {})
+    return files.setdefault(resource_type, {})
+
+
+def _ensure_skill_files(manifest: dict, name: str) -> dict:
+    section = _ensure_resource_section(manifest, "skills")
+    skill = section.setdefault(name, {})
+    return skill.setdefault("files", {})
+
+
+def _ensure_skill_skipped(manifest: dict, name: str) -> dict:
+    section = _ensure_resource_section(manifest, "skills")
+    skill = section.setdefault(name, {})
+    return skill.setdefault("skipped", {})
+
+
+def record_file_decision(
+    manifest: dict,
+    resource_type: ResourceType,
+    name: str,
+    rel_path: str | None,
+    *,
+    src_hash: str,
+    src_commit: str,
+    src_source: str,
+    dst_hash: str,
+    decision: str,
+) -> None:
+    """寫入 FileEntry 並順帶清除可能的舊 skip 紀錄。"""
+    manifest.setdefault("schema_version", SCHEMA_VERSION)
+    entry = FileEntry(
+        src_hash=src_hash,
+        src_commit=src_commit,
+        src_source=src_source,
+        dst_hash_at_sync=dst_hash,
+        decision=decision,
+        decided_at=datetime.now().astimezone().isoformat(),
+    )
+    if resource_type == "skills":
+        if rel_path is None:
+            return
+        files = _ensure_skill_files(manifest, name)
+        files[rel_path] = entry.to_dict()
+        clear_skip(manifest, resource_type, name, rel_path)
+    else:
+        section = _ensure_resource_section(manifest, resource_type)
+        block = section.setdefault(name, {})
+        block.update(entry.to_dict())
+        clear_skip(manifest, resource_type, name, None)
+
+
+def record_skip(
+    manifest: dict,
+    resource_type: ResourceType,
+    name: str,
+    rel_path: str | None,
+    src_commit: str,
+) -> None:
+    manifest.setdefault("schema_version", SCHEMA_VERSION)
+    payload = SkippedEntry(
+        src_commit=src_commit,
+        decided_at=datetime.now().astimezone().isoformat(),
+    ).to_dict()
+    if resource_type == "skills":
+        if rel_path is None:
+            return
+        skipped = _ensure_skill_skipped(manifest, name)
+        skipped[rel_path] = payload
+    else:
+        section = _ensure_resource_section(manifest, resource_type)
+        block = section.setdefault(name, {})
+        block["skipped"] = payload
+
+
+def clear_skip(
+    manifest: dict,
+    resource_type: ResourceType,
+    name: str,
+    rel_path: str | None,
+) -> None:
+    section = manifest.get("files", {}).get(resource_type, {})
+    block = section.get(name)
+    if not isinstance(block, dict):
+        return
+    if resource_type == "skills":
+        skipped = block.get("skipped")
+        if isinstance(skipped, dict) and rel_path in skipped:
+            del skipped[rel_path]
+            if not skipped:
+                block.pop("skipped", None)
+    else:
+        block.pop("skipped", None)
+
+
+def update_last_sync_commit(manifest: dict, source: str, commit: str | None) -> None:
+    if not commit:
+        return
+    manifest.setdefault("schema_version", SCHEMA_VERSION)
+    manifest.setdefault("last_sync_commit_by_source", {})[source] = commit
+
+
+# ------------------------------------------------------------
+# v1 → v2 Migration
+# ------------------------------------------------------------
+
+
+def _backup_v1_manifest(target: TargetType) -> Path | None:
+    src = get_manifest_path(target)
+    if not src.exists():
+        return None
+    backup_dir = get_manifest_dir() / ".backup-v1"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    dst = backup_dir / f"{target}.yaml.{timestamp}"
+    try:
+        shutil.copy2(src, dst)
+        return dst
+    except Exception as e:
+        console.print(f"[yellow]警告：v1 manifest 備份失敗 ({e})[/yellow]")
+        return None
+
+
+def migrate_to_v2(v1_manifest: dict, target: TargetType) -> dict:
+    """v1 → v2 migration，僅對 dst==src 自動標 base。"""
+    if is_v2(v1_manifest):
+        return v1_manifest
+
+    last_sync = v1_manifest.get("last_sync")
+    new_manifest = dict(v1_manifest)
+    new_manifest["schema_version"] = SCHEMA_VERSION
+    new_manifest.setdefault("last_sync_commit_by_source", {})
+    files = new_manifest.setdefault("files", {})
+
+    for resource_type in RESOURCE_TYPES:
+        section = files.get(resource_type, {})
+        for name, block in list(section.items()):
+            if not isinstance(block, dict):
+                continue
+            old_hash = block.get("hash", "")
+            source = block.get("source", "custom-skills")
+            target_path = _get_target_resource_path(target, resource_type, name)
+            if target_path is None or not target_path.exists():
+                continue
+            if resource_type == "skills":
+                current_dir_hash = compute_dir_hash(target_path)
+                if current_dir_hash != old_hash:
+                    continue
+                file_map = compute_skill_file_map(target_path)
+                files_block: dict = {}
+                src_repo_root = get_source_repo_path(source)
+                for rel, file_hash in file_map.items():
+                    src_commit = None
+                    if src_repo_root:
+                        src_commit = get_file_commit(
+                            source, _resolve_repo_rel(src_repo_root, source, resource_type, name, rel),
+                            before=last_sync,
+                        )
+                    if not src_commit:
+                        continue
+                    files_block[rel] = FileEntry(
+                        src_hash=file_hash,
+                        src_commit=src_commit,
+                        src_source=source,
+                        dst_hash_at_sync=file_hash,
+                        decision="accepted",
+                        decided_at=last_sync or "",
+                    ).to_dict()
+                if files_block:
+                    block["files"] = files_block
+            else:
+                current_hash = compute_file_hash(target_path)
+                if current_hash != old_hash:
+                    continue
+                src_commit = None
+                src_repo_root = get_source_repo_path(source)
+                if src_repo_root:
+                    src_commit = get_file_commit(
+                        source,
+                        _resolve_repo_rel(src_repo_root, source, resource_type, name, None),
+                        before=last_sync,
+                    )
+                if not src_commit:
+                    continue
+                block.update(
+                    FileEntry(
+                        src_hash=current_hash,
+                        src_commit=src_commit,
+                        src_source=source,
+                        dst_hash_at_sync=current_hash,
+                        decision="accepted",
+                        decided_at=last_sync or "",
+                    ).to_dict()
+                )
+
+    return new_manifest
+
+
+def _resolve_repo_rel(
+    repo_root: Path,
+    source: str,
+    resource_type: ResourceType,
+    name: str,
+    rel_path: str | None,
+) -> str:
+    """推斷 source repo 內某資源的 rel path（用於 git log 查詢）。"""
+    if resource_type == "skills":
+        base = f"skills/{name}"
+        return f"{base}/{rel_path}" if rel_path else base
+    if resource_type == "commands":
+        return f"commands/{name}.md"
+    if resource_type == "agents":
+        return f"agents/{name}.md"
+    if resource_type == "workflows":
+        return f"commands/workflows/{name}.md"
+    return name
+
+
+def maybe_migrate_manifest(target: TargetType) -> dict | None:
+    """讀取 manifest，若為 v1 則 migrate 並寫回。回傳 v2 manifest。"""
+    raw = read_manifest(target)
+    if raw is None:
+        return None
+    if is_v2(raw):
+        return raw
+    backup = _backup_v1_manifest(target)
+    if backup:
+        console.print(
+            f"[dim]已備份 v1 manifest → {backup.name}（manifest schema 升級為 v2）[/dim]"
+        )
+    upgraded = migrate_to_v2(raw, target)
+    write_manifest(target, upgraded)
+    return upgraded
+
+
+# ------------------------------------------------------------
+# v2 → v1 view（向下相容，給 install / sync 等舊 reader）
+# ------------------------------------------------------------
+
+
+# ------------------------------------------------------------
+# Per-file prompt UI
+# ------------------------------------------------------------
+
+
+def _read_text_safe(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+
+
+def _bytes_to_text(data: bytes | None) -> str:
+    if data is None:
+        return ""
+    try:
+        return data.decode("utf-8", errors="replace")
+    except Exception:
+        return ""
+
+
+def _count_changes(diff_lines: list[str]) -> tuple[int, int]:
+    plus = sum(1 for line in diff_lines if line.startswith("+") and not line.startswith("+++"))
+    minus = sum(1 for line in diff_lines if line.startswith("-") and not line.startswith("---"))
+    return plus, minus
+
+
+def _unified_diff(
+    a_text: str,
+    b_text: str,
+    a_label: str,
+    b_label: str,
+) -> list[str]:
+    import difflib
+
+    return list(
+        difflib.unified_diff(
+            a_text.splitlines(keepends=True),
+            b_text.splitlines(keepends=True),
+            fromfile=a_label,
+            tofile=b_label,
+        )
+    )
+
+
+def _print_diff(diff: list[str]) -> None:
+    if not diff:
+        console.print("[dim]  無差異[/dim]")
+        return
+    from rich.syntax import Syntax
+
+    syntax = Syntax("".join(diff), "diff", theme="monokai", line_numbers=False)
+    console.print(syntax)
+
+
+def prompt_file_decision(
+    skill_name: str,
+    rel_path: str,
+    src_path: Path,
+    dst_path: Path,
+    base_blob_getter,
+) -> str:
+    """per-file 衝突 prompt。回傳 "overwrite" 或 "skip"。
+
+    Args:
+        base_blob_getter: callable(rel_path) -> bytes | None
+    """
+    src_text = _read_text_safe(src_path)
+    dst_text = _read_text_safe(dst_path)
+    base_text = _bytes_to_text(base_blob_getter(rel_path))
+
+    if base_text:
+        src_vs_base = _unified_diff(base_text, src_text, "base", "src")
+        dst_vs_base = _unified_diff(base_text, dst_text, "base", "dst")
+        src_vs_dst = _unified_diff(dst_text, src_text, "dst", "src")
+        sb_p, sb_m = _count_changes(src_vs_base)
+        db_p, db_m = _count_changes(dst_vs_base)
+        cd_p, cd_m = _count_changes(src_vs_dst)
+        console.print(
+            f"  [yellow]? 衝突：{skill_name}/{rel_path}[/yellow]"
+        )
+        console.print(
+            f"    [cyan]來源動 +{sb_p} -{sb_m}[/cyan] | "
+            f"[magenta]你動 +{db_p} -{db_m}[/magenta] | "
+            f"[white]重疊改動 +{cd_p} -{cd_m}[/white]"
+        )
+    else:
+        console.print(
+            f"  [yellow]? 衝突：{skill_name}/{rel_path} (base 不可用)[/yellow]"
+        )
+
+    while True:
+        console.print(
+            "    [dim]Diff: [Ds] src vs base  [Dl] dst vs base  [Dc] src vs dst | "
+            "Action: [O] overwrite  [S] skip[/dim]"
+        )
+        try:
+            raw = input("    選擇: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return "skip"
+        choice = raw.upper()
+        if choice == "O":
+            return "overwrite"
+        if choice == "S":
+            return "skip"
+        if choice == "DS":
+            if not base_text:
+                console.print("[yellow]  無法取得 base 內容（commit 已失效）[/yellow]")
+                continue
+            _print_diff(_unified_diff(base_text, src_text, "base", "src"))
+        elif choice == "DL":
+            if not base_text:
+                console.print("[yellow]  無法取得 base 內容（commit 已失效）[/yellow]")
+                continue
+            _print_diff(_unified_diff(base_text, dst_text, "base", "dst"))
+        elif choice == "DC":
+            _print_diff(_unified_diff(dst_text, src_text, "dst", "src"))
+        else:
+            console.print("[red]  無效選項[/red]")
+
+
+# ------------------------------------------------------------
+# Per-source update summary
+# ------------------------------------------------------------
+
+
+def render_source_summary(
+    rows: list[dict],
+) -> None:
+    """印出 per-source update summary。
+
+    Each row 應包含:
+      source, status (unchanged/first-sync/updated), last_commit, head_commit,
+      total_changed, affected_current, affected_other
+    """
+    from rich.table import Table
+
+    if not rows:
+        return
+    table = Table(
+        title="來源更新摘要",
+        title_style="bold",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("source")
+    table.add_column("commit")
+    table.add_column("變動", justify="right")
+    table.add_column("影響本次 target", justify="right")
+    table.add_column("影響其他 target", justify="right", style="dim")
+
+    for row in rows:
+        if row["status"] == "unchanged":
+            table.add_row(row["source"], "未變更", "-", "-", "-")
+        elif row["status"] == "first-sync":
+            table.add_row(row["source"], "首次同步", "-", "-", "-")
+        else:
+            table.add_row(
+                row["source"],
+                f"{row['last_commit'][:7]} → {row['head_commit'][:7]}",
+                str(row["total_changed"]),
+                str(row["affected_current"]),
+                str(row["affected_other"]),
+            )
+    console.print(table)
+
+
+def v2_to_v1_view(manifest: dict | None) -> dict | None:
+    """將 v2 manifest 投影回 v1 結構。"""
+    if manifest is None:
+        return None
+    if not is_v2(manifest):
+        return manifest
+    out: dict = {
+        "managed_by": manifest.get("managed_by", "ai-dev"),
+        "version": manifest.get("version", "unknown"),
+        "last_sync": manifest.get("last_sync", ""),
+        "target": manifest.get("target", ""),
+        "files": {},
+    }
+    for resource_type in RESOURCE_TYPES:
+        section = manifest.get("files", {}).get(resource_type, {})
+        out_section: dict = {}
+        for name, block in section.items():
+            if not isinstance(block, dict):
+                continue
+            out_section[name] = {
+                "hash": block.get("hash", ""),
+                "source": block.get("source", "custom-skills"),
+            }
+        out["files"][resource_type] = out_section
+    return out
