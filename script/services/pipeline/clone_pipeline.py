@@ -13,19 +13,17 @@ console = Console()
 
 def _collect_sources() -> list[tuple[str, Path]]:
     """蒐集所有可同步的來源 repo (name, local_path)。"""
+    from script.utils.paths import get_custom_skills_dir, get_ecc_dir
+
     out: list[tuple[str, Path]] = []
-    custom_skills = Path.home() / ".config" / "custom-skills"
-    if custom_skills.exists():
-        out.append(("custom-skills", custom_skills))
-    ecc = Path.home() / ".config" / "everything-claude-code"
-    if ecc.exists():
-        out.append(("ecc", ecc))
+    for name, path in (("custom-skills", get_custom_skills_dir()), ("ecc", get_ecc_dir())):
+        if path.exists():
+            out.append((name, path))
     try:
-        from script.utils.custom_repos import load_custom_repos
+        from script.utils.custom_repos import expand_local_path, load_custom_repos
 
         for name, info in load_custom_repos().get("repos", {}).items():
-            local = info.get("local_path", "").replace("~", str(Path.home()))
-            p = Path(local)
+            p = expand_local_path(info)
             if p.exists():
                 out.append((name, p))
     except Exception:
@@ -60,7 +58,6 @@ def _build_source_summary(plan: ExecutionPlan) -> list[dict]:
             for source, commit in mapping.items():
                 last_commits.setdefault(source, commit)
 
-    selected_targets = set(plan.targets) if plan.targets else None
     rows: list[dict] = []
     for source, _local_path in sources:
         head = get_repo_head(source)
@@ -74,18 +71,15 @@ def _build_source_summary(plan: ExecutionPlan) -> list[dict]:
             rows.append({"source": source, "status": "unchanged"})
             continue
         changed = list_changed_files(source, last, head)
-        # 影響評估：以「檔案路徑落在 platform_targets 對應 source 結構」為近似
-        # 簡化版：不細分本次 / 其他 target，列總數即可
-        affected_current = len(changed) if selected_targets else len(changed)
-        affected_other = 0 if selected_targets else 0
+        # 簡化版：不細分本次 / 其他 target，「影響本次 target」直接顯示總數
         rows.append({
             "source": source,
             "status": "updated",
             "last_commit": last,
             "head_commit": head,
             "total_changed": len(changed),
-            "affected_current": affected_current,
-            "affected_other": affected_other,
+            "affected_current": len(changed),
+            "affected_other": 0,
         })
     return rows
 

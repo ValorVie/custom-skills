@@ -19,6 +19,12 @@ def get_custom_repos_config_path() -> Path:
     return Path.home() / ".config" / "ai-dev" / "repos.yaml"
 
 
+def expand_local_path(repo_info: dict) -> Path:
+    """將 repo_info["local_path"] 的 ~ 展開為使用者家目錄並回傳 Path。"""
+    raw = repo_info.get("local_path", "") or ""
+    return Path(raw.replace("~", str(Path.home())))
+
+
 def load_custom_repos() -> dict:
     """讀取 custom repos 設定檔。
 

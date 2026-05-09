@@ -5,6 +5,7 @@ install 與 maintain 指令的共用函式與配置。
 import os
 import re
 import stat
+import sys
 import errno
 import shutil
 import difflib
@@ -1152,6 +1153,15 @@ def _v2_classify_and_resolve(
         clear_skip,
     )
 
+    # 非互動環境（CI / piped stdin）若沒帶任何衝突旗標，預設改為 skip 並提示，
+    # 避免 prompt 落到 EOFError 時靜默跳過所有 both-changed 檔案。
+    if not (force or skip_conflicts or backup) and not sys.stdin.isatty():
+        console.print(
+            "[yellow]⚠ 偵測到非互動環境，both-changed 衝突將自動跳過（等同 --skip-conflicts）。"
+            "如需覆蓋請改用 --force / --backup。[/yellow]"
+        )
+        skip_conflicts = True
+
     decisions = {
         "overwrite_set": set(),       # (rt, name, rel) — 確定要覆蓋（clean 或 prompt 後 overwrite）
         "skip_set": set(),            # (rt, name, rel) — 寫 skip 記憶（both-changed 選 skip）
@@ -1661,13 +1671,11 @@ def _prescan_custom_repos(
     record_method_map: dict,
 ) -> None:
     """預掃描 custom repos 的資源（用於衝突檢測）。"""
-    from .custom_repos import load_custom_repos
+    from .custom_repos import expand_local_path, load_custom_repos
 
     custom_repos = load_custom_repos().get("repos", {})
     for repo_name, repo_info in custom_repos.items():
-        local_path = Path(
-            repo_info.get("local_path", "").replace("~", str(Path.home()))
-        )
+        local_path = expand_local_path(repo_info)
         if not local_path.exists():
             continue
         _scan_repo_resources(local_path, target, record_method_map, source=repo_name)
@@ -1742,16 +1750,14 @@ def _distribute_custom_repos(
     skip_conflicts: bool = False,
 ) -> None:
     """分發 custom repos 的資源到指定平台。"""
-    from .custom_repos import load_custom_repos
+    from .custom_repos import expand_local_path, load_custom_repos
 
     custom_repos = load_custom_repos().get("repos", {})
     if not custom_repos:
         return
 
     for repo_name, repo_info in custom_repos.items():
-        local_path = Path(
-            repo_info.get("local_path", "").replace("~", str(Path.home()))
-        )
+        local_path = expand_local_path(repo_info)
         if not local_path.exists():
             console.print(
                 f"  [yellow]⚠ Custom repo 目錄不存在，跳過: {repo_name} ({local_path})[/yellow]"

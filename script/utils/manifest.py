@@ -799,10 +799,16 @@ def get_project_version() -> str:
 # ============================================================
 
 
-SOURCE_REPO_PATHS: dict[str, Path] = {
-    "custom-skills": Path.home() / ".config" / "custom-skills",
-    "ecc": Path.home() / ".config" / "everything-claude-code",
-}
+def _builtin_source_paths() -> dict[str, Path]:
+    from .paths import get_custom_skills_dir, get_ecc_dir
+
+    return {
+        "custom-skills": get_custom_skills_dir(),
+        "ecc": get_ecc_dir(),
+    }
+
+
+SOURCE_REPO_PATHS: dict[str, Path] = _builtin_source_paths()
 
 
 def get_source_repo_path(source: str) -> Path | None:
@@ -812,14 +818,12 @@ def get_source_repo_path(source: str) -> Path | None:
         return path if path.exists() else None
     # custom repo：從 repos.yaml 取
     try:
-        from .custom_repos import load_custom_repos
+        from .custom_repos import expand_local_path, load_custom_repos
 
         repos = load_custom_repos().get("repos", {})
         info = repos.get(source)
         if info:
-            local_path = Path(
-                info.get("local_path", "").replace("~", str(Path.home()))
-            )
+            local_path = expand_local_path(info)
             if local_path.exists():
                 return local_path
     except Exception:
@@ -890,9 +894,15 @@ def is_commit_valid(source: str, commit: str) -> bool:
     repo = get_source_repo_path(source)
     if not repo:
         return False
-    result = _git(repo, "cat-file", "-e", f"{commit}^{{commit}}")
-    # cat-file -e 成功時無 stdout，失敗回 None
-    return result is not None or _git(repo, "rev-parse", "--verify", f"{commit}^{{commit}}") is not None
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "cat-file", "-e", f"{commit}^{{commit}}"],
+            capture_output=True,
+            check=False,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
 
 
 def list_changed_files(source: str, last_commit: str, head: str) -> list[str]:
