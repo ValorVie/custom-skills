@@ -1364,6 +1364,79 @@ def _v2_apply_decisions(
         record_skip(new_manifest, rt, name, rel, src_commit)
 
 
+def _v2_anchor_no_base_skips(
+    *,
+    new_manifest: dict,
+    target: str,
+    prescan_tracker,
+    no_base_conflicts,
+    skip_names: set[str],
+    source_heads: dict[str, str],
+) -> None:
+    """no-base 衝突使用者選擇跳過時，把目前現場狀態錨成 base。
+
+    寫入後下次 classify 會判為 clean / local-only，不再重複彈出同樣 prompt；
+    只有當上游 src 或本地 dst 之後再次變動，才會重新進入 3-way 判定。
+    """
+    from .manifest import (
+        compute_file_hash,
+        get_file_commit,
+        record_file_decision,
+    )
+
+    skipped_keys = {
+        (c.resource_type, c.name)
+        for c in no_base_conflicts
+        if c.name in skip_names
+    }
+    if not skipped_keys:
+        return
+
+    def _anchor(resource_type, name, rel, src_hash, source) -> None:
+        dst_path = _v2_get_dst_path(target, resource_type, name, rel)
+        if dst_path is None:
+            return
+        dst_hash = compute_file_hash(dst_path) if dst_path.exists() else ""
+        repo_rel = _v2_repo_rel(resource_type, name, rel)
+        src_commit = (
+            get_file_commit(source, repo_rel)
+            or source_heads.get(source)
+            or ""
+        )
+        if not src_commit:
+            console.print(
+                f"[yellow]⚠ 無法錨定 {resource_type}/{name}"
+                f"{('/' + rel) if rel else ''}：取不到 src_commit"
+                f"（source={source}），下次仍可能重複偵測為 no-base 衝突。[/yellow]"
+            )
+            return
+        record_file_decision(
+            new_manifest,
+            resource_type,
+            name,
+            rel,
+            src_hash=src_hash,
+            src_commit=src_commit,
+            src_source=source,
+            dst_hash=dst_hash,
+            decision="skipped",
+        )
+
+    for resource_type, name in skipped_keys:
+        if resource_type == "skills":
+            record = prescan_tracker.skills.get(name)
+            if record is None or not record.files:
+                continue
+            for rel, src_hash in record.files.items():
+                _anchor(resource_type, name, rel, src_hash, record.source)
+        else:
+            section = getattr(prescan_tracker, resource_type, None)
+            record = section.get(name) if section is not None else None
+            if record is None:
+                continue
+            _anchor(resource_type, name, None, record.hash, record.source)
+
+
 def copy_custom_skills_to_targets(
     sync_project: bool = True,
     force: bool = False,
@@ -1583,6 +1656,8 @@ def copy_custom_skills_to_targets(
                     backup_file(target, conflict.resource_type, conflict.name)
 
         # 4. 重新建立 tracker（因為可能有跳過的檔案）
+        # 保留 prescan 結果供步驟 7.5 anchor 使用，reset 後新 tracker 不含跳過的檔案
+        prescan_tracker = tracker
         tracker = ManifestTracker(target=target)
 
         # 5. 執行複製並記錄
@@ -1652,6 +1727,18 @@ def copy_custom_skills_to_targets(
                         new_manifest["files"][resource_type][name] = old_files[
                             resource_type
                         ][name]
+
+        # 7.5 no-base 跳過：把當下現場狀態錨成 base，覆蓋步驟 7 的舊 hash 保留，
+        # 避免下次分發再被判為 no-base 而重複彈出同樣 prompt
+        if skip_names and no_base_conflicts:
+            _v2_anchor_no_base_skips(
+                new_manifest=new_manifest,
+                target=target,
+                prescan_tracker=prescan_tracker,
+                no_base_conflicts=no_base_conflicts,
+                skip_names=skip_names,
+                source_heads=source_heads,
+            )
 
         # 8. 清理孤兒檔案
         # 注意：跳過的衝突檔案不應被視為孤兒（因為已在步驟 7 中加回 manifest）
