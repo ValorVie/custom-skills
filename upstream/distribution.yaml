@@ -81,7 +81,6 @@ distribute:
       # === 網路、Homelab、基礎設施 (network-infra) — 7 個 ===
       - deployment-patterns
       - docker-patterns
-      - flox-environments
       - homelab-network-readiness
       - homelab-network-setup
       - network-config-validation
