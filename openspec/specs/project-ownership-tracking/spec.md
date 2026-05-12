@@ -1,5 +1,8 @@
-## ADDED Requirements
+# project-ownership-tracking Specification
 
+## Purpose
+TBD - created by archiving change add-init-from-command. Update Purpose after archive.
+## Requirements
 ### Requirement: Project tracking file format
 
 The system SHALL create and maintain a `.ai-dev-project.yaml` file in the project root directory with the following structure:
@@ -59,9 +62,10 @@ The `managed_files` list SHALL use relative paths from the project root, one ent
 
 ### Requirement: Tracking file committed to git
 
-The `.ai-dev-project.yaml` file SHOULD be committed to the project's git repository so that team members are aware of the template source.
+The `.ai-dev-project.yaml` file SHALL remain commit-eligible (not gitignored) so that it can be committed to the project's git repository and team members can be aware of the template source.
 
 #### Scenario: File is not in gitignore
 
 - **WHEN** `ai-dev init-from` creates `.ai-dev-project.yaml`
 - **THEN** the system SHALL NOT add `.ai-dev-project.yaml` to `.gitignore`
+

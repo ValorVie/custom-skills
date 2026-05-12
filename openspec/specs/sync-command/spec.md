@@ -1,98 +1,107 @@
-## ADDED Requirements
+# Sync Command Specification
 
+## Purpose
+
+`ai-dev sync` 子命令群管理 custom-skills 與外部目錄之間的雙向同步（init / push / pull / status / add / remove）。
+## Requirements
 ### Requirement: sync init 子指令初始化同步環境
 
-系統 SHALL 提供 `ai-dev sync init --remote <git-url>` 子指令，建立本機同步 repo 並連接遠端。
+系統 SHALL 提供 `ai-dev sync init --remote <url>` 子指令，執行以下步驟：
 
-- 接受 `--remote` 參數指定 Git remote URL（必填）
-- 在 `~/.config/ai-dev/sync-repo/` 建立或 clone Git repo
-- 為每個預設同步目錄（`~/.claude`、`~/.claude-mem`）建立 repo 內子目錄
-- 根據 ignore profiles 產生 `.gitignore` 和 `.gitattributes`
-- 執行首次檔案同步（本機 → repo）
-- 執行首次 commit 並 push 到遠端
-- 儲存設定到 `~/.config/ai-dev/sync.yaml`
-- 若遠端已有內容，SHALL clone 並合併本機檔案
+1. 驗證 Git 已安裝
+2. 若已存在 sync.yaml，詢問使用者是否覆蓋
+3. 呼叫 `git_init_or_clone()` 建立/更新 sync repo
+4. 建立預設同步目錄子目錄
+5. **偵測 git-lfs 安裝狀態並設定 LFS**
+6. 寫入 `.gitignore` 和 `.gitattributes`（含動態 LFS pattern）
+7. 若為 clone（第二台機器），先還原 repo→local
+8. 產生 plugin manifest
+9. 執行 local→repo 同步
+10. **掃描 repo 中大檔案，產生 LFS pattern**
+11. **若有 LFS pattern 且為既有 repo，執行 migrate**
+12. Commit、pull --rebase、push
+13. 儲存 sync.yaml
+14. 若為 clone，自動安裝 plugin
 
-#### Scenario: 全新初始化
+**LFS 行為**：
+- git-lfs 已安裝：自動 `git lfs install --local`，偵測大檔案後寫入 LFS gitattributes 規則
+- git-lfs 未安裝且有大檔案：顯示警告建議安裝
+- git-lfs 未安裝且無大檔案：靜默不處理
 
-- **WHEN** 使用者執行 `ai-dev sync init --remote git@github.com:user/sync.git`，且本機尚無 sync-repo
-- **THEN** 系統建立 `~/.config/ai-dev/sync-repo/`，初始化 Git repo，建立 `claude/` 和 `claude-mem/` 子目錄，同步本機檔案，commit 並 push
+#### Scenario: init 時 git-lfs 已安裝且有大檔案
+- **WHEN** 系統已安裝 git-lfs 且 sync repo 中存在超過 50 MB 的 sqlite3 檔案
+- **THEN** 系統 SHALL 執行 `git lfs install --local`，偵測 pattern，寫入 `.gitattributes` 含 LFS 規則，並顯示 LFS 追蹤訊息
 
-#### Scenario: 從既有遠端初始化
+#### Scenario: init 時 git-lfs 未安裝且有大檔案
+- **WHEN** 系統未安裝 git-lfs 且 sync repo 中存在超過 50 MB 的檔案
+- **THEN** 系統 SHALL 顯示黃色警告建議安裝 git-lfs，但不阻擋 init 流程
 
-- **WHEN** 使用者執行 `ai-dev sync init --remote <url>`，且遠端 repo 已有內容
-- **THEN** 系統 clone 遠端 repo 到 `~/.config/ai-dev/sync-repo/`，並將 repo 內容同步到本機目錄
-
-#### Scenario: 已初始化時重複執行
-
-- **WHEN** 使用者執行 `ai-dev sync init`，但 `sync.yaml` 已存在
-- **THEN** 系統提示已初始化，詢問是否重新初始化（覆蓋設定）
-
-#### Scenario: Git 不可用
-
-- **WHEN** 使用者執行 `ai-dev sync init`，但系統未安裝 Git
-- **THEN** 系統顯示錯誤訊息並提示安裝 Git
-
----
+#### Scenario: init 時無大檔案
+- **WHEN** sync repo 中所有檔案皆小於 50 MB
+- **THEN** 系統 SHALL 不寫入 LFS 規則，行為與原有相同
 
 ### Requirement: sync push 子指令推送本機變更
 
-系統 SHALL 提供 `ai-dev sync push` 子指令，將本機變更推送到遠端 repo。
+系統 SHALL 提供 `ai-dev sync push` 子指令，執行以下步驟：
 
-- 讀取 `sync.yaml` 取得同步目錄清單
-- 對每個目錄執行檔案同步（本機 → repo 子目錄）
-- 排除 ignore profile 中定義的檔案
-- 執行 `git add -A`、`git commit`、`git pull --rebase`、`git push`
-- Commit message 格式：`sync: <hostname> <timestamp>`
-- 顯示同步結果摘要（新增/修改/刪除檔案數）
+1. 載入 sync.yaml
+2. 寫入 `.gitignore` 和 `.gitattributes`
+3. 執行 local→repo 同步
+4. **掃描 repo 中大檔案，產生 LFS pattern**
+5. **寫入含 LFS pattern 的 `.gitattributes`**
+6. 產生 plugin manifest
+7. Commit、pull --rebase、push
+8. 更新 sync.yaml 的 last_sync
 
-#### Scenario: 正常推送
+#### Scenario: push 時偵測到新的大檔案
+- **WHEN** git-lfs 已安裝且 sync 後 repo 中出現新的超過 50 MB 的檔案類型
+- **THEN** `.gitattributes` SHALL 自動加入該檔案類型的 LFS track 規則，新檔案 SHALL 以 LFS 方式 commit
 
-- **WHEN** 使用者執行 `ai-dev sync push`，且本機有變更
-- **THEN** 系統將變更同步到 repo，commit 並 push，顯示變更摘要
-
-#### Scenario: 無變更時推送
-
-- **WHEN** 使用者執行 `ai-dev sync push`，但本機與 repo 內容一致
-- **THEN** 系統顯示「無變更需要同步」
-
-#### Scenario: 遠端有新 commit
-
-- **WHEN** 使用者執行 `ai-dev sync push`，且遠端有本機未拉取的 commit
-- **THEN** 系統先執行 `git pull --rebase`，再 push 本機變更
-
-#### Scenario: 未初始化時推送
-
-- **WHEN** 使用者執行 `ai-dev sync push`，但尚未執行 `sync init`
-- **THEN** 系統顯示錯誤訊息並提示先執行 `ai-dev sync init`
-
----
+#### Scenario: push 時無大檔案
+- **WHEN** sync 後 repo 中無超過 50 MB 的檔案
+- **THEN** `.gitattributes` SHALL 不包含 LFS 規則
 
 ### Requirement: sync pull 子指令拉取遠端變更
 
 系統 SHALL 提供 `ai-dev sync pull` 子指令，從遠端 repo 拉取變更到本機。
 
-- 執行 `git pull --rebase`
+- 執行前 SHALL 偵測本機是否有未推送的變更
+- 若有變更，SHALL 顯示變更清單與互動式選項（先 push 再 pull / 強制覆蓋 / 取消）
+- 若無變更或使用者確認後，執行 `git pull --rebase`
 - 對每個目錄執行檔案同步（repo 子目錄 → 本機）
 - 提供 `--no-delete` 選項，防止刪除本機有但 repo 沒有的檔案
+- 提供 `--force` 選項，跳過本機變更偵測直接執行 pull
 - 顯示同步結果摘要
 
-#### Scenario: 正常拉取
+#### Scenario: 本機無異動時正常拉取
 
-- **WHEN** 使用者執行 `ai-dev sync pull`，且遠端有新變更
-- **THEN** 系統拉取遠端變更並同步到本機目錄，顯示變更摘要
+- **WHEN** 使用者執行 `ai-dev sync pull`，且本機與 repo 一致
+- **THEN** 系統直接執行 pull 流程，行為與原有相同
+
+#### Scenario: 本機有異動時顯示互動選項
+
+- **WHEN** 使用者執行 `ai-dev sync pull`，且本機有未推送的變更
+- **THEN** 系統 SHALL 顯示變更清單與三個選項，等待使用者選擇
+
+#### Scenario: 使用 --force 跳過偵測
+
+- **WHEN** 使用者執行 `ai-dev sync pull --force`
+- **THEN** 系統 SHALL 跳過本機變更偵測，直接執行 pull 流程
+
+#### Scenario: --force 與 --no-delete 同時使用
+
+- **WHEN** 使用者執行 `ai-dev sync pull --force --no-delete`
+- **THEN** 系統 SHALL 跳過偵測並執行 pull，且不刪除本機多出的檔案
 
 #### Scenario: 無遠端變更
 
 - **WHEN** 使用者執行 `ai-dev sync pull`，但遠端無新 commit
 - **THEN** 系統顯示「已是最新狀態」
 
-#### Scenario: 使用 --no-delete 選項
+#### Scenario: 未初始化時拉取
 
-- **WHEN** 使用者執行 `ai-dev sync pull --no-delete`
-- **THEN** 系統拉取遠端變更但不刪除本機多出的檔案
-
----
+- **WHEN** 使用者執行 `ai-dev sync pull`，但尚未執行 `sync init`
+- **THEN** 系統顯示錯誤訊息並提示先執行 `ai-dev sync init`
 
 ### Requirement: sync status 子指令顯示同步狀態
 
@@ -160,3 +169,4 @@
 
 - **WHEN** 使用者執行 `ai-dev sync remove /not-tracked`
 - **THEN** 系統顯示錯誤「該目錄不在同步清單中」
+

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# Sync Engine Specification
 
+## Purpose
+
+`sync_engine` 模組提供 `ai-dev sync` 命令群的底層基礎設施：目錄同步、Git 操作封裝、排除模式處理、主機與時間戳工具。
+## Requirements
 ### Requirement: 目錄同步函數
 
 系統 SHALL 提供 `sync_directory(src, dst, excludes, delete=True)` 函數，在來源目錄與目標目錄之間同步檔案。
@@ -103,3 +107,20 @@ Pull 流程 SHALL 在 `_sync_repo_to_local()` 完成後，呼叫 `expand_paths_i
 
 - **WHEN** 系統需要自動產生 sync commit message
 - **THEN** 格式為 `sync: <hostname> <YYYY-MM-DD-HHmm>`（如 `sync: macbook-pro 2026-02-13-2115`）
+
+### Requirement: gitattributes 支援 LFS pattern
+
+`generate_gitattributes()` SHALL 接受 `lfs_patterns` 參數（`list[str] | None`），當提供非空清單時，在現有規則後附加 Git LFS track 規則。`write_gitattributes()` SHALL 同步接受並傳遞 `lfs_patterns` 參數。
+
+#### Scenario: 無 LFS pattern 時維持原有行為
+- **WHEN** 呼叫 `generate_gitattributes()` 或 `generate_gitattributes(lfs_patterns=None)`
+- **THEN** 輸出 SHALL 僅包含 `*.jsonl merge=union` 和 `*.md text eol=lf`，與原有行為相同
+
+#### Scenario: 有 LFS pattern 時附加規則
+- **WHEN** 呼叫 `generate_gitattributes(lfs_patterns=["*.sqlite3", "*.db"])`
+- **THEN** 輸出 SHALL 在原有規則後附加 `*.sqlite3 filter=lfs diff=lfs merge=lfs -text` 和 `*.db filter=lfs diff=lfs merge=lfs -text`
+
+#### Scenario: write_gitattributes 傳遞 lfs_patterns
+- **WHEN** 呼叫 `write_gitattributes(repo_dir, lfs_patterns=["*.sqlite3"])`
+- **THEN** 寫入的 `.gitattributes` SHALL 包含 LFS track 規則
+
