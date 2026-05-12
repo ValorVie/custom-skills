@@ -14,8 +14,8 @@
 - **新增 ECC catalog（純資料）**：新增 `upstream/ecc-catalog.yaml`，記錄 ECC 上游所有 skill 的分類、加入日期、備註。catalog 純文件化，不參與 runtime 邏輯，僅作為人類審視 / 維護白名單時的參考。
 - **新增 `ai-dev ecc audit` 子命令**：偵測 `~/.config/everything-claude-code/skills/` 與 `ecc-catalog.yaml` 的差異，輸出建議 patch（NEW / GONE / RENAMED?）。不自動寫檔，不掛 install/clone/update。
 - **移除 `exclude.skills` 區塊**：白名單已能完整表達意圖，黑名單冗餘。
-- **移除 `ecc-profile.yaml` 的 `include_skills` / `exclude_skills` 合併邏輯**：白名單就在 repo 內，跨機器需求由 git 解決。
-- **預設拒絕未列入名單者**：ECC 新增 skill 預設**不分發**；install/clone 過程若偵測到 catalog 落後（ECC 有但 catalog 沒收錄）時，印出**非阻塞**的黃色警告引導使用者執行 `ai-dev ecc audit`。
+- **保留 `ecc-profile.yaml` 作為使用者層級覆寫，改採白名單語意**：新增 `enabled_extra`（額外啟用）與 `enabled_remove`（從 repo enabled 拿掉），合併公式為 `final = (repo.enabled ∪ extra) \ remove`。legacy 鍵 `include_skills` / `exclude_skills` 自動相容並印一次性 deprecation hint。
+- **預設拒絕未列入名單者**：ECC 新增 skill 預設**不分發**（直到加入 repo.enabled 或使用者 enabled_extra）；install/clone 過程若偵測到 catalog 落後（ECC 有但 catalog 沒收錄）時，印出**非阻塞**的黃色警告引導使用者執行 `ai-dev ecc audit`。
 - **初始白名單**：將目前實際被分發的 133 個 skill 全部加入 `enabled`，行為兼容，後續使用者自行調整。
 - **commands / agents 暫不變動**：量小、變動少，保留現有 exclude 邏輯（YAGNI）。
 

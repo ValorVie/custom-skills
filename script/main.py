@@ -20,6 +20,7 @@ from .commands import hooks
 from .commands import maintain
 from .commands import sync
 from .commands import mem
+from .commands import ecc
 
 
 def get_app_version() -> str:
@@ -92,6 +93,7 @@ app.add_typer(hooks.app, name="hooks")
 app.add_typer(maintain.app, name="maintain")
 app.add_typer(sync.app, name="sync")
 app.add_typer(mem.app, name="mem")
+app.add_typer(ecc.app, name="ecc")
 
 
 def tui():

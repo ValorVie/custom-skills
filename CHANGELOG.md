@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ECC 白名單分發機制**（OpenSpec change `ecc-whitelist-distribution`）。
+  - `upstream/distribution.yaml` 新增 `distribute.skills.enabled` 白名單，僅列出的 skill 會被分發到目標工具目錄。
+  - 新增 `upstream/ecc-catalog.yaml`：ECC 上游 skill 分類目錄（純資料，13 個 categories + uncategorized）。
+  - 新增 `ai-dev ecc audit` 子命令：偵測 ECC 來源與 catalog 差異並輸出建議 patch。退出碼 0/1/2。
+  - `install` / `clone` / `update` 在分發前印非阻塞警告，提示 catalog 落後或缺失。
+  - **使用者層級覆寫**：`~/.config/ai-dev/ecc-profile.yaml` 改採 whitelist 語意，新增 `enabled_extra`（額外啟用）與 `enabled_remove`（從 repo enabled 拿掉）。合併公式 `final = (repo.enabled ∪ extra) \ remove`，同名衝突時 `remove` 勝。
+  - `ai-dev clone` 偵測本次將被孤兒清理的 ECC skill（舊 manifest 有但新 enabled 沒有），於分發前印黃色非阻塞提示與保留辦法（加入 `enabled_extra`）。
+
+### Changed
+
+- **BREAKING**：ECC 分發從黑名單改為白名單。`upstream/distribution.yaml` 的 `exclude.skills` 區塊已移除（commands / agents 黑名單保留）。初始遷移時原 133 個分發中的 skill 全部加入 `enabled`，行為兼容。
+- `~/.config/ai-dev/ecc-profile.yaml` 語意從黑名單時代的補丁改為白名單時代的個人化覆寫，新欄位為 `enabled_extra` / `enabled_remove`。舊欄位 `include_skills` / `exclude_skills` 會自動以等價語意載入並印一次性 deprecation hint，建議使用者改名；新舊鍵同時存在時新鍵優先、legacy 鍵忽略。
+
+### Added
+
 - **ai-dev clone**：file-level 3-way merge tracking（OpenSpec change `add-clone-3way-merge-tracking`）。
   - `~/.config/ai-dev/manifests/<target>.yaml` 升級為 schema v2，記錄 base hash + src commit + decision，支援 `clean / local-only / both-changed / no-base` 分類。
   - clone 啟動時逐 source 顯示更新摘要（custom-skills、ecc、custom repos）。

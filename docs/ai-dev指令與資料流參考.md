@@ -41,7 +41,8 @@
 | `~/.config/custom-skills/toggle-config.yaml` | toggle 資源開關狀態 | `toggle` |
 | `<custom-skills repo>/upstream/sources.yaml` | 上游來源註冊表 | `add-repo`, repo 維護者手動維護 |
 | `~/.config/ai-dev/repos.yaml` | custom repo / template repo 註冊表 | `add-custom-repo`, `init-from` |
-| `~/.config/ai-dev/ecc-profile.yaml` | 使用者層級 ECC skills 排除/包含覆寫（與專案 `distribution.yaml` 合併） | `clone`, `install`, `update` |
+| `<custom-skills repo>/upstream/ecc-catalog.yaml` | ECC 上游 skill 分類目錄（純資料，供 `ai-dev ecc audit` 與人工審視） | `ecc audit`, repo 維護者手動維護 |
+| `~/.config/ai-dev/ecc-profile.yaml` | 使用者層級覆寫，疊加在 repo `distribution.yaml` 之上：`enabled_extra`（額外啟用）／`enabled_remove`（從 repo enabled 拿掉）。合併公式 `final = (repo.enabled ∪ extra) \ remove`。legacy 鍵 `include_skills` / `exclude_skills` 自動相容並印一次性 hint | `clone`, `install`, `update` 讀取 |
 | `~/.config/ai-dev/npx-skills.yaml` | 由 npx 維護的 skills 清單（由 `upstream/npx-skills.yaml` 同步而來） | `install`（repos phase）, `update`（repos phase） |
 | `~/.config/ai-dev/.npx-migration-v1-done` | npx skills 半自動遷移完成 marker | `npx-skills` phase |
 | `~/.config/ai-dev/skills/auto-skill` | `auto-skill` canonical state | `install`, `update`, `clone`, `maintain clone` |
@@ -72,7 +73,8 @@ flowchart LR
     B --> C["~/.config/custom-skills (distribution source repo)"]
     C --> D["Tool dirs: ~/.claude ~/.codex ~/.gemini ~/.config/opencode"]
     B --> G["~/.config/everything-claude-code (ECC)"]
-    G -->|"distribution.yaml + ecc-profile.yaml 篩選"| D
+    H["~/.config/ai-dev/ecc-profile.yaml<br/>(enabled_extra / enabled_remove)"] -.-> G
+    G -->|"distribution.yaml.enabled ∪ extra \\ remove"| D
     B --> E["~/.config/ai-dev/skills/auto-skill (canonical)"]
     E --> F["~/.config/ai-dev/projections/<target>/auto-skill (shadow)"]
     F --> D
@@ -87,6 +89,39 @@ flowchart LR
 | `ai-dev status` | 讀取工具安裝狀態；對 repo 會比對 local HEAD 與 `origin/main`，若在 repo 內且存在上游同步紀錄，也會讀 `upstream/last-sync.yaml` / `upstream/sources.yaml` 顯示同步狀態 |
 | `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state；`--target` 可省略，省略時等於列出所有 target，若無符合項目會顯示提示 |
 | `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml`；`--target` 必填，支援 `--dry-run` 預覽 |
+| `ai-dev ecc audit` | 偵測 ECC 來源與 `upstream/ecc-catalog.yaml` 差異，輸出 NEW / GONE / RENAMED? 建議 patch。退出碼 0=無差異、1=有差異、2=ECC 缺失 |
+
+### 終端使用者個人化（`~/.config/ai-dev/ecc-profile.yaml`）
+
+repo 的 `upstream/distribution.yaml.enabled` 是維護者意圖；如果你（終端使用者）想在不 fork repo 的前提下加減自己想要的 ECC skill，可建立此檔案：
+
+```yaml
+# ~/.config/ai-dev/ecc-profile.yaml
+version: 2
+enabled_extra:               # 額外啟用 repo.enabled 沒列的 skill
+  - django-pro
+  - fastapi-pro
+enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
+  - angular-developer
+```
+
+**合併公式**：`final_enabled = (repo.enabled ∪ enabled_extra) \ enabled_remove`
+
+**規則**：
+- 同名衝突（同時在 extra 與 remove）→ `remove` 勝出
+- `extra` 列出 ECC 不存在的名稱 → 黃色警告、非阻塞
+- `remove` 列出不在 repo.enabled 的名稱 → 靜默忽略
+- 檔案不存在 → 行為等同於 `repo.enabled`
+
+**Legacy 鍵自動相容**：舊版 `include_skills` / `exclude_skills` 會被自動視為 `enabled_extra` / `enabled_remove` 載入並印一次性 hint，建議改名。新舊鍵同時存在時新鍵優先、legacy 鍵忽略。
+
+### 升級行為與保留辦法
+
+當維護者從 `repo.enabled` 移除某個 skill、你執行 `ai-dev clone` 時：
+
+- ManifestTracker 會把該 skill 從 `~/.claude/skills/` 視為孤兒清理
+- 分發前會印黃色非阻塞提示，列出受影響名稱與保留辦法
+- 想保留 → 在 `ecc-profile.yaml.enabled_extra` 加入該 skill 名稱即可，下次 clone 就會留下
 
 共享 phase 參數：
 

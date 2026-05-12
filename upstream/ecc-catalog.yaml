@@ -1,0 +1,317 @@
+version: 1
+last_synced: "2026-05-12"
+last_synced_ecc_commit: "f219a90f2060fb9a089dcfdc3998977dbdc2a872"
+
+# ECC 上游 skill 目錄分類
+# 純資料檔，不影響 runtime 分發。runtime 白名單在 upstream/distribution.yaml
+# 維護方式：ai-dev ecc audit 偵測 ECC 與本檔差異，輸出建議 patch 後人工貼上
+
+categories:
+  engineering-methods:
+    description: "通用工程方法論：開發、審查、品質、TDD、重構等跨專案適用流程"
+    skills:
+      - name: agentic-engineering
+        added: "2026-03-04"
+      - name: ai-first-engineering
+        added: "2026-03-04"
+      - name: architecture-decision-records
+        added: "2026-03-20"
+      - name: coding-standards
+        added: "2026-01-22"
+      - name: context-budget
+        added: "2026-03-20"
+      - name: council
+        added: "2026-04-05"
+      - name: error-handling
+        added: "2026-05-11"
+      - name: hexagonal-architecture
+        added: "2026-03-31"
+      - name: iterative-retrieval
+        added: "2026-01-25"
+      - name: plankton-code-quality
+        added: "2026-03-03"
+      - name: santa-method
+        added: "2026-03-22"
+      - name: search-first
+        added: "2026-02-21"
+      - name: skill-stocktake
+        added: "2026-02-22"
+      - name: strategic-compact
+        added: "2026-01-20"
+      - name: tdd-workflow
+        added: "2026-01-17"
+      - name: verification-loop
+        added: "2026-01-22"
+  agent-llm:
+    description: "Agent 與 LLM 系統建構：harness、eval、orchestration、prompt 工程"
+    skills:
+      - name: agent-architecture-audit
+        added: "2026-05-11"
+      - name: agent-eval
+        added: "2026-03-20"
+      - name: agent-harness-construction
+        added: "2026-03-04"
+      - name: agent-introspection-debugging
+        added: "2026-04-05"
+      - name: agent-sort
+        added: "2026-04-05"
+      - name: agentic-os
+        added: "2026-05-11"
+      - name: autonomous-agent-harness
+        added: "2026-03-31"
+      - name: autonomous-loops
+        added: "2026-03-03"
+      - name: claude-devfleet
+        added: "2026-03-16"
+      - name: continuous-agent-loop
+        added: "2026-03-04"
+      - name: continuous-learning
+        added: "2026-01-20"
+      - name: continuous-learning-v2
+        added: "2026-01-25"
+      - name: enterprise-agent-ops
+        added: "2026-03-04"
+      - name: eval-harness
+        added: "2026-01-22"
+      - name: gan-style-harness
+        added: "2026-03-31"
+      - name: mcp-server-patterns
+        added: "2026-03-17"
+      - name: mle-workflow
+        added: "2026-05-01"
+      - name: plan-orchestrate
+        added: "2026-05-11"
+      - name: prompt-optimizer
+        added: "2026-03-13"
+      - name: team-builder
+        added: "2026-03-17"
+  frontend-ui:
+    description: "前端、UI、設計系統、動畫"
+    skills:
+      - name: accessibility
+        added: "2026-04-11"
+      - name: angular-developer
+        added: "2026-05-11"
+      - name: design-system
+        added: "2026-03-23"
+      - name: frontend-patterns
+        added: "2026-01-22"
+      - name: ios-icon-gen
+        added: "2026-05-11"
+      - name: motion-advanced
+        added: "2026-05-12"
+      - name: motion-foundations
+        added: "2026-05-12"
+      - name: motion-patterns
+        added: "2026-05-12"
+      - name: motion-ui
+        added: "2026-05-11"
+      - name: nextjs-turbopack
+        added: "2026-03-17"
+      - name: nuxt4-patterns
+        added: "2026-03-20"
+      - name: ui-demo
+        added: "2026-04-01"
+      - name: ui-to-vue
+        added: "2026-05-11"
+      - name: vite-patterns
+        added: "2026-05-11"
+  backend-frameworks:
+    description: "後端語言、框架、執行期"
+    skills:
+      - name: backend-patterns
+        added: "2026-01-22"
+      - name: bun-runtime
+        added: "2026-03-17"
+      - name: fastapi-patterns
+        added: "2026-05-11"
+      - name: fsharp-testing
+        added: "2026-05-11"
+      - name: nestjs-patterns
+        added: "2026-04-02"
+      - name: python-patterns
+        added: "2026-02-01"
+      - name: python-testing
+        added: "2026-02-01"
+      - name: quarkus-patterns
+        added: "2026-05-11"
+      - name: quarkus-security
+        added: "2026-05-11"
+      - name: quarkus-tdd
+        added: "2026-05-11"
+      - name: quarkus-verification
+        added: "2026-05-11"
+      - name: tinystruct-patterns
+        added: "2026-05-11"
+  data-storage:
+    description: "資料儲存、資料庫與遷移"
+    skills:
+      - name: database-migrations
+        added: "2026-02-12"
+      - name: mysql-patterns
+        added: "2026-05-11"
+      - name: postgres-patterns
+        added: "2026-01-25"
+      - name: redis-patterns
+        added: "2026-05-11"
+  network-infra:
+    description: "網路、Homelab、基礎設施、部署"
+    skills:
+      - name: cisco-ios-patterns
+        added: "2026-05-11"
+      - name: deployment-patterns
+        added: "2026-02-12"
+      - name: docker-patterns
+        added: "2026-02-12"
+      - name: flox-environments
+        added: "2026-05-11"
+      - name: homelab-network-readiness
+        added: "2026-05-11"
+      - name: homelab-network-setup
+        added: "2026-05-11"
+      - name: netmiko-ssh-automation
+        added: "2026-05-11"
+      - name: network-bgp-diagnostics
+        added: "2026-05-11"
+      - name: network-config-validation
+        added: "2026-05-11"
+      - name: network-interface-health
+        added: "2026-05-11"
+      - name: windows-desktop-e2e
+        added: "2026-05-11"
+  testing-qa:
+    description: "測試策略、QA、E2E、效能、回歸"
+    skills:
+      - name: ai-regression-testing
+        added: "2026-03-17"
+      - name: benchmark
+        added: "2026-03-23"
+      - name: browser-qa
+        added: "2026-03-23"
+      - name: canary-watch
+        added: "2026-03-23"
+      - name: e2e-testing
+        added: "2026-02-12"
+      - name: production-audit
+        added: "2026-05-11"
+  docs-knowledge:
+    description: "文件、知識管理、研究、品牌語氣"
+    skills:
+      - name: brand-voice
+        added: "2026-04-01"
+      - name: code-tour
+        added: "2026-04-05"
+      - name: codebase-onboarding
+        added: "2026-03-20"
+      - name: deep-research
+        added: "2026-03-12"
+      - name: documentation-lookup
+        added: "2026-03-17"
+      - name: exa-search
+        added: "2026-03-12"
+      - name: knowledge-ops
+        added: "2026-04-05"
+      - name: market-research
+        added: "2026-02-27"
+      - name: research-ops
+        added: "2026-04-05"
+  scientific:
+    description: "科學、學術、文獻、資料庫整合"
+    skills:
+      - name: scientific-db-pubmed-database
+        added: "2026-05-11"
+      - name: scientific-db-uspto-database
+        added: "2026-05-11"
+      - name: scientific-pkg-gget
+        added: "2026-05-11"
+      - name: scientific-thinking-literature-review
+        added: "2026-05-11"
+      - name: scientific-thinking-scholar-evaluation
+        added: "2026-05-11"
+  tools-ops:
+    description: "工具、運維、整合、自動化"
+    skills:
+      - name: api-connector-builder
+        added: "2026-04-05"
+      - name: api-design
+        added: "2026-02-12"
+      - name: automation-audit-ops
+        added: "2026-04-05"
+      - name: ck
+        added: "2026-03-27"
+      - name: dashboard-builder
+        added: "2026-04-05"
+      - name: data-scraper-agent
+        added: "2026-03-17"
+      - name: dmux-workflows
+        added: "2026-03-12"
+      - name: ecc-guide
+        added: "2026-05-11"
+      - name: gateguard
+        added: "2026-04-12"
+      - name: github-ops
+        added: "2026-04-05"
+      - name: hookify-rules
+        added: "2026-04-05"
+      - name: jira-integration
+        added: "2026-04-02"
+      - name: nanoclaw-repl
+        added: "2026-03-04"
+      - name: opensource-pipeline
+        added: "2026-03-31"
+      - name: safety-guard
+        added: "2026-03-23"
+      - name: terminal-ops
+        added: "2026-04-05"
+      - name: workspace-surface-audit
+        added: "2026-04-01"
+  process-rfc:
+    description: "規範、流程、RFC、PR、產品/能力定義"
+    skills:
+      - name: blueprint
+        added: "2026-03-10"
+      - name: git-workflow
+        added: "2026-03-25"
+      - name: hermes-imports
+        added: "2026-04-28"
+      - name: laravel-plugin-discovery
+        added: "2026-03-25"
+      - name: product-capability
+        added: "2026-04-05"
+      - name: product-lens
+        added: "2026-03-23"
+      - name: project-flow-ops
+        added: "2026-04-01"
+      - name: ralphinho-rfc-pipeline
+        added: "2026-03-04"
+  security:
+    description: "安全、漏洞獵尋、合規"
+    skills:
+      - name: regex-vs-llm-structured-text
+        added: "2026-02-14"
+      - name: rules-distill
+        added: "2026-03-20"
+      - name: security-bounty-hunter
+        added: "2026-04-05"
+      - name: security-review
+        added: "2026-01-17"
+      - name: security-scan
+        added: "2026-02-11"
+  ai-cost-tooling:
+    description: "AI 工具、Token 預算、成本控制、媒體生成"
+    skills:
+      - name: click-path-audit
+        added: "2026-03-22"
+      - name: content-hash-cache-pattern
+        added: "2026-02-14"
+      - name: cost-aware-llm-pipeline
+        added: "2026-02-14"
+      - name: remotion-video-creation
+        added: "2026-03-31"
+      - name: repo-scan
+        added: "2026-03-25"
+      - name: token-budget-advisor
+        added: "2026-03-25"
+  uncategorized:
+    description: "尚未分類：audit 偵測到 ECC 新增、未在 catalog 中的項目"
+    skills: []

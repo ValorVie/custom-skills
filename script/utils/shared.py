@@ -1557,6 +1557,14 @@ def copy_custom_skills_to_targets(
     version = get_project_version()
     dist_config = _load_distribution_config()
 
+    # 廉價檢查：catalog 落後時印非阻塞警告
+    if dist_config is not None:
+        try:
+            from script.commands.ecc import check_catalog_lag
+            check_catalog_lag()
+        except Exception:
+            pass  # 警告檢查不應阻塞分發
+
     target_keys = selected_targets or tuple(platform_configs.keys())
 
     # 對每個平台執行分發
@@ -1699,6 +1707,7 @@ def copy_custom_skills_to_targets(
             force=force,
             skip_conflicts=skip_conflicts,
             dist_config=dist_config,
+            old_manifest=old_manifest,
         )
 
         # 5.7 v2 post-copy: 還原 local-only / skipped 檔案
@@ -1905,15 +1914,118 @@ def _distribute_custom_repos(
                 )
 
 
+_ECC_PROFILE_LEGACY_HINT_SHOWN = False
+_ECC_PROFILE_LEGACY_CONFLICT_SHOWN = False
+
+
+def _load_ecc_profile() -> dict | None:
+    """讀取 ~/.config/ai-dev/ecc-profile.yaml（使用者層級覆寫）。
+
+    支援欄位：
+      - enabled_extra: list[str]  額外啟用 repo.enabled 沒列的 skill
+      - enabled_remove: list[str] 從 repo.enabled 拿掉不想要的 skill
+
+    Legacy 鍵 include_skills / exclude_skills 自動以等價語意載入：
+      include_skills → enabled_extra（強制納入 → 白名單外額外啟用）
+      exclude_skills → enabled_remove（個人額外排除 → 白名單中拿掉）
+    新舊鍵同時存在時，新鍵優先，legacy 鍵忽略並印一次性警告。
+
+    Returns:
+        dict 含 'enabled_extra' / 'enabled_remove' 鍵；若 profile 不存在或無相關
+        鍵，回傳 None。
+    """
+    import yaml
+
+    path = get_ai_dev_config_dir() / "ecc-profile.yaml"
+    if not path.exists():
+        return None
+
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = yaml.safe_load(f) or {}
+    except (yaml.YAMLError, OSError) as e:
+        console.print(f"  [yellow]⚠ 無法解析 {path}: {e}[/yellow]")
+        return None
+
+    if not isinstance(raw, dict):
+        return None
+
+    has_new_extra = "enabled_extra" in raw
+    has_new_remove = "enabled_remove" in raw
+    has_legacy_include = "include_skills" in raw
+    has_legacy_exclude = "exclude_skills" in raw
+
+    global _ECC_PROFILE_LEGACY_HINT_SHOWN, _ECC_PROFILE_LEGACY_CONFLICT_SHOWN
+
+    # 新舊鍵同時存在 → 新鍵優先，印一次性警告
+    if (has_new_extra and has_legacy_include) or (has_new_remove and has_legacy_exclude):
+        if not _ECC_PROFILE_LEGACY_CONFLICT_SHOWN:
+            console.print(
+                f"  [yellow]⚠ {path} 同時含新舊鍵：新鍵（enabled_extra/enabled_remove）優先，"
+                "legacy 鍵（include_skills/exclude_skills）將被忽略。[/yellow]"
+            )
+            _ECC_PROFILE_LEGACY_CONFLICT_SHOWN = True
+
+    # 僅 legacy 鍵 → 自動以等價語意載入並印一次性 deprecation hint
+    legacy_only_keys = []
+    if has_legacy_include and not has_new_extra:
+        legacy_only_keys.append("include_skills")
+    if has_legacy_exclude and not has_new_remove:
+        legacy_only_keys.append("exclude_skills")
+
+    if legacy_only_keys and not _ECC_PROFILE_LEGACY_HINT_SHOWN:
+        console.print(
+            f"  [yellow]ℹ {path} 使用 legacy 鍵 {', '.join(legacy_only_keys)}（已自動相容）。[/yellow]\n"
+            "  [yellow]  建議改名：include_skills → enabled_extra、exclude_skills → enabled_remove[/yellow]"
+        )
+        _ECC_PROFILE_LEGACY_HINT_SHOWN = True
+
+    extra: list[str] = []
+    remove: list[str] = []
+    if has_new_extra and isinstance(raw.get("enabled_extra"), list):
+        extra = [str(n) for n in raw["enabled_extra"]]
+    elif has_legacy_include and isinstance(raw.get("include_skills"), list):
+        extra = [str(n) for n in raw["include_skills"]]
+
+    if has_new_remove and isinstance(raw.get("enabled_remove"), list):
+        remove = [str(n) for n in raw["enabled_remove"]]
+    elif has_legacy_exclude and isinstance(raw.get("exclude_skills"), list):
+        remove = [str(n) for n in raw["exclude_skills"]]
+
+    if not extra and not remove:
+        return None
+
+    return {"enabled_extra": extra, "enabled_remove": remove}
+
+
+def _merge_user_overrides(skills_cfg: dict, profile: dict) -> None:
+    """將使用者覆寫合併進 skills_cfg['enabled']（in-place）。
+
+    公式：final = (repo.enabled ∪ enabled_extra) \\ enabled_remove
+    保序、去重（保留首次出現順序）。
+    """
+    repo_enabled: list[str] = list(skills_cfg.get("enabled", []) or [])
+    extra: list[str] = profile.get("enabled_extra", []) or []
+    remove: set[str] = set(profile.get("enabled_remove", []) or [])
+
+    seen: set[str] = set()
+    merged: list[str] = []
+    for name in [*repo_enabled, *extra]:
+        if name in remove or name in seen:
+            continue
+        seen.add(name)
+        merged.append(name)
+    skills_cfg["enabled"] = merged
+
+
 def _load_distribution_config() -> dict | None:
-    """讀取並解析 upstream/distribution.yaml，再合併使用者層級 ecc-profile.yaml。
+    """讀取並解析 upstream/distribution.yaml，合併使用者層級覆寫。
 
-    合併邏輯：
-    - 使用者 exclude_skills → 加入專案排除清單
-    - 使用者 include_skills → 從排除清單中移除（覆蓋專案排除）
-    - 最終排除 = (專案排除 + 使用者排除) - 使用者包含
-
+    skills 採白名單機制（distribute.skills.enabled），commands/agents 維持黑名單。
     source_path 中的 ~ 會自動展開為絕對路徑。
+
+    若偵測到 ~/.config/ai-dev/ecc-profile.yaml（含 enabled_extra / enabled_remove
+    或 legacy include_skills / exclude_skills），會合併到 distribute.skills.enabled。
 
     Returns:
         dict: 分發設定，若檔案不存在則回傳 None
@@ -1927,22 +2039,16 @@ def _load_distribution_config() -> dict | None:
     with open(config_path, encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    if config and "source_path" in config:
+    if not config:
+        return config
+
+    if "source_path" in config:
         config["source_path"] = str(Path(config["source_path"]).expanduser())
 
-    # 合併使用者層級 ecc-profile.yaml
-    user_profile_path = get_ai_dev_config_dir() / "ecc-profile.yaml"
-    if config and user_profile_path.exists():
-        with open(user_profile_path, encoding="utf-8") as f:
-            user_profile = yaml.safe_load(f)
-        if user_profile:
-            exclude = config.get("exclude", {})
-            project_skills = set(exclude.get("skills", []))
-            user_exclude = set(user_profile.get("exclude_skills", []))
-            user_include = set(user_profile.get("include_skills", []))
-            merged = sorted((project_skills | user_exclude) - user_include)
-            exclude["skills"] = merged
-            config["exclude"] = exclude
+    profile = _load_ecc_profile()
+    if profile is not None:
+        skills_cfg = config.setdefault("distribute", {}).setdefault("skills", {})
+        _merge_user_overrides(skills_cfg, profile)
 
     return config
 
@@ -1961,7 +2067,7 @@ def _prescan_ecc(
     skip_dirs = set(dist_config.get("skip_directories", []))
     exclude = dist_config.get("exclude", {})
 
-    # Skills
+    # Skills (whitelist)
     skills_config = distribute.get("skills", {})
     if skills_config and target in skills_config.get("targets", []):
         src = source_base / skills_config["source_path"]
@@ -1970,14 +2076,14 @@ def _prescan_ecc(
 
             npx_managed = get_npx_managed_skill_names()
             record = record_method_map.get("skills")
-            exclude_skills = set(exclude.get("skills", []))
+            enabled_skills = set(skills_config.get("enabled", []))
             if record:
                 for item in src.iterdir():
                     if (
                         item.is_dir()
                         and not item.name.startswith(".")
                         and item.name not in skip_dirs
-                        and item.name not in exclude_skills
+                        and item.name in enabled_skills
                         and item.name not in npx_managed
                     ):
                         record(item.name, item, source="ecc")
@@ -2017,6 +2123,7 @@ def _distribute_ecc_selective(
     force: bool = False,
     skip_conflicts: bool = False,
     dist_config: dict | None = None,
+    old_manifest: dict | None = None,
 ) -> None:
     """根據 distribution.yaml 從 ECC 選擇性分發資源到指定平台。"""
     if dist_config is None:
@@ -2037,22 +2144,49 @@ def _distribute_ecc_selective(
 
     console.print(f"  [bold cyan]分發 ECC 資源 → {target_name}[/bold cyan]")
 
-    # Skills
+    # Skills (whitelist：僅分發 enabled 列出的 skill)
     skills_config = distribute.get("skills", {})
     if skills_config and target in skills_config.get("targets", []):
         src = source_base / skills_config["source_path"]
         dst = COPY_TARGETS.get(target, {}).get("skills")
         if src.exists() and dst:
-            exclude_skills = set(exclude.get("skills", []))
+            enabled_skills = set(skills_config.get("enabled", []))
             console.print(f"  [green]skills[/green] → [cyan]{target_name}[/cyan]")
             console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
             dst.mkdir(parents=True, exist_ok=True)
+
+            # 升級偵測：舊 manifest 中 ECC source 但已不在新 enabled → 將被孤兒清理
+            old_ecc_skills: set[str] = set()
+            if old_manifest:
+                for name, entry in (old_manifest.get("files", {}) or {}).get("skills", {}).items():
+                    if isinstance(entry, dict) and entry.get("source") == "ecc":
+                        old_ecc_skills.add(name)
+            orphan_names = sorted(old_ecc_skills - enabled_skills)
+            if orphan_names:
+                preview = ", ".join(orphan_names[:5])
+                more = f"…（共 {len(orphan_names)} 個）" if len(orphan_names) > 5 else ""
+                console.print(
+                    f"    [yellow]⚠ 本次分發將移除 {len(orphan_names)} 個 ECC skill（不再列於 enabled）：[/yellow]\n"
+                    f"    [yellow]    {preview}{more}[/yellow]\n"
+                    "    [yellow]  如欲保留請於 ~/.config/ai-dev/ecc-profile.yaml 的 enabled_extra 加入名稱。[/yellow]"
+                )
+
+            # enabled 列出但 ECC 不存在 → 一次性警告
+            available_names = {p.name for p in src.iterdir() if p.is_dir() and not p.name.startswith(".")}
+            missing = sorted(enabled_skills - available_names - skip_dirs)
+            if missing:
+                console.print(
+                    f"    [yellow]⚠ enabled 中 {len(missing)} 個 skill 在 ECC 中找不到："
+                    f"{', '.join(missing[:5])}{'…' if len(missing) > 5 else ''}[/yellow]\n"
+                    "    [yellow]  建議執行 `ai-dev ecc audit` 檢查名稱是否變更或已移除[/yellow]"
+                )
+
             for item in src.iterdir():
                 if (
                     item.is_dir()
                     and not item.name.startswith(".")
                     and item.name not in skip_dirs
-                    and item.name not in exclude_skills
+                    and item.name in enabled_skills
                 ):
                     if skip_names and item.name in skip_names:
                         console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")

@@ -3,9 +3,10 @@
 ## 設計目標
 
 1. **預設拒絕**：ECC 上游新增 skill 不會自動分發。
-2. **單一決策點**：每個 skill 的「要 / 不要」只在 `distribution.yaml` 的 `enabled` 清單表達。
-3. **分類純文件化**：分類資訊僅影響人類審視效率，不影響 runtime。
-4. **可控的審視流程**：catalog 與 ECC 的差異由獨立工具偵測，由人工決定如何更新。
+2. **維護者單一決策點**：repo 範圍的「要 / 不要」由 `distribution.yaml` 的 `enabled` 清單表達。
+3. **終端使用者可個人化**：透過 `~/.config/ai-dev/ecc-profile.yaml` 在不 fork repo 的前提下，加減個人想要的 skill；git pull 不會與個人覆寫衝突。
+4. **分類純文件化**：分類資訊僅影響人類審視效率，不影響 runtime。
+5. **可控的審視流程**：catalog 與 ECC 的差異由獨立工具偵測，由人工決定如何更新。
 
 ## Ground Truths
 
@@ -14,6 +15,8 @@
 - 維護者需要在決策時看見分類，runtime 不需要分類。
 - 預設拒絕 + 顯式啟用 → 才能保證可控性。
 - catalog 與 ECC 現況的「差異」是觸發審視的唯一可靠訊號。
+- 終端使用者比維護者多得多，且不會 fork repo；個人化必須走 user-level 檔案而非 repo 編輯。
+- repo 的 `enabled` 是維護者意圖，使用者覆寫是個人意圖；兩者疊加而非取代。
 
 ## 檔案結構
 
@@ -135,9 +138,86 @@ categories:
     skills: []                       # ← audit 偵測到差異時提示人工填入
 ```
 
+## End-User Customization (`ecc-profile.yaml` v2)
+
+### 檔案位置與格式
+
+```yaml
+# ~/.config/ai-dev/ecc-profile.yaml
+version: 2                       # ← 區隔 legacy v1（blacklist 時代）
+enabled_extra:                   # 額外啟用 repo.enabled 沒列的 skill
+  - django-pro
+  - fastapi-pro
+enabled_remove:                  # 從 repo.enabled 拿掉不想要的 skill
+  - angular-developer
+```
+
+### 合併公式
+
+```
+   final_enabled = (repo.enabled ∪ user.enabled_extra) \ user.enabled_remove
+                                                       ↑
+                                            remove 後執行（衝突時拒絕勝出）
+```
+
+### 合併規則
+
+- **同名衝突**：同一個 skill 同時出現在 `enabled_extra` 與 `enabled_remove` → `remove` 勝（保險預設：個人覆寫只會少分發，不會多分發超出意圖）。
+- **extra 中不存在的 skill**：與 repo.enabled 列了不存在的 skill 同等處理，印一次性黃色警告（非阻塞）。
+- **remove 中不在 repo.enabled 的 skill**：靜默忽略（不視為錯誤）。
+- **ecc-profile.yaml 不存在或為空**：等同 `extra=[], remove=[]`，行為與 repo.enabled 一致。
+- **覆寫不需要存在於 catalog**：catalog 是維護者視角的審視工具，使用者個人覆寫不應被 catalog 限制。
+
+### Legacy v1 自動相容
+
+舊版欄位 `include_skills` / `exclude_skills` 的精神可平移到 whitelist 世界：
+
+| Legacy 鍵         | 新鍵              | 平移依據                              |
+|-------------------|-------------------|---------------------------------------|
+| `include_skills`  | `enabled_extra`   | 「強制納入」→「白名單外額外啟用」     |
+| `exclude_skills`  | `enabled_remove`  | 「個人額外排除」→「白名單中拿掉」     |
+
+`_load_distribution_config()` 偵測到僅有 legacy 鍵時 SHALL：
+1. 自動把欄位視為新鍵載入（語意等價）
+2. 印出一次性 deprecation hint 引導使用者改名（不阻塞、不自動寫檔）
+
+兩種鍵同時存在時，**新鍵優先**，legacy 鍵忽略並警告。
+
+## Upgrade Behavior
+
+### enabled 變動造成的本地檔案異動
+
+```
+   T0  使用者 ~/.claude/skills/ 有 enabled_effective = {A, B, C}
+   T1  maintainer 從 repo.enabled 拿掉 B 並 commit
+   T2  使用者 git pull && ai-dev clone
+       ──────────────────────────────────
+       new enabled_effective = {A, C}
+       ManifestTracker 視 B 為 ECC 孤兒 → 從 ~/.claude/skills/ 刪除
+```
+
+**保護機制**：若使用者想保留 B，於 `~/.config/ai-dev/ecc-profile.yaml` 加 `enabled_extra: [B]`。下次 `ai-dev clone` 時：
+
+```
+   enabled_effective = ({A, C} ∪ {B}) \ {} = {A, B, C}   → B 保留
+```
+
+### 通知機制
+
+`_distribute_ecc_selective()` 在分發前比對前後 enabled 集合差異（透過 old_manifest），若有 ECC 來源的 skill 將被孤兒清理，印出黃色提示：
+
+```
+  ⚠ 本次分發將移除 N 個 ECC skill（不再列於 enabled）:
+      - angular-developer
+      - laravel-plugin-discovery
+    如欲保留請於 ~/.config/ai-dev/ecc-profile.yaml 的 enabled_extra 加入名稱。
+```
+
+非阻塞，繼續執行。`--force` / `--skip-conflicts` 不影響此提示。
+
 ## Runtime 邏輯
 
-### `_load_distribution_config()`（簡化）
+### `_load_distribution_config()`（含合併）
 
 ```python
 def _load_distribution_config() -> dict | None:
@@ -148,8 +228,35 @@ def _load_distribution_config() -> dict | None:
         config = yaml.safe_load(f)
     if config and "source_path" in config:
         config["source_path"] = str(Path(config["source_path"]).expanduser())
+
+    # 合併使用者層級覆寫
+    profile = _load_ecc_profile()        # 讀 ~/.config/ai-dev/ecc-profile.yaml
+    if profile is not None:
+        skills_cfg = config.setdefault("distribute", {}).setdefault("skills", {})
+        repo_enabled = list(skills_cfg.get("enabled", []))
+        extra = list(profile.get("enabled_extra", []))
+        remove = set(profile.get("enabled_remove", []))
+        merged = [n for n in (repo_enabled + extra) if n not in remove]
+        # 去重保序
+        seen: set[str] = set()
+        skills_cfg["enabled"] = [n for n in merged if not (n in seen or seen.add(n))]
+
     return config
-    # ↑ 移除 ecc-profile.yaml 合併邏輯
+
+
+def _load_ecc_profile() -> dict | None:
+    path = get_ai_dev_config_dir() / "ecc-profile.yaml"
+    if not path.exists():
+        return None
+    with open(path) as f:
+        profile = yaml.safe_load(f) or {}
+
+    # Legacy v1 自動相容（include_skills → enabled_extra, exclude_skills → enabled_remove）
+    if "include_skills" in profile or "exclude_skills" in profile:
+        _print_legacy_profile_hint_once()
+        profile.setdefault("enabled_extra", profile.get("include_skills", []))
+        profile.setdefault("enabled_remove", profile.get("exclude_skills", []))
+    return profile
 ```
 
 ### `_prescan_ecc()`（白名單過濾）
@@ -157,17 +264,19 @@ def _load_distribution_config() -> dict | None:
 ```python
 skills_config = distribute.get("skills", {})
 if skills_config and target in skills_config.get("targets", []):
-    enabled = set(skills_config.get("enabled", []))
+    enabled = set(skills_config.get("enabled", []))   # ← 已含使用者覆寫
     src = source_base / skills_config["source_path"]
     if src.exists():
         for item in src.iterdir():
             if (item.is_dir()
                 and not item.name.startswith(".")
                 and item.name not in skip_dirs
-                and item.name in enabled              # ← 改成白名單判斷
+                and item.name in enabled              # ← 白名單判斷
                 and item.name not in npx_managed):
                 record(item.name, item, source="ecc")
 ```
+
+> `_distribute_ecc_selective()` 使用同一份合併後的 `enabled`，因此使用者覆寫對 prescan / 衝突偵測 / 實際分發三階段都生效，行為一致。
 
 ## Audit 子命令
 
@@ -225,8 +334,10 @@ $ ai-dev ecc audit
 
 1. **產生初始 catalog**：把目前實際分發中的 133 個 skill 依現有 `distribution.yaml` 註解的分組，分入 13 個 categories。
 2. **產生初始白名單**：`distribute.skills.enabled` 填入 133 個（行為兼容）。
-3. **移除 `exclude.skills`** 與 `ecc-profile.yaml` 合併邏輯。
-4. **第一次升級時跑 audit**：使用者拿到新版本後執行 `ai-dev ecc audit` 即可看到 ECC 與初始 catalog 之間的差異。
+3. **移除 `exclude.skills`**（白名單取代）。
+4. **重寫 `ecc-profile.yaml` 合併邏輯**：改為白名單語意（`enabled_extra` / `enabled_remove`），保留 legacy 鍵自動相容。
+5. **第一次升級時跑 audit**：使用者拿到新版本後執行 `ai-dev ecc audit` 即可看到 ECC 與初始 catalog 之間的差異。
+6. **legacy ecc-profile.yaml**：偵測到 `include_skills` / `exclude_skills` → 自動以等價語意載入並印一次性 hint，不破壞既有使用者設定。
 
 ## Out of Scope
 
