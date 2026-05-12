@@ -17,6 +17,129 @@ distribute:
       - opencode
       - gemini
       - codex
+    enabled:
+      # 白名單機制：僅列出名稱的 skill 會被分發到 targets 平台。
+      # ECC 上游新增的 skill 預設不分發，必須顯式加入此清單。
+      # 維護方式：執行 ai-dev ecc audit 偵測 ECC 與 ecc-catalog.yaml 差異，
+      # 將要啟用的項目補入此處。skill 分類請參考 upstream/ecc-catalog.yaml。
+
+      # === 通用工程方法論 (engineering-methods) — 14 個 ===
+      - agentic-engineering
+      - ai-first-engineering
+      - architecture-decision-records
+      - coding-standards
+      - context-budget
+      - council
+      - error-handling
+      - hexagonal-architecture
+      - iterative-retrieval
+      - plankton-code-quality
+      - search-first
+      - skill-stocktake
+      - tdd-workflow
+      - verification-loop
+
+      # === Agent / LLM 系統建構 (agent-llm) — 15 個 ===
+      - agent-architecture-audit
+      - agent-eval
+      - agent-harness-construction
+      - agent-introspection-debugging
+      - autonomous-agent-harness
+      - autonomous-loops
+      - continuous-agent-loop
+      - continuous-learning-v2
+      - enterprise-agent-ops
+      - eval-harness
+      - mcp-server-patterns
+      - mle-workflow
+      - plan-orchestrate
+      - prompt-optimizer
+      - team-builder
+
+      # === 前端、UI、動畫 (frontend-ui) — 7 個 ===
+      - accessibility
+      - design-system
+      - frontend-patterns
+      - nextjs-turbopack
+      - ui-demo
+      - ui-to-vue
+      - vite-patterns
+
+      # === 後端、框架、執行期 (backend-frameworks) — 5 個 ===
+      - backend-patterns
+      - bun-runtime
+      - fastapi-patterns
+      - python-patterns
+      - python-testing
+
+      # === 資料儲存、資料庫 (data-storage) — 4 個 ===
+      - database-migrations
+      - mysql-patterns
+      - postgres-patterns
+      - redis-patterns
+
+      # === 網路、Homelab、基礎設施 (network-infra) — 7 個 ===
+      - deployment-patterns
+      - docker-patterns
+      - flox-environments
+      - homelab-network-readiness
+      - homelab-network-setup
+      - network-config-validation
+      - network-interface-health
+
+      # === 測試、QA、E2E (testing-qa) — 6 個 ===
+      - ai-regression-testing
+      - benchmark
+      - browser-qa
+      - canary-watch
+      - e2e-testing
+      - production-audit
+
+      # === 文件、知識管理、研究 (docs-knowledge) — 9 個 ===
+      - brand-voice
+      - code-tour
+      - codebase-onboarding
+      - deep-research
+      - documentation-lookup
+      - exa-search
+      - market-research
+      - research-ops
+
+      # === 工具、Ops、整合 (tools-ops) — 13 個 ===
+      - api-connector-builder
+      - api-design
+      - automation-audit-ops
+      - dashboard-builder
+      - data-scraper-agent
+      - ecc-guide
+      - gateguard
+      - github-ops
+      - hookify-rules
+      - jira-integration
+      - opensource-pipeline
+      - safety-guard
+      - terminal-ops
+
+      # === 規範、流程、RFC、PR (process-rfc) — 5 個 ===
+      - blueprint
+      - git-workflow
+      - product-capability
+      - product-lens
+      - project-flow-ops
+
+      # === 安全 (security) — 4 個 ===
+      - rules-distill
+      - security-bounty-hunter
+      - security-review
+      - security-scan
+
+      # === AI 工具、Token、媒體生成 (ai-cost-tooling) — 6 個 ===
+      - click-path-audit
+      - content-hash-cache-pattern
+      - cost-aware-llm-pipeline
+      - remotion-video-creation
+      - repo-scan
+      - token-budget-advisor
 
   commands:
     claude:
@@ -38,124 +161,8 @@ distribute:
 # 分發 skills 時要跳過的目錄名稱
 skip_directories: []
 
-# 排除特定資源不分發
-# skills: 所有平台都不分發
-# commands/agents: 依平台排除
+# 排除特定資源不分發（commands / agents 維持黑名單；skills 改用 distribute.skills.enabled 白名單）
 exclude:
-  skills:
-    # === 語言/框架特定（無對應專案時不需要）===
-    # C++
-    - cpp-coding-standards
-    - cpp-testing
-    # Django
-    - django-patterns
-    - django-security
-    - django-tdd
-    - django-verification
-    # Go
-    - golang-patterns
-    - golang-testing
-    # Java / Spring Boot
-    - java-coding-standards
-    - jpa-patterns
-    - springboot-patterns
-    - springboot-security
-    - springboot-tdd
-    - springboot-verification
-    # Swift (特定模式)
-    - swift-actor-persistence
-    - swift-protocol-di-testing
-    # Kotlin / KMP
-    - kotlin-coroutines-flows
-    - kotlin-exposed-patterns
-    - kotlin-ktor-patterns
-    - kotlin-patterns
-    - kotlin-testing
-    # Perl
-    - perl-patterns
-    - perl-security
-    - perl-testing
-    # Rust
-    - rust-patterns
-    - rust-testing
-    # Laravel
-    - laravel-patterns
-    - laravel-security
-    - laravel-tdd
-    - laravel-verification
-    # Apple / iOS
-    - foundation-models-on-device
-    - liquid-glass-design
-    - swift-concurrency-6-2
-    - swiftui-patterns
-    # Android / Flutter
-    - android-clean-architecture
-    - compose-multiplatform-patterns
-    - flutter-dart-code-review
-    # === 內容創作 / 媒體 ===
-    - article-writing
-    - content-engine
-    - crosspost
-    - fal-ai-media
-    - frontend-slides
-    - video-editing
-    - videodb
-    - x-api
-    # === 投資 / 募資 ===
-    - investor-materials
-    - investor-outreach
-    # === 供應鏈 / 製造 / 商業領域 ===
-    - carrier-relationship-management
-    - customs-trade-compliance
-    - energy-procurement
-    - inventory-demand-planning
-    - logistics-exception-management
-    - production-scheduling
-    - quality-nonconformance
-    - returns-reverse-logistics
-    # === 特定產品 ===
-    - clickhouse-io
-    - nutrient-document-processing
-    # === 區塊鏈 / DeFi / Web3 ===
-    - defi-amm-security
-    - evm-token-decimals
-    - llm-trading-agent-security
-    - nodejs-keccak256
-    - agent-payment-x402
-    # === 醫療 / HIPAA ===
-    - healthcare-cdss-patterns
-    - healthcare-emr-patterns
-    - healthcare-eval-harness
-    - healthcare-phi-compliance
-    - hipaa-compliance
-    # === C# / .NET ===
-    - csharp-testing
-    - dotnet-patterns
-    # === Dart / Flutter ===
-    - dart-flutter-patterns
-    # === 深度學習 ===
-    - pytorch-patterns
-    # === 動畫影片 ===
-    - manim-video
-    # === 娛樂 / 人格 ===
-    - openclaw-persona-forge
-    # === ECC 內部操作流程 ===
-    - customer-billing-ops
-    - finance-billing-ops
-    - ecc-tools-cost-audit
-    - email-ops
-    - messages-ops
-    - unified-notifications-ops
-    - configure-ecc
-    - skill-comply
-    # === 社交 / 業務開發 ===
-    - connections-optimizer
-    - social-graph-ranker
-    - lead-intelligence
-    # === 低頻使用 ===
-    - google-workspace-ops
-    - seo
-    - visa-doc-translate
   commands:
     claude: []
     opencode: []
