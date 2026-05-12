@@ -121,7 +121,7 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 
 #### Scenario: 複製 Commands 到 Gemini CLI
 
-給定 custom-skills/command/gemini 目錄存在
+給定 custom-skills/commands/gemini 目錄存在
 當執行 `ai-dev install` 或 `ai-dev update` 時
 則應該複製 commands 到 `~/.gemini/commands` 目錄
 
@@ -174,15 +174,15 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 
 #### Scenario: 複製 Commands 到 OpenCode
 
-給定 custom-skills/command/opencode 目錄存在
+給定 custom-skills/commands/opencode 目錄存在
 當執行 `ai-dev install` 或 `ai-dev update` 時
 則應該複製 commands 到 `~/.config/opencode/commands` 目錄
 
 #### Scenario: 複製 Agents 到 OpenCode
 
-給定 custom-skills/agent/opencode 目錄存在
+給定 custom-skills/agents/opencode 目錄存在
 當執行 `ai-dev install` 或 `ai-dev update` 時
-則應該複製 agents 到 `~/.config/opencode/agent` 目錄
+則應該複製 agents 到 `~/.config/opencode/agents` 目錄
 
 ### Requirement: Claude Code Native Install Support (Claude Code Native 安裝支援)
 

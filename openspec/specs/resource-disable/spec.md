@@ -25,7 +25,7 @@ TBD - created by archiving change implement-resource-disable-mechanism. Update P
 
 #### Scenario: 停用 OpenCode 的 agent
 
-**Given** 使用者已安裝 `code-simplifier-opencode.md` agent 在 `~/.config/opencode/agent/code-simplifier-opencode.md`
+**Given** 使用者已安裝 `code-simplifier-opencode.md` agent 在 `~/.config/opencode/agents/code-simplifier-opencode.md`
 **When** 使用者執行 `toggle --target opencode --type agents --name code-simplifier-opencode --disable`
 **Then** 系統應將檔案移動到 `~/.config/custom-skills/disabled/opencode/agents/code-simplifier-opencode.md`
 **And** 更新 `toggle-config.yaml` 記錄停用狀態
