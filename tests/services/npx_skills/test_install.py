@@ -1,8 +1,15 @@
+from pathlib import Path
+
+from script.services.npx_skills import install as install_mod
 from script.services.npx_skills.config import (
     NpxDefaults,
     SkillEntry,
 )
-from script.services.npx_skills.install import build_add_command, build_update_command
+from script.services.npx_skills.install import (
+    build_add_command,
+    build_update_command,
+    run_npx_skills_phase,
+)
 
 
 def test_build_add_command_includes_global_and_agents():
@@ -51,3 +58,15 @@ def test_build_update_command_project_scope_omits_g():
     assert "-g" not in cmd
     assert "-y" not in cmd
     assert cmd == ["npx", "skills", "update", "z"]
+
+
+def test_phase_skips_when_project_yaml_missing(tmp_path: Path, monkeypatch):
+    """過時 clone 缺少 project yaml 時，應警告並跳過，不得拋例外中斷 install。"""
+    monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
+    missing = tmp_path / "custom-skills" / "upstream" / "npx-skills.yaml"
+    user = tmp_path / "ai-dev" / "npx-skills.yaml"
+
+    run_npx_skills_phase(mode="add", project_yaml=missing, user_yaml=user)
+
+    # 未建立 user yaml、未拋例外即代表已優雅跳過
+    assert not user.exists()

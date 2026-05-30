@@ -52,6 +52,14 @@ def run_npx_skills_phase(
         )
         return
 
+    if not project_yaml.exists():
+        console.print(
+            f"[yellow]⚠ 找不到 {project_yaml}，略過 npx-skills phase。[/yellow]\n"
+            "[dim]   custom-skills clone 可能過時，請執行 "
+            "`cd ~/.config/custom-skills && git pull` 後重試。[/dim]"
+        )
+        return
+
     ensure_user_yaml(project_path=project_yaml, user_path=user_yaml)
     config = NpxSkillsConfig.load(user_yaml)
     total = len(config.entries)
