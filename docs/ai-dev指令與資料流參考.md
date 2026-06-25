@@ -133,7 +133,7 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 
 - `--only <phase,...>`：只執行指定 phase；值必須在該命令的允許 phases 內，以逗號分隔多值
 - `--skip <phase,...>`：從預設 phase 集合中移除指定 phase；值必須在該命令的允許 phases 內，以逗號分隔多值
-- `--target <tool,...>`：限制 `targets` phase 的分發目標，以逗號分隔多值；可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`；僅在 phases 包含 `targets` 時有效（`install` / `clone`）
+- `--target <tool,...>`：限制 `targets` phase 的分發目標，以逗號分隔多值；可用值：`claude`、`codex`、`agy`、`opencode`、`antigravity`；僅在 phases 包含 `targets` 時有效（`install` / `clone`）
 - `--dry-run`：只顯示執行計畫，不寫入任何檔案
 - `clone` 額外衝突處理參數（三者互斥）：
   - `--force` / `-f`：強制覆蓋所有衝突檔案（不提示）
@@ -224,14 +224,14 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 
 ### `ai-dev list`
 
-- `--target` / `-t`：可省略；未指定時代表所有 targets；可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`
+- `--target` / `-t`：可省略；未指定時代表所有 targets；可用值：`claude`、`codex`、`agy`、`opencode`、`antigravity`
 - `--type` / `-T`：過濾資源類型；可用值：`skills`、`commands`、`agents`、`workflows`
 - `--hide-disabled` / `-H`：隱藏已停用的資源
 - 若沒有符合結果，會顯示 `無符合結果`
 
 ### `ai-dev toggle`
 
-- `--target` / `-t`：目標工具（必填）；可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`
+- `--target` / `-t`：目標工具（必填）；可用值：`claude`、`codex`、`agy`、`opencode`、`antigravity`
 - `--type` / `-T`：資源類型（必填）；可用值：`skills`、`commands`、`agents`、`workflows`
 - `--name` / `-n`：資源名稱（必填）
 - `--enable` / `-e` 與 `--disable` / `-d`：二擇一，指定啟用或停用
@@ -400,7 +400,7 @@ exclude 規則：
 | `standards switch` | 切換 profile，重算 profile-based disabled 清單。 | 僅更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`；不再自動同步任何 target；支援 `--dry-run` / `-n` 預覽。 |
 | `standards show` | 顯示單一 profile 的詳細內容與 overlap 選擇。 | 純讀取，不寫入。 |
 | `standards overlaps` | 顯示 `overlaps.yaml` 摘要。 | 純讀取，不寫入。 |
-| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | `--target` / `-t` 必填，可用值：`claude`、`codex`、`gemini`、`opencode`、`antigravity`；支援 `--dry-run` / `-n`；`standards (*.ai.yaml)` 不會被此命令搬移。 |
+| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | `--target` / `-t` 必填，可用值：`claude`、`codex`、`agy`、`opencode`、`antigravity`；支援 `--dry-run` / `-n`；`standards (*.ai.yaml)` 不會被此命令搬移。 |
 
 主要狀態：
 - `.standards/active-profile.yaml`：目前啟用的 profile

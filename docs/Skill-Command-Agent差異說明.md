@@ -576,7 +576,9 @@ Skill 定義策略       Command 觸發流程        Agent 執行戰術
 |------|----------|----------|
 | Skill | `~/.codex/skills/<name>/` | `.codex/skills/<name>/` |
 
-### Gemini CLI
+### Antigravity CLI（agy，原 Gemini CLI）
+
+> 舊版 Gemini CLI（`gemini` 指令）已於 2026-06-18 由 Antigravity CLI（`agy`）接手；agy 原生 skills 改放工作區的 `.agents/skills/`。下表為 `ai-dev` 目前沿用的 `~/.gemini/` 分發路徑（內部代號仍為 `gemini`）。
 
 | 類型 | 用戶級別 | 專案級別 |
 |------|----------|----------|

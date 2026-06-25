@@ -98,8 +98,13 @@ def get_agents_skills_dir() -> Path:
     return get_home_dir() / ".agents" / "skills"
 
 
-def get_gemini_cli_config_dir() -> Path:
-    """回傳 Gemini CLI 的配置目錄路徑。"""
+def get_agy_config_dir() -> Path:
+    """回傳 Antigravity CLI (agy) 的配置目錄路徑。
+
+    agy 讀取 `~/.gemini/skills`（與所有 Antigravity 工具共用的 skills 目錄），
+    故回傳 `~/.gemini`。agy CLI 專屬全域 skills 另在 `~/.gemini/antigravity-cli/skills`，
+    本專案採共用路徑分發。
+    """
     return get_home_dir() / ".gemini"
 
 

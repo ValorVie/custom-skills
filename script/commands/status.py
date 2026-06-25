@@ -53,7 +53,6 @@ def _render_npm_packages() -> None:
     packages = [
         "@anthropic-ai/claude-code",
         "@fission-ai/openspec",
-        "@google/gemini-cli",
         "universal-dev-standards",
         "opencode-ai",
         "skills",
@@ -62,7 +61,6 @@ def _render_npm_packages() -> None:
     binary_map = {
         "@anthropic-ai/claude-code": "claude",
         "@fission-ai/openspec": "openspec",
-        "@google/gemini-cli": "gemini",
         "universal-dev-standards": "uds",
         "opencode-ai": "opencode",
     }

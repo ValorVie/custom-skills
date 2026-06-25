@@ -14,7 +14,7 @@ console = Console()
 PROJECT_TRACKING_FILE = ".ai-dev-project.yaml"
 TRACKING_SCHEMA_VERSION = "2"
 DEFAULT_PROJECTION = {
-    "targets": ["claude", "codex", "gemini"],
+    "targets": ["claude", "codex", "agy"],
     "profile": "default",
     "allow_local_generation": True,
 }

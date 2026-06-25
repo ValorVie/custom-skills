@@ -22,7 +22,7 @@ TARGET_DISPLAY_NAMES = {
     "antigravity": "Antigravity",
     "opencode": "OpenCode",
     "codex": "Codex",
-    "gemini": "Gemini CLI",
+    "agy": "Antigravity CLI (agy)",
 }
 
 TYPE_DISPLAY_NAMES = {
@@ -39,7 +39,7 @@ def list_resources(
         None,
         "--target",
         "-t",
-        help="目標工具：claude, antigravity, opencode, codex, gemini",
+        help="目標工具：claude, antigravity, opencode, codex, agy",
     ),
     resource_type: Optional[str] = typer.Option(
         None,
@@ -56,7 +56,7 @@ def list_resources(
 ):
     """列出已安裝的 Skills、Commands、Agents（包含停用的）。"""
     # 驗證參數
-    valid_targets = ["claude", "antigravity", "opencode", "codex", "gemini"]
+    valid_targets = ["claude", "antigravity", "opencode", "codex", "agy"]
     valid_types = ["skills", "commands", "agents", "workflows"]
 
     if target and target not in valid_targets:

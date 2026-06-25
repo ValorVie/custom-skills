@@ -22,7 +22,7 @@ from ..utils.paths import (
     get_antigravity_config_dir,
     get_opencode_config_dir,
     get_codex_config_dir,
-    get_gemini_cli_config_dir,
+    get_agy_config_dir,
     get_superpowers_dir,
     get_uds_dir,
 )
@@ -246,9 +246,8 @@ def _legacy_install(
         get_opencode_config_dir() / "agents",
         # Codex
         get_codex_config_dir() / "skills",
-        # Gemini CLI
-        get_gemini_cli_config_dir() / "skills",
-        get_gemini_cli_config_dir() / "commands",
+        # Antigravity CLI (agy)（共用 skills 目錄 ~/.gemini/skills）
+        get_agy_config_dir() / "skills",
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)

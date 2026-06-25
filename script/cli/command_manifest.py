@@ -6,7 +6,7 @@ from script.models.command_spec import CommandSpec
 
 
 PIPELINE_PHASES = ("tools", "repos", "state", "npx-skills", "targets")
-TARGETS = ("claude", "codex", "gemini", "opencode", "antigravity")
+TARGETS = ("claude", "codex", "agy", "opencode", "antigravity")
 PIPELINE_FLAGS = ("only", "skip", "target", "dry_run")
 
 

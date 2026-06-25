@@ -296,7 +296,7 @@ def test_conflict_prescan_skips_skill_with_valid_clone_policy(
     (empty / "claude").mkdir(parents=True)
     (empty / "antigravity").mkdir(parents=True)
     (empty / "opencode").mkdir(parents=True)
-    (empty / "gemini").mkdir(parents=True)
+    (empty / "agy").mkdir(parents=True)
     (empty / "workflows").mkdir(parents=True)
     (custom_dir / "agents" / "claude").mkdir(parents=True)
     (custom_dir / "agents" / "opencode").mkdir(parents=True)
@@ -332,9 +332,8 @@ def test_conflict_prescan_skips_skill_with_valid_clone_policy(
         "codex": {
             "skills": tmp_path / "targets" / "codex" / "skills",
         },
-        "gemini": {
-            "skills": tmp_path / "targets" / "gemini" / "skills",
-            "commands": tmp_path / "targets" / "gemini" / "commands",
+        "agy": {
+            "skills": tmp_path / "targets" / "agy" / "skills",
         },
     }
     monkeypatch.setattr(shared, "COPY_TARGETS", fake_targets)
@@ -408,7 +407,7 @@ def test_copy_custom_skills_projects_auto_skill_via_shadow_dir(
     (empty / "claude").mkdir(parents=True)
     (empty / "antigravity").mkdir(parents=True)
     (empty / "opencode").mkdir(parents=True)
-    (empty / "gemini").mkdir(parents=True)
+    (empty / "agy").mkdir(parents=True)
     (empty / "workflows").mkdir(parents=True)
     (custom_dir / "agents" / "claude").mkdir(parents=True)
     (custom_dir / "agents" / "opencode").mkdir(parents=True)
@@ -434,9 +433,8 @@ def test_copy_custom_skills_projects_auto_skill_via_shadow_dir(
         "codex": {
             "skills": tmp_path / "targets" / "codex" / "skills",
         },
-        "gemini": {
-            "skills": tmp_path / "targets" / "gemini" / "skills",
-            "commands": tmp_path / "targets" / "gemini" / "commands",
+        "agy": {
+            "skills": tmp_path / "targets" / "agy" / "skills",
         },
     }
     state_dir = tmp_path / "state" / "auto-skill"

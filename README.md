@@ -86,7 +86,7 @@ ai-dev install
 這會自動：
 1. 檢查 Node.js 與 Git。
 2. 檢查 Claude Code CLI 是否已安裝（若無則顯示安裝指引）。
-3. 安裝全域 NPM 工具 (`openspec`, `gemini-cli`, `skills` 等)。
+3. 安裝全域 NPM 工具 (`openspec`, `skills` 等)。
 4. 檢查 Bun 是否已安裝，若已安裝則自動安裝 Codex CLI。
 5. Clone 必要的設定儲存庫到 `~/.config/`（Stage 1，包含 `~/.config/custom-skills` 本機 repo）。
 6. Clone 已設定的自訂 repo（若有）。
@@ -105,7 +105,7 @@ ai-dev install
 |------|------|
 | `--only` | 只執行指定 phase：`tools,repos,state,targets` |
 | `--skip` | 從預設 phase 中跳過指定 phase |
-| `--target` | 僅分發指定目標：`claude`, `codex`, `gemini`, `opencode`, `antigravity` |
+| `--target` | 僅分發指定目標：`claude`, `codex`, `agy`, `opencode`, `antigravity` |
 | `--dry-run` | 只顯示執行計畫，不實際寫入 |
 
 **範例：**
@@ -184,7 +184,7 @@ canonical state 與 shadow 會保留有效的 `.clonepolicy.json`；當 upstream
 |------|------|
 | `--only` | 只執行指定 phase：`state,targets` |
 | `--skip` | 從預設 phase 中跳過指定 phase |
-| `--target` | 僅分發指定目標：`claude`, `codex`, `gemini`, `opencode`, `antigravity` |
+| `--target` | 僅分發指定目標：`claude`, `codex`, `agy`, `opencode`, `antigravity` |
 | `--dry-run` | 只顯示執行計畫，不實際寫入 |
 | `--force`, `-f` | 強制覆蓋所有衝突檔案（不提示） |
 | `--skip-conflicts`, `-s` | 跳過有衝突的檔案，僅分發無衝突的檔案 |
@@ -328,7 +328,7 @@ ai-dev project exclude --disable
 | Claude Code | OK | OK | Glob OK, Grep 跳過 | **可行** |
 | Codex CLI | OK | OK | 搜尋跳過 | **可行** |
 | OpenCode | OK | OK | 搜尋跳過 | **可行** |
-| Gemini CLI | OK | read_file 拒絕 | 搜尋跳過 | **部分可行** |
+| Antigravity CLI (agy) | 待驗證 | 待驗證 | 待驗證 | **待驗證**（接替已退役的 Gemini CLI）|
 | Antigravity | OK | OK | OK | **可行** |
 
 > **關鍵差異**：`.git/info/exclude` 與 `.gitignore` 效果相同，但不被 AI 工具的 gitignore parser 讀取。
@@ -412,8 +412,8 @@ ai-dev list --target opencode --type agents
 # 列出 Codex 的 Skills
 ai-dev list --target codex --type skills
 
-# 列出 Gemini CLI 的 Skills
-ai-dev list --target gemini --type skills
+# 列出 Antigravity CLI (agy) 的 Skills
+ai-dev list --target agy --type skills
 
 # 隱藏已停用的資源
 ai-dev list --hide-disabled
@@ -423,7 +423,7 @@ ai-dev list --hide-disabled
 
 | 參數 | 說明 |
 |------|------|
-| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode`, `codex`, `gemini` |
+| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode`, `codex`, `agy` |
 | `--type`, `-T` | 資源類型：`skills`, `commands`, `agents`, `workflows` |
 | `--hide-disabled`, `-H` | 隱藏已停用的資源（預設顯示全部） |
 
@@ -446,7 +446,7 @@ ai-dev toggle --list
 
 | 參數 | 說明 |
 |------|------|
-| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode`, `codex`, `gemini` |
+| `--target`, `-t` | 目標工具：`claude`, `antigravity`, `opencode`, `codex`, `agy` |
 | `--type`, `-T` | 資源類型：`skills`, `commands`, `agents`, `workflows` |
 | `--name`, `-n` | 資源名稱 |
 | `--enable`, `-e` | 啟用資源 |
@@ -471,10 +471,8 @@ ai-dev toggle --list
 ├── codex/
 │   └── skills/
 │       └── ...
-└── gemini/
-    ├── skills/
-    │   └── ...
-    └── commands/
+└── agy/
+    └── skills/
         └── ...
 ```
 
@@ -512,11 +510,8 @@ codex:
     enabled: true
     disabled: []
 
-gemini:
+agy:
   skills:
-    enabled: true
-    disabled: []
-  commands:
     enabled: true
     disabled: []
 ```
@@ -531,7 +526,7 @@ ai-dev tui
 
 **功能：**
 - 頂部按鈕列：Install / Update / Status / Add Skills / Quit
-- Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode / Codex / Gemini CLI）
+- Target 下拉選單：切換目標工具（Claude Code / Antigravity / OpenCode / Codex / Antigravity CLI (agy)）
 - Type 下拉選單：切換資源類型（Skills / Commands / Agents / Workflows）
 - 資源列表：Checkbox 勾選啟用/停用
 - Add Skills 對話框：輸入套件名稱並執行 `npx skills add`
@@ -547,7 +542,7 @@ TUI 底部顯示目前選擇的工具的 MCP 設定檔資訊：
 | Antigravity | `~/.gemini/antigravity/mcp_config.json` |
 | OpenCode | `~/.config/opencode/opencode.json` |
 | Codex | `~/.codex/config.json` |
-| Gemini CLI | `~/.gemini/settings.json` |
+| Antigravity CLI (agy) | `~/.gemini/config/mcp_config.json` |
 
 點擊「Open in Editor」可在 VS Code 中開啟設定檔，點擊「Open Folder」可在檔案管理器中開啟。
 

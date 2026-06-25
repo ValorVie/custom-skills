@@ -164,6 +164,11 @@ def _run_install_tools_phase() -> None:
         )
 
 
+# 注意：以下是外部 `npx skills` 工具的 agent 識別碼，非本專案的分發 target。
+# `gemini-cli` 為刻意保留（勿改名為 agy）：npx skills v1.5.1 無 `agy`/`antigravity-cli`
+# agent，而 `gemini-cli` 的路徑（project `.agents/skills`、global `~/.gemini/skills`）
+# 正是 Antigravity CLI (agy) 讀取的 skills 目錄。待 npx skills 推出 `agy` agent 前不得改名。
+# 詳見 OpenSpec change clarify-npx-agy-projection / migrate-gemini-cli-to-agy。
 _NPX_PROJECT_AGENTS: tuple[str, ...] = (
     "claude-code",
     "codex",

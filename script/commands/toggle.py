@@ -22,7 +22,7 @@ TARGET_DISPLAY_NAMES = {
     "antigravity": "Antigravity",
     "opencode": "OpenCode",
     "codex": "Codex",
-    "gemini": "Gemini CLI",
+    "agy": "Antigravity CLI (agy)",
 }
 
 
@@ -32,7 +32,7 @@ def toggle(
         None,
         "--target",
         "-t",
-        help="目標工具：claude, antigravity, opencode, codex, gemini",
+        help="目標工具：claude, antigravity, opencode, codex, agy",
     ),
     resource_type: Optional[str] = typer.Option(
         None,
@@ -83,7 +83,7 @@ def toggle(
         console.print("[red]請指定目標工具（--target）[/red]")
         raise typer.Exit(code=1)
 
-    valid_targets = ["claude", "antigravity", "opencode", "codex", "gemini"]
+    valid_targets = ["claude", "antigravity", "opencode", "codex", "agy"]
     if target not in valid_targets:
         console.print(f"[red]無效的目標：{target}[/red]")
         raise typer.Exit(code=1)
@@ -97,7 +97,7 @@ def toggle(
         "antigravity": ["skills", "workflows"],
         "opencode": ["agents"],
         "codex": ["skills"],
-        "gemini": ["skills", "commands"],
+        "agy": ["skills"],
     }
 
     if resource_type not in valid_types_for_target.get(target, []):

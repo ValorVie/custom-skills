@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING：分發目標 `gemini` 改名為 `agy`（Antigravity CLI）**（OpenSpec change `migrate-gemini-cli-to-agy`）。Google 已於 2026-06-18 關閉 Gemini CLI（`gemini` 指令、`@google/gemini-cli` 套件），由 Antigravity CLI（`agy`）接手。
+  - 對外的 `--target gemini` 與 `toggle-config.yaml` 的 `gemini` 鍵改為 `agy`，**不保留相容別名**。
+  - **遷移指引**：請把腳本中的 `--target gemini` 改為 `--target agy`；`toggle-config.yaml` 的 `gemini:` 區塊改名為 `agy:`（僅保留 `skills`）。
+  - `agy` target 僅分發 `skills` 至 `~/.gemini/skills/`（agy 與所有 Antigravity 工具共用的 skills 目錄，沿用原路徑）；移除 `commands`/`agents` 分發（agy 無全域 commands/agents 目錄，slash 指令以 `SKILL.md` 實作）。
+  - MCP 設定對照改指向 `~/.gemini/config/mcp_config.json`。
+  - 從全域 npm 安裝清單移除已退役的 `@google/gemini-cli`；`agy` 改以官方執行檔安裝（`curl -fsSL https://antigravity.google/cli/install.sh | bash`），不由 `ai-dev` 自動安裝。
+
 ### Added
 
 - **ECC 白名單分發機制**（OpenSpec change `ecc-whitelist-distribution`）。

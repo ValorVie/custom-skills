@@ -18,7 +18,7 @@ from script.utils.paths import (
     get_codex_superpowers_dir,
     get_config_dir,
     get_custom_skills_dir,
-    get_gemini_cli_config_dir,
+    get_agy_config_dir,
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_ecc_dir,
@@ -161,8 +161,7 @@ def _ensure_install_directories() -> None:
         get_opencode_config_dir() / "commands",
         get_opencode_config_dir() / "agents",
         get_codex_config_dir() / "skills",
-        get_gemini_cli_config_dir() / "skills",
-        get_gemini_cli_config_dir() / "commands",
+        get_agy_config_dir() / "skills",
     ]
     for path in dirs:
         path.mkdir(parents=True, exist_ok=True)

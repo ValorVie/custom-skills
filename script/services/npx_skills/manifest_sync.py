@@ -18,7 +18,7 @@ from script.utils.paths import (
 )
 
 # clone 分發的所有 target（對齊 command_manifest.TARGETS）
-_ALL_TARGETS = ("claude", "codex", "gemini", "opencode", "antigravity")
+_ALL_TARGETS = ("claude", "codex", "agy", "opencode", "antigravity")
 
 
 def get_npx_managed_skill_names(yaml_path: Path | None = None) -> set[str]:

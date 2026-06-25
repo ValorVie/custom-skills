@@ -381,7 +381,7 @@ def get_manifest_path(target: TargetType) -> Path:
     """返回指定平台的 manifest 路徑。
 
     Args:
-        target: 目標平台名稱 (claude, opencode, antigravity, codex, gemini)
+        target: 目標平台名稱 (claude, opencode, antigravity, codex, agy)
 
     Returns:
         Path: manifest 檔案路徑

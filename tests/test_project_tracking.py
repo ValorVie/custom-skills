@@ -45,7 +45,7 @@ def test_create_and_load_tracking_file(tmp_path: Path):
     assert data["template"]["url"] == "https://github.com/ValorVie/qdm-ai-base.git"
     assert "initialized_at" not in data["template"]
     assert "last_updated" not in data["template"]
-    assert data["projection"]["targets"] == ["claude", "codex", "gemini"]
+    assert data["projection"]["targets"] == ["claude", "codex", "agy"]
     assert data["projection"]["profile"] == "default"
     assert data["projection"]["allow_local_generation"] is True
     assert ".standards/commit.yaml" in data["managed_files"]

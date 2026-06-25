@@ -52,7 +52,7 @@ TARGET_OPTIONS = [
     ("Antigravity", "antigravity"),
     ("OpenCode", "opencode"),
     ("Codex", "codex"),
-    ("Gemini CLI", "gemini"),
+    ("Antigravity CLI (agy)", "agy"),
 ]
 
 # 各工具支援的資源類型
@@ -61,7 +61,7 @@ TYPE_OPTIONS_BY_TARGET = {
     "antigravity": [("Skills", "skills"), ("Workflows", "workflows")],
     "opencode": [("Skills", "skills"), ("Commands", "commands"), ("Agents", "agents")],
     "codex": [("Skills", "skills")],
-    "gemini": [("Skills", "skills"), ("Commands", "commands")],
+    "agy": [("Skills", "skills")],
 }
 
 # 來源篩選選項

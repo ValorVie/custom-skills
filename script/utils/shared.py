@@ -30,7 +30,7 @@ from .paths import (
     get_codex_config_dir,
     get_codex_superpowers_dir,
     get_agents_skills_dir,
-    get_gemini_cli_config_dir,
+    get_agy_config_dir,
     get_superpowers_dir,
     get_uds_dir,
     get_obsidian_skills_dir,
@@ -45,7 +45,7 @@ from .system import run_command
 console = Console()
 
 # 類型定義
-TargetType = Literal["claude", "antigravity", "opencode", "codex", "gemini"]
+TargetType = Literal["claude", "antigravity", "opencode", "codex", "agy"]
 ResourceType = Literal["skills", "commands", "agents", "workflows"]
 
 # ============================================================
@@ -54,7 +54,6 @@ ResourceType = Literal["skills", "commands", "agents", "workflows"]
 
 NPM_PACKAGES = [
     "@fission-ai/openspec@latest",
-    "@google/gemini-cli",
     "universal-dev-standards",
     "opencode-ai@latest",
     "skills",
@@ -317,10 +316,8 @@ COPY_TARGETS = {
     "codex": {
         "skills": get_codex_config_dir() / "skills",
     },
-    "gemini": {
-        "skills": get_gemini_cli_config_dir() / "skills",
-        "commands": get_gemini_cli_config_dir() / "commands",
-        "agents": get_gemini_cli_config_dir() / "agents",
+    "agy": {
+        "skills": get_agy_config_dir() / "skills",
     },
 }
 
@@ -448,7 +445,7 @@ def get_npm_package_version(package_name: str) -> str | None:
 
     # 移除版本標籤（如 @latest）
     clean_name = package_name.split("@")[0] if "@" in package_name else package_name
-    # 處理 scoped packages（如 @google/gemini-cli）
+    # 處理 scoped packages（如 @scope/name）
     if package_name.startswith("@"):
         parts = package_name.split("/")
         if len(parts) >= 2:
@@ -1494,7 +1491,6 @@ def copy_custom_skills_to_targets(
     src_cmd_claude = get_custom_skills_dir() / "commands" / "claude"
     src_cmd_antigravity = get_custom_skills_dir() / "commands" / "antigravity"
     src_cmd_opencode = get_custom_skills_dir() / "commands" / "opencode"
-    src_cmd_gemini = get_custom_skills_dir() / "commands" / "gemini"
     src_cmd_workflows = get_custom_skills_dir() / "commands" / "workflows"
     src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
     src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
@@ -1545,11 +1541,10 @@ def copy_custom_skills_to_targets(
                 ("skills", src_skills, COPY_TARGETS["codex"]["skills"]),
             ],
         },
-        "gemini": {
-            "name": "Gemini CLI",
+        "agy": {
+            "name": "Antigravity CLI (agy)",
             "resources": [
-                ("skills", src_skills, COPY_TARGETS["gemini"]["skills"]),
-                ("commands", src_cmd_gemini, COPY_TARGETS["gemini"]["commands"]),
+                ("skills", src_skills, COPY_TARGETS["agy"]["skills"]),
             ],
         },
     }
@@ -2568,7 +2563,7 @@ def show_restart_reminder(target: TargetType) -> None:
     """顯示重啟提醒訊息。
 
     Args:
-        target: 目標工具 (claude, antigravity, opencode, codex, gemini)
+        target: 目標工具 (claude, antigravity, opencode, codex, agy)
     """
     reminders = {
         "claude": """
@@ -2599,12 +2594,12 @@ def show_restart_reminder(target: TargetType) -> None:
   1. 輸入 exit 離開 Codex
   2. 重新執行 codex 指令
 """,
-        "gemini": """
-⚠️  請重啟 Gemini CLI 以套用變更
+        "agy": """
+⚠️  請重啟 Antigravity CLI 以套用變更
 
 重啟方式：
-  1. 輸入 exit 離開 Gemini CLI
-  2. 重新執行 gemini 指令
+  1. 輸入 exit 離開 Antigravity CLI
+  2. 重新執行 agy 指令
 """,
     }
 
@@ -2877,9 +2872,8 @@ DEFAULT_TOGGLE_CONFIG = {
     "codex": {
         "skills": {"enabled": True, "disabled": []},
     },
-    "gemini": {
+    "agy": {
         "skills": {"enabled": True, "disabled": []},
-        "commands": {"enabled": True, "disabled": []},
     },
 }
 
@@ -3025,9 +3019,7 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
         ("opencode", "commands"): get_opencode_config_dir() / "commands",
         ("opencode", "agents"): get_opencode_config_dir() / "agents",
         ("codex", "skills"): get_codex_config_dir() / "skills",
-        ("gemini", "skills"): get_gemini_cli_config_dir() / "skills",
-        ("gemini", "commands"): get_gemini_cli_config_dir() / "commands",
-        ("gemini", "agents"): get_gemini_cli_config_dir() / "agents",
+        ("agy", "skills"): get_agy_config_dir() / "skills",
     }
     return paths.get((target, resource_type))
 
@@ -3167,14 +3159,14 @@ def list_installed_resources(
     result = {}
 
     targets = (
-        [target] if target else ["claude", "antigravity", "opencode", "codex", "gemini"]
+        [target] if target else ["claude", "antigravity", "opencode", "codex", "agy"]
     )
     type_mapping = {
         "claude": ["skills", "commands", "agents", "workflows"],
         "antigravity": ["skills", "workflows"],
         "opencode": ["skills", "commands", "agents"],
         "codex": ["skills"],
-        "gemini": ["skills", "commands"],
+        "agy": ["skills"],
     }
 
     for t in targets:
@@ -3289,7 +3281,7 @@ def get_mcp_config_path(target: TargetType) -> tuple[Path, bool]:
     """取得各工具的 MCP 設定檔路徑。
 
     Args:
-        target: 目標工具 (claude, antigravity, opencode, codex, gemini)
+        target: 目標工具 (claude, antigravity, opencode, codex, agy)
 
     Returns:
         tuple[Path, bool]: (設定檔路徑, 檔案是否存在)
@@ -3301,7 +3293,7 @@ def get_mcp_config_path(target: TargetType) -> tuple[Path, bool]:
         "antigravity": home / ".gemini" / "antigravity" / "mcp_config.json",
         "opencode": home / ".config" / "opencode" / "opencode.json",
         "codex": home / ".codex" / "config.json",
-        "gemini": home / ".gemini" / "settings.json",
+        "agy": home / ".gemini" / "config" / "mcp_config.json",
     }
 
     path = paths.get(target, home / ".claude.json")

@@ -31,7 +31,7 @@ from ..utils.shared import (
 
 app = typer.Typer(help="管理標準體系配置（基於重疊檢測）")
 console = Console()
-VALID_TARGETS = ["claude", "antigravity", "opencode", "codex", "gemini"]
+VALID_TARGETS = ["claude", "antigravity", "opencode", "codex", "agy"]
 
 
 def validate_target_or_exit(target: str) -> None:
