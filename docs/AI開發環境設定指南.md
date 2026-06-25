@@ -1353,9 +1353,26 @@ CI 環境改用環境變數 `ANTIGRAVITY_TOKEN`（取代舊版的 `GEMINI_API_KE
 #### 設定與目錄
 
 - 工作區層級的 skills 放在 `.agents/skills/`（Markdown 檔即指令），context 檔可用 `AGENTS.md` 或 `GEMINI.md`。
-- 官方安裝與遷移文件：<https://antigravity.google/docs/gcli-migration>
+- MCP 設定：`~/.gemini/config/mcp_config.json`（與所有 Antigravity 工具共用）。
+- CLI 設定／keybindings：`~/.gemini/antigravity-cli/settings.json`、`~/.gemini/antigravity-cli/keybindings.json`。
+- 官方文件：安裝/遷移 <https://antigravity.google/docs/gcli-migration>、skills <https://antigravity.google/docs/skills>。
 
-> **注意**：本專案的 `ai-dev` 仍以內部代號 `gemini` 作為分發目標、沿用 `~/.gemini/` 路徑，屬獨立的分發機制。將該分發目標遷移到 agy 原生的 `.agents/` 結構（含 `ai-dev` 程式碼、manifests、測試）屬於另一階段工作，尚未納入本次文件更新。
+#### 全域 skills 路徑對照（重要，容易混淆）
+
+agy（CLI）與 Antigravity（IDE）的全域 skills 目錄**不同**，且 `npx skills` 的 agent 名稱具誤導性。對照如下（依 agy v1.0.12 實測與官方文件）：
+
+| 對象 | 全域 skills 路徑 | 說明 |
+|------|------------------|------|
+| **agy（CLI）共用** | `~/.gemini/skills/` | 所有 Antigravity 工具共用；agy 會讀取 |
+| **agy（CLI）專屬** | `~/.gemini/antigravity-cli/skills/` | 僅 agy CLI 讀取 |
+| **Antigravity（IDE）** | `~/.gemini/antigravity/global_skills/` | IDE 專用，與 agy 不同位置 |
+| npx `gemini-cli` agent | `~/.gemini/skills/` | 名稱雖舊，路徑正好對應 **agy 共用** |
+| npx `antigravity` agent | `~/.gemini/antigravity/skills/` | 對應 IDE 那條；**實測 agy 不讀取此處** |
+
+> **重點**：
+> 1. **agy ≠ IDE**：agy 走 `~/.gemini/skills`（共用）或 `~/.gemini/antigravity-cli/skills`（專屬）；IDE 走 `~/.gemini/antigravity/global_skills/`。
+> 2. **餵 agy 用 `gemini-cli` agent，不是 `antigravity` agent**：前者 global 為 `~/.gemini/skills`（agy 會讀），後者為 `~/.gemini/antigravity/skills`（agy 讀不到的位置）。
+> 3. 本專案 `ai-dev` 的 `agy` 分發目標即沿用共用路徑 `~/.gemini/skills`；npx 投影層刻意保留 `gemini-cli` agent（路徑對應 agy），詳見 OpenSpec change `migrate-gemini-cli-to-agy` 與 `clarify-npx-agy-projection`。
 
 ---
 
