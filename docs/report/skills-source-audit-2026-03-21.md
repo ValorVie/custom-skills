@@ -1,5 +1,7 @@
 # ~/.claude/skills 來源審計報告
 
+> **2026-07-08 註記**：本報告的 skill 數量與清單為 2026-03-21 快照，已與現況漂移（當時 52、2026-07-08 實際 24）。現況一律以自動生成的 [skills-inventory.md](../skills-inventory.md) 為準（`uv run python script/dev_tools/generate_skills_inventory.py` 重生）。
+
 **日期：** 2026-03-21
 **審計範圍：** `~/.claude/skills/` 目錄所有 skills（共 156 項）
 **目的：** 識別每個 skill 的安裝來源，釐清 ai-dev 管控範圍
