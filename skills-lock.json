@@ -5,7 +5,7 @@
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "skillPath": "skills/bun-development/SKILL.md",
-      "computedHash": "a7d8148962fc83d79ebf5e46811e465a0da3217e36276057dd17161cbd0cbe37"
+      "computedHash": "29fc5351690521bf3e200323dc6ccdd9da6f0978ca541e3d78f120cf4079006e"
     },
     "hook-development": {
       "source": "anthropics/claude-plugins-official",
