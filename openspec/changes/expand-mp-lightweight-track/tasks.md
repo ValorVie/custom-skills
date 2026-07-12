@@ -34,7 +34,7 @@
 
 ## 6. 驗證與收尾
 
-- [ ] 6.1 執行 `openspec validate expand-mp-lightweight-track` 確認 change 結構有效
-- [ ] 6.2 驗證分發來源就位：`skills/mp-wayfinder/SKILL.md`、`skills/mp-prototype/SKILL.md` 存在且 frontmatter 格式與既有 mp-* 一致；投影不入版控（40ab1f1 決策，見 design D7），實際分發待合併推送後由 `ai-dev clone` 產生
-- [ ] 6.3 更新 `CHANGELOG.md`：記錄第二批 mp-* 技能、回灌內容與輕量軌文件
-- [ ] 6.4 依 `.standards/commit-message.ai.yaml` 規範提交（英文類型 + 中文訊息）
+- [x] 6.1 執行 `openspec validate expand-mp-lightweight-track` 確認 change 結構有效
+- [x] 6.2 驗證分發來源就位：`skills/mp-wayfinder/SKILL.md`、`skills/mp-prototype/SKILL.md` 存在且 frontmatter 格式與既有 mp-* 一致；投影不入版控（40ab1f1 決策，見 design D7），實際分發待合併推送後由 `ai-dev clone` 產生
+- [x] 6.3 更新 `CHANGELOG.md`：記錄第二批 mp-* 技能、回灌內容與輕量軌文件
+- [x] 6.4 依 commit 訊息規範提交（英文類型 + 中文訊息，分主變更與知識庫記錄兩個 commit）
