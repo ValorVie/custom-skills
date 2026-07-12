@@ -3,8 +3,13 @@
 source: mattpocock-skills
 repo: mattpocock/skills
 branch: main
-commit: b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8
+commit: 391a2701dd948f94f56a39f7533f8eea9a859c87
 status: manually-adapted
 notes:
-  - 本專案只採用工作入口層相關技能，並改寫為 mp-*。
+  - 本專案只採用工作入口層與輕量軌相關技能，並改寫為 mp-*。
   - 上游更新只做 audit 與人工合併，不自動覆蓋 skills/mp-*。
+  - 2026-07-12 審核 b843cb5..391a270：上游 rename（to-issues→to-tickets、
+    to-prd→to-spec、diagnose→diagnosing-bugs）已回灌對照表；
+    新增採用 wayfinder、prototype；排除 implement、code-review、
+    handoff（另案）、domain-modeling（併入 mp-grill-with-docs）。
+    詳見 openspec change expand-mp-lightweight-track。

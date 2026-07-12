@@ -41,3 +41,14 @@ MP 工作入口層使用固定狀態模型，不綁定外部 label 名稱。
 
 - 新工作預設 `needs-triage`，由 mp-triage 改寫。
 - 不要在 canonical state 之外新增中間狀態。若覺得不夠用，先檢視是否其實是描述不清，而非缺狀態。
+
+## 輕量軌分流檢查
+
+mp-triage 建議某工作項目走輕量軌（不開 OpenSpec change）時，必須逐項說明
+三項準入條件的判斷依據（定義見 `docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md`）：
+
+1. 範圍在單一模組或文件群，不影響 `openspec/specs/` 既有規格行為。
+2. 單一 session 可完成實作與驗證。
+3. 不屬於 `docs/agents/issue-tracker.md` 定義的正式變更。
+
+任一條件不成立 → 改建議 OpenSpec 流程，並說明是哪一項不成立。

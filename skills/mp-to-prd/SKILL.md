@@ -18,6 +18,17 @@ description: |
 - 相關 `CONTEXT.md`、`CONTEXT-MAP.md`、ADR
 - 已有的對話、issue、OpenSpec artifact 或本地文件
 
+## Seam 先行
+
+變更涉及可測試的程式邏輯時，輸出文件前先確認測試 seam（可觀察行為的公開邊界）：
+
+1. 提出建議的 seam：優先沿用程式碼中既有的 seam；需要新 seam 時提在最高可行位置。
+   seam 越少越好，理想是一個。
+2. 與使用者核對 seam 是否符合預期，核對後才輸出文件。
+3. 文件的 Verification Direction / Testing Decisions 引用已確認的 seam。
+
+純文件、配置或無程式邏輯的變更跳過本節。
+
 ## 輸出用途
 
 可輸出兩種形狀：

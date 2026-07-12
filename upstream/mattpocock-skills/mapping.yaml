@@ -1,6 +1,6 @@
 # mattpocock-skills 檔案對照表
 # 來源: https://github.com/mattpocock/skills
-# 參考快照: b843cb5ea74b1fe5e58a0fc23cddef9e66076fb8
+# 參考快照: 391a2701dd948f94f56a39f7533f8eea9a859c87
 
 source: mattpocock-skills
 
@@ -17,12 +17,15 @@ skills:
     priority: P0
     adaptation: rewritten
     notes: 保留追問與文件沉澱精神，加入 OpenSpec 入口邊界。
-  to-issues:
-    upstream_path: skills/engineering/to-issues/
+  to-tickets:
+    upstream_path: skills/engineering/to-tickets/
     local_skill: skills/mp-to-issues/
     priority: P0
     adaptation: rewritten
-    notes: 改為支援 OpenSpec tasks、GitHub issue draft、本地 Markdown 三種出口。
+    notes: >-
+      改為支援 OpenSpec tasks、GitHub issue draft、本地 Markdown 三種出口。
+      上游於 b843cb5..391a270 間由 to-issues 改名 to-tickets；
+      391a270 回灌 blocking edges 與 expand–contract 寬重構切法。
   triage:
     upstream_path: skills/engineering/triage/
     local_skill: skills/mp-triage/
@@ -35,26 +38,63 @@ skills:
     priority: P1
     adaptation: rewritten
     notes: 限制為候選輸出，不直接修改實作程式碼。
-  to-prd:
-    upstream_path: skills/engineering/to-prd/
+  to-spec:
+    upstream_path: skills/engineering/to-spec/
     local_skill: skills/mp-to-prd/
     priority: P2
     adaptation: rewritten
-    notes: 作為 OpenSpec proposal 前置素材，不重新訪談使用者。
+    notes: >-
+      作為 OpenSpec proposal 前置素材，不重新訪談使用者。
+      上游於 b843cb5..391a270 間由 to-prd 改名 to-spec；
+      391a270 回灌 seam-first（brief 前先確認測試 seam）。
+  wayfinder:
+    upstream_path: skills/engineering/wayfinder/
+    local_skill: skills/mp-wayfinder/
+    priority: P1
+    adaptation: rewritten
+    notes: >-
+      391a270 新增採用。地圖載體改為 GitHub issues 輔出口，
+      結晶成果轉入 OpenSpec change，地圖只留連結。
+  prototype:
+    upstream_path: skills/engineering/prototype/
+    local_skill: skills/mp-prototype/
+    priority: P2
+    adaptation: rewritten
+    notes: >-
+      391a270 新增採用。產物處置改為 commit 至 experiment/ 分支，
+      分支細節放 references/（本地慣例，上游為同層平放）。
 
 excluded:
   tdd:
     upstream_path: skills/engineering/tdd/
     reason: covered-by-superpowers
     notes: TDD 執行紀律由 superpowers:test-driven-development 保留。
-  diagnose:
-    upstream_path: skills/engineering/diagnose/
+  diagnosing-bugs:
+    upstream_path: skills/engineering/diagnosing-bugs/
     reason: covered-by-superpowers
-    notes: 系統化除錯由 superpowers:systematic-debugging 保留。
+    notes: >-
+      系統化除錯由 superpowers:systematic-debugging 保留。
+      上游於 b843cb5..391a270 間由 diagnose 改名 diagnosing-bugs。
   zoom-out:
-    upstream_path: skills/engineering/zoom-out/
-    reason: out-of-initial-scope
-    notes: 與本次 P0-P2 工作入口層不直接相關，未列入第一輪。
+    upstream_path: null
+    reason: removed-upstream
+    notes: 上游已於 391a270 前移除 zoom-out（skills/engineering/ 不再存在此技能）。
+  implement:
+    upstream_path: skills/engineering/implement/
+    reason: covered-by-openspec
+    notes: 實作執行由 /opsx:apply 與 superpowers:executing-plans 覆蓋。
+  code-review:
+    upstream_path: skills/engineering/code-review/
+    reason: existing-local-workflow
+    notes: 本專案已有 code-review 命令與各語言 reviewer agents。
+  handoff:
+    upstream_path: skills/productivity/handoff/
+    reason: overlap-pending-analysis
+    notes: 與 claude-mem / save-session 功能重疊，引入前需先跑 overlap 分析，另案評估。
+  domain-modeling:
+    upstream_path: skills/engineering/domain-modeling/
+    reason: merged-into-local-skill
+    notes: 行為（詞彙挑戰、情境壓力測試、ADR 三條件）併入 mp-grill-with-docs，不另立技能。
   grill-me:
     upstream_path: skills/productivity/grill-me/
     reason: personal-productivity
