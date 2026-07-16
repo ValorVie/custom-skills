@@ -26,7 +26,6 @@ flowchart LR
     claim --> work[實作與驗證]
     work --> close[關閉工作項目]
     close --> ready
-    deps <-->|bd dolt push / pull| remote[(Dolt remote)]
 ```
 
 Beads 不取代 Git：
@@ -89,6 +88,58 @@ Beads 以 Dolt 為儲存後端：
 | Server | `bd init --server` | 外部服務；多個並行寫入者 | 高併發代理 |
 
 Embedded 是預設模式，也適合 Claude Code 與 Codex 在同一個專案中輪流操作。若多個程序需要高頻率同時寫入，才考慮 Server 模式。
+
+## Beads 如何運行
+
+一句話來說：`bd` 是操作介面，Dolt 是本機的正式工作資料庫，JSONL 是可讀的匯出檔，
+GitHub remote 則是需要明確 push／pull 才會更新的跨電腦交換點。
+
+### 每個元件負責什麼
+
+| 元件 | 實際用途 | 本機 `bd` 查詢是否以它為準 |
+| --- | --- | --- |
+| `bd` CLI | 建立、查詢、認領、更新與關閉工作 | 否；它是操作入口 |
+| `.beads/embeddeddolt/` | 本機 Dolt 資料庫，保存工作欄位、依賴與版本歷史 | 是；本機 `bd` 指令以此為準 |
+| `.beads/config.yaml` | 專案設定與 Dolt remote 位址 | 否；不保存工作內容 |
+| `.beads/issues.jsonl` | 供檢視、交換、遷移與 Git diff 使用的匯出快照 | 否；不能取代 Dolt 同步 |
+| `refs/dolt/data` | Dolt 遠端歷史與同步通道 | 否；需先 pull／bootstrap 到本機 Dolt |
+| Claude／Codex hooks | 在工作階段開始時執行或提示 `bd prime` | 否；不會自動同步遠端 |
+
+### 單機讀寫資料流
+
+本專案使用 Embedded 模式。Dolt 引擎包含在 `bd` 程序內，不需要另外啟動資料庫服務：
+
+```mermaid
+flowchart TB
+    actor["人類 / Claude Code / Codex"] --> cli["bd CLI"]
+    session["SessionStart / Codex hook"] --> prime["bd prime"]
+    prime -->|注入工作規則與脈絡| actor
+
+    subgraph workspace["本機 custom-skills 工作區"]
+        db[(".beads/embeddeddolt/<br/>本機 Dolt 資料庫")]
+        cli -->|"create / update / close / dep"| db
+        db -->|"ready / list / show 的 SQL 結果"| cli
+        db --> history["Dolt 提交歷史<br/>版本與稽核歷史"]
+        db -.->|"bd export 或匯出 hook"| jsonl[".beads/issues.jsonl<br/>被動匯出快照"]
+    end
+
+    jsonl -.->|"可隨一般 Git commit 保存"| gitbranch["refs/heads/main"]
+```
+
+指令實際發生的事情：
+
+1. `bd ready`、`bd list`、`bd show` 直接查詢本機 Dolt，不會連線到 GitHub，也不會先自動 pull。
+2. `bd create`、`bd update`、`bd close` 與 `bd dep add` 直接修改本機 Dolt；
+   Embedded 模式會保留 Dolt 版本歷史。
+3. `bd update <id> --claim` 在資料庫內一次完成負責者與狀態更新，避免兩個代理分開更新欄位造成重複認領。
+4. `bd export` 或相關 hook 可以刷新 `.beads/issues.jsonl`，但後續查詢仍以 Dolt 資料庫為準。
+5. 只有執行 `bd dolt push`，本機工作資料才會離開這台電腦並更新 Dolt remote。
+
+因此，Claude Code 與 Codex 在同一個工作區輪流操作時，會立即看到彼此寫入的 Dolt 狀態；
+如果它們位於不同 clone 或不同電腦，則必須透過 `bd dolt push`／`bd dolt pull` 交換資料。
+
+Server 模式只改變圖中央的儲存位置：多個 `bd` 客戶端會連到同一個 `dolt sql-server`，
+因此可同時寫入。工作欄位、依賴圖、JSONL 匯出與 Dolt remote 的角色不變。
 
 ## 安裝
 
@@ -395,14 +446,150 @@ bd update <id> \
 
 ## 跨電腦、clone 與 worktree
 
+### ref 是什麼
+
+Git 以 SHA 識別 commit 等物件；ref（reference）是指向某個 Git 物件的具名指標。
+ref 可以移動到新的 SHA，讓人不必記住一長串雜湊值。
+
+分支是 ref 的其中一種，但 ref 不一定是分支：
+
+| Ref | 類型 | 用途 |
+| --- | --- | --- |
+| `refs/heads/main` | 分支 | `main` 目前指向的原始碼 commit |
+| `refs/tags/v1.0.0` | 標籤 | 固定的版本位置 |
+| `refs/remotes/origin/main` | 遠端追蹤 | 本機記錄的遠端 `main` 位置 |
+| `refs/dolt/data` | 自訂 ref | Beads／Dolt 遠端資料歷史 |
+
+簡化後，同一個 GitHub 儲存庫可以包含：
+
+```text
+ValorVie/custom-skills
+├── refs/heads/main       # 一般原始碼分支
+├── refs/tags/v1.0.0      # Git tag
+└── refs/dolt/data        # Beads 使用的特殊資料 ref
+```
+
+所以「寫入不同 ref」不是把 Beads 建成 `main` 的子分支，而是讓兩個獨立指標
+存在同一個 GitHub 儲存庫：
+
+```text
+git push      → 更新 refs/heads/main
+bd dolt push  → 更新 refs/dolt/data
+```
+
+更新其中一個 ref 不會移動另一個，也不會自動把兩邊的內容合併。
+`refs/dolt/data` 不屬於 `refs/heads/*`，因此不是 GitHub 一般分支列表中的分支。
+
+#### 可見性不是權限邊界
+
+網頁分支列表看不到自訂 ref，不代表資料是隱藏或私密的。Git 伺服器若公開該 ref，
+具備儲存庫讀取權限的人可以列舉它：
+
+```bash
+git ls-remote origin
+git ls-remote origin refs/dolt/data
+```
+
+- 公開儲存庫的 `refs/dolt/data` 應視為公開資料。
+- 私有儲存庫只有具備儲存庫讀取權限的人能取得。
+- ref 名稱不是密碼；不要在 Beads 工作內容或 `notes` 中保存機密。
+
+GitHub REST API 也能列出儲存庫中的 refs，不限於分支與標籤。
+詳見 [GitHub Git references API](https://docs.github.com/en/rest/git/refs)。
+
+#### 一般 clone 不會取得所有 ref
+
+一般 `git clone` 預設主要使用以下 refspec：
+
+```text
++refs/heads/*:refs/remotes/origin/*
+```
+
+它會取得遠端分支，並自動取得與這些分支歷史相關的標籤；不會自動取得
+`refs/dolt/*` 等任意自訂 ref。`git fetch --all` 的 `all` 是所有已設定的遠端，
+不是遠端上的所有 ref。
+
+Git 可以明確抓取自訂 ref：
+
+```bash
+git fetch origin \
+  '+refs/dolt/data:refs/remotes/origin/dolt/data'
+```
+
+但這只是在一般 Git 儲存庫中保存一個 ref，不會建立可供 `bd ready` 查詢的
+`.beads/embeddeddolt/`。Beads 新 clone 應執行 `bd bootstrap`；已有資料庫時使用
+`bd dolt pull`。Git 的 refspec 細節可參考 [git-fetch 文件](https://git-scm.com/docs/git-fetch)，
+clone 行為則見 [git-clone 文件](https://git-scm.com/docs/git-clone)。
+
 ### 兩條同步通道
 
-原始碼與 Beads 工作資料使用不同 ref：
+原始碼與 Beads 可以使用同一個 GitHub 儲存庫，但會寫入不同 ref，兩者不會互相代替：
 
-| 目的 | 指令 | 遠端資料 |
+| 通道 | 指令 | GitHub 遠端 ref |
 | --- | --- | --- |
-| 同步原始碼 | `git pull` / `git push` | `refs/heads/*` |
-| 同步工作資料 | `bd dolt pull` / `bd dolt push` | `refs/dolt/data` |
+| 原始碼 Git | `git pull` / `git push` | `refs/heads/*` |
+| Beads Dolt | `bd dolt pull` / `bd dolt push` | `refs/dolt/data` |
+
+- Git 通道以工作樹與 Git commit 為來源，不同步本機 Dolt 資料庫。
+- Dolt 通道以 `.beads/embeddeddolt/` 為來源，不同步原始碼分支與 Git commit。
+
+`.beads/issues.jsonl` 若已被 Git 追蹤，會跟著第一條通道進入 `refs/heads/main`；
+但它仍只是匯出快照，不包含完整 Dolt 提交歷史、工作集與其他資料表。
+
+### `bd dolt push` 會不會推到 GitHub
+
+會，前提是 Dolt remote 指向 GitHub。本專案目前的設定是：
+
+```text
+origin  git+https://github.com/ValorVie/custom-skills.git
+```
+
+因此 `bd dolt push` 會在同一個 `ValorVie/custom-skills` GitHub 儲存庫建立或更新
+`refs/dolt/data`。它不會：
+
+- 修改 `main` 或其他 `refs/heads/*` 分支。
+- 推送尚未提交的原始碼。
+- 建立 GitHub Issues。
+- 顯示成 GitHub 一般分支列表中的分支。
+
+第一次成功執行 `bd dolt push` 時會發布 `refs/dolt/data`；之後的 push／pull 都以該 ref
+交換 Dolt 歷史。GitHub 在這裡只是同時保存原始碼 ref 與 Dolt ref 的遠端儲存位置。
+
+### 跨電腦資料流
+
+```mermaid
+flowchart LR
+    subgraph machineA["電腦 A / clone A"]
+        codeA["原始碼與 Git commits<br/>可包含 issues.jsonl"]
+        dbA[("本機 Dolt DB")]
+    end
+
+    subgraph github["同一個 GitHub 儲存庫"]
+        heads["refs/heads/main<br/>原始碼通道"]
+        doltref["refs/dolt/data<br/>Beads 通道"]
+    end
+
+    subgraph machineB["電腦 B / clone B"]
+        codeB["原始碼與 Git commits"]
+        dbB[("本機 Dolt DB")]
+    end
+
+    codeA -->|"git push"| heads
+    heads -->|"git clone / git pull"| codeB
+    codeB -->|"git push"| heads
+    heads -->|"git pull"| codeA
+
+    dbA -->|"bd dolt push"| doltref
+    doltref -->|"bd bootstrap / bd dolt pull"| dbB
+    dbB -->|"bd dolt push"| doltref
+    doltref -->|"bd dolt pull"| dbA
+```
+
+同一個 GitHub 儲存庫不代表兩條通道會一起更新：
+
+- 只執行 `git push`：GitHub 有最新原始碼，但 Beads 工作狀態可能仍只在本機。
+- 只執行 `bd dolt push`：GitHub 有最新工作狀態，但原始碼 commit 可能尚未推送。
+- 要讓另一台電腦完整接手：依權限分別同步 Git 與 Dolt 兩條通道。
 
 同步工作資料：
 
@@ -413,15 +600,33 @@ bd dolt pull
 bd dolt push
 ```
 
-第一次在新 clone 建立本機資料庫時，優先使用：
+確認 Dolt remote 與遠端 ref：
 
 ```bash
-bd bootstrap
+bd dolt remote list
+git ls-remote origin refs/dolt/data
 ```
+
+第二個指令有輸出 SHA，表示 GitHub 已存在 `refs/dolt/data`；沒有輸出通常表示尚未完成第一次
+`bd dolt push`，也可能是目前帳號無法讀取該 remote。
+
+第一次在新 clone 建立本機資料庫時，依序使用：
+
+```bash
+git clone https://github.com/ValorVie/custom-skills.git
+cd custom-skills
+bd bootstrap
+bd ready
+```
+
+`git clone` 取得 `refs/heads/main` 的原始碼與已提交匯出檔；`bd bootstrap` 另外偵測
+`refs/dolt/data`、複製 Dolt 歷史並設定後續 `bd dolt push`／`bd dolt pull` 使用的 remote。
 
 重要限制：
 
 - `git push` 不等於 `bd dolt push`。
+- `bd dolt push` 不是 GitHub Issues API，也不會建立 GitHub issue。
+- `bd ready` 與其他查詢預設只讀本機資料；跨電腦工作前要先判斷是否需要 `bd dolt pull`。
 - `.beads/issues.jsonl` 不是跨機器同步來源。
 - 不要用例行 `bd import .beads/issues.jsonl` 取代 `bd dolt pull`。JSONL 匯入無法推斷遠端已刪除或已整理的資料。
 - `bd dolt push`、Git commit 與 `git push` 是否可由代理執行，仍以專案的代理權限規則為準。
@@ -497,7 +702,7 @@ git status
 | JSONL 自動匯出 | 已啟用 |
 | Git hooks | 五個標準 hooks 均已安裝 |
 | Codex 整合 | 已安裝 |
-| Claude Code 整合 | hooks 已安裝；`CLAUDE.md` 管理區段目前顯示 `stale` |
+| Claude Code 整合 | hooks 與 `CLAUDE.md` 管理區段已安裝，setup check 為 current |
 | 代理權限 | `minimal`／保守模式；未經明確授權不自行 commit、push 或同步 Dolt remote |
 | `bd doctor` | Embedded 模式尚未支援；目前只顯示提示 |
 
@@ -567,6 +772,7 @@ bd backup status
 - [Beads 官方儲存庫](https://github.com/gastownhall/beads)
 - [官方安裝指南](https://github.com/gastownhall/beads/blob/main/docs/getting-started/installation.md)
 - [代理與 IDE 整合](https://github.com/gastownhall/beads/blob/main/docs/getting-started/ide-setup.md)
+- [整體架構與讀寫路徑](https://github.com/gastownhall/beads/blob/main/docs/architecture/index.md)
 - [同步概念](https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md)
 - [Dolt 儲存架構](https://github.com/gastownhall/beads/blob/main/docs/architecture/dolt.md)
 - [疑難排解](https://github.com/gastownhall/beads/blob/main/docs/reference/troubleshooting.md)
