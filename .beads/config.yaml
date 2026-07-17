@@ -68,3 +68,5 @@
 sync.remote: "git+https://github.com/ValorVie/custom-skills.git"
 export:
     auto: true
+
+no-git-ops: false
