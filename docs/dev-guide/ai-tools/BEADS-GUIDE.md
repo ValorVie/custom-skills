@@ -812,6 +812,56 @@ bd setup claude --check
 | JSONL 與資料庫不同 | JSONL 尚未刷新 | 以 `bd list` 的 Dolt 資料為準 |
 | worktree 資料庫錯誤 | 工作區解析錯誤 | 執行 `bd where` 確認 |
 
+### `bd prime` 錯誤禁止 Git 操作
+
+若 `bd prime` 顯示 `Git authority: no git operations in this context`，但專案規則允許使用者明確授權 Git 操作，先確認是否誤用 stealth 模式：
+
+```bash
+bd config get no-git-ops
+```
+
+`true` 代表 Beads 以無 Git 模式運作。專案確定要使用 Git 時，明確關閉它：
+
+```bash
+bd config set no-git-ops false
+bd config get no-git-ops
+```
+
+若設定已是 `false`，但 `bd prime` 仍因目前執行情境產生過度保守的 Git 提示，可使用官方支援的專案級 `.beads/PRIME.md` 覆寫。範例：
+
+```markdown
+# Beads 工作脈絡
+
+## 啟動
+
+- 執行 `bd prime --memories-only --export`，略過本覆寫並讀取目前專案的持久記憶。
+- 執行 `bd ready`，確認可接續的工作。
+
+## Git 權限
+
+- 使用者明確要求 `commit`，即構成本機 Git commit 的清楚授權。
+- 提交前檢查工作樹，只 stage 本輪相關檔案，不夾帶其他變更。
+- 除非使用者明確要求 `push`，否則不得推送遠端。
+```
+
+`PRIME.md` 會完整取代 `bd prime` 的預設輸出，也會覆寫一般的 `--memories-only` 輸出。因此範例必須使用 `--export` 略過覆寫，否則會再次讀到 `PRIME.md`，而不是動態 Beads 記憶。不要把記憶內容複製進 `PRIME.md`，避免後續 `bd remember` 更新後兩邊不一致。
+
+完成後驗證：
+
+```bash
+bd prime
+bd prime --memories-only --export
+```
+
+第一個命令應顯示專案 Git 權限規則，第二個命令應顯示目前的持久記憶。已經注入目前對話的舊 SessionStart 提示不會被追溯替換；修改後需開啟新 session，或重新觸發支援的 SessionStart／context refresh，才會以新規則執行。
+
+權限文字應區分兩種要求：
+
+- `commit`：只授權建立本機 commit。
+- `commit and push`：授權本機 commit 與遠端 push。
+
+明確授權仍不能取代範圍檢查。提交前必須排除其他人或其他工作留下的變更。
+
 完整健康檢查：
 
 ```bash
