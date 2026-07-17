@@ -153,6 +153,50 @@ flowchart LR
 上圖中的三種範圍互不等同：CLI 或使用者設定可跨專案使用，不代表專案工作資料也會跨專案；
 同一專案的資料可經 Dolt remote 跨電腦共享，也不代表它會出現在其他專案。
 
+### 不同層級的同步方式
+
+Beads 沒有帳號式的統一設定同步。跨電腦時，應依資料所在層級選擇同步方式：
+
+| 層級 | 內容 | 跨電腦方式 |
+| --- | --- | --- |
+| 專案工作資料 | 工作項目、依賴、留言、事件、`bd remember` 與 `bd config set ...` 寫入的資料庫設定 | 使用 `bd dolt push`／`bd dolt pull`；新 clone 使用 `bd bootstrap` |
+| 專案工具設定 | `.beads/config.yaml`、`AGENTS.md`、`CLAUDE.md` 與已追蹤的整合檔案 | 使用一般 Git commit、push／pull |
+| 使用者工具設定 | `~/.config/bd/config.yaml`；舊版位置為 `~/.beads/config.yaml` | Beads 不會自動同步；使用既有的 dotfiles、chezmoi 或 Syncthing |
+| 環境變數與密鑰 | `BD_*`、`BEADS_*`、整合服務存取權杖與 Git／SSH 憑證 | 由各電腦的 shell 設定檔、密碼管理器或密鑰管理服務提供 |
+| 本機專用資料 | `.beads/config.local.yaml`、鎖定檔、日誌、憑證與執行中的 Dolt 服務 | 不同步；在各電腦分別建立 |
+| CLI 與 hooks | `bd` 執行檔、Claude／Codex hooks | 每台電腦分別安裝，並執行 `bd setup ... --check` 驗證 |
+
+同一專案的工作資料應透過 Dolt remote 交換：
+
+```bash
+# 開始工作前
+bd dolt pull
+
+# 修改工作項目後
+bd dolt push
+```
+
+新電腦第一次 clone 專案時，先取得 Git 追蹤的檔案，再初始化本機 Dolt：
+
+```bash
+git clone <repository-url>
+cd <repository-directory>
+bd bootstrap
+bd where
+```
+
+使用者工具設定沒有 Beads 內建的同步通道。若要讓多台電腦共用相同偏好，只同步
+`~/.config/bd/config.yaml` 中不含密鑰、且與機器路徑無關的內容。不同電腦可能不同的值，
+改放在環境變數或專案的 `.beads/config.local.yaml`。密鑰不要寫入 Git 追蹤檔案或一般
+Syncthing 共用檔案。
+
+不要直接複製或用 Syncthing 同步 `.beads/embeddeddolt/`。這可能在兩台電腦同時寫入時產生
+不一致；專案資料必須使用 `bd dolt push`／`bd dolt pull`。完整資料流與遠端 ref 說明見後文
+「跨電腦、clone 與 worktree」。
+
+`--global` 也不是個人設定同步功能。它只把該次指令改指向共用 Dolt 伺服器中的
+`beads_global` 資料庫，不能取代上述使用者設定、密鑰與本機整合的配置。
+
 ### 單機讀寫資料流
 
 本專案使用 Embedded 模式。Dolt 引擎包含在 `bd` 程序內，不需要另外啟動資料庫服務：
