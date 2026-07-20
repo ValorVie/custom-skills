@@ -4,6 +4,7 @@
 
 - [簡介與特色](#簡介與特色)
 - [安裝方式](#安裝方式)
+- [快速安裝：自動恢復](#快速安裝自動恢復)
 - [核心概念](#核心概念)
 - [基本操作](#基本操作)
 - [快捷鍵速查表](#快捷鍵速查表)
@@ -86,6 +87,160 @@ sudo make install
 tmux -V
 # tmux 3.5a
 ```
+
+---
+
+## 快速安裝：自動恢復
+
+本節提供從乾淨系統一路完成 `tmux-resurrect` 與 `tmux-continuum` 的安裝流程。完成後會每 15 分鐘自動儲存，啟動新的 tmux server 時自動恢復，並保存最新一次的 Pane 終端歷史。
+
+### 1. 安裝前置套件
+
+TPM 本身需要 tmux 1.9 以上、Git 與 Bash。若要直接採用本指南的完整推薦設定，則需要 tmux 3.2 以上，因為設定檔使用了 `display-popup`：
+
+```bash
+# Ubuntu / Debian
+sudo apt update
+sudo apt install tmux git bash
+
+# Fedora / RHEL
+sudo dnf install tmux git bash
+
+# Arch Linux
+sudo pacman -S tmux git bash
+
+# Alpine
+sudo apk add tmux git bash
+
+# macOS
+brew install tmux git
+```
+
+確認三個指令都可用：
+
+```bash
+tmux -V
+git --version
+bash --version
+```
+
+### 2. 安裝 TPM
+
+本指南統一使用傳統的 `~/.tmux.conf` 與 `~/.tmux/plugins` 路徑：
+
+```bash
+mkdir -p ~/.tmux/plugins
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+if [ -x ~/.tmux/plugins/tpm/tpm ]; then
+    echo "TPM 安裝完成"
+else
+    echo "TPM 啟動檔不存在或無法執行"
+fi
+```
+
+若 `git clone` 回報目標目錄已存在，先執行後續檢查。已正常安裝時不需重複執行 `git clone`；若目錄不完整，可保留舊目錄後重新安裝：
+
+```bash
+mv ~/.tmux/plugins/tpm ~/.tmux/plugins/tpm.incomplete."$(date +%Y%m%d%H%M%S)"
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+```
+
+### 3. 加入自動恢復設定
+
+把以下區塊加入 `~/.tmux.conf`。若已有設定檔，請合併，不要整份覆寫：
+
+```bash
+# 完整 Pane scrollback 最多保留 50000 行；只影響之後新建的 Pane
+set -g history-limit 50000
+
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @resurrect-delete-backup-after '30'
+set -g @resurrect-capture-pane-contents 'on'
+set -g @resurrect-pane-contents-area 'full'
+
+# continuum 必須是 plugin 清單的最後一個
+set -g @plugin 'tmux-plugins/tmux-continuum'
+set -g @continuum-save-interval '15'
+set -g @continuum-restore 'on'
+
+# TPM 初始化必須位於整份設定檔最底部
+run '~/.tmux/plugins/tpm/tpm'
+```
+
+若 `tmux -V` 顯示 3.2 以上，且目前位於本儲存庫根目錄，也可在目標檔不存在時採用完整推薦設定。較舊版本請只合併上一個最小自動恢復區塊：
+
+```bash
+if [ -e ~/.tmux.conf ]; then
+    echo "~/.tmux.conf 已存在，請手動合併設定，不要直接覆寫。"
+else
+    cp docs/dev-guide/terminal/config/tmux.conf ~/.tmux.conf
+    echo "已建立 ~/.tmux.conf。"
+fi
+```
+
+### 4. 首次啟動或重新載入
+
+先確認 tmux server 是否已執行：
+
+```bash
+tmux ls
+```
+
+依結果選一種方式，不要兩種都執行：
+
+```bash
+# 顯示「no server running」或 socket 不存在：啟動第一個 session
+tmux new -s main
+
+# 已列出現有 session：重新載入設定
+tmux source-file ~/.tmux.conf
+```
+
+`tmux source-file` 只會要求**已存在的 tmux server**重新讀取設定，不會建立 server。全新安裝時直接執行它，便會看到 `/tmp/tmux-UID/default` 或 `/private/tmp/tmux-UID/default` 不存在的錯誤。
+
+### 5. 安裝 Plugin
+
+進入 tmux 後，按下實際使用的 prefix，放開後再按大寫 `I`：
+
+- tmux 預設：`Ctrl+B`，放開，再按 `Shift+I`
+- 本指南推薦設定：`Ctrl+A`，放開，再按 `Shift+I`
+
+等待畫面顯示安裝完成，再檢查目錄與設定值：
+
+```bash
+plugin_dir="$(tmux show-environment -g TMUX_PLUGIN_MANAGER_PATH 2>/dev/null | sed -n 's/^TMUX_PLUGIN_MANAGER_PATH=//p')"
+plugin_dir="${plugin_dir%/}"
+if [ -z "$plugin_dir" ]; then
+    echo "TPM 尚未載入，請回到常見安裝錯誤檢查"
+else
+    echo "$plugin_dir"
+    test -d "$plugin_dir/tmux-resurrect" && echo "resurrect 已安裝"
+    test -d "$plugin_dir/tmux-continuum" && echo "continuum 已安裝"
+fi
+tmux show-options -gqv @continuum-save-interval
+tmux show-options -gqv @continuum-restore
+```
+
+第一行會顯示 TPM 實際管理的 Plugin 目錄；最後兩行應依序輸出 `15` 與 `on`。
+
+### 6. 建立第一份快照
+
+在 tmux 內按 `prefix + Ctrl+s`。首次快照應主動建立，不必先等 15 分鐘；詳細檢查方式見「[首次使用與驗證](#首次使用與驗證)」。
+
+### 常見安裝錯誤
+
+| 錯誤 | 原因與處理 |
+|------|------------|
+| `error connecting to .../default (No such file or directory)` | tmux server 尚未啟動。執行 `tmux new -s main`，不要把 `source-file` 當成啟動指令 |
+| `'~/.tmux/plugins/tpm/tpm' returned 127` | Shell 找不到 TPM 啟動檔，或其 shebang 找不到 Bash。執行 `command -v bash` 與 `ls -l ~/.tmux/plugins/tpm/tpm` 檢查，再補裝 Bash 或重新安裝 TPM |
+| `prefix + I` 沒有反應 | 確認使用正確的 prefix、大寫 `I`、TPM 初始化位於設定檔底部，並確認重新載入的是實際使用的設定檔 |
+
+TPM 啟動檔與其管理的 Plugin 目錄是兩個不同位置：
+
+- `run` 必須指向 TPM 啟動檔的實際安裝位置；依官方基本安裝可維持 `~/.tmux/plugins/tpm/tpm`。
+- 若設定檔位於 `${XDG_CONFIG_HOME:-$HOME/.config}/tmux/tmux.conf`，TPM 預設會把其他 Plugin 安裝到 `${XDG_CONFIG_HOME:-$HOME/.config}/tmux/plugins`。
+- 以 `tmux show-environment -g TMUX_PLUGIN_MANAGER_PATH` 查詢實際 Plugin 目錄，不要假設一定是 `~/.tmux/plugins`。
 
 ---
 
@@ -541,14 +696,19 @@ bind - split-window -v -c "#{pane_current_path}"
 ### 安裝 TPM
 
 ```bash
+mkdir -p ~/.tmux/plugins
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ```
 
-安裝後重新載入 tmux 設定：
+完整的前置套件、設定、首次啟動與驗證步驟見「[快速安裝：自動恢復](#快速安裝自動恢復)」。
+
+安裝後若 tmux server 已執行，才重新載入設定：
 
 ```bash
 tmux source-file ~/.tmux.conf
 ```
+
+若 server 尚未執行，改用 `tmux new -s main` 啟動；tmux 會在啟動時載入設定。
 
 ### TPM 操作快捷鍵
 
@@ -859,7 +1019,9 @@ rm ~/tmux_no_auto_restore
 
 | 問題 | 檢查與處理 |
 |------|------------|
-| `prefix + I` 沒有反應 | 確認 TPM 已 clone、`run '~/.tmux/plugins/tpm/tpm'` 位於設定檔最底部，並重新載入正確的設定檔路徑 |
+| `source-file` 回報 tmux socket 不存在 | tmux server 尚未啟動。改執行 `tmux new -s main` |
+| TPM 執行回傳 `127` | 執行 `command -v bash` 與 `ls -l ~/.tmux/plugins/tpm/tpm`；補裝 Bash 或重新安裝 TPM |
+| `prefix + I` 沒有反應 | 確認 TPM 已安裝、`run '~/.tmux/plugins/tpm/tpm'` 位於設定檔最底部，並重新載入正確的設定檔路徑 |
 | 重新載入設定後沒有自動恢復 | 這是預期行為；自動恢復只在 tmux server 啟動時觸發。可先用 `prefix + Ctrl+r` 手動恢復 |
 | 15 分鐘後沒有新快照 | 執行 `tmux show-options -gqv status`，確認狀態列為 `on`；並把 continuum 移到 plugin 清單最後，避免 `status-right` 被後續 plugin 覆寫 |
 | Layout 有恢復，但開發服務沒有啟動 | 該程序不在預設允許清單。先讀取快照中的實際程序名稱，再以 `@resurrect-processes` 逐項加入 |
