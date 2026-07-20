@@ -230,6 +230,8 @@ tmux kill-server
 | `prefix + (` | 切換至上一個 session | 預設 | 相同 |
 | `prefix + )` | 切換至下一個 session | 預設 | 相同 |
 | `prefix + D` | 選擇要 detach 的 client | 預設 | 相同 |
+| `prefix + Ctrl+s` | 手動儲存所有 session | TPM | — |
+| `prefix + Ctrl+r` | 手動恢復已儲存的 session | TPM | — |
 
 ### Window
 
@@ -453,7 +455,7 @@ tmux.conf
 ├── 狀態列 ............ Catppuccin Mocha 配色
 ├── 外觀設定 .......... 面板邊框、訊息列顏色
 ├── 速查彈窗 .......... prefix + ? 顯示互動式速查表
-└── TPM Plugin ........ sensible / resurrect / continuum / yank
+└── TPM Plugin ........ sensible / resurrect / yank / continuum
 ```
 
 ### Prefix 鍵：Ctrl+A
@@ -553,7 +555,7 @@ tmux source-file ~/.tmux.conf
 | 快捷鍵 | 功能 |
 |---------|------|
 | `prefix + I` | 安裝設定檔中宣告的 plugin |
-| `prefix + U` | 更新所有 plugin |
+| `prefix + U` | 選擇並更新 plugin（可全部更新） |
 | `prefix + Alt+u` | 移除不在設定檔中的 plugin |
 
 ### 推薦 Plugin
@@ -570,10 +572,13 @@ set -g @plugin 'tmux-plugins/tmux-sensible'
 
 #### tmux-resurrect
 
-Session 持久化：儲存並恢復 tmux 的完整工作環境（window layout、pane 內容、工作目錄）。
+Session 持久化：儲存並恢復 session、window、pane、layout、工作目錄與終端歷史。Plugin 預設不儲存 Pane 內容，本指南的推薦設定會明確啟用。
 
 ```bash
 set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @resurrect-delete-backup-after '30'
+set -g @resurrect-capture-pane-contents 'on'
+set -g @resurrect-pane-contents-area 'full'
 ```
 
 | 操作 | 快捷鍵 |
@@ -583,12 +588,15 @@ set -g @plugin 'tmux-plugins/tmux-resurrect'
 
 #### tmux-continuum
 
-自動定時儲存 session（搭配 tmux-resurrect），無需手動操作：
+搭配 tmux-resurrect 定時儲存，並可在 tmux server 啟動時自動恢復：
 
 ```bash
 set -g @plugin 'tmux-plugins/tmux-continuum'
 set -g @continuum-save-interval '15'  # 每 15 分鐘自動儲存
+set -g @continuum-restore 'on'        # tmux server 啟動時自動恢復
 ```
+
+自動儲存依賴 tmux 狀態列。若主題或其他 plugin 在 continuum 載入後覆寫 `status-right`，自動儲存可能停止；應把 continuum 放在 TPM plugin 清單最後。
 
 #### tmux-yank
 
@@ -607,6 +615,15 @@ set -g @plugin 'tmux-plugins/tmux-yank'
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @resurrect-delete-backup-after '30'
+set -g @resurrect-capture-pane-contents 'on'
+set -g @resurrect-pane-contents-area 'full'
+set -g @plugin 'tmux-plugins/tmux-yank'
+
+# continuum 放在 plugin 清單最後
+set -g @plugin 'tmux-plugins/tmux-continuum'
+set -g @continuum-save-interval '15'
+set -g @continuum-restore 'on'
 
 # 此行必須在設定檔最底部
 run '~/.tmux/plugins/tpm/tpm'
@@ -616,34 +633,237 @@ run '~/.tmux/plugins/tpm/tpm'
 
 ## Session 管理
 
-### tmux-resurrect：手動存檔/還原
+### 自動儲存與恢復：tmux-resurrect + tmux-continuum
 
-tmux-resurrect 能儲存以下狀態：
+以下內容已於 2026-07-20 依兩個 plugin 的官方 `master` 文件查證。
 
-- 所有 session、window、pane 的 layout
-- 每個 pane 的工作目錄
-- 部分程式的執行狀態（vim、less、man 等）
+| Plugin | 責任 | 是否自動 |
+|--------|------|----------|
+| `tmux-resurrect` | 建立與讀取 tmux 環境快照 | 預設使用快捷鍵手動儲存／恢復 |
+| `tmux-continuum` | 定期呼叫 resurrect 儲存，並在 tmux server 啟動時恢復 | 安裝後自動儲存；自動恢復需明確啟用 |
 
-```bash
-# 手動儲存（在 tmux 內）
-# prefix + Ctrl+s
-# 儲存位置：~/.tmux/resurrect/
+#### 安裝與設定
 
-# 手動還原
-# prefix + Ctrl+r
-```
+前置條件為 tmux 1.9 以上、Git、Bash 與 TPM。若尚未安裝 TPM，先依「[Plugin 管理（TPM）](#plugin-管理tpm)」章節安裝。
 
-### tmux-continuum：自動備份
-
-搭配 tmux-resurrect 使用，提供自動定時儲存功能：
+把以下設定放在 `~/.tmux.conf` 或 `~/.config/tmux/tmux.conf`。`tmux-continuum` 必須是 plugin 清單的最後一個，TPM 初始化仍放在整份設定檔最底部：
 
 ```bash
-# 設定自動儲存間隔（分鐘）
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @resurrect-delete-backup-after '30'
+set -g @resurrect-capture-pane-contents 'on'
+set -g @resurrect-pane-contents-area 'full'
+
+# 其他 plugin 放在這裡
+
+# continuum 放在 plugin 清單最後
+set -g @plugin 'tmux-plugins/tmux-continuum'
 set -g @continuum-save-interval '15'
+set -g @continuum-restore 'on'
 
-# 可選：tmux 啟動時自動還原上次 session
-# set -g @continuum-restore 'on'
+# TPM 初始化必須是設定檔最後一行
+run '~/.tmux/plugins/tpm/tpm'
 ```
+
+重新載入實際使用的設定檔，再於 tmux 內按 `prefix + I` 安裝：
+
+```bash
+# 傳統路徑
+tmux source-file ~/.tmux.conf
+
+# 若使用 XDG 路徑，改執行這一行
+tmux source-file ~/.config/tmux/tmux.conf
+```
+
+推薦設定檔 [`config/tmux.conf`](./config/tmux.conf) 已包含上述設定。若 `~/.tmux.conf` 不存在，可用以下保護式命令採用完整範例；若檔案已存在，命令只會提示，不會覆寫，請手動合併上方 plugin 區塊：
+
+```bash
+if [ -e ~/.tmux.conf ]; then
+    echo "~/.tmux.conf 已存在，請手動合併設定，不要直接覆寫。"
+else
+    cp docs/dev-guide/terminal/config/tmux.conf ~/.tmux.conf
+    echo "已建立 ~/.tmux.conf。"
+fi
+```
+
+完成複製或手動合併後，若 tmux server 正在執行，執行 `tmux source-file ~/.tmux.conf`；若尚未執行，直接啟動 `tmux` 便會載入設定。接著在 tmux 內按 `prefix + I`。若將範例部署到 `~/.config/tmux/tmux.conf`，需把範例內 `prefix + r` 的綁定路徑同步改為 XDG 路徑，否則快捷鍵仍會嘗試載入 `~/.tmux.conf`。
+
+#### 首次使用與驗證
+
+先確認設定值已載入：
+
+```bash
+tmux show-options -gqv @continuum-save-interval
+# 預期：15
+
+tmux show-options -gqv @continuum-restore
+# 預期：on
+```
+
+接著在 tmux 內按 `prefix + Ctrl+s` 建立第一份快照。若未設定 `@resurrect-dir`，resurrect 會沿用既有的 `~/.tmux/resurrect`；全新環境則使用 `${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect`。可用以下指令找出預設目錄並檢查：
+
+```bash
+resurrect_dir="$HOME/.tmux/resurrect"
+[ -d "$resurrect_dir" ] || resurrect_dir="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect"
+echo "$resurrect_dir"
+ls -l "$resurrect_dir/last"
+```
+
+看到 `last` 連結即表示 resurrect 已完成儲存。若 `tmux show-options -gqv @resurrect-dir` 有輸出，請改查該自訂目錄。
+
+日常操作：
+
+| 操作 | 方法 | 說明 |
+|------|------|------|
+| 手動儲存 | `prefix + Ctrl+s` | 立即建立快照；重開機或更新 plugin 前建議先執行 |
+| 手動恢復 | `prefix + Ctrl+r` | 在現有 tmux server 內讀取 `last` 快照 |
+| 自動儲存 | 無須按鍵 | 預設每 15 分鐘執行；第一次會在 tmux 啟動 15 分鐘後發生 |
+| 自動恢復 | 啟動新的 tmux server | 僅在 server 啟動時觸發；重新載入設定檔不會觸發 |
+
+> **重要**：`@continuum-restore 'on'` 不會自行啟動 tmux。開啟終端後手動執行 `tmux`，或使用本指南的 shell 自動啟動設定，才會建立 server 並觸發恢復。`@continuum-boot 'on'` 是另一項「作業系統開機後啟動 tmux」功能，會建立 macOS 啟動項目或 Linux systemd 使用者服務，不建議未審查平台行為就直接啟用。
+
+#### 恢復範圍與限制
+
+resurrect 會恢復：
+
+- session、window、pane、順序與 layout
+- 各 pane 的工作目錄
+- 目前與先前使用的 session/window、焦點與活動 pane
+- 官方保守清單內的程式，例如 `vim`、`nvim`、`less`、`man`、`top`
+
+resurrect 不會建立程序記憶體的檢查點，也不保證恢復未儲存的編輯器內容、登入狀態、SSH 連線或任意背景服務。它是依快照重建 tmux 結構並重新執行允許的命令，不等同虛擬機快照。
+
+若確實要恢復額外程式，可明確列入：
+
+```bash
+set -g @resurrect-processes 'ssh psql mysql'
+```
+
+不要設定 `@resurrect-processes ':all:'`。官方文件明確警告，恢復所有命令可能在重開機後重新執行具破壞性的舊命令。
+
+推薦設定會保存 Pane 終端歷史：
+
+```bash
+set -g @resurrect-capture-pane-contents 'on'
+set -g @resurrect-pane-contents-area 'full'
+```
+
+Pane 內容與 Layout 快照採用不同的保留方式：
+
+| 設定 | 可用值 | 推薦值 | 影響 |
+|------|--------|--------|------|
+| `@resurrect-pane-contents-area` | `full`、`visible` | `full` | `full` 保存目前畫面與 scrollback；`visible` 只保存目前可見畫面 |
+| `history-limit` | 非負整數 | `50000` | 限制設定後新建 Pane 的 scrollback 行數，也是 `full` 捕捉的主要上限；`0` 表示不保留 scrollback |
+| `@continuum-save-interval` | 分鐘；`0` 為停用 | `15` | 每 15 分鐘重建一次最新 Pane 內容壓縮檔 |
+| `@resurrect-delete-backup-after` | 天數 | `30` | 只清理時間戳 Layout 快照；至少保留最新 5 份 |
+
+Pane 終端歷史會壓縮成快照目錄內單一的 `pane_contents.tar.gz`，每次儲存直接覆寫。因此它只保留最後一次捕捉的內容，不會隨 30 天 Layout 快照各自累積一份。還原較舊的 Layout 快照時，只會嘗試套用最新 archive 中 `session 名稱 + window index + pane index` 相符的內容；若拓撲或索引已改變，不保證能與舊 Layout 完整對應。resurrect 沒有獨立的 Pane 內容容量上限；要降低容量可把範圍改成 `visible`，或降低 `history-limit`：
+
+```bash
+# 方案一：只保留目前看得到的 Pane 畫面
+set -g @resurrect-pane-contents-area 'visible'
+
+# 方案二：完整保存，但把之後新建 Pane 的 scrollback 降為 10000 行
+set -g history-limit 10000
+```
+
+`history-limit` 只套用到設定後新建的 Pane，包含在既有 Window 內新分割的 Pane；既有 Pane 的 history 不會被重新配置或裁切。設定為 `0` 時不保留 scrollback，但目前可見的 Pane 畫面仍可被捕捉。可用以下指令檢查實際占用並收緊目錄權限：
+
+```bash
+resurrect_dir="$HOME/.tmux/resurrect"
+[ -d "$resurrect_dir" ] || resurrect_dir="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect"
+chmod 700 "$resurrect_dir"
+ls -ld "$resurrect_dir"
+du -h "$resurrect_dir/pane_contents.tar.gz"
+gzip -l "$resurrect_dir/pane_contents.tar.gz"
+```
+
+此功能只保存終端顯示內容，不會保存程序狀態。內容可能含 token、路徑或命令輸出等敏感資料。`chmod 700` 後，`ls -ld` 的權限欄應以 `drwx------` 開頭；若使用 `@resurrect-dir` 自訂路徑，請對實際目錄執行相同檢查。
+
+啟用後另需檢查：
+
+```bash
+tmux show-options -gqv default-command
+```
+
+依官方已知限制，`default-command` 不應包含 `&&` 或 `||`；推薦設定未覆寫此選項。
+
+#### 測試自動恢復
+
+最安全的方式是在下次計畫性重開機或自然結束 tmux server 時驗證，不要只為測試而終止仍在工作的主要 server：
+
+1. 建立一個測試 session、數個 window/pane，並切換到不同工作目錄。
+2. 按 `prefix + Ctrl+s`，依上一節確認 `last` 快照存在。
+3. 等到計畫性的系統重開機或 tmux server 結束。
+4. 重新執行 `tmux`。新的 server 啟動後應自動重建已儲存的 session 結構。
+
+若必須立即測試，只能在維護時段、確認所有 pane 工作均已寫入磁碟後執行：
+
+> **警告**：`tmux kill-server` 會終止目前 server 內的所有 session 與程序。resurrect 不會保存程序記憶體或未寫入磁碟的資料。
+
+```bash
+tmux kill-server
+tmux
+```
+
+#### 更新與停用
+
+在 tmux 內按 `prefix + U`，選擇更新 `tmux-resurrect`、`tmux-continuum` 或全部 plugin。更新後重新載入設定，手動儲存一次並重做恢復測試。
+
+若要停用自動恢復，移除 `set -g @continuum-restore 'on'`。若要保留 plugin 但停用定時儲存，設定：
+
+```bash
+set -g @continuum-save-interval '0'
+```
+
+緊急阻止下一次自動恢復時，可依官方 FAQ 建立旗標檔：
+
+```bash
+touch ~/tmux_no_auto_restore
+```
+
+排除問題後刪除該檔，才會重新允許自動恢復。
+
+#### 恢復較舊快照
+
+此流程必須從尚未執行自動恢復的全新 tmux server 開始。若目前已有 server，請等到計畫性重啟；需要立即處理時，先確認所有工作已寫入磁碟，再於維護時段結束現有 server。
+
+先在一般終端建立官方停用旗標，再啟動空白 server：
+
+```bash
+touch ~/tmux_no_auto_restore
+tmux
+```
+
+在新 server 的空白 pane 中找出快照目錄。檢查清單後，把 `snapshot` 改成實際檔名：
+
+```bash
+resurrect_dir="$HOME/.tmux/resurrect"
+[ -d "$resurrect_dir" ] || resurrect_dir="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect"
+cd "$resurrect_dir"
+ls -1t tmux_resurrect_*.txt
+snapshot="tmux_resurrect_20260720T120000.txt"
+ln -sf "$snapshot" last
+```
+
+按 `prefix + Ctrl+r` 手動恢復，確認完成後刪除旗標：
+
+```bash
+rm ~/tmux_no_auto_restore
+```
+
+此操作會改變 `last` 指向，但不會刪除其他時間戳快照。
+
+#### 疑難排解
+
+| 問題 | 檢查與處理 |
+|------|------------|
+| `prefix + I` 沒有反應 | 確認 TPM 已 clone、`run '~/.tmux/plugins/tpm/tpm'` 位於設定檔最底部，並重新載入正確的設定檔路徑 |
+| 重新載入設定後沒有自動恢復 | 這是預期行為；自動恢復只在 tmux server 啟動時觸發。可先用 `prefix + Ctrl+r` 手動恢復 |
+| 15 分鐘後沒有新快照 | 執行 `tmux show-options -gqv status`，確認狀態列為 `on`；並把 continuum 移到 plugin 清單最後，避免 `status-right` 被後續 plugin 覆寫 |
+| Layout 有恢復，但開發服務沒有啟動 | 該程序不在預設允許清單。先讀取快照中的實際程序名稱，再以 `@resurrect-processes` 逐項加入 |
+| 恢復到錯誤的時間點 | 依「恢復較舊快照」重設 `last` 連結，再按 `prefix + Ctrl+r` |
 
 ### tmuxinator：專案 Layout 範本
 
@@ -772,7 +992,13 @@ fi
 - tmux man page：`man tmux`
 - TPM（Plugin Manager）：https://github.com/tmux-plugins/tpm
 - tmux-resurrect：https://github.com/tmux-plugins/tmux-resurrect
+- tmux-resurrect 設定選項：https://github.com/tmux-plugins/tmux-resurrect/blob/master/scripts/variables.sh
+- tmux-resurrect 恢復程式設定：https://github.com/tmux-plugins/tmux-resurrect/blob/master/docs/restoring_programs.md
+- tmux-resurrect Pane 內容：https://github.com/tmux-plugins/tmux-resurrect/blob/master/docs/restoring_pane_contents.md
+- tmux-resurrect 恢復舊快照：https://github.com/tmux-plugins/tmux-resurrect/blob/master/docs/restoring_previously_saved_environment.md
 - tmux-continuum：https://github.com/tmux-plugins/tmux-continuum
+- tmux-continuum FAQ：https://github.com/tmux-plugins/tmux-continuum/blob/master/docs/faq.md
+- tmux-continuum 開機啟動：https://github.com/tmux-plugins/tmux-continuum/blob/master/docs/automatic_start.md
 - tmuxinator：https://github.com/tmuxinator/tmuxinator
 - Catppuccin 主題：https://github.com/catppuccin/tmux
 - 推薦設定檔：[config/tmux.conf](./config/tmux.conf)
