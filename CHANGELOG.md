@@ -7,22 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **MP 第二批技能與輕量開發軌**（OpenSpec change `expand-mp-lightweight-track`）。
-  - 新增 `skills/mp-wayfinder/`：探索期大型工作的地圖式規劃（改寫自上游 `wayfinder`）。地圖與決策點放 GitHub issues 輔出口，每 session 只解一個決策點，結晶成果轉入 OpenSpec change。
-  - 新增 `skills/mp-prototype/`：丟棄式原型回答設計問題（改寫自上游 `prototype`），logic 走終端原型、UI 走多變體路由；產物 commit 至 `experiment/<topic>` 分支，main 不留原型。
-  - `DEVELOPMENT-WORKFLOW.md` 新增「三軌選擇」與「輕量軌」章節：小變更不開 OpenSpec change 的路徑與三項準入條件；OpenSpec `tasks.md` 仍為正式變更的 canonical 出口。
-
 ### Changed
 
-- **mattpocock/skills 上游回灌**（同上 change，審核基準 `b843cb5..391a270`）。
-  - `skills/mp-to-issues/`：合併上游 `to-tickets` 的 blocking edges（切片宣告阻擋關係、frontier 平行認領）與 expand–contract 寬重構切法。
-  - `skills/mp-to-prd/`：合併上游 `to-spec` 的 seam-first（輸出 brief 前先確認測試 seam）。
-  - `skills/mp-grill-with-docs/`：補齊上游 `domain-modeling` 原語（詞彙挑戰、情境壓力測試、與程式碼交叉驗證、術語即時沉澱）。
-  - `upstream/mattpocock-skills/`：mapping.yaml 修正上游 rename（`to-issues`→`to-tickets`、`to-prd`→`to-spec`、`diagnose`→`diagnosing-bugs`）、補記排除決策（implement、code-review、handoff、domain-modeling）；last-sync.yaml 參考快照推進至 `391a270`。
-
-### Changed
+- **mattpocock/skills 改為上游原生、手動安裝**。
+  - 移除本 repo 改寫的 `skills/mp-*`、分發副本、上游 mapping 與現行 MP 規格。
+  - 不再由 `ai-dev clone` 或 `upstream/npx-skills.yaml` 管理；需要時執行 `npx skills@latest add mattpocock/skills -g -y`。
+  - 新增上游 41 個技能的使用邏輯、設計哲學、適用情境與成熟度指南。
 
 - **BREAKING：分發目標 `gemini` 改名為 `agy`（Antigravity CLI）**（OpenSpec change `migrate-gemini-cli-to-agy`）。Google 已於 2026-06-18 關閉 Gemini CLI（`gemini` 指令、`@google/gemini-cli` 套件），由 Antigravity CLI（`agy`）接手。
   - 對外的 `--target gemini` 與 `toggle-config.yaml` 的 `gemini` 鍵改為 `agy`，**不保留相容別名**。

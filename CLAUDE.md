@@ -132,22 +132,6 @@ Not lazy about: understanding the problem (read it fully and trace the real flow
 ---
 <!-- <<< ai-dev:ai-dev-project | 以上規則結束，確認已理解再開始任務 -->
 
-# MP 工作入口層
-
-mp-* skills 是本 repo 的工作入口層，負責把模糊需求壓成專案語言、分流工作項目、轉成 PRD 或 OpenSpec 前置素材。
-
-何時使用：需求語意未對齊、工作堆積待分流、討論要轉成可追蹤項目、想 stress-test plan 而非直接動手。
-
-何時不使用：要寫實作交給 `openspec-*`、`superpowers:executing-plans`、`superpowers:test-driven-development`；除錯交給 `superpowers:systematic-debugging`。
-
-共同規則統一放在 `docs/agents/`：
-- `docs/agents/issue-tracker.md` — canonical 工作出口
-- `docs/agents/triage-states.md` — canonical 狀態與外部 mapping
-- `docs/agents/domain.md` — context 模型與 lazy creation 規則
-- `docs/agents/mp-workflow.md` — MP 入口層職責與邊界
-
-
-
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
 ## Beads Issue Tracker
 

@@ -67,6 +67,7 @@
 | 文件 | 說明 |
 |------|------|
 | [DEVELOPMENT-WORKFLOW.md](workflow/DEVELOPMENT-WORKFLOW.md) | 開發工作流程 |
+| [MATTPOCOCK-SKILLS-GUIDE.md](workflow/MATTPOCOCK-SKILLS-GUIDE.md) | mattpocock/skills 安裝、設計哲學與 41 個技能使用指南 |
 | [VIBE-CODING-DEV-STACK-FRAMEWORK.md](workflow/VIBE-CODING-DEV-STACK-FRAMEWORK.md) | Vibe Coding 開發堆疊框架與工作流 |
 | [CODE-QUALITY-TOOLS.md](workflow/CODE-QUALITY-TOOLS.md) | 程式碼品質工具 |
 | [LSP-INSTALLATION-GUIDE.md](workflow/LSP-INSTALLATION-GUIDE.md) | PHP/Python/Rust/JS/TS LSP 安裝指南 |

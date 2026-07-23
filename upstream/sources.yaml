@@ -28,12 +28,6 @@ sources:
     local_path: ~/.config/anthropic-skills/
     format: claude-code-native
     install_method: ai-dev          # ai-dev clone 同步到 skills/
-  mattpocock-skills:
-    repo: mattpocock/skills
-    branch: main
-    local_path: ~/.config/mattpocock-skills/
-    format: claude-code-native
-    install_method: manual          # 本地 mp-* 為改寫版，需人工審核合併
   superpowers:
     repo: obra/superpowers
     branch: main

@@ -362,8 +362,8 @@ npx skills find
 npx skills find typescript
 # init new skill
 npx skills init my-skill
-npx skills check
 npx skills update
+npx skills update -g
 ```
 
 #### 目前安裝
@@ -376,6 +376,10 @@ npx skills add https://github.com/vercel-labs/skills -g --skill find-skills
 npx skills add tanweai/pua --skill pua -g -y
 
 # ── AI 開發相關 ──────────────────────────────────────
+# Matt Pocock 工程工作流（全域；由使用者手動安裝與更新）
+npx skills@latest add mattpocock/skills --list
+npx skills@latest add mattpocock/skills -g -y
+
 npx skills add anthropics/claude-plugins-official@hook-development -y
 npx skills add anthropics/claude-plugins-official@writing-hookify-rules -y
 
@@ -459,6 +463,10 @@ npx skills add henkisdabro/wookstar-claude-code-plugins@tampermonkey
 # Obsidian Excalidraw（全局）
 npx skills add axtonliu/axton-obsidian-visual-skills@excalidraw-diagram -g -y
 ```
+
+`mattpocock/skills` 會安裝上游當下可發現的全部技能。技能成熟度、使用邏輯與
+更新方式請看
+[mattpocock/skills 使用指南](dev-guide/workflow/MATTPOCOCK-SKILLS-GUIDE.md)。
 
 
 

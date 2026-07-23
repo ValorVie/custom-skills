@@ -588,7 +588,13 @@ npx skills update             # 更新已安裝的 skills
 
 # 範例
 npx skills add vercel-labs/agent-skills
+
+# Matt Pocock 工程工作流（全域手動安裝）
+npx skills@latest add mattpocock/skills -g -y
 ```
+
+`mattpocock/skills` 不由 `ai-dev` 自動分發。技能成熟度、使用邏輯與更新方式請看
+[mattpocock/skills 使用指南](docs/dev-guide/workflow/MATTPOCOCK-SKILLS-GUIDE.md)。
 
 ### 測試 (Test)
 

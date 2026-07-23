@@ -19,7 +19,7 @@
 - 以及其他 30+ 種代理
 
 **套件資訊：**
-- **版本：** 1.2.0
+- **實測版本：** 1.5.20（2026-07-23）
 - **授權：** MIT
 - **儲存庫：** https://github.com/vercel-labs/skills
 
@@ -34,6 +34,19 @@
 ```bash
 npx skills add vercel-labs/agent-skills
 ```
+
+### 手動安裝 mattpocock/skills
+
+`mattpocock/skills` 不由本 repo 的 `ai-dev` 分發或上游同步機制管理。直接全域安裝：
+
+```bash
+npx skills@latest add mattpocock/skills -g -y
+```
+
+這個非互動命令會安裝當下可發現的全部技能。2026-07-23 實測為 41 個，其中
+22 個列於上游正式 plugin manifest，其餘位於 `deprecated/`、`in-progress/`、
+`misc/` 或 `personal/`。完整使用方式與成熟度說明請看
+[mattpocock/skills 使用指南](../workflow/MATTPOCOCK-SKILLS-GUIDE.md)。
 
 ### 支援的來源格式
 
@@ -118,23 +131,14 @@ npx skills rm [skills]
 
 ---
 
-### `check` - 檢查更新
-
-```bash
-npx skills check
-```
-
-檢查已安裝技能是否有可用更新。
-
----
-
 ### `update` - 更新技能
 
 ```bash
 npx skills update
+npx skills update -g
 ```
 
-將所有已安裝技能更新至最新版本。
+將專案或全域技能更新至最新版本。1.5.20 沒有獨立 `check` 命令。
 
 ---
 

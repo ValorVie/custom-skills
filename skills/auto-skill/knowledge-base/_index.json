@@ -1,7 +1,7 @@
 {
-  "lastUpdated": "2026-07-12",
+  "lastUpdated": "2026-07-23",
   "version": "1.0.0",
-  "totalEntries": 2,
+  "totalEntries": 1,
   "categories": [
     {
       "id": "frontend-dev",
@@ -77,14 +77,10 @@
         "工具",
         "自動化",
         "流程",
-        "專案",
-        "框架評估",
-        "上游同步",
-        "mattpocock",
-        "輕量軌"
+        "專案"
       ],
       "file": "workflow.md",
-      "count": 1
+      "count": 0
     }
   ],
   "absorbedSkills": []

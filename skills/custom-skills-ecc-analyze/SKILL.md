@@ -100,7 +100,6 @@ done
 
 ```
    個人工具流          → custom-* (10)
-   工作入口層          → mp-* (6)
    內部 scaffold       → auto-skill, uds
    個人化輸出          → wiki, work-log-*
    思考框架            → first-principles
@@ -108,7 +107,7 @@ done
    跨 AI 工具          → discuss-multi-ai
 ```
 
-`mp-*`、`auto-skill`、`uds`、`work-log-*` 是內部專屬，**不會跟 ECC 重疊**（ECC 沒這些概念）。**Step 4 只需比對其餘群組**。
+`auto-skill`、`uds`、`work-log-*` 是內部專屬，**不會跟 ECC 重疊**（ECC 沒這些概念）。**Step 4 只需比對其餘群組**。
 
 ---
 

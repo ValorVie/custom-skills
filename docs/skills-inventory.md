@@ -1,9 +1,9 @@
 # Skills / Commands / Agents 清單（自動生成）
 
-由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-07-08。
+由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-07-23。
 手動編輯無效；數字或清單過期時重跑腳本。
 
-## Skills（24）
+## Skills（18）
 
 - auto-skill
 - cloud-infrastructure-security
@@ -21,12 +21,6 @@
 - custom-skills-upstream-ops
 - discuss-multi-ai
 - first-principles
-- mp-grill-with-docs
-- mp-improve-codebase-architecture
-- mp-setup-matt-pocock-skills
-- mp-to-issues
-- mp-to-prd
-- mp-triage
 - wiki
 - work-log-claude
 
