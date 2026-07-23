@@ -42,6 +42,8 @@ npx skills@latest add mattpocock/skills --list
 
 ```bash
 npx skills@latest add mattpocock/skills -g -y
+# 全域安裝無法使用 PromptScript
+npx skills@latest add mattpocock/skills
 ```
 
 - `-g`：安裝到使用者層級，不寫入本 repo。
