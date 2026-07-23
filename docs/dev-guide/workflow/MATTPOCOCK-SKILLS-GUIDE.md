@@ -79,6 +79,9 @@ npx skills@latest update -g
 
 ```bash
 npx skills@latest remove -g
+
+# remove Matt Pocock skills
+npx skills remove -g -y ask-matt code-review codebase-design diagnosing-bugs domain-modeling grill-me grill-with-docs grilling handoff implement improve-codebase-architecture prototype research resolving-merge-conflicts setup-matt-pocock-skills tdd teach to-spec to-tickets triage wayfinder writing-great-skills
 ```
 
 使用互動選單精確選取要移除的技能。不要直接刪除整個代理的全域 skills 目錄，

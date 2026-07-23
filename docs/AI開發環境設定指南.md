@@ -381,7 +381,8 @@ npx skills@latest add mattpocock/skills --list
 npx skills@latest add mattpocock/skills -g -y
 # 全域安裝無法使用 PromptScript
 npx skills@latest add mattpocock/skills
-
+# remove Matt Pocock skills
+npx skills remove -g -y ask-matt code-review codebase-design diagnosing-bugs domain-modeling grill-me grill-with-docs grilling handoff implement improve-codebase-architecture prototype research resolving-merge-conflicts setup-matt-pocock-skills tdd teach to-spec to-tickets triage wayfinder writing-great-skills
 
 npx skills add anthropics/claude-plugins-official@hook-development -y
 npx skills add anthropics/claude-plugins-official@writing-hookify-rules -y
