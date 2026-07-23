@@ -379,6 +379,9 @@ npx skills add tanweai/pua --skill pua -g -y
 # Matt Pocock 工程工作流（全域；由使用者手動安裝與更新）
 npx skills@latest add mattpocock/skills --list
 npx skills@latest add mattpocock/skills -g -y
+# 全域安裝無法使用 PromptScript
+npx skills@latest add mattpocock/skills
+
 
 npx skills add anthropics/claude-plugins-official@hook-development -y
 npx skills add anthropics/claude-plugins-official@writing-hookify-rules -y
