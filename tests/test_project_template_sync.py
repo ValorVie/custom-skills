@@ -1,5 +1,11 @@
 from pathlib import Path
 
+from script.utils.project_blocks import render_managed_block
+from script.utils.project_projection import (
+    MANAGED_BLOCK_CLOSE_LABEL,
+    MANAGED_BLOCK_OPEN_LABEL,
+    PROJECT_MANAGED_BLOCK_ID,
+)
 from script.utils.project_template_sync import sync_project_template
 
 
@@ -8,13 +14,25 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _managed_prompt(content: str) -> str:
+    return render_managed_block(
+        PROJECT_MANAGED_BLOCK_ID,
+        content,
+        open_label=MANAGED_BLOCK_OPEN_LABEL,
+        close_label=MANAGED_BLOCK_CLOSE_LABEL,
+    )
+
+
 def test_sync_project_template_only_copies_manifest_included_items(tmp_path: Path):
     repo_root = tmp_path / "repo"
     template_dir = repo_root / "project-template"
     repo_root.mkdir()
     template_dir.mkdir()
 
-    _write(repo_root / "AGENTS.md", "root agents\n")
+    _write(
+        repo_root / "AGENTS.md",
+        f"{_managed_prompt('root agents')}\n# Repo-only rules\n",
+    )
     _write(repo_root / ".standards" / "testing.ai.yaml", "x: 1\n")
     _write(repo_root / "README.md", "ignore me\n")
 
@@ -32,6 +50,9 @@ def test_sync_project_template_only_copies_manifest_included_items(tmp_path: Pat
     )
 
     assert (template_dir / "AGENTS.md").exists()
+    assert (template_dir / "AGENTS.md").read_text(encoding="utf-8") == _managed_prompt(
+        "root agents"
+    )
     assert (template_dir / ".standards" / "testing.ai.yaml").exists()
     assert not (template_dir / "README.md").exists()
     assert result.copied == 2
@@ -44,7 +65,10 @@ def test_sync_project_template_check_reports_clean_after_sync(tmp_path: Path):
     repo_root.mkdir()
     template_dir.mkdir()
 
-    _write(repo_root / "AGENTS.md", "root agents\n")
+    _write(
+        repo_root / "AGENTS.md",
+        f"{_managed_prompt('root agents')}\n# Repo-only rules\n",
+    )
     _write(repo_root / ".standards" / "testing.ai.yaml", "x: 1\n")
 
     manifest = {

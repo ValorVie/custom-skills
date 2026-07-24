@@ -21,3 +21,13 @@ def test_load_project_template_manifest_reads_include_and_exclude(tmp_path: Path
     assert data["include"] == ["AGENTS.md", ".standards/"]
     assert data["exclude"] == [".claude/settings.local.json"]
 
+
+def test_repository_manifest_excludes_project_local_agent_integrations():
+    repo_root = Path(__file__).resolve().parents[1]
+    data = load_project_template_manifest(repo_root / "project-template.manifest.yaml")
+
+    assert ".agents/" not in data["include"]
+    assert ".codex/config.toml" in data["exclude"]
+    assert ".codex/hooks.json" in data["exclude"]
+    assert ".claude/skills/ask-matt" in data["exclude"]
+    assert ".claude/skills/setup-matt-pocock-skills" in data["exclude"]

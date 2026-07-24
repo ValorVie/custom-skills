@@ -1,49 +1,45 @@
 # 開發工作流程指南
 
-本指南說明如何使用 OpenSpec、Beads 和相關工具進行功能開發。若要使用
-`mattpocock/skills`，請依獨立指南手動安裝；它不是本 repo 的內建工作入口層。
+本指南說明使用者已選擇 OpenSpec 後，如何完成正式 change 的建立、實作、驗證與
+歸檔。通用的技能呼叫權與專案覆寫原則，以
+[AI 工作流路由與專案覆寫指南](WORKFLOW-ROUTING.md) 為準。
+
+OpenSpec、Superpowers 與 Matt 高階流程都不會因為已安裝而自動啟動。若要使用
+`mattpocock/skills`，請參考獨立指南。
 
 ---
 
-## 快速參考（熟練開發者）
+## 快速參考
+
+| 情境 | 預設處理 |
+|------|----------|
+| 簡單問答、唯讀確認、小型文件或程式修改 | 直接處理，使用最小必要技能並驗證 |
+| 使用者明確指定 Matt 高階流程 | 依指定 skill 執行 |
+| 使用者明確指定 Superpowers | 依指定 skill 或既有 plan 執行 |
+| 使用者明確指定 OpenSpec | 依下方 OpenSpec 完整流程執行 |
+| 使用者指定既有 change、plan、spec 或 ticket | 接續原工件，不建立第二份規格 |
+| 問題仍不明確 | 先對話或使用模型呼叫型調查／建模技能，不自動建立 change |
+
+### OpenSpec 命令
 
 | 階段 | 命令 | 說明 |
 |------|------|------|
-| 探索想法 | 直接對話或使用 `/superpowers:brainstorm` | 與 AI 討論想法、釐清方向 |
-| 調研目標 | `/opsx:explore` | 探索程式碼、理解現狀 |
+| 探索 change | `/opsx:explore` | 只在使用者指定 OpenSpec 情境使用 |
 | 建立提案 | `/opsx:new <name>` | 建立 change 和 proposal |
 | 建立規格 | `/opsx:continue` | 依序建立 design、specs、tasks |
 | 影響分析 | `/custom-skills-plan-analyze @<artifact>` | 分析提案完整性與專案影響（選用） |
 | 實作 | `/opsx:apply` | 執行 tasks 中的任務 |
 | 驗證 | `/opsx:verify` | 驗證實作符合規格 |
-| 生成測試 | `/custom-skills-{lang}-derive-tests` | 從 specs 生成測試程式碼 |
-| 執行測試 | `/custom-skills-{lang}-test` | 執行測試並分析結果 |
-| 覆蓋率 | `/custom-skills-{lang}-coverage` | 檢查測試覆蓋率 |
-| 手動測試 | `請根據 specs 和實作程式碼，生成手動整合測試清單` | 無法自動化時建立手動測試清單 |
-| 生成報告 | `/custom-skills-report` | 生成測試報告供人工審閱 |
-| 回溯更新 | `請比對目前實作與 specs 的差異，更新 artifacts` | 將實作偏差同步回 specs/design |
 | 歸檔 | `/opsx:archive` | 歸檔 change 到主規格 |
 
-> **語言標識 `{lang}`**: `python` 或 `php`
+### Tracker 與工件
 
-### 流程選擇
+通用 harness 不指定 tracker。每個專案以自己的 `AGENTS.md` 與
+`docs/agents/issue-tracker.md` 宣告執行狀態、認領與依賴的唯一出口。
 
-依變更的性質選擇流程：
-
-| 流程 | 適用 | 路徑 |
-|------|------|------|
-| **OpenSpec** | 正式功能、重構、規格或跨模組變更 | OpenSpec 完整流程（見下） |
-| **直接實作** | 單一模組或文件群、一個 session 可完成、不改既有規格 | Beads → 實作 → 驗證 |
-| **探索** | 問題或方向仍不明確 | 直接對話或 `/opsx:explore`，釐清後再選前兩者 |
-
-所有流程都使用 Beads 管理執行狀態、認領、依賴與 ready。OpenSpec 保留正式
-變更工件；GitHub Issues 保留外部入口。
-
-本專案情境範例：
-
-- 「重新設計 skills 分發架構」→ 範圍未明、多個未決策 → 先探索，再開 OpenSpec。
-- 「新增一個 CLI 子命令」→ 功能變更、影響規格 → OpenSpec。
-- 「修正某個 skill 的措辭與觸發語彙」→ 單一文件群、一個 session 完成 → 直接實作。
+custom-skills 本身使用 Beads 管理執行狀態；OpenSpec 保存使用者明確選擇的正式
+change 工件；GitHub Issues 保留外部入口。這是本 repo 的設定，不會套到所有
+ai-dev 專案。
 
 ### OpenSpec 完整流程
 
@@ -56,30 +52,32 @@
     → /opsx:archive
 ```
 
-若需求已經很清楚，可以直接從 OpenSpec 開始。若任務已經有完整 specs 和
-tasks，直接執行 `/opsx:apply`。
+只有使用者明確選擇 OpenSpec，或直接指定既有 change 時才走此流程。若任務已有
+完整 specs 和 tasks，可直接執行 `/opsx:apply`，不重建 proposal。
 
 ### 直接實作流程
 
-小變更不開 OpenSpec change，路徑：
+未指定高階工作流時，使用最短可驗證路徑：
 
 ```
-Beads 建立或認領工作
-    → 直接實作（superpowers:test-driven-development）
+依專案規則建立或認領工作（需要持久追蹤時）
+    → 選擇最小必要技能或直接實作
     → 測試或文件驗證
     → code review（依風險選用）
 ```
 
-**準入條件（三項同時成立才可直接實作，任一不成立改走 OpenSpec）**：
+以下情況可直接實作：
 
-1. 變更範圍在單一模組或單一文件群，不影響 `openspec/specs/` 既有規格的行為描述。
+1. 變更範圍明確，且不改變既有正式規格。
 2. 一個 session 內可完成實作與驗證。
-3. 不屬於 `docs/agents/issue-tracker.md` 定義的正式變更（功能、重構、規格修改）。
+3. 不需要額外的跨 session 決策與交棒。
 
-Beads 是直接實作與 OpenSpec 的 canonical 執行出口。OpenSpec `tasks.md` 保留正式
-變更的工件進度，GitHub Issues 保留外部需求入口。
+任一條件不成立時，代理可以建議 OpenSpec、Superpowers 或 Matt 高階流程，但仍須
+由使用者選擇；不能把建議視為授權。
 
-### 完整 TDD 流程
+### OpenSpec 與 TDD 組合流程
+
+只有使用者已選擇 OpenSpec，且程式行為適合自動化測試時，使用以下組合：
 
 ```
 想法 → /opsx:explore（必要時）→ /opsx:new → /opsx:continue (×N)
@@ -105,12 +103,12 @@ TDD 流程適用於有明確輸入/輸出的程式邏輯。以下情況**不適�
 
 | 變更類型 | 說明 | 建議流程 |
 |----------|------|----------|
-| 純文件變更 | README、CHANGELOG、開發指南等 | spec-driven（跳過測試階段） |
-| 配置檔案 | .yaml、.json、環境設定等 | spec-driven |
-| AI 命令定義 | Claude Code 命令（.md） | spec-driven |
-| 重新命名/搬移 | 檔案重新命名、目錄重組 | spec-driven |
+| 純文件變更 | README、CHANGELOG、開發指南等 | 直接修改並做文件驗證 |
+| 配置檔案 | .yaml、.json、環境設定等 | 依風險做格式、schema 或整合驗證 |
+| AI 命令定義 | Claude Code 命令（.md） | 直接修改或由使用者指定規格流程 |
+| 重新命名/搬移 | 檔案重新命名、目錄重組 | 直接修改並檢查引用 |
 | 樣式調整 | CSS、UI 微調 | 直接實作 |
-| 系統整合/UI 互動 | 涉及外部服務、瀏覽器操作、硬體互動等 | spec-driven + 手動測試清單 |
+| 系統整合/UI 互動 | 涉及外部服務、瀏覽器操作、硬體互動等 | 自動驗證加手動測試清單 |
 
 **判斷原則**：
 - ✓ 適合 TDD：可寫自動化測試驗證的功能邏輯

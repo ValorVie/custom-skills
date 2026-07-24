@@ -5,6 +5,14 @@ import filecmp
 from pathlib import Path
 import shutil
 
+from .project_blocks import read_managed_block, render_managed_block
+from .project_projection import (
+    MANAGED_BLOCK_CLOSE_LABEL,
+    MANAGED_BLOCK_FILES,
+    MANAGED_BLOCK_OPEN_LABEL,
+    PROJECT_MANAGED_BLOCK_ID,
+)
+
 
 @dataclass
 class ProjectTemplateSyncResult:
@@ -44,6 +52,19 @@ def _replace_path(src: Path, dst: Path, ignore_callback) -> None:
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
+
+
+def _render_managed_prompt(src: Path) -> str:
+    content = read_managed_block(src, PROJECT_MANAGED_BLOCK_ID)
+    if content is None:
+        raise ValueError(f"{src.name} 缺少 {PROJECT_MANAGED_BLOCK_ID} managed block")
+
+    return render_managed_block(
+        PROJECT_MANAGED_BLOCK_ID,
+        content,
+        open_label=MANAGED_BLOCK_OPEN_LABEL,
+        close_label=MANAGED_BLOCK_CLOSE_LABEL,
+    )
 
 
 def _is_excluded_path(path: Path, repo_root: Path, exclude: set[str]) -> bool:
@@ -113,6 +134,23 @@ def sync_project_template(
             continue
 
         existed = dst.exists()
+        if entry in MANAGED_BLOCK_FILES:
+            expected = _render_managed_prompt(src)
+            if check:
+                if not existed:
+                    result.copied += 1
+                elif dst.read_text(encoding="utf-8") != expected:
+                    result.updated += 1
+                continue
+
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_text(expected, encoding="utf-8")
+            if existed:
+                result.updated += 1
+            else:
+                result.copied += 1
+            continue
+
         if check:
             if not existed:
                 result.copied += 1

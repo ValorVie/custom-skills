@@ -2,7 +2,6 @@ version: 1
 
 include:
   - .agent/
-  - .agents/
   - .claude/
   - .codex/
   - .gemini/
@@ -18,17 +17,36 @@ include:
 
 exclude:
   - .claude/settings.json
+  - .codex/config.toml
+  - .codex/hooks.json
   - .claude/skills/auto-skill
+  - .claude/skills/ask-matt
+  - .claude/skills/code-review
+  - .claude/skills/codebase-design
+  - .claude/skills/diagnosing-bugs
+  - .claude/skills/domain-modeling
+  - .claude/skills/grill-me
+  - .claude/skills/grill-with-docs
+  - .claude/skills/grilling
+  - .claude/skills/handoff
+  - .claude/skills/implement
+  - .claude/skills/improve-codebase-architecture
+  - .claude/skills/prototype
+  - .claude/skills/research
+  - .claude/skills/resolving-merge-conflicts
+  - .claude/skills/setup-matt-pocock-skills
+  - .claude/skills/tdd
+  - .claude/skills/teach
+  - .claude/skills/to-spec
+  - .claude/skills/to-tickets
+  - .claude/skills/triage
+  - .claude/skills/wayfinder
+  - .claude/skills/writing-great-skills
   - .claude/skills/bun-development
   - .claude/skills/javascript-testing-patterns
   - .claude/skills/typescript-advanced-types
   - .claude/skills/hook-development
   - .claude/skills/writing-hookify-rules
-  - .agents/skills/bun-development
-  - .agents/skills/javascript-testing-patterns
-  - .agents/skills/typescript-advanced-types
-  - .agents/skills/hook-development
-  - .agents/skills/writing-hookify-rules
   - .agent/skills/bun-development
   - .agent/skills/javascript-testing-patterns
   - .agent/skills/typescript-advanced-types

@@ -87,9 +87,10 @@ npx skills remove -g -y ask-matt code-review codebase-design diagnosing-bugs dom
 使用互動選單精確選取要移除的技能。不要直接刪除整個代理的全域 skills 目錄，
 否則會一併移除其他來源。
 
-## 第一次進入專案
+## 專案整合
 
-安裝後，每個 repo 執行一次：
+`setup-matt-pocock-skills` 不是每個 repo 的強制初始化步驟。只有專案尚未建立
+tracker adapter、triage labels 或文件位置規則時，才需要執行：
 
 ```text
 /setup-matt-pocock-skills
@@ -99,11 +100,15 @@ npx skills remove -g -y ask-matt code-review codebase-design diagnosing-bugs dom
 `docs/agents/` 的修改。它的作用不是安裝技能，而是把上游技能接到該 repo 的實際
 工作規則。
 
-使用時遵守三個邊界：
+使用時遵守四個邊界：
 
 - 先審閱它提出的草稿，再允許寫入。
-- 現有 `AGENTS.md`、Beads、OpenSpec 與 Git 權限規則優先，不可被上游預設覆蓋。
+- 先確認專案已宣告的 canonical tracker；不得只依 Git remote 推導另一套 tracker。
+- 現有 `AGENTS.md`、tracker、OpenSpec 與 Git 權限規則優先，不可被上游預設覆蓋。
 - 設定完成不代表每次任務都要跑完整流程；依工作大小選最短可驗證路徑。
+
+採用 Beads 的專案應先完成 Beads 初始化，再於 setup 選擇 `Other: Beads`。若專案
+已有可用的 `docs/agents/issue-tracker.md`，可以省略 setup。
 
 ## 呼叫模型：誰有權啟動技能
 
@@ -125,11 +130,24 @@ npx skills remove -g -y ask-matt code-review codebase-design diagnosing-bugs dom
 
 ## 推薦工作流
 
-### 一般功能或重構
+### 一般任務的預設路徑
+
+未明確指定 Matt 高階流程時，不從 `ask-matt` 或完整 `idea → ship` 流程開始。
+模型依任務選擇最小必要的 primitive：
 
 ```text
-每個 repo 一次：setup-matt-pocock-skills
-    ↓
+調查 → research
+除錯 → diagnosing-bugs
+行為實作 → tdd（適用時）
+完成前複核 → code-review（依風險）
+架構／領域問題 → codebase-design / domain-modeling
+```
+
+簡單問答、唯讀確認與可直接驗證的小修改可以不使用技能。
+
+### 使用者明確選擇完整 Matt 流程
+
+```text
 ask-matt（不知道入口時）
     ↓
 grill-with-docs
@@ -148,8 +166,8 @@ to-tickets
 
 ### 小型、已對齊的變更
 
-若工作可在單一上下文完成，且驗證方式已明確，可從 `grill-with-docs` 直接進入
-`implement`，不用為了形式完整而建立 spec 與 tickets。
+若使用者已明確指定 Matt 高階流程，但工作可在單一上下文完成且驗證方式明確，
+可以直接使用 `implement`，不用為了形式完整而建立 spec 與 tickets。
 
 ### 收到外部 issue
 
@@ -447,9 +465,10 @@ manifest。使用前要把目錄狀態視為成熟度警告，不要假設介面
 | `resolving-merge-conflicts` 要完成 merge/rebase | 不得因此越過 Git push、破壞性命令或工作樹保護規則 |
 | 上游文件與本 repo 規則衝突 | 使用者當前指令與 repo 的 `AGENTS.md` 優先 |
 
-`mattpocock/skills` 可以作為選用的前置對齊與工作切片工具，但不再是
-`DEVELOPMENT-WORKFLOW.md` 的必要階段。已經有清楚 OpenSpec artifacts 的工作，
-直接走 OpenSpec；單一小改動則直接以 Beads 追蹤、實作與驗證。
+Matt primitive skills 可由模型按需要選擇；高階流程仍由使用者明確啟動。
+`mattpocock/skills` 不再是 `DEVELOPMENT-WORKFLOW.md` 的必要階段。已經有清楚
+OpenSpec artifacts 的工作，接續原 OpenSpec change；單一小改動則依專案 tracker
+規則直接實作與驗證。
 
 ## 常見問題
 

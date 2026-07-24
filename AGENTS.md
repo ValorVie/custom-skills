@@ -96,6 +96,22 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
+# AI 工作流路由
+
+- 簡單問答、唯讀確認與可直接驗證的小修改，不得為了套用技能而增加額外流程。
+- 未指定高階工作流時，從可由模型調用的技能中選擇最小必要的單一技能或少量組合。
+- Superpowers、OpenSpec，以及 Matt Pocock skills 的使用者呼叫型高階流程，只有在
+  使用者明確指定，或本輪直接接續使用者已指定的既有工件時才可啟動。
+- 不得自行展開 brainstorming、spec、tickets、worktree、commit、archive 或其他
+  會改變工作範圍與狀態的完整流程。
+- 使用專案已宣告的 tracker、文件真相來源、Git 與安全規則；不得自行建立第二套
+  任務系統。專案未宣告 tracker 時，不因形式需要擅自新增。
+- `auto-skill` 只負責知識與經驗載入，不構成啟動高階工作流、修改 tracker 或執行
+  其他具副作用操作的授權。
+- 使用者當前指令與專案層規則優先；衝突時採用較高層規則，並說明調整之處。
+
+---
+
 # Ponytail, lazy senior dev mode
 
 You are a lazy senior developer. Lazy means efficient, not careless. The best code is the code never written.

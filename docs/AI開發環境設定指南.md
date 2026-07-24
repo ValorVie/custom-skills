@@ -45,7 +45,7 @@ Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態�
 | AI 回應品質不一致 | 統一 Skills 讓 AI 遵循相同的開發標準 |
 | 缺乏程式碼審查機制 | 內建 Code Review、Checkin 等 Skills |
 | 提交訊息格式混亂 | Commit Standards 強制規範格式 |
-| 需求不明確導致錯誤開發 | OpenSpec 規格驅動開發流程 |
+| 任務大小不同卻套用同一流程 | 最小技能預設，高階工作流由使用者明確啟動 |
 | 不同工具間設定不同步 | 統一 Skills 目錄，跨工具共用 |
 
 ### 核心價值
@@ -54,6 +54,21 @@ Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態�
 2. **品質保證**：內建測試、審查、提交規範
 3. **知識傳承**：Skills 即文件，規範即程式碼
 4. **工具中立**：Skills 可在 Claude Code 及其他備選工具間共用
+
+### 工作流分層
+
+本框架只提供通用的技能呼叫規則，不替所有專案指定同一個 tracker 或完整流程：
+
+1. 簡單任務直接處理，按需要使用最小技能。
+2. Superpowers、OpenSpec 與 Matt 高階流程由使用者明確啟動。
+3. tracker、Git、安全與部署規則由專案自己的 `AGENTS.md`／`CLAUDE.md` 覆寫。
+4. `auto-skill` 負責知識載入，不代表已授權啟動高階流程。
+
+完整設計請閱讀
+[AI 工作流路由與專案覆寫指南](dev-guide/workflow/WORKFLOW-ROUTING.md)；OpenSpec
+操作步驟與 Matt 技能說明分別位於
+[開發工作流程指南](dev-guide/workflow/DEVELOPMENT-WORKFLOW.md) 與
+[mattpocock/skills 使用指南](dev-guide/workflow/MATTPOCOCK-SKILLS-GUIDE.md)。
 
 ---
 
@@ -569,7 +584,8 @@ claude -p "檢查文件依賴項目是否正確"
 
 ### Skills 使用
 
-當 Claude Code 偵測到相關情境時，Skills 會自動觸發。你也可以主動呼叫：
+模型呼叫型 Skills 可由工具依情境選擇；使用者呼叫型高階流程必須由人主動指定。
+你也可以主動呼叫：
 
 ```shell
 # 程式碼審查
