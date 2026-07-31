@@ -880,12 +880,21 @@ bd config get no-git-ops
 
 - 執行 `bd prime --memories-only --export`，略過本覆寫並讀取目前專案的持久記憶。
 - 執行 `bd ready`，確認可接續的工作。
+- 所有跨階段工作都使用 Beads 追蹤；開始修改前先建立或認領 issue。
 
 ## Git 權限
 
-- 使用者明確要求 `commit`，即構成本機 Git commit 的清楚授權。
-- 提交前檢查工作樹，只 stage 本輪相關檔案，不夾帶其他變更。
+- 使用者明確要求 `commit`，即構成本機 Git commit 的清楚授權，`commit` 範圍應包含 `.beads` 相關的工作文件。
+- 提交前檢查工作樹，只 stage 本輪相關檔案，不夾帶使用者或其他工作留下的變更。
 - 除非使用者明確要求 `push`，否則不得推送遠端。
+- 不得使用 `git reset --hard`、`git checkout --` 等破壞性指令，除非使用者明確批准。
+
+## 結束
+
+- 完成工作後關閉對應 Beads issue。
+- 回報修改檔案、驗證結果、commit 雜湊，以及是否有尚未推送的內容。
+
+> `AGENTS.md` 與 `CLAUDE.md` 是獨立檔案；若修改其中一份的實質規則，必須同步另一份。
 ```
 
 `PRIME.md` 會完整取代 `bd prime` 的預設輸出，也會覆寫一般的 `--memories-only` 輸出。因此範例必須使用 `--export` 略過覆寫，否則會再次讀到 `PRIME.md`，而不是動態 Beads 記憶。不要把記憶內容複製進 `PRIME.md`，避免後續 `bd remember` 更新後兩邊不一致。
