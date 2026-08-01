@@ -880,11 +880,12 @@ bd config get no-git-ops
 
 - 執行 `bd prime --memories-only --export`，略過本覆寫並讀取目前專案的持久記憶。
 - 執行 `bd ready`，確認可接續的工作。
+- 啟動時一律假設當前有其他 session 在運作，要注意協作與衝突。
 - 所有跨階段工作都使用 Beads 追蹤；開始修改前先建立或認領 issue。
 
 ## Git 權限
 
-- 使用者明確要求 `commit`，即構成本機 Git commit 的清楚授權，`commit` 範圍應包含 `.beads` 相關的工作文件。
+- 修改完成且通過必要驗證後，依持久記憶建立範圍明確的階段 `commit`，`commit` 範圍應包含 `.beads` 相關的工作文件。
 - 提交前檢查工作樹，只 stage 本輪相關檔案，不夾帶使用者或其他工作留下的變更。
 - 除非使用者明確要求 `push`，否則不得推送遠端。
 - 不得使用 `git reset --hard`、`git checkout --` 等破壞性指令，除非使用者明確批准。
