@@ -1,10 +1,11 @@
 # 模板：規範文件
 
-```markdown
+~~~markdown
 ---
 title: {標題}
 type: standard
-date: {YYYYMMDDhh-NN}
+topic: {topic}
+date: {建立或更新日期}
 author: {author}
 status: draft
 version: 1.0.0
@@ -81,4 +82,4 @@ version: 1.0.0
 ## 參考資料
 
 - [參考 1](連結)
-```
+~~~

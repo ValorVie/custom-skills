@@ -1,9 +1,10 @@
 # 模板：會議紀錄
 
-```markdown
+~~~markdown
 ---
 title: {標題}
 type: record/meeting
+topic: {topic}
 date: {YYYYMMDDhh-NN}
 author: {author}（紀錄人）
 status: draft
@@ -65,4 +66,4 @@ status: draft
 
 - 日期: {YYYY-MM-DD}
 - 議題預告: ...
-```
+~~~

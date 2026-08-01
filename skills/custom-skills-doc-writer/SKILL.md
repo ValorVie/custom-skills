@@ -33,7 +33,9 @@ description: |
 | `report` | `investigation` | template-report-investigation.md | 調查報告 |
 | `report` | `status` | template-report-status.md | 階段/進度報告 |
 | `report` | `analysis` | template-report-analysis.md | 分析報告 |
+| `research` | — | template-research.md | 探索性調查與外部證據整理 |
 | `guide` | — | template-guide.md | 操作指南 |
+| `runbook` | — | template-runbook.md | 可重複執行且需驗證與回復的維運手冊 |
 | `tutorial` | — | template-tutorial.md | 教學文件 |
 | `record` | `meeting` | template-record-meeting.md | 會議紀錄 |
 | `record` | `incident` | template-record-incident.md | 事件紀錄 |
@@ -67,6 +69,8 @@ description: |
 | 做出了技術選型或架構決定 | `record/decision` | 非 `report/analysis`（decision 重點是「選了什麼、為什麼」） |
 | 規劃了要做的功能或改善 | `plan/*` | 再看子類型：有技術債→refactoring、有平台切換→migration、有新需求→feature |
 | 討論了某個流程怎麼操作 | `guide` | 非 `tutorial`（guide 是參考手冊，tutorial 是分步教學含練習） |
+| 操作會改變系統、需要停止點、驗證與回復 | `runbook` | 非一般 `guide`（runbook 強調可安全重複執行） |
+| 尚無定論，正在整理外部資料、方案與未知 | `research` | 非 `report/analysis`（research 保留未知，analysis 通常要回答明確比較問題） |
 | 教學性質、有步驟練習 | `tutorial` | 非 `guide` |
 
 **關鍵區分原則：**
@@ -90,7 +94,9 @@ description: |
 **第一層 — 文件類型：**
 - 計畫 (plan) — 規劃未來要做的事
 - 報告 (report) — 記錄已完成的分析或進展
+- 研究 (research) — 整理外部證據、可能性與未知
 - 指南 (guide) — 說明如何完成某件事
+- 維運手冊 (runbook) — 可重複執行，含驗證、停止與回復
 - 教學 (tutorial) — 分步驟教學，含練習
 - 紀錄 (record) — 記錄事件或決策
 - 規範 (standard) — 定義規則與標準
@@ -129,7 +135,9 @@ record:
 |------|----------|
 | `plan` | `docs/plans/` |
 | `report` | `docs/report/` |
+| `research` | `docs/research/` |
 | `guide` | `docs/guide/` |
+| `runbook` | `docs/runbook/` 或專案已有的 `docs/guide/` |
 | `tutorial` | `docs/tutorial/` |
 | `record` | `docs/record/` |
 | `standard` | `.standards/` 或 `docs/` |
@@ -156,7 +164,9 @@ record:
 | `report/investigation` | 觸發事件、調查範圍 |
 | `report/status` | 報告期間 |
 | `report/analysis` | 分析目的、分析對象 |
+| `research` | 研究問題、資料範圍、希望回答與保留的未知 |
 | `guide` | 適用對象、前置條件 |
+| `runbook` | 操作目標、影響邊界、需要的權限、成功條件、停止點與回復方式 |
 | `tutorial` | 難度等級、預估時間 |
 | `record/meeting` | 日期時間、出席者、議程 |
 | `record/incident` | 嚴重度、發生時間、影響範圍 |
@@ -204,6 +214,8 @@ Metadata 自動填入：
 |----------|------|
 | plan | 建議使用 `/custom-skills-plan-analyze` 檢查完整性 |
 | report | 建議使用 `/custom-skills-plan-analyze` 評估分析品質，或提示是否需要補充資料 |
+| research | 提示尚待驗證的假設與下一個證據取得點 |
+| runbook | 提示應先預覽、同行審閱，再於受控環境驗證 rollback |
 | record/changelog | 提示是否需要同步更新版本號或 release 標籤 |
 | record/decision | 提示是否需要通知相關方 |
 | standard | 提示是否需要版本控制與審批流程 |
@@ -268,7 +280,9 @@ INDEX.md
 | [template-report-investigation.md](references/template-report-investigation.md) | 調查報告 |
 | [template-report-status.md](references/template-report-status.md) | 階段報告 |
 | [template-report-analysis.md](references/template-report-analysis.md) | 分析報告 |
+| [template-research.md](references/template-research.md) | 研究文件 |
 | [template-guide.md](references/template-guide.md) | 操作指南 |
+| [template-runbook.md](references/template-runbook.md) | 維運手冊 |
 | [template-tutorial.md](references/template-tutorial.md) | 教學文件 |
 | [template-record-meeting.md](references/template-record-meeting.md) | 會議紀錄 |
 | [template-record-incident.md](references/template-record-incident.md) | 事件紀錄 |

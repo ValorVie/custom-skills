@@ -1,9 +1,10 @@
 # 模板：變更日誌
 
-```markdown
+~~~markdown
 ---
 title: {標題}
 type: record/changelog
+topic: {topic}
 date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
@@ -53,4 +54,4 @@ version: {版本號}
 
 - [完整 diff](連結)
 - [相關 issue](連結)
-```
+~~~

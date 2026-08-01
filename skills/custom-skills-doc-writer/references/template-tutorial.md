@@ -1,10 +1,11 @@
 # 模板：教學文件
 
-```markdown
+~~~markdown
 ---
 title: {標題}
 type: tutorial
-date: {YYYYMMDDhh-NN}
+topic: {topic}
+date: {建立或更新日期}
 author: {author}
 status: draft
 level: beginner | intermediate | advanced
@@ -111,4 +112,4 @@ estimated_time: {預估分鐘數} 分鐘
 
 - [進階主題 1](連結)
 - [進階主題 2](連結)
-```
+~~~

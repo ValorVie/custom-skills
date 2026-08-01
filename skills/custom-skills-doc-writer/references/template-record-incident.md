@@ -1,9 +1,10 @@
 # 模板：事件紀錄
 
-```markdown
+~~~markdown
 ---
 title: {標題}
 type: record/incident
+topic: {topic}
 date: {YYYYMMDDhh-NN}
 author: {author}
 status: draft
@@ -91,4 +92,4 @@ severity: critical | high | medium | low
 - 相關日誌
 - 監控截圖
 - 相關工單連結
-```
+~~~

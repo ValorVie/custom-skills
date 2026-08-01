@@ -1,13 +1,16 @@
 # 模板：決策紀錄
 
-```markdown
+~~~markdown
 ---
 title: {標題}
 type: record/decision
+topic: {topic}
 date: {YYYYMMDDhh-NN}
 author: {author}
 # 狀態值：proposed（提議中）| accepted（已採納）| deprecated（已棄用）| superseded（已取代）
 status: {狀態}
+# supersedes: {被本決策取代的文件路徑}
+# superseded_by: {取代本決策的文件路徑}
 ---
 
 # {標題}
@@ -74,4 +77,4 @@ status: {狀態}
 ## 相關文件
 
 - [相關文件 1](連結)
-```
+~~~
