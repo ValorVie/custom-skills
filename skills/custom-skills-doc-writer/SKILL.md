@@ -1,10 +1,10 @@
 ---
 name: custom-skills-doc-writer
 description: |
-  以統一格式撰寫計畫、報告、指南、教學、紀錄、規範等文件。
-  Use when: 使用者要求撰寫或起草文件，包含但不限於：計畫書（新功能/重構/遷移）、報告（調查/階段/分析）、指南、教學、會議紀錄、事件紀錄、決策紀錄、規範文件。
+  以統一格式撰寫計畫、報告、指南、教學、紀錄、規範等文件，並依專案慣例決定知識庫放置路徑、主題分類與索引更新。
+  Use when: 使用者要求撰寫或起草文件，或需要整理 docs 目錄、文件分類、主題索引與知識庫結構。包含但不限於：計畫書（新功能/重構/遷移）、報告（調查/階段/分析）、指南、教學、會議紀錄、事件紀錄、決策紀錄、規範文件。
   觸發方式: /custom-skills-doc-writer [type] [variant]
-  Keywords: 撰寫文件, 文件模板, 計畫書, 報告, 指南, 教學, 紀錄, 規範, document writer, plan, report, guide, tutorial, record, standard, 寫文件, 起草, draft
+  Keywords: 撰寫文件, 文件模板, 文件分類, 文件目錄, 知識庫, 主題索引, 計畫書, 報告, 指南, 教學, 紀錄, 規範, document writer, plan, report, guide, tutorial, record, standard, 寫文件, 起草, draft
 ---
 
 # Document Writer — 統一格式文件撰寫
@@ -75,13 +75,13 @@ description: |
 - **investigation vs incident**：investigation 回答「為什麼發生」，incident 回答「發生了什麼、怎麼處理」
 - **analysis vs decision**：analysis 回答「哪個比較好」，decision 回答「我們選了什麼」
 
-**推斷後必須確認：** 向使用者明確說明推斷結果並確認：
+**只在實質歧義時確認：** 若不同類型會改變文件用途、保留期限或輸出路徑，先向使用者說明推斷結果並確認：
 
 ```
 根據我們剛才的討論（分析了 XX 的根因與影響範圍），建議使用「調查報告」格式。確認嗎？
 ```
 
-使用 `AskUserQuestion` 提供推斷結果作為推薦選項，同時列出其他可能選項讓使用者選擇。
+若類型與路徑都能由專案慣例或對話明確判定，直接執行，不為了形式確認而打斷工作。
 
 ### Step 2: 互動引導（無脈絡時）
 
@@ -121,8 +121,7 @@ record:
 
 ### Step 4: 收集文件資訊
 
-詢問使用者必要資訊（若未在指令中提供）：
-- **輸出路徑**: 文件存放位置（依類型提供預設路徑，使用者可覆寫）
+先讀取專案內的 `AGENTS.md`、`CLAUDE.md`、`docs/INDEX.md`、同主題文件與現有目錄，再決定輸出路徑。只有專案沒有慣例、同時存在多個合理位置，或路徑會改變文件定位時，才詢問使用者。
 
 預設輸出路徑：
 
@@ -134,6 +133,20 @@ record:
 | `tutorial` | `docs/tutorial/` |
 | `record` | `docs/record/` |
 | `standard` | `.standards/` 或 `docs/` |
+
+上表只在專案沒有現成結構時使用。若同一文件類型已經依主題分目錄，預設放在 `docs/<type>/<topic>/`，不繼續堆到類型根目錄。
+
+### Step 4.1: 決定知識庫位置
+
+當專案的文件已經跨越多個主題或類型，讀取 [knowledge-base-organization.md](references/knowledge-base-organization.md)。
+
+預設採用下列二維分類：
+
+1. **實體路徑以文件用途為第一層**：`docs/<type>/<topic>/`。
+2. **主題視角由索引與 metadata 提供**：在 `docs/INDEX.md` 從主題連回 plan、report、guide 等實體文件，不複製或鏡像同一份文件。
+3. **第二層用穩定領域或服務名稱**：例如 `image-cdn`、`mysql84-migration`，避免使用 `misc`、`others` 或過於寬泛的 repo 名稱形成新的雜物區。
+4. **沒有內容就不先建空目錄**：只在實際有文件時建立對應的 type/topic 目錄。
+5. **專案現有慣例優先**：例如專案已使用 `docs/plans/` 或把 runbook 放在 `docs/guide/`，就沿用現狀，不為了套用通用規則批次搬檔。
 
 按文件類型補問必要資訊（若已在對話脈絡或指令中提供則跳過）：
 
@@ -153,7 +166,7 @@ record:
 
 Metadata 自動填入：
 - `title`: 從檔名的標題部分自動填入
-- `date`: 從檔名的 `YYYYMMDDhh-NN` 部分自動填入
+- `date`: 時點型文件從檔名的 `YYYYMMDDhh-NN` 部分自動填入；穩定檔名使用文件建立日期或本次更新日期
 - `author`: 從 git config 取得或留空
 
 ### Step 4.5: 判斷內容來源
@@ -169,6 +182,7 @@ Metadata 自動填入：
 2. 根據使用者提供的背景資訊，填充各章節內容
 3. 若章節明確不適用於當前文件，直接刪除該章節，不留空佔位符。僅在資訊暫時不足但章節本身合理時才保留 `<!-- TODO: 補充 -->`
 4. 若使用者提供了參考資料（如 `@file`），讀取後融入文件內容
+5. 若新文件建立了新主題、使目錄清單變得難以瀏覽，或取代舊文件，同步更新最近的 `INDEX.md` 與 `superseded_by` / `supersedes` 關係。
 
 ### Step 5.5: 品質自檢
 
@@ -178,7 +192,9 @@ Metadata 自動填入：
 2. 殘留的 `<!-- TODO -->` 是否合理（不可填的才留）
 3. 表格是否有空行或格式錯誤
 4. 標題層級是否符合規範（最深不超過 `####`）
-5. 檔名是否符合 `YYYYMMDDhh-NN-標題.md` 格式
+5. 檔名是否符合文件生命週期：時點型文件使用 `YYYYMMDDhh-NN-標題.md`，長期入口使用穩定檔名
+6. 目錄、frontmatter `type` / `topic` 與文件實際用途是否一致
+7. 相關 `INDEX.md`、舊文件取代關係與內部連結是否已更新
 
 ### Step 6: 後續建議
 
@@ -199,7 +215,7 @@ Metadata 自動填入：
 
 ### 檔名命名規則
 
-所有產出文件統一使用以下格式：
+調查報告、階段報告、事件紀錄、會議紀錄、短期計畫與其他保留時點證據的文件，使用以下格式：
 
 ```
 YYYYMMDDhh-NN-標題.md
@@ -215,9 +231,21 @@ YYYYMMDDhh-NN-標題.md
 1. 掃描專案目錄內所有以當日日期 `YYYYMMDD` 開頭的檔案
 2. 取最大流水編 +1；若無則從 `01` 開始，`YYYYMMDDhh-NN` 流水編全域唯一
 
+長期維護的架構真相、規範、索引、狀態看板、長期操作入口與 API 參考文件，優先使用穩定檔名，例如：
+
+```text
+architecture.md
+deployment-guide.md
+migration-status-board.md
+INDEX.md
+```
+
+若不確定，問「新讀者應該繼續找到同一個入口，還是需要保留每次產出的歷史版本？」前者用穩定檔名，後者用時間戳。
+
 ### 格式基線
 
-- **Frontmatter**: 所有文件包含 YAML frontmatter（title、type、date、author、status）
+- **Frontmatter**: 新撰寫的 Markdown 文件包含 YAML frontmatter（title、type、date、author、status）；專案已有規範時從其規範，不改寫外部原始資料
+- **主題 metadata**: 多主題知識庫可增加 `topic`；存在取代關係時增加 `supersedes` 或 `superseded_by`
 - **標題層級**: `#` 文件標題、`##` 主要章節、`###` 子章節，最深不超過 `####`
 - **表格**: 結構化比較或清單使用 Markdown 表格
 - **清單**: 待辦事項使用 `- [ ]`，一般列表使用 `-`
