@@ -9,6 +9,16 @@ description: |
 把已獲授權的工作映射成最小可行執行形狀。只選擇執行方式，不建立權限、任務追蹤器、
 規格或新的工作流程。
 
+## 綁定執行環境
+
+先完成通用路由，再讀取當前 runtime profile：
+
+- Codex：讀取 [Codex runtime profile](profiles/codex.md)。
+- 沒有已驗證 profile：保留抽象 tier，由主 Agent 使用現場可證明的能力，並記錄
+  binding 偏差；不要猜測模型、effort、唯讀或 fresh-context 能力。
+
+runtime profile 只能選擇實際模型與角色，不能改變 mode、risk、shape、批准或專案規則。
+
 ## 先確認邊界
 
 1. 先讀取系統、使用者與專案規則。上層規則永遠優先。
@@ -110,6 +120,9 @@ mode=execute risk=material tier=standard shape=single_worker owner=builder revie
 
 路由紀錄只保存決策，不取代派工說明、測試證據、批准紀錄或任務狀態。簡單且直接
 完成的工作不必為了格式輸出路由紀錄。
+
+runtime profile 若要求 binding receipt，就放在 route receipt 下一行。binding receipt
+只能補充實際角色、模型、effort 與偏差，不得覆寫通用路由結果。
 
 ## 固定回歸案例
 

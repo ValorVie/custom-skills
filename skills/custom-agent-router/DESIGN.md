@@ -4,7 +4,7 @@ type: plan/rfc
 topic: agent-orchestration
 date: 2026080710-01
 author: ValorVie
-status: active
+status: implemented
 rfc_id: custom-agent-router-001
 tracking: custom-skills-v00
 ---
@@ -16,9 +16,10 @@ tracking: custom-skills-v00
 - 提案內容：建立一套以政策為主的通用 Agent Router。通用核心只判斷任務模式、
   能力層級、風險、派工形狀、審查與失敗升級；實際模型由執行環境設定綁定，
   專案規則由專案適配層加上。
-- 目前狀態：外部方案比較與第一階段通用 Skill 已完成；尚未建立執行環境設定，
-  也未修改現有 `qdm-agent-team`。
-- 本階段位置：通用路由契約已落到 `SKILL.md`，接下來才核對實際執行環境能力。
+- 目前狀態：通用 Skill、Codex runtime profile、QDM adapter、跨 repo 契約測試與
+  文件型角色試行都已完成。
+- 實作位置：通用政策在 `SKILL.md`，Codex 綁定在 `profiles/codex.md`；
+  `qdm-agent-team` 只保留 QDM 差異。
 - 明確不做：第一版不寫排程器、佇列、Agent 登錄表、Hook 或新任務追蹤器，也不
   安裝第三方調度框架。
 - 採納條件：使用同一組案例驗證路由結果；替換執行環境設定時不改通用核心；
@@ -132,22 +133,13 @@ Agent Router 不保存另一份任務狀態。
 當前執行環境能驗證的
 事實：
 
-```yaml
-profile: codex
-bindings:
-  light: Luna      # 候選；啟用前核對實際模型、effort 與執行資訊
-  standard: Terra
-  frontier: Sol
-capabilities:
-  fresh_context_reviewer: verify_at_runtime
-  readonly_reviewer: verify_at_runtime
-limits:
-  max_parallel: runtime_limit
-  max_tier_escalations: 1
-```
+目前已驗證的 Codex 設定在 [profiles/codex.md](profiles/codex.md)：`light` 綁
+`terra_worker`、`standard` 綁 `terra_builder`、`frontier` 綁 Sol Lead，fresh review
+綁 `sol_reviewer`。Luna 在目前 runtime 不可用；`light` 與 `standard` 使用同一個
+Terra 模型與 effort，只以工作契約區分。
 
-這段是介面範例，不是已驗證的現場設定。第一版由 Agent 讀取，不需要為它撰寫
-載入程式；日後真的有多執行環境自動執行需求，再決定是否改成可機器驗證的結構。
+第一版仍由 Agent 讀取 profile，不寫載入程式。Reviewer 的唯讀能力必須由 runtime
+metadata 證明；角色檔或 Prompt 文字不能代替證據。
 
 ### 專案適配層
 
@@ -292,17 +284,13 @@ Hook 會綁定特定執行環境的事件名稱、執行順序與攔截範圍。
 ```text
 custom-agent-router/
 ├── SKILL.md                 # 通用路由政策與路由紀錄契約
-├── profiles/
-│   ├── codex.md             # Codex 模型綁定與可驗證能力
-│   └── claude.md            # Claude 模型綁定與可驗證能力
-├── adapters/
-│   └── qdm.md               # QDM 差異；其他專案各自新增
-└── examples/
-    └── routing-cases.md     # 輸入案例與預期路由
+├── DESIGN.md                # 分層、邊界與演進依據
+└── profiles/
+    └── codex.md             # Codex 模型綁定與可驗證能力
 ```
 
-這是資訊分層，不要求第一天建立全部檔案。初始 `SKILL.md` 若仍短小，可以先內嵌一
-個執行環境設定；只有第二個執行環境或專案適配層實際加入時才拆檔。
+專案 adapter 留在各專案，避免通用 repo 反向擁有專案規則。第二個 runtime 出現時，
+再新增另一份 profile。
 
 ## QDM 接入方式
 
@@ -314,13 +302,13 @@ QDM 適配層引用通用 Agent Router，再保留現有 QDM 規則：
 - DB、正式環境、OFS、機密、付費與外部 mutation 依 repo 規則取得批准。
 - 全新上下文審查者必須以執行環境資訊證明上下文與唯讀能力。
 
-通用 Agent Router 穩定前，不修改現有 `qdm-agent-team`。接入時讓它成為薄適配層，刪除
-已由通用核心承擔的 mode、tier、dispatch 與 fallback 重複定義，但不移動 QDM
-安全規則到通用核心。
+這個接入已完成：`qdm-agent-team` 現在是薄 adapter，引用通用 Router 與 Codex profile，
+不再保存 mode、tier、dispatch、fallback 或模型對照。QDM 安全規則仍留在 qdm-arch。
 
 ## 驗證案例
 
-第一版以固定案例做提示規則回歸，不需要測試框架：
+第一版以固定案例搭配小型 pytest 契約測試回歸；測試只檢查分層與固定不變條件，
+不把語意路由硬編成調度程式：
 
 | 案例 | 預期路由 |
 |------|----------|
@@ -344,21 +332,24 @@ QDM 適配層引用通用 Agent Router，再保留現有 QDM 規則：
 指標。上述案例、Skill 結構與模板同步通過驗證；Skill 內沒有 QDM 名稱或特定
 任務追蹤器規則。
 
-### 階段 2：執行環境設定
+### 階段 2：執行環境設定（已完成）
 
-加入第一個實際使用的設定，核對模型、effort、全新上下文、sandbox 與並行
-限制。完成條件是每個模型綁定都有執行環境證據，不使用僅憑名稱推測的能力。
+Codex profile 已核對模型、effort、全新上下文、sandbox 與並行限制。三種 binding
+都完成角色前向測試；Luna 不可用與 read-only parent 限制已明列，不依名稱推測能力。
 
-### 階段 3：QDM 適配層
+### 階段 3：QDM 適配層（已完成）
 
-以通用核心替換 `qdm-agent-team` 內重複的路由語意，保留 QDM 差異。完成條件是現有
-QDM 安全與 Git／Beads 契約沒有退化，並完成文件型試行與獨立審查。
+`qdm-agent-team` 已刪除重複路由語意，保留 QDM 差異。跨 repo 契約測試、Builder、
+Worker 與獨立 read-only Sol Reviewer 的文件型試行都已通過。
 
 ### 階段 4：依失敗證據演進
 
 記錄路由偏差、重試、成本與被跳過的閘門。只有提示規則／設定無法穩定保護的機械
 不變條件，才評估程式碼或 Hook。完成條件是新增機制對應已觀察到的失敗，而不是
 預想中的框架需求。
+
+本次試行的缺陷都能由 Router、handoff 與 Reviewer 契約攔截，沒有出現需要 Hook 才能
+阻擋的旁路，因此現階段不新增 Hook 或常駐調度程式。
 
 ## 替代方案
 
@@ -381,23 +372,21 @@ intent、risk、review 與 escalation 的語意。
 
 | 面向 | 影響 |
 |------|------|
-| 向下相容 | 新核心只透過精準指標按需載入，現有 QDM Skill 行為不變 |
-| 程式碼 | 本 RFC 不新增執行程式碼 |
+| 向下相容 | 新核心只透過精準指標按需載入；QDM Skill 改成薄 adapter，安全邊界不變 |
+| 程式碼 | 不新增調度程式；只新增可重跑的契約測試 |
 | 安全性 | 不新增權限；專案適配層只能收緊規則，不能放寬 |
 | 效能與成本 | 第一版沒有常駐服務；模型成本由執行環境設定與最小派工形狀控制 |
 | 維護 | 通用定義只保留一份，執行環境與專案只寫差異 |
 | 正式環境 | 不安裝、不部署、不接流量，也不執行 DB 或服務 mutation |
 
-## 尚待實作前決定
+## 後續可選工作
 
-- `ai-dev-project` 管理區塊的指標要以哪些任務特徵觸發 Agent Router；文字要足夠精確，
-  又不能讓簡單工作多載入一層流程。
-- 第一個 Codex 設定的實際模型 ID、effort 與可用自訂角色，以實際執行資訊
-  驗證後填入。
 - 路由紀錄在非 QDM 專案寫到哪裡，由各適配層使用既有任務追蹤器或工作紀錄
   決定。
+- 有第二個 runtime 時，新增對應 profile 並重跑同一組契約案例。
+- 只有累積可重現的 Prompt／原生 sandbox 旁路證據後，才另案評估 Hook。
 
-這三項不阻擋 RFC 成立，但會阻擋相對應的執行環境設定或專案適配層宣稱可用。
+這些工作不阻擋目前的通用 Router、Codex profile 或 QDM adapter 使用。
 
 ## 參考資料
 
