@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **新增 `custom-agent-router` 通用 Agent 路由 Skill**。
+  - 在工作目標與授權明確後，選擇互動模式、能力層級、風險、派工形狀、審查與有限備援。
+  - 通用 managed prompt 只加入精準觸發指標；第一版不含特定模型綁定、專案規則或 Hook。
+
 - **ECC 白名單分發機制**（OpenSpec change `ecc-whitelist-distribution`）。
   - `upstream/distribution.yaml` 新增 `distribute.skills.enabled` 白名單，僅列出的 skill 會被分發到目標工具目錄。
   - 新增 `upstream/ecc-catalog.yaml`：ECC 上游 skill 分類目錄（純資料，13 個 categories + uncategorized）。
