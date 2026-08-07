@@ -5,7 +5,7 @@ tags:
   - dev-tools
   - index
 date created: 2026-03-02T15:00:00+08:00
-date modified: 2026-03-10T23:45:00+08:00
+date modified: 2026-08-07T14:14:00+08:00
 description: MCP Server 個別使用指南索引與工具端設定補充，各服務的深入安裝說明與使用範例
 ---
 
@@ -22,6 +22,7 @@ description: MCP Server 個別使用指南索引與工具端設定補充，各�
 | **Codex CLI** | Codex 的 MCP 設定位置、TOML 格式與 CLI 指令 | — | Apache-2.0 | [Codex MCP 指南](CodexCLI-MCP設定指南.md) |
 | **Context7** | 即時技術文件查詢 | 47.3k | MIT | [Context7 指南](Context7即時文件查詢.md) |
 | **n8n-MCP** | n8n 工作流自動化知識庫 | 14.2k | MIT | [n8n-MCP 指南](n8n-MCP工作流自動化.md) |
+| **CodeGraph** | 本機程式碼知識圖譜、CLI 與 MCP | — | MIT | [CodeGraph 指南](CodeGraph程式碼知識圖譜.md) |
 | **GitNexus** | 程式碼知識圖譜 | 7.7k | PolyForm NC | [GitNexus 指南](GitNexus程式碼知識圖譜.md) |
 | **Postgres MCP Pro** | PostgreSQL 資料庫管理與優化 | 2.2k | MIT | [Postgres MCP 指南](PostgresMCP資料庫管理.md) |
 | **idea-reality-mcp** | 產品點子競爭驗證 | 230 | MIT | [idea-reality 指南](idea-reality產品驗證.md) |
@@ -36,7 +37,8 @@ description: MCP Server 個別使用指南索引與工具端設定補充，各�
     │
     ├─ 想在 Codex 裡正確掛載 MCP → Codex CLI MCP 設定指南
     ├─ 查詢某個套件/框架的最新文件 → Context7
-    ├─ 理解程式碼庫的架構和相依性 → GitNexus
+    ├─ 需要本機 SQLite、CLI 與 MCP 共用索引 → CodeGraph
+    ├─ 需要叢集、流程與 Cypher 圖查詢 → GitNexus
     ├─ 管理和優化 PostgreSQL 資料庫 → Postgres MCP Pro
     ├─ 建構 n8n 自動化工作流 → n8n-MCP
     ├─ 驗證產品點子是否已有人做過 → idea-reality-mcp
