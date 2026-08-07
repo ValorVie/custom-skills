@@ -54,7 +54,7 @@ QDM 工作樹、Beads、Git、批准與審查安全邊界，但它把專案限�
 
 ### 與既有工作流路由的關係
 
-[WORKFLOW-ROUTING.md](../../docs/dev-guide/workflow/WORKFLOW-ROUTING.md) 已經是通用工作流入口，
+[WORKFLOW-ROUTING.md](../dev-guide/workflow/WORKFLOW-ROUTING.md) 已經是通用工作流入口，
 負責判斷是否啟動高階流程、選擇最小必要 Skill，以及沿用專案任務追蹤器。Agent Router
 接在它後面，只處理已獲授權且邊界可判斷的工作：主 Agent 是否直接做、要用哪個
 能力層級、是否委派、如何審查。
@@ -133,7 +133,8 @@ Agent Router 不保存另一份任務狀態。
 當前執行環境能驗證的
 事實：
 
-目前已驗證的 Codex 設定在 [profiles/codex.md](profiles/codex.md)：`light` 綁
+目前已驗證的 Codex 設定在
+[profiles/codex.md](../../skills/custom-agent-router/profiles/codex.md)：`light` 綁
 `terra_worker`、`standard` 綁 `terra_builder`、`frontier` 綁 Sol Lead，fresh review
 綁 `sol_reviewer`。Luna 在目前 runtime 不可用；`light` 與 `standard` 使用同一個
 Terra 模型與 effort，只以工作契約區分。
@@ -278,15 +279,15 @@ Hook 會綁定特定執行環境的事件名稱、執行順序與攔截範圍。
 
 ## 建議的第一版包裝
 
-正式來源就是 `skills/custom-agent-router/`，沿用本專案現有的技能分發與投影
-機制，不另開一個通用規則 repo：
+Skill 正式來源是 `skills/custom-agent-router/`，設計文件依專案慣例放在 `docs/plans/`；
+兩者沿用現有的版本控制、技能分發與投影機制，不另開通用規則 repo：
 
 ```text
-custom-agent-router/
-├── SKILL.md                 # 通用路由政策與路由紀錄契約
-├── DESIGN.md                # 分層、邊界與演進依據
-└── profiles/
-    └── codex.md             # Codex 模型綁定與可驗證能力
+skills/custom-agent-router/
+├── SKILL.md                              # 通用路由政策與路由紀錄契約
+└── profiles/codex.md                     # Codex 模型綁定與可驗證能力
+docs/plans/
+└── 2026-08-07-custom-agent-router-design.md  # 分層、邊界與演進依據
 ```
 
 專案 adapter 留在各專案，避免通用 repo 反向擁有專案規則。第二個 runtime 出現時，
@@ -390,7 +391,7 @@ intent、risk、review 與 escalation 的語意。
 
 ## 參考資料
 
-- [AI 工作流路由與專案覆寫指南](../../docs/dev-guide/workflow/WORKFLOW-ROUTING.md)
+- [AI 工作流路由與專案覆寫指南](../dev-guide/workflow/WORKFLOW-ROUTING.md)
 - [Baton](https://github.com/cablate/baton)
 - [pilotfish](https://github.com/Nanako0129/pilotfish)
 - [pilotfish-codex](https://github.com/miyago9267/pilotfish-codex)
