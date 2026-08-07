@@ -1,7 +1,7 @@
 ---
 name: custom-agent-router
 description: |
-  為目標、範圍與授權已明確的非簡單 Agent 工作選擇互動模式、能力層級、風險、派工形狀、審查與有限備援。適用於需要在主 Agent 直接處理、單一工作代理與有限平行之間選擇，或需要依複雜度與風險決定能力層級及審查強度的工作。簡單問答、唯讀確認與可直接驗證的小修改不要使用。
+  為目標、範圍與授權已明確的非簡單 Agent 工作選擇互動模式、能力層級、風險、派工形狀、審查與有限備援。適用於需要在主 Agent 直接處理、單一工作代理與有限平行之間選擇，或需要依複雜度與風險決定能力層級及審查強度的工作；Codex 專案缺少已驗證的 Agent 設定時，也用本 Skill 引導使用者選擇建立、預覽或略過。簡單問答、唯讀確認與可直接驗證的小修改不要使用。
 ---
 
 # Custom Agent Router
@@ -18,6 +18,18 @@ description: |
   binding 偏差；不要猜測模型、effort、唯讀或 fresh-context 能力。
 
 runtime profile 只能選擇實際模型與角色，不能改變 mode、risk、shape、批准或專案規則。
+
+### Codex 專案設定閘門
+
+在 Codex runtime 套用本 Skill 時，先確認目前專案的 `.codex/config.toml`、
+`.codex/agents/*.toml` 與 runtime metadata。若專案設定不存在、不完整或無法證明符合
+profile，讀取
+[Codex 專案設定引導](references/codex-project-onboarding.md)，說明目前能安全使用的降級
+能力，再詢問使用者要「建立建議設定」、「只顯示建議」或「暫不設定」。
+
+未取得使用者選擇前，不得建立或修改設定。若使用者略過，仍可完成通用路由，但要保留
+抽象 tier，只使用現場能證明的能力並記錄 binding 偏差，不得把未驗證的 named role、
+模型、effort、唯讀或 fresh-context 能力寫成已可用。
 
 ## 先確認邊界
 

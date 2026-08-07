@@ -8,9 +8,8 @@
 | 項目 | 值 | 證據 |
 |------|----|------|
 | Codex CLI | `0.146.1` | `codex --version` |
-| Multi-agent | `multi_agent` stable 且專案已啟用 | `codex features list`、`.codex/config.toml` |
+| Multi-agent | 現行版本預設可用，且本機 `multi_agent` stable | Codex 官方 Subagents 文件、`codex features list` |
 | Session 上限 | 最多 15 threads | `.codex/config.toml` 的 `max_concurrent_threads_per_session = 15` |
-| 深度 | 1 | `.codex/config.toml` 的 `max_depth = 1` |
 | Luna | 不可用 | 當前 Codex model／custom role 清單沒有 Luna |
 
 15 是上限，不是預設派工數。實際並行數取 runtime 剩餘 slot、專案限制與獨立工作數的
@@ -39,6 +38,13 @@
      完成聲明，不以目前模型冒充 Sol。
 4. named role 不可用時，主 Agent 可以直接完成低風險工作，或使用較高且已驗證的
    tier；不得用較低 tier 替代必要判斷。
+
+新專案設定使用現行 Codex standalone custom agent 格式：角色檔放在
+`.codex/agents/*.toml`，每個檔案自行宣告 `name`、`description` 與
+`developer_instructions`。不要替新專案產生舊式 `[agents.<name>] config_file` registry；
+遇到既有舊式設定時，只在 runtime 已成功載入並可驗證的情況下沿用，不為了 onboarding
+自動遷移。完整互動與範本見
+[Codex 專案設定引導](../references/codex-project-onboarding.md)。
 
 在通用路由紀錄後另加一行 binding receipt：
 
