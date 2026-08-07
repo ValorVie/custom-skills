@@ -149,3 +149,9 @@ Not lazy about: understanding the problem (read it fully and trace the real flow
 
 ---
 <!-- <<< ai-dev:ai-dev-project | 以上規則結束，確認已理解再開始任務 -->
+
+## Beads 共用權限基線
+
+- `.beads/**` 的 owner、group、mode 與 ACL 由使用者維護。任何 Agent 都不得執行
+  `chmod`、`chown`、`setfacl`，也不得照工具的 `0700` 建議自動修正。
+- 若存取失敗，只能唯讀回報 `stat`／ACL 證據後停止，由使用者決定是否調整。
