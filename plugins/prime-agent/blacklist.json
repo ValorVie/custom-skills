@@ -36,6 +36,13 @@
       "message": ".env.example、.env.sample、.env.template、.env.dist 以外的 dotenv 檔案視為敏感資料。"
     },
     {
+      "id": "dotenv-read-warning",
+      "pattern": "\\.env",
+      "flags": "i",
+      "level": "warn",
+      "message": "[警告] 非必要請勿讀取；除非使用者核准。若允許讀取，也不要將內容顯示在畫面上。"
+    },
+    {
       "id": "package-and-shell-credentials",
       "pattern": "^(?:\\.netrc|\\.npmrc|\\.pypirc|\\.git-credentials)$",
       "flags": "i",

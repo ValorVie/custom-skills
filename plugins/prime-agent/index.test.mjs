@@ -120,6 +120,31 @@ assert.equal(statSync(accessLogPath).mode & 0o777, 0o600);
 
 assert.equal(await toolCall(protectedEvent, noUiContext), undefined);
 
+const multiTargetEvent = {
+	type: "tool_call",
+	toolName: "read",
+	toolCallId: "multi-target",
+	input: { paths: ["/tmp/.env", "/home/tester/private/report.txt"] },
+};
+const multiBlock = await toolCall(multiTargetEvent, noUiContext);
+assert.equal(multiBlock.block, true);
+assert.equal((multiBlock.reason.match(/\[禁止\]\[dotenv\]/g) ?? []).length, 1);
+assert.equal((multiBlock.reason.match(/\[警告\]\[private-path\]/g) ?? []).length, 1);
+assert.match(multiBlock.reason, /存取位置：\/home\/tester\/private\/report\.txt\n\/tmp\/\.env/);
+await recordTool.execute(
+	"record-multi",
+	{
+		accessId: "access-2",
+		accessTime: "2026-08-11T12:00:00.000Z",
+		location: "/home/tester/private/report.txt\n/tmp/.env",
+		reason: "確認多目標測試規範",
+	},
+	undefined,
+	undefined,
+	{},
+);
+assert.equal(await toolCall(multiTargetEvent, noUiContext), undefined);
+
 const childLoaded = await loadExtensions([wrapperPath], process.cwd());
 assert.deepEqual(childLoaded.errors, []);
 const childExtension = childLoaded.extensions[0];
@@ -205,7 +230,7 @@ await sessionCompact(
 	noUiContext,
 );
 const afterCompact = await toolCall(protectedEvent, noUiContext);
-assert.match(afterCompact.reason, /access ID：access-2/);
+assert.match(afterCompact.reason, /access ID：access-3/);
 await assert.rejects(
 	() =>
 		recordTool.execute(
@@ -228,7 +253,7 @@ await assert.rejects(
 		recordTool.execute(
 			"record-invalid",
 			{
-				accessId: "access-2",
+				accessId: "access-3",
 				accessTime: "2026-08-11T12:00:00.000Z",
 				location: "/home/tester/private/.env",
 				reason: "這是一段刻意超過三十個Unicode字元的存取理由用來驗證限制確實有效",
@@ -239,15 +264,15 @@ await assert.rejects(
 		),
 	/REASON_LENGTH/,
 );
-assert.match((await toolCall(protectedEvent, noUiContext)).reason, /access ID：access-2/);
+assert.match((await toolCall(protectedEvent, noUiContext)).reason, /access ID：access-3/);
 
 await sessionStart({ type: "session_start", reason: "new", previousSessionFile: "old.jsonl" }, noUiContext);
 const newSessionDecision = await toolCall(protectedEvent, noUiContext);
-assert.match(newSessionDecision.reason, /access ID：access-3/);
+assert.match(newSessionDecision.reason, /access ID：access-4/);
 
 const sessionShutdown = extension.handlers.get("session_shutdown")[0];
 await sessionShutdown({ type: "session_shutdown", reason: "reload" }, noUiContext);
 const afterReloadBoundary = await toolCall(protectedEvent, noUiContext);
-assert.match(afterReloadBoundary.reason, /access ID：access-4/);
+assert.match(afterReloadBoundary.reason, /access ID：access-5/);
 
 console.log("path-blacklist extension: integration checks passed");

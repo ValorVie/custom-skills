@@ -8,6 +8,7 @@ import {
 	AccessGate,
 	appendAccessLog,
 	buildAccessKey,
+	buildAccessLocation,
 	compileBlacklist,
 	findBlacklistMatches,
 } from "./policy.ts";
@@ -83,6 +84,116 @@ assert.throws(
 		}),
 	/bad-regex.*正規表達式無效/,
 );
+
+const deployedConfig = compileBlacklist(
+	JSON.parse(readFileSync(new URL("./blacklist.json", import.meta.url), "utf8")),
+);
+
+const deployedEnvCases = [
+	{ path: "/tmp/.env" },
+	{ path: "/tmp/.env.local" },
+	{ path: "/tmp/.env.example" },
+	{ path: "/tmp/app.env" },
+	{ path: "/tmp/app.env.backup" },
+	{ path: "C:\\tmp\\.ENV" },
+	{ options: { source: "/tmp/nested.env.production" } },
+	{ uri: "file:///tmp/.env" },
+	{ code: 'open("/tmp/app.env").read()' },
+	{ code: 'Path.home() / ".env"' },
+	{ code: '"/tmp/.e" + "nv.local"' },
+	{ path: "/tmp/%2eenv.local" },
+	{ code: `command = 'node -e \"fs.readFileSync(\\\"/tmp/.env.node\\\")\"'; print(command)` },
+	{ code: 'open("/tmp/." "env.local")' },
+	{ code: 'open("/tmp/\\x2eenv.local")' },
+	{ code: 'fs.readFileSync("/tmp/\\u002eenv.node")' },
+	{ command: `cat /tmp/$'\\x2eenv.ansi'` },
+	{ command: 'cat "/tmp/.""env.adjacent"' },
+];
+for (const input of deployedEnvCases) {
+	const matches = findBlacklistMatches(input, deployedConfig, "/home/tester");
+	const warning = matches.find((match) => match.rule.id === "dotenv-read-warning");
+	assert.equal(warning?.rule.level, "warn", JSON.stringify(input));
+	assert.match(warning?.rule.message ?? "", /非必要請勿讀取/);
+	assert.match(warning?.rule.message ?? "", /除非使用者核准/);
+	assert.match(warning?.rule.message ?? "", /不要將內容顯示在畫面上/);
+}
+
+const multipleTargets = findBlacklistMatches(
+	{ paths: ["/tmp/.env", "/tmp/app.env.backup"] },
+	deployedConfig,
+	"/home/tester",
+);
+assert.deepEqual(
+	[...new Set(multipleTargets.map((match) => match.target))].sort(),
+	["/tmp/.env", "/tmp/app.env.backup"],
+);
+assert.equal(buildAccessLocation(multipleTargets), "/tmp/.env\n/tmp/app.env.backup");
+assert.doesNotThrow(() => buildAccessKey(multipleTargets));
+const sameRuleTargets = findBlacklistMatches(
+	{ command: 'cat "/home/tester/private/a.txt" /home/tester/private/b.txt' },
+	config,
+	"/home/tester",
+);
+assert.deepEqual(
+	[...new Set(sameRuleTargets.map((match) => match.target))].sort(),
+	["/home/tester/private/a.txt", "/home/tester/private/b.txt"],
+);
+{
+	let wallNow = 1_000;
+	let monotonicNow = 10;
+	const appended = [];
+	const multiGate = new AccessGate({
+		clock: { wallNow: () => wallNow, monotonicNow: () => monotonicNow },
+		randomUUID: () => "multi-target-access",
+		appendRecord: (entry) => appended.push(entry),
+		home: "/home/tester",
+	});
+	const decision = multiGate.check(multipleTargets, deployedConfig.softBlock);
+	assert.equal(decision.kind, "blocked");
+	assert.equal(decision.request.location, buildAccessLocation(multipleTargets));
+	multiGate.record({
+		accessId: decision.request.accessId,
+		accessTime: new Date(wallNow).toISOString(),
+		location: decision.request.location,
+		reason: "multi target test",
+	});
+	assert.equal(appended[0].location, decision.request.location);
+	assert.equal(multiGate.check(multipleTargets, deployedConfig.softBlock).kind, "allowed");
+	wallNow += 1;
+	monotonicNow += 1;
+}
+
+const staticPathCases = [
+	{ command: 'cat "$HOME"/"private"/"report.txt"' },
+	{ command: 'ROOT="$HOME" && DIR="private" && cat "$ROOT/$DIR/report.txt"' },
+	{ command: 'cat "${HOME%/}/private/report.txt"' },
+	{ code: 'Path.home()/"private"/"report.txt"' },
+	{ code: 'Path.home().joinpath("private", "report.txt")' },
+	{ code: 'open("/home/tester/" "private/report.txt")' },
+	{ code: 'open("/home/tester/\\x70\\x72\\x69\\x76\\x61\\x74\\x65/report.txt")' },
+	{ code: 'segment="private"; target=f"{Path.home()}/{segment}/report.txt"' },
+	{ code: 'target=("/home/tester/"\n"private/report.txt")' },
+	{ code: 'target=Path.home(); target/="private"; target/="report.txt"' },
+	{ code: 'path.resolve(os.homedir(), "private", "report.txt")' },
+	{ code: 'Path(os.environ["HOME"]) / "private" / "report.txt"' },
+	{ code: 'process.env.HOME + "/private/report.txt"' },
+	{ path: "/home/tester/tmp/../private/report.txt" },
+	{ path: "/home/tester/./private/report.txt" },
+	{ path: "/home/tester/tmp/%2e%2e/private/report.txt" },
+	{ uri: "file:///home/tester/tmp/../private/report.txt" },
+	{ command: `cat /home/tester/$'\\x70\\x72\\x69\\x76\\x61\\x74\\x65'/report.txt` },
+	{ command: 'cat /home/tester/p\\r\\i\\v\\a\\t\\e/report.txt' },
+];
+for (const input of staticPathCases) {
+	const matches = findBlacklistMatches(input, config, "/home/tester");
+	assert.ok(matches.some((match) => match.rule.id === "home-sensitive"), JSON.stringify(input));
+}
+const commandSubstitution = findBlacklistMatches(
+	{ command: `segment=$(printf '\\160\\162\\151\\166\\141\\164\\145'); cat "$HOME/$segment/report.txt"` },
+	config,
+	"/home/tester",
+);
+assert.ok(commandSubstitution.every((match) => match.rule.id !== "home-sensitive"));
 
 const overlapping = findBlacklistMatches(
 	{ code: 'open("/home/tester/private/.env").read()' },

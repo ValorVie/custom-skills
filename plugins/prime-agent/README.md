@@ -54,7 +54,9 @@ Context compaction、開新 session、Extension reload、Prime Agent 重啟、se
 - `flags`：JavaScript regex flags，例如 `i`。
 - `message`：模型收到的自訂規範說明。
 
-路徑比對前會展開 `~`、`$HOME`、`${HOME}`，把反斜線轉為 `/`，並保留完整候選位置。修改後執行 `/reload`。
+內建 `dotenv-read-warning` 會對檔名中任何 `.env` 子字串送出 warn；它不取代較嚴格的 `dotenv-secrets` block，兩者可以同時命中。
+
+路徑比對會展開已知 HOME 寫法、統一分隔符、做一次 percent decode 與純 lexical 的 `.`／`..` 收斂，也會解析常見的靜態 shell、Python 與 Node 組合。它不執行任意程式、command substitution、未知環境變數或 symlink resolution。單一工具呼叫若含多個受管制目標，會把所有目標與規則一起綁進 access key；location 以換行分隔。修改後執行 `/reload`。
 
 ## Access log
 

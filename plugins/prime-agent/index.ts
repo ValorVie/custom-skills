@@ -37,10 +37,12 @@ function loadBlacklist(path: string): CompiledBlacklist {
 }
 
 function formatRequestPrompt(request: PendingRequest, suggestedAccessTime: string): string {
-	const lines = request.matches.map((match) => {
-		const label = match.rule.level === "block" ? "禁止" : "警告";
-		return `- [${label}][${match.rule.id}] ${match.rule.message}`;
-	});
+	const lines = new Map(
+		request.matches.map((match) => {
+			const label = match.rule.level === "block" ? "禁止" : "警告";
+			return [match.rule.id, `- [${label}][${match.rule.id}] ${match.rule.message}`];
+		}),
+	).values();
 	return [
 		"PATH_ACCESS_SOFT_BLOCKED：本次工具呼叫尚未執行。",
 		...lines,

@@ -233,20 +233,53 @@ function cleanCandidate(value: string): string {
 		.replace(/[\s"'`()\[\]{}<>,;:]+$/, "");
 }
 
+function decodeCodePoint(match: string, digits: string, radix: number): string {
+	const codePoint = Number.parseInt(digits, radix);
+	return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : match;
+}
+
+function decodeStaticEscapes(value: string): string {
+	return value
+		.replace(/\\x([0-9a-f]{2})/gi, (match, hex: string) => decodeCodePoint(match, hex, 16))
+		.replace(/\\u\{([0-9a-f]{1,6})\}/gi, (match, hex: string) => decodeCodePoint(match, hex, 16))
+		.replace(/\\u([0-9a-f]{4})/gi, (match, hex: string) => decodeCodePoint(match, hex, 16))
+		.replace(/\\([0-7]{1,3})/g, (match, octal: string) => decodeCodePoint(match, octal, 8))
+		.replace(/\\(["'`\\])/g, "$1");
+}
+
+function collapseDotSegments(value: string): string {
+	const absolute = value.startsWith("/");
+	const segments: string[] = [];
+	for (const segment of value.split("/")) {
+		if (!segment || segment === ".") continue;
+		if (segment === "..") {
+			const previous = segments.at(-1);
+			if (previous && previous !== ".." && !previous.endsWith(":")) segments.pop();
+			else if (!absolute) segments.push(segment);
+			continue;
+		}
+		segments.push(segment);
+	}
+	const joined = segments.join("/");
+	return absolute ? `/${joined}` : joined;
+}
+
 export function normalizePath(value: string, home: string): string {
 	let normalized = cleanCandidate(value)
-		.replace(/\$\{HOME(?::-[^}]*)?\}|\$HOME/g, home)
+		.replace(/\$\{HOME(?:(?::-[^}]*)|%\/)?\}|\$HOME/g, home)
 		.replace(/\\/g, "/");
 	if (normalized === "~") normalized = home;
 	else if (normalized.startsWith("~/")) normalized = `${home}/${normalized.slice(2)}`;
-	return normalized.replace(/\/{2,}/g, "/");
+	return collapseDotSegments(normalized.replace(/\/{2,}/g, "/"));
 }
 
-function quotedValues(source: string): string[] {
+function quotedSegments(source: string): Array<{ value: string; start: number; end: number }> {
 	quotedStringPattern.lastIndex = 0;
-	return [...source.matchAll(quotedStringPattern)].map(
-		(match) => match[1] ?? match[2] ?? match[3] ?? "",
-	);
+	return [...source.matchAll(quotedStringPattern)].map((match) => ({
+		value: match[1] ?? match[2] ?? match[3] ?? "",
+		start: match.index ?? 0,
+		end: (match.index ?? 0) + match[0].length,
+	}));
 }
 
 function escapeRegExp(value: string): string {
@@ -254,16 +287,32 @@ function escapeRegExp(value: string): string {
 }
 
 function expandKnownHomeExpressions(source: string, home: string): string {
+	const knownHome = String.raw`(?:(?:pathlib\.)?Path\.home\(\)|(?:os\.)?homedir\(\)|os\.environ\[\s*["']HOME["']\s*\]|process\.env\.HOME)`;
 	return source
-		.replace(
-			/\{(?:(?:pathlib\.)?Path\.home\(\)|homedir\(\))\}/g,
-			home,
-		)
-		.replace(
-			/(?:pathlib\.)?Path\.home\(\)|homedir\(\)|os\.path\.expanduser\(\s*["']~["']\s*\)/g,
-			JSON.stringify(home),
-		)
-		.replace(/\$\{HOME(?::-[^}]*)?\}|\$HOME/g, home);
+		.replace(new RegExp(`\\{${knownHome}\\}`, "g"), home)
+		.replace(new RegExp(knownHome, "g"), JSON.stringify(home))
+		.replace(/os\.path\.expanduser\(\s*["']~["']\s*\)/g, JSON.stringify(home))
+		.replace(/\$\{HOME(?:(?::-[^}]*)|%\/)?\}|\$HOME/g, home);
+}
+
+function replaceKnownVariables(
+	source: string,
+	variables: Map<string, string>,
+	includeBareNames: boolean,
+): string {
+	let expanded = source;
+	for (const [name, value] of variables) {
+		const escaped = escapeRegExp(name);
+		expanded = expanded.replace(
+			new RegExp(`\\$\\{${escaped}\\}|\\$${escaped}\\b`, "g"),
+			() => value,
+		);
+		expanded = expanded.replace(new RegExp(`\\{${escaped}\\}`, "g"), () => value);
+		if (includeBareNames) {
+			expanded = expanded.replace(new RegExp(`\\b${escaped}\\b`, "g"), () => JSON.stringify(value));
+		}
+	}
+	return expanded;
 }
 
 function resolveStaticExpression(
@@ -271,22 +320,20 @@ function resolveStaticExpression(
 	variables: Map<string, string>,
 	home: string,
 ): string | undefined {
-	let expanded = expandKnownHomeExpressions(expression, home);
-	for (const [name, value] of variables) {
-		const escaped = escapeRegExp(name);
-		expanded = expanded.replace(
-			new RegExp(`\\$\\{${escaped}\\}|\\$${escaped}\\b`, "g"),
-			() => value,
-		);
-		expanded = expanded.replace(new RegExp(`\\b${escaped}\\b`, "g"), () => JSON.stringify(value));
-	}
-
-	const parts = quotedValues(expanded);
+	const expanded = replaceKnownVariables(expandKnownHomeExpressions(expression, home), variables, true);
+	const segments = quotedSegments(expanded);
+	const parts = segments.map((segment) => decodeStaticEscapes(segment.value));
 	if (parts.length === 1) return parts[0];
 	if (parts.length > 1 && expanded.includes("+")) return parts.join("");
+	const adjacent =
+		segments.length > 1 &&
+		segments.slice(1).every((segment, index) =>
+			/^\s*[rubfRUBF]*\s*$/.test(expanded.slice(segments[index].end, segment.start)),
+		);
+	if (adjacent) return parts.join("");
 	if (
 		parts.length > 1 &&
-		/(?:os\.path\.join|\bjoin\s*\(|\s\/\s)/.test(expanded)
+		/(?:os\.path\.join|\.joinpath\s*\(|(?:\bpath\.)?resolve\s*\(|\bjoin\s*\(|["'`]\s*\/\s*[rubfRUBF]*["'`])/.test(expanded)
 	) {
 		return parts.join("/");
 	}
@@ -302,6 +349,7 @@ function splitStatements(source: string): string[] {
 	let start = 0;
 	let quote = "";
 	let escaped = false;
+	let depth = 0;
 	for (let index = 0; index < source.length; index += 1) {
 		const character = source[index];
 		if (quote) {
@@ -314,13 +362,73 @@ function splitStatements(source: string): string[] {
 			quote = character;
 			continue;
 		}
-		if (character === ";" || character === "\n") {
+		if (character === "(" || character === "[" || character === "{") depth += 1;
+		else if (character === ")" || character === "]" || character === "}") depth = Math.max(0, depth - 1);
+		const connector = depth === 0 && ((character === "&" && source[index + 1] === "&") || (character === "|" && source[index + 1] === "|"));
+		if ((depth === 0 && (character === ";" || character === "\n")) || connector) {
 			statements.push(source.slice(start, index));
+			if (connector) index += 1;
 			start = index + 1;
 		}
 	}
 	statements.push(source.slice(start));
 	return statements;
+}
+
+function decodeShellAnsi(value: string): string {
+	return decodeStaticEscapes(value)
+		.replace(/\\n/g, "\n")
+		.replace(/\\t/g, "\t")
+		.replace(/\\r/g, "\r")
+		.replace(/\\(.)/gs, "$1");
+}
+
+function shellWords(
+	source: string,
+	variables: Map<string, string>,
+	home: string,
+): string[] {
+	if (!/\b(?:bash|sh|cat|find|ls|head|tail|less|grep|sed|cp|mv|rm|node|python|Get-Content)\b/.test(source)) return [];
+	const words: string[] = [];
+	let word = "";
+	const flush = () => {
+		if (!word) return;
+		words.push(replaceKnownVariables(expandKnownHomeExpressions(word, home), variables, false));
+		word = "";
+	};
+	for (let index = 0; index < source.length; index += 1) {
+		const character = source[index];
+		if (/\s/.test(character)) {
+			flush();
+			continue;
+		}
+		if (character === "$" && source[index + 1] === "'") {
+			let raw = "";
+			index += 2;
+			for (; index < source.length && source[index] !== "'"; index += 1) {
+				raw += source[index];
+				if (source[index] === "\\" && index + 1 < source.length) raw += source[++index];
+			}
+			word += decodeShellAnsi(raw);
+			continue;
+		}
+		if (character === "'" || character === '"') {
+			const quote = character;
+			for (index += 1; index < source.length && source[index] !== quote; index += 1) {
+				if (quote === '"' && source[index] === "\\" && index + 1 < source.length && /["\\$`\n]/.test(source[index + 1])) {
+					word += source[++index];
+				} else word += source[index];
+			}
+			continue;
+		}
+		if (character === "\\" && index + 1 < source.length) {
+			word += source[++index];
+			continue;
+		}
+		word += character;
+	}
+	flush();
+	return words;
 }
 
 function collectStaticCompositions(source: string, home: string): string[] {
@@ -331,6 +439,7 @@ function collectStaticCompositions(source: string, home: string): string[] {
 			/^\s*(?:(?:const|let|var)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(.+)$/,
 		);
 		if (assignment) {
+			if (/\$\(/.test(assignment[2])) continue;
 			const value = resolveStaticExpression(assignment[2], variables, home);
 			if (value !== undefined) {
 				variables.set(assignment[1], value);
@@ -338,44 +447,68 @@ function collectStaticCompositions(source: string, home: string): string[] {
 			}
 			continue;
 		}
+		const augmented = statement.match(/^\s*([A-Za-z_$][\w$]*)\s*\/=\s*(.+)$/);
+		if (augmented && variables.has(augmented[1])) {
+			const suffix = resolveStaticExpression(augmented[2], variables, home);
+			if (suffix !== undefined) {
+				const value = `${variables.get(augmented[1])}/${suffix}`;
+				variables.set(augmented[1], value);
+				results.push(value);
+			}
+			continue;
+		}
 		const value = resolveStaticExpression(statement, variables, home);
 		if (value !== undefined) results.push(value);
+		results.push(...shellWords(statement, variables, home));
 	}
 	return results;
 }
 
-export function collectCandidates(input: unknown, home: string): string[] {
+type CandidateRecord = {
+	target: string;
+	sourceIndex: number;
+	priority: number;
+};
+
+function collectCandidateRecords(input: unknown, home: string): CandidateRecord[] {
 	const strings: string[] = [];
 	collectStrings(input, strings, new Set<object>());
-	const candidates = new Set<string>();
-	const addNormalized = (value: string) => {
-		const candidate = normalizePath(value, home);
-		if (candidate) candidates.add(candidate);
+	const records = new Map<string, CandidateRecord>();
+	const addNormalized = (value: string, sourceIndex: number, priority: number) => {
+		const target = normalizePath(value, home);
+		if (!target) return;
+		const key = `${sourceIndex}\0${target}`;
+		const existing = records.get(key);
+		if (!existing || priority < existing.priority) records.set(key, { target, sourceIndex, priority });
 	};
-	const add = (value: string) => {
-		addNormalized(value);
+	const add = (value: string, sourceIndex: number, priority: number) => {
+		addNormalized(value, sourceIndex, priority);
 		if (/%[0-9a-f]{2}/i.test(value)) {
 			try {
-				addNormalized(decodeURIComponent(value));
+				addNormalized(decodeURIComponent(value), sourceIndex, priority);
 			} catch {
 				// Malformed percent encoding remains an ordinary unmatched candidate.
 			}
 		}
 	};
 
-	for (const value of strings) {
-		quotedStringPattern.lastIndex = 0;
-		for (const match of value.matchAll(quotedStringPattern)) {
-			add(match[1] ?? match[2] ?? match[3] ?? "");
+	strings.forEach((value, sourceIndex) => {
+		for (const segment of quotedSegments(value)) {
+			add(segment.value, sourceIndex, 0);
+			add(decodeStaticEscapes(segment.value), sourceIndex, 0);
 		}
-		for (const token of value.split(/\s+/)) add(token);
+		for (const token of value.split(/\s+/)) add(token, sourceIndex, 1);
 		for (const composition of collectStaticCompositions(value, home)) {
-			add(composition);
-			for (const nested of collectStaticCompositions(composition, home)) add(nested);
+			add(composition, sourceIndex, 0);
+			for (const nested of collectStaticCompositions(composition, home)) add(nested, sourceIndex, 0);
 		}
-		add(value);
-	}
-	return [...candidates];
+		add(value, sourceIndex, 2);
+	});
+	return [...records.values()];
+}
+
+export function collectCandidates(input: unknown, home: string): string[] {
+	return [...new Set(collectCandidateRecords(input, home).map((record) => record.target))];
 }
 
 function regexMatches(regex: RegExp, value: string): boolean {
@@ -393,36 +526,55 @@ export function findBlacklistMatches(
 	blacklist: CompiledBlacklist,
 	home: string,
 ): BlacklistMatch[] {
-	for (const target of collectCandidates(input, home)) {
-		const matches: BlacklistMatch[] = [];
+	const found: Array<{ match: BlacklistMatch; record: CandidateRecord }> = [];
+	for (const record of collectCandidateRecords(input, home)) {
+		const { target } = record;
 		for (const rule of blacklist.pathPatterns) {
 			if (regexMatches(rule.regex, target)) {
-				matches.push({ kind: "path", rule, target, matchedValue: target });
+				found.push({ match: { kind: "path", rule, target, matchedValue: target }, record });
 			}
 		}
 
 		const fileName = target.split("/").at(-1) ?? target;
 		for (const rule of blacklist.fileNamePatterns) {
 			if (regexMatches(rule.regex, fileName)) {
-				matches.push({ kind: "fileName", rule, target, matchedValue: fileName });
+				found.push({ match: { kind: "fileName", rule, target, matchedValue: fileName }, record });
 			}
 		}
-		if (matches.length > 0) return matches.sort(compareMatches);
 	}
-	return [];
+
+	const unique = new Map<string, BlacklistMatch>();
+	for (const item of found) {
+		// ponytail: tool inputs keep this set small; bucket by source/rule only if profiling says otherwise.
+		const shadowedByPreciseCandidate = found.some(
+			(other) =>
+				other.record.sourceIndex === item.record.sourceIndex &&
+				other.match.kind === item.match.kind &&
+				other.match.rule.id === item.match.rule.id &&
+				other.record.priority < item.record.priority &&
+				item.match.target.includes(other.match.target),
+		);
+		if (shadowedByPreciseCandidate) continue;
+		const matchKey = `${item.match.target}\0${item.match.kind}\0${item.match.rule.id}`;
+		unique.set(matchKey, item.match);
+	}
+	return [...unique.values()].sort(
+		(a, b) => compareMatches(a, b) || a.target.localeCompare(b.target),
+	);
+}
+
+export function buildAccessLocation(matches: BlacklistMatch[]): string {
+	if (matches.length === 0) throw new Error("無法為空命中集合建立 location");
+	return [...new Set(matches.map((match) => match.target))].sort().join("\n");
 }
 
 export function buildAccessKey(matches: BlacklistMatch[]): string {
 	if (matches.length === 0) throw new Error("無法為空命中集合建立 access key");
-	const target = matches[0].target;
-	if (matches.some((match) => match.target !== target)) {
-		throw new Error("同一 access key 的命中必須指向相同目標");
-	}
-	const ruleKeys = matches
-		.map((match) => `${match.kind}:${match.rule.id}`)
-		.sort()
-		.join(",");
-	return JSON.stringify([target, ruleKeys]);
+	return JSON.stringify(
+		matches
+			.map((match) => `${match.target}\0${match.kind}:${match.rule.id}`)
+			.sort(),
+	);
 }
 
 function defaultClock(): Clock {
@@ -521,7 +673,7 @@ export class AccessGate {
 		const request: PendingRequest = {
 			accessId: this.randomUUID(),
 			key,
-			location: matches[0].target,
+			location: buildAccessLocation(matches),
 			matches,
 			createdAtWall: wallNow,
 			confirmUntilWall: wallNow + windows.confirmWithinMs,
@@ -540,7 +692,9 @@ export class AccessGate {
 		if (typeof input.location !== "string") {
 			throw new AccessGateError("LOCATION_INVALID", "location 必須是字串");
 		}
-		const location = normalizePath(input.location, this.home);
+		const location = request.location.includes("\n")
+			? input.location.trim()
+			: normalizePath(input.location, this.home);
 		if (location !== request.location) {
 			throw new AccessGateError("LOCATION_MISMATCH", `location 必須完全等於 ${request.location}`);
 		}
