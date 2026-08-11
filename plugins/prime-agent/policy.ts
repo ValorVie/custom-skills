@@ -297,10 +297,36 @@ function resolveStaticExpression(
 	return undefined;
 }
 
+function splitStatements(source: string): string[] {
+	const statements: string[] = [];
+	let start = 0;
+	let quote = "";
+	let escaped = false;
+	for (let index = 0; index < source.length; index += 1) {
+		const character = source[index];
+		if (quote) {
+			if (escaped) escaped = false;
+			else if (character === "\\") escaped = true;
+			else if (character === quote) quote = "";
+			continue;
+		}
+		if (character === '"' || character === "'" || character === "`") {
+			quote = character;
+			continue;
+		}
+		if (character === ";" || character === "\n") {
+			statements.push(source.slice(start, index));
+			start = index + 1;
+		}
+	}
+	statements.push(source.slice(start));
+	return statements;
+}
+
 function collectStaticCompositions(source: string, home: string): string[] {
 	const results: string[] = [];
 	const variables = new Map<string, string>();
-	for (const statement of source.split(/[;\n]/)) {
+	for (const statement of splitStatements(source)) {
 		const assignment = statement.match(
 			/^\s*(?:(?:const|let|var)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(.+)$/,
 		);
@@ -343,7 +369,10 @@ export function collectCandidates(input: unknown, home: string): string[] {
 			add(match[1] ?? match[2] ?? match[3] ?? "");
 		}
 		for (const token of value.split(/\s+/)) add(token);
-		for (const composition of collectStaticCompositions(value, home)) add(composition);
+		for (const composition of collectStaticCompositions(value, home)) {
+			add(composition);
+			for (const nested of collectStaticCompositions(composition, home)) add(nested);
+		}
 		add(value);
 	}
 	return [...candidates];
