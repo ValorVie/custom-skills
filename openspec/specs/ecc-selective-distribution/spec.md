@@ -52,7 +52,7 @@
 #### Scenario: Codex 平台僅分發 skills
 
 - **WHEN** 執行 `ai-dev clone` 且 `~/.config/everything-claude-code/` 存在
-- **THEN** SHALL 只分發 `skills/` → `~/.codex/skills/`
+- **THEN** SHALL 只分發 `skills/` → `~/.agents/skills/`
 - **THEN** SHALL 不分發 commands 和 agents（Codex 不支援）
 
 #### Scenario: ECC 來源目錄不存在

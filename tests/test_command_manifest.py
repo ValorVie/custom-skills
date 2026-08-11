@@ -28,3 +28,15 @@ def test_command_manifest_registers_expected_default_phases() -> None:
         "npx-skills",
     )
     assert commands[("clone",)].default_phases == ("state", "targets")
+
+
+def test_pipeline_commands_register_shared_codex_skill_migration_writers() -> None:
+    manifest = build_command_manifest()
+    expected = {
+        "~/.codex/skills/",
+        "~/.agents/skills/",
+        "~/.config/ai-dev/backups/codex-skills-migration/",
+    }
+
+    for spec in manifest.commands:
+        assert expected <= set(spec.state_writers)

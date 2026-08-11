@@ -113,6 +113,11 @@ def toggle(
         console.print("[red]請指定 --enable 或 --disable（二擇一）[/red]")
         raise typer.Exit(code=1)
 
+    if target == "codex" and resource_type == "skills":
+        console.print(
+            "[yellow]注意：~/.agents/skills 是共用目錄，此切換也會影響讀取同一 skill 的其他工具。[/yellow]"
+        )
+
     if dry_run:
         action = "啟用" if enable else "停用"
         console.print(

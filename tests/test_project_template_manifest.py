@@ -26,8 +26,21 @@ def test_repository_manifest_excludes_project_local_agent_integrations():
     repo_root = Path(__file__).resolve().parents[1]
     data = load_project_template_manifest(repo_root / "project-template.manifest.yaml")
 
-    assert ".agents/" not in data["include"]
+    assert ".agents/" in data["include"]
     assert ".codex/config.toml" in data["exclude"]
     assert ".codex/hooks.json" in data["exclude"]
+    assert ".agents/skills/ask-matt" in data["exclude"]
+    assert ".agents/skills/setup-matt-pocock-skills" in data["exclude"]
+    assert ".agents/skills/work-log-codex/tests/__pycache__/" in data["exclude"]
     assert ".claude/skills/ask-matt" in data["exclude"]
     assert ".claude/skills/setup-matt-pocock-skills" in data["exclude"]
+
+
+def test_repository_template_keeps_codex_skills_only_in_agents_directory():
+    repo_root = Path(__file__).resolve().parents[1]
+    template = repo_root / "project-template"
+
+    for base in (repo_root, template):
+        assert (base / ".agents" / "skills" / "code-simplifier" / "SKILL.md").exists()
+        assert (base / ".agents" / "skills" / "work-log-codex" / "SKILL.md").exists()
+        assert not (base / ".codex" / "skills").exists()

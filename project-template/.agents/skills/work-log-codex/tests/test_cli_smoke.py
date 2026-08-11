@@ -10,7 +10,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[4]
-SKILL_ROOT = ROOT / ".codex/skills/work-log-codex"
+SKILL_ROOT = ROOT / ".agents/skills/work-log-codex"
 FIXTURES = SKILL_ROOT / "tests/fixtures"
 PARSER_MODULE = "wl_parser.work_log_parser"
 WRAPPER_SCRIPT = SKILL_ROOT / "scripts/generate_work_log.py"

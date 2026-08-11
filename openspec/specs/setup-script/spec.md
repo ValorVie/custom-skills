@@ -107,7 +107,32 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 
 給定 UDS、Obsidian、Anthropic skills 來源
 當執行 `ai-dev install` 或 `ai-dev update` 時
-則應該複製 skills 到 `~/.codex/skills` 目錄
+則應該複製 skills 到 `~/.agents/skills` 目錄
+
+### Requirement: Legacy Codex Skills Migration (舊版 Codex Skills 遷移)
+
+`ai-dev install`、`ai-dev update` 與 `ai-dev clone` MUST 在其他 phase 前檢查
+舊版 `~/.codex/skills`，並以可回復方式遷移可見的 skill 目錄。
+
+#### Scenario: 搬移完整 skill
+
+給定舊版目錄有一個 skill，且 `~/.agents/skills` 沒有同名項目
+當任一上述指令執行時
+則應該先備份整個 skill 目錄，再連同 `agents/`、`references/`、`scripts/` 與
+`assets/` 搬到共用目錄，並留下 audit 紀錄
+
+#### Scenario: 同名內容處理
+
+給定舊版與共用目錄有同名 skill
+當兩份內容相同時，則應該在備份後移除舊副本
+當兩份內容不同時，則應該保留兩份、寫入 audit 並在其他 phase 前停止，不得覆蓋任一版本
+
+#### Scenario: 遷移 dry-run 與重跑
+
+給定舊版目錄有可遷移的 skill
+當指令使用 `--dry-run` 時，則不應建立目錄、備份或修改 skill
+當完成遷移後重跑時，則應該安全 no-op
+且 `.system` 等隱藏項目應留在舊版 Codex 目錄
 
 ### Requirement: Gemini CLI Target (Gemini CLI 目標)
 
@@ -152,7 +177,7 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 - Claude Code: `~/.claude/skills`, `~/.claude/commands`, `~/.claude/agents`, `~/.claude/workflows`
 - Antigravity: `~/.gemini/antigravity/global_skills`, `~/.gemini/antigravity/global_workflows`
 - OpenCode: `~/.config/opencode/skills`, `~/.config/opencode/commands`, `~/.config/opencode/agents`
-- Codex: `~/.codex/skills`
+- Codex: `~/.agents/skills`
 - Gemini CLI: `~/.gemini/skills`, `~/.gemini/commands`
 
 #### Scenario: 不再自動執行 Stage 2 整合

@@ -38,7 +38,7 @@ Use this skill when the user wants to:
 優先用 `uv run python`，失敗再 fallback `python3`。
 
 ```bash
-SKILL_DIR="$PWD/.codex/skills/work-log-codex"
+SKILL_DIR="$PWD/.agents/skills/work-log-codex"
 PYTHONPATH="$SKILL_DIR" uv run python -m wl_parser.work_log_parser \
   TIME_RANGE \
   [END_DATE] \
@@ -111,7 +111,7 @@ PYTHONPATH="$SKILL_DIR" uv run python -m wl_parser.work_log_parser \
 若要直接用 formatter CLI：
 
 ```bash
-SKILL_DIR="$PWD/.codex/skills/work-log-codex"
+SKILL_DIR="$PWD/.agents/skills/work-log-codex"
 PYTHONPATH="$SKILL_DIR" uv run python -m wl_parser.formatters report --summary-file /tmp/wl_summary.md < /tmp/wl_report.json > /tmp/wl_report.md \
   || PYTHONPATH="$SKILL_DIR" python3 -m wl_parser.formatters report --summary-file /tmp/wl_summary.md < /tmp/wl_report.json > /tmp/wl_report.md
 
@@ -137,19 +137,19 @@ PYTHONPATH="$SKILL_DIR" uv run python -m wl_parser.formatters appendix < /tmp/wl
 快速產出檔案（deterministic fallback，適合測試；最佳品質仍用上面的多段 AI 流程）：
 
 ```bash
-uv run python .codex/skills/work-log-codex/scripts/generate_work_log.py --range today \
+uv run python .agents/skills/work-log-codex/scripts/generate_work_log.py --range today \
   --mode report+appendix \
-  || python3 .codex/skills/work-log-codex/scripts/generate_work_log.py --range today
+  || python3 .agents/skills/work-log-codex/scripts/generate_work_log.py --range today
 ```
 
 自訂日期區間：
 
 ```bash
-uv run python .codex/skills/work-log-codex/scripts/generate_work_log.py \
+uv run python .agents/skills/work-log-codex/scripts/generate_work_log.py \
   --range 2026-03-02 \
   --end-date 2026-03-11 \
   --mode report+appendix \
-  || python3 .codex/skills/work-log-codex/scripts/generate_work_log.py \
+  || python3 .agents/skills/work-log-codex/scripts/generate_work_log.py \
   --range 2026-03-02 \
   --end-date 2026-03-11
 ```

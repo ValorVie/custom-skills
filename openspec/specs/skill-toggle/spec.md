@@ -60,7 +60,8 @@ toggle 指令 MUST (必須) 支援多個目標工具。
 
 給定使用者指定 `--target codex`
 當執行 toggle 指令時
-則應該操作 `~/.codex/skills` 目錄下的資源
+則應該操作 `~/.agents/skills` 目錄下的資源
+且系統應提示此路徑為共用目錄，切換會同時影響讀取同一 skill 的其他工具
 
 #### Scenario: Gemini CLI 的 Skills 路徑
 

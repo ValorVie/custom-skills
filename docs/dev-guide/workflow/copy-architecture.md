@@ -1,7 +1,7 @@
 # 複製架構文檔
 
-> **版本**: 2.1.0
-> **更新日期**: 2026-02-12
+> **版本**: 2.2.0
+> **更新日期**: 2026-08-11
 
 ---
 
@@ -23,9 +23,14 @@
 | **OpenCode** | skills | `~/.config/opencode/skills/` |
 | | commands | `~/.config/opencode/commands/` |
 | | agents | `~/.config/opencode/agents/` |
-| **Codex** | skills | `~/.codex/skills/` |
+| **Codex** | skills | `~/.agents/skills/` |
 | **Gemini CLI** | skills | `~/.gemini/skills/` |
 | | commands | `~/.gemini/commands/` |
+
+Codex 與其他支援 Agent Skills 標準的工具共用 `~/.agents/skills`。只有 Skills
+共用；Codex 的設定、agents、hooks、prompts、認證與 sessions 仍在 `.codex`。
+install、update、clone 會先備份並遷移舊版 `~/.codex/skills`；內容衝突時保留
+兩份、寫入 audit 並在其他 phase 前停止，不會覆蓋。
 
 ---
 
@@ -91,7 +96,7 @@ upstream/
 | `custom-skills/skills/` | Claude Code | `~/.claude/skills/` |
 | | Antigravity | `~/.gemini/antigravity/global_skills/` |
 | | OpenCode | `~/.config/opencode/skills/` |
-| | Codex | `~/.codex/skills/` |
+| | Codex | `~/.agents/skills/` |
 | | Gemini CLI | `~/.gemini/skills/` |
 | `custom-skills/commands/claude/` | Claude Code | `~/.claude/commands/` |
 | `custom-skills/commands/antigravity/` | Antigravity | `~/.gemini/antigravity/global_workflows/` |
@@ -177,7 +182,7 @@ custom-skills/
 │  Claude Code    ──→  ~/.claude/{skills,commands,agents,workflows}
 │  Antigravity    ──→  ~/.gemini/antigravity/{global_skills,global_workflows}
 │  OpenCode       ──→  ~/.config/opencode/{skills,commands,agents}│
-│  Codex          ──→  ~/.codex/skills/                           │
+│  Codex          ──→  ~/.agents/skills/                           │
 │  Gemini CLI     ──→  ~/.gemini/{skills,commands}                │
 └─────────────────────────────────────────────────────────────────┘
 ```

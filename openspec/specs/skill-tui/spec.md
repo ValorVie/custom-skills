@@ -213,7 +213,7 @@ TUI MUST (必須) 支援 Codex 作為目標工具。
 給定使用者在 Target 下拉選單選擇 "Codex"
 當選擇完成時
 則 Type 下拉選單應該只顯示 "Skills" 選項
-且資源列表應該顯示 `~/.codex/skills` 目錄下的 skills
+且資源列表應該顯示 `~/.agents/skills` 目錄下的 skills
 
 ### Requirement: Gemini CLI Target in TUI (TUI 中的 Gemini CLI 目標)
 

@@ -94,7 +94,7 @@ def get_codex_superpowers_dir() -> Path:
 
 
 def get_agents_skills_dir() -> Path:
-    """回傳 Codex agents skills 目錄（~/.agents/skills）。"""
+    """回傳共用的使用者層 Agent Skills 目錄（~/.agents/skills）。"""
     return get_home_dir() / ".agents" / "skills"
 
 

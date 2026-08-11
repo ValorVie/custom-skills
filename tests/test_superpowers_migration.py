@@ -2,7 +2,6 @@
 
 import json
 import os
-from pathlib import Path
 
 from script.utils.shared import (
     _ensure_opencode_superpowers_plugin,
@@ -322,8 +321,8 @@ class TestRefreshCodexSuperpowersSymlinks:
         assert symlink_path.is_symlink()
         assert symlink_path.resolve() == (repo_path / "skills").resolve()
 
-    def test_replaces_wrong_symlink(self, monkeypatch, tmp_path):
-        """Symlink points to wrong target -> replaced."""
+    def test_preserves_wrong_symlink_as_conflict(self, monkeypatch, tmp_path):
+        """A shared-path collision must not be replaced."""
         repo_path = tmp_path / "repo"
         repo_path.mkdir()
         (repo_path / ".git").mkdir()
@@ -339,13 +338,31 @@ class TestRefreshCodexSuperpowersSymlinks:
             lambda: agents_skills,
         )
 
-        # Pre-create wrong symlink
         symlink_path = agents_skills / "superpowers"
         os.symlink(wrong_target, symlink_path)
-        assert symlink_path.resolve() == wrong_target.resolve()
 
         result = refresh_codex_superpowers_symlinks(repo_path)
 
-        assert result is True
+        assert result is False
         assert symlink_path.is_symlink()
-        assert symlink_path.resolve() == (repo_path / "skills").resolve()
+        assert symlink_path.resolve() == wrong_target.resolve()
+
+    def test_preserves_real_directory_as_conflict(self, monkeypatch, tmp_path):
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git").mkdir()
+        (repo_path / "skills").mkdir()
+
+        agents_skills = tmp_path / "agents_skills"
+        existing = agents_skills / "superpowers"
+        existing.mkdir(parents=True)
+        (existing / "user-file.txt").write_text("keep", encoding="utf-8")
+        monkeypatch.setattr(
+            "script.utils.shared.get_agents_skills_dir",
+            lambda: agents_skills,
+        )
+
+        result = refresh_codex_superpowers_symlinks(repo_path)
+
+        assert result is False
+        assert (existing / "user-file.txt").read_text(encoding="utf-8") == "keep"

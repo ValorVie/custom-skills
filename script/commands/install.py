@@ -21,7 +21,7 @@ from ..utils.paths import (
     get_claude_workflows_dir,
     get_antigravity_config_dir,
     get_opencode_config_dir,
-    get_codex_config_dir,
+    get_agents_skills_dir,
     get_agy_config_dir,
     get_superpowers_dir,
     get_uds_dir,
@@ -244,8 +244,8 @@ def _legacy_install(
         get_opencode_config_dir() / "skills",
         get_opencode_config_dir() / "commands",
         get_opencode_config_dir() / "agents",
-        # Codex
-        get_codex_config_dir() / "skills",
+        # Codex 與支援 Agent Skills 標準的工具共用
+        get_agents_skills_dir(),
         # Antigravity CLI (agy)（共用 skills 目錄 ~/.gemini/skills）
         get_agy_config_dir() / "skills",
     ]

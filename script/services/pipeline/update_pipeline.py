@@ -7,12 +7,15 @@ from script.services.npx_skills import run_npx_skills_phase
 from script.services.repos.refresh import run_repos_phase
 from script.services.state.auto_skill import run_state_phase
 from script.services.tools.update import run_tools_phase
+from script.utils.codex_skills_migration import migrate_legacy_codex_skills
 from script.utils.paths import get_npx_skills_project_yaml, get_npx_skills_user_yaml
 
 console = Console()
 
 
 def execute_update_plan(plan: ExecutionPlan) -> None:
+    migrate_legacy_codex_skills(dry_run=plan.dry_run)
+
     if plan.dry_run:
         console.print(
             f"[bold blue][dry-run][/bold blue] update phases={', '.join(plan.phases)}"

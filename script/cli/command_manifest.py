@@ -8,6 +8,11 @@ from script.models.command_spec import CommandSpec
 PIPELINE_PHASES = ("tools", "repos", "state", "npx-skills", "targets")
 TARGETS = ("claude", "codex", "agy", "opencode", "antigravity")
 PIPELINE_FLAGS = ("only", "skip", "target", "dry_run")
+CODEX_SKILL_MIGRATION_WRITERS = (
+    "~/.codex/skills/",
+    "~/.agents/skills/",
+    "~/.config/ai-dev/backups/codex-skills-migration/",
+)
 
 
 @dataclass(frozen=True)
@@ -26,6 +31,7 @@ def build_command_manifest() -> CommandManifest:
                 allowed_targets=TARGETS,
                 flags=PIPELINE_FLAGS,
                 state_writers=(
+                    *CODEX_SKILL_MIGRATION_WRITERS,
                     "~/.config/custom-skills/",
                     "~/.config/ai-dev/skills/auto-skill",
                     "~/.config/ai-dev/npx-skills.yaml",
@@ -40,6 +46,7 @@ def build_command_manifest() -> CommandManifest:
                 allowed_targets=TARGETS,
                 flags=PIPELINE_FLAGS,
                 state_writers=(
+                    *CODEX_SKILL_MIGRATION_WRITERS,
                     "~/.config/custom-skills/",
                     "~/.config/ai-dev/skills/auto-skill",
                     "~/.config/ai-dev/npx-skills.yaml",
@@ -53,6 +60,7 @@ def build_command_manifest() -> CommandManifest:
                 allowed_targets=TARGETS,
                 flags=PIPELINE_FLAGS,
                 state_writers=(
+                    *CODEX_SKILL_MIGRATION_WRITERS,
                     "~/.config/ai-dev/skills/auto-skill",
                     "~/.config/ai-dev/projections/<target>/auto-skill",
                 ),

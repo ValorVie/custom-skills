@@ -44,3 +44,26 @@ def test_toggle_dry_run_does_not_mutate_state(monkeypatch):
 
     assert result.exit_code == 0
     assert "dry-run" in result.stdout.lower()
+
+
+def test_codex_skill_toggle_warns_about_shared_agents_directory(monkeypatch):
+    monkeypatch.setattr(toggle_cmd, "load_toggle_config", lambda: {})
+
+    result = runner.invoke(
+        app,
+        [
+            "toggle",
+            "--target",
+            "codex",
+            "--type",
+            "skills",
+            "--name",
+            "demo",
+            "--disable",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "~/.agents/skills" in result.stdout
+    assert "其他工具" in result.stdout

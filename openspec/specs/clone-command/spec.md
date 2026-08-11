@@ -35,7 +35,7 @@ CLI MUST (必須) 提供 `clone` 子命令，將 `~/.config/custom-skills` 內�
 - Claude Code: `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/agents/`, `~/.claude/workflows/`
 - OpenCode: `~/.config/opencode/skills/`, `~/.config/opencode/commands/`, `~/.config/opencode/agents/`, `~/.config/opencode/plugins/`
 - Gemini CLI: `~/.gemini/skills/`, `~/.gemini/commands/`, `~/.gemini/agents/`
-- Codex: `~/.codex/skills/`
+- Codex: `~/.agents/skills/`
 - Antigravity: `~/.gemini/antigravity/global_skills/`, `~/.gemini/antigravity/global_workflows/`
 
 #### Scenario: Skip files managed by init-from in project sync

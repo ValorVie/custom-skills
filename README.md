@@ -166,11 +166,32 @@ ai-dev update && ai-dev clone
 ai-dev clone
 ```
 
+Codex 的使用者層 Skills 會寫入共用的 `~/.agents/skills`。專案內的 Codex Skills
+也統一放在 `.agents/skills`；`.codex/config.toml`、agents、hooks、prompts、認證與
+session 等 Codex 專用資料仍留在 `.codex`。
+
+`ai-dev install`、`ai-dev update` 與 `ai-dev clone` 會先檢查舊版
+`~/.codex/skills`：
+
+- 目標沒有同名 skill 時，整個目錄搬到 `~/.agents/skills`。
+- 內容相同時，備份後移除舊副本。
+- 內容不同時保留兩份並列出名稱，不會覆蓋；此次指令會在其他 phase 前停止並留下衝突 audit。
+- `.system` 等隱藏項目由 Codex 管理，不會搬移。
+- `--dry-run` 只列出預計搬移與去重的數量，不建立目錄或備份。
+
+實際搬移前會先備份到
+`~/.config/ai-dev/backups/codex-skills-migration/<timestamp>/`，同一目錄的
+`audit.json` 會記錄來源、目標、動作與結果。需要回復時，先停止後續分發，並
+逐項確認共用目錄的內容仍與備份相同：`migrate` 項目才把共用目錄中的項目移回
+舊路徑；`deduplicate` 項目保留共用副本，只從備份還原舊副本。若內容已變更就停止，
+不得整包覆蓋。`ai-dev toggle --target codex --type skills` 也會操作這個共用目錄，
+因此會同時影響讀取同一 skill 的其他工具。
+
 `auto-skill` 為特殊資源，採三層模型：
 
 1. canonical state：`~/.config/ai-dev/skills/auto-skill`
 2. per-target shadow：`~/.config/ai-dev/projections/<target>/auto-skill`
-3. tool projection：`~/.claude/skills/auto-skill`、`~/.codex/skills/auto-skill` 等
+3. tool projection：`~/.claude/skills/auto-skill`、`~/.agents/skills/auto-skill` 等
 
 `ai-dev update` 只刷新 canonical state。  
 `ai-dev clone` 會依 `.clonepolicy.json` 重建各 target 的 shadow，然後將工具目錄優先以 `symlink`（Windows 優先 `junction`）投影到 shadow；若平台或權限不支援才 fallback 為複製。

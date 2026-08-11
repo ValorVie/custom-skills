@@ -27,7 +27,6 @@ from .paths import (
     get_opencode_config_dir,
     get_opencode_plugin_dir,
     get_opencode_superpowers_dir,
-    get_codex_config_dir,
     get_codex_superpowers_dir,
     get_agents_skills_dir,
     get_agy_config_dir,
@@ -248,22 +247,19 @@ def refresh_codex_superpowers_symlinks(repo_path: Path) -> bool:
         console.print("[red]✗ 找不到 Codex superpowers skills 目錄[/red]")
         return False
 
-    # 已指向正確目標則跳過
-    if skills_dst.is_symlink():
+    # 共用目錄中的既有項目不是本函式可安全覆蓋的暫存產物。
+    if skills_dst.exists() or skills_dst.is_symlink():
         try:
-            if Path(os.readlink(skills_dst)).resolve() == skills_src.resolve():
+            if skills_dst.resolve() == skills_src.resolve():
                 return True
         except OSError:
             pass
+        console.print(
+            "[yellow]⚠ ~/.agents/skills/superpowers 已有其他內容，保留原狀。[/yellow]"
+        )
+        return False
 
     skills_dst.parent.mkdir(parents=True, exist_ok=True)
-
-    # 清理既有路徑（symlink / junction / 真實目錄）
-    if skills_dst.exists() or skills_dst.is_symlink():
-        try:
-            skills_dst.unlink()
-        except (OSError, PermissionError):
-            shutil.rmtree(skills_dst)
 
     try:
         os.symlink(skills_src, skills_dst)
@@ -314,7 +310,7 @@ COPY_TARGETS = {
         "plugins": get_opencode_plugin_dir(),
     },
     "codex": {
-        "skills": get_codex_config_dir() / "skills",
+        "skills": get_agents_skills_dir(),
     },
     "agy": {
         "skills": get_agy_config_dir() / "skills",
@@ -3018,7 +3014,7 @@ def get_target_path(target: TargetType, resource_type: ResourceType) -> Path | N
         ("opencode", "skills"): get_opencode_config_dir() / "skills",
         ("opencode", "commands"): get_opencode_config_dir() / "commands",
         ("opencode", "agents"): get_opencode_config_dir() / "agents",
-        ("codex", "skills"): get_codex_config_dir() / "skills",
+        ("codex", "skills"): get_agents_skills_dir(),
         ("agy", "skills"): get_agy_config_dir() / "skills",
     }
     return paths.get((target, resource_type))

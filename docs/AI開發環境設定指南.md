@@ -1342,7 +1342,9 @@ bun install -g @openai/codex
 
 #### 複製 Skills
 
-Codex 使用 `~/.codex/skills/` 目錄。Skills 複製方式與其他工具類似。
+Codex 使用共用的 `~/.agents/skills/`；專案 Skills 放在 `.agents/skills/`。
+`.codex` 仍保留 Codex 專用設定與執行資料。ai-dev 會先備份再遷移舊版
+`~/.codex/skills/`；內容衝突時保留兩份、寫入 audit 並停止。
 
 ### Antigravity CLI（agy，原 Gemini CLI）
 

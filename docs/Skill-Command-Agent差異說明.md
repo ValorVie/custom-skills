@@ -574,7 +574,7 @@ Skill 定義策略       Command 觸發流程        Agent 執行戰術
 
 | 類型 | 用戶級別 | 專案級別 |
 |------|----------|----------|
-| Skill | `~/.codex/skills/<name>/` | `.codex/skills/<name>/` |
+| Skill | `~/.agents/skills/<name>/` | `.agents/skills/<name>/` |
 
 ### Antigravity CLI（agy，原 Gemini CLI）
 

@@ -49,10 +49,15 @@ Detailed documentation for the three-stage copy flow.
 │  Claude Code    ──→  ~/.claude/{skills,commands,agents,workflows}
 │  Antigravity    ──→  ~/.gemini/antigravity/{global_skills,global_workflows}
 │  OpenCode       ──→  ~/.config/opencode/{skills,commands,agents}│
-│  Codex          ──→  ~/.codex/skills/                           │
+│  Codex          ──→  ~/.agents/skills/                           │
 │  Gemini CLI     ──→  ~/.gemini/{skills,commands}                │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+Codex 與其他支援 Agent Skills 標準的工具共用 `~/.agents/skills`。只有 Skills
+共用；Codex 的設定、agents、hooks、prompts、認證與 sessions 仍在 `.codex`。
+舊版 `~/.codex/skills` 由 install、update、clone 的前置遷移處理：先備份，
+再搬移缺項或移除相同副本，內容衝突則保留原狀、寫入 audit 並停止。
 
 ---
 
@@ -115,7 +120,7 @@ Copy from `~/.config/custom-skills/` to each AI tool's directory.
 | `skills/` | Claude Code | `~/.claude/skills/` |
 | `skills/` | Antigravity | `~/.gemini/antigravity/global_skills/` |
 | `skills/` | OpenCode | `~/.config/opencode/skills/` |
-| `skills/` | Codex | `~/.codex/skills/` |
+| `skills/` | Codex | `~/.agents/skills/` |
 | `skills/` | Gemini CLI | `~/.gemini/skills/` |
 | `commands/claude/` | Claude Code | `~/.claude/commands/` |
 | `commands/antigravity/` | Antigravity | `~/.gemini/antigravity/global_workflows/` |

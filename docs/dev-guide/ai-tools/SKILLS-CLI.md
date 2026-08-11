@@ -266,7 +266,9 @@ CLI 會搜尋以下代理專屬目錄：
 ```
 
 > [!NOTE]
-> 若標準位置中未找到技能，CLI 會執行遞迴搜尋。
+> 若標準位置中未找到技能，CLI 會執行遞迴搜尋。上表列的是 Skills CLI 支援的
+> agent-specific 路徑，不代表 ai-dev 會寫入每一處。ai-dev 的 Codex 投影統一使用
+> `.agents/skills` 或 `~/.agents/skills`。
 
 ### 建議的儲存庫結構
 

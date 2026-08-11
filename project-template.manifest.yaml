@@ -2,6 +2,7 @@ version: 1
 
 include:
   - .agent/
+  - .agents/
   - .claude/
   - .codex/
   - .gemini/
@@ -47,6 +48,37 @@ exclude:
   - .claude/skills/typescript-advanced-types
   - .claude/skills/hook-development
   - .claude/skills/writing-hookify-rules
+  - .agents/skills/ask-matt
+  - .agents/skills/beads
+  - .agents/skills/bun-development
+  - .agents/skills/code-review
+  - .agents/skills/codebase-design
+  - .agents/skills/diagnosing-bugs
+  - .agents/skills/domain-modeling
+  - .agents/skills/grill-me
+  - .agents/skills/grill-with-docs
+  - .agents/skills/grilling
+  - .agents/skills/handoff
+  - .agents/skills/hook-development
+  - .agents/skills/implement
+  - .agents/skills/improve-codebase-architecture
+  - .agents/skills/javascript-testing-patterns
+  - .agents/skills/prototype
+  - .agents/skills/research
+  - .agents/skills/resolving-merge-conflicts
+  - .agents/skills/setup-matt-pocock-skills
+  - .agents/skills/tdd
+  - .agents/skills/teach
+  - .agents/skills/to-spec
+  - .agents/skills/to-tickets
+  - .agents/skills/triage
+  - .agents/skills/typescript-advanced-types
+  - .agents/skills/wayfinder
+  - .agents/skills/writing-great-skills
+  - .agents/skills/writing-hookify-rules
+  - .agents/skills/work-log-codex/scripts/__pycache__/
+  - .agents/skills/work-log-codex/tests/__pycache__/
+  - .agents/skills/work-log-codex/wl_parser/__pycache__/
   - .agent/skills/bun-development
   - .agent/skills/javascript-testing-patterns
   - .agent/skills/typescript-advanced-types

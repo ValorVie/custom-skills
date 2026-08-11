@@ -7,6 +7,7 @@ from rich.console import Console
 from script.models.execution_plan import ExecutionPlan
 from script.services.state.auto_skill import run_state_phase
 from script.services.targets.distribute import run_targets_phase
+from script.utils.codex_skills_migration import migrate_legacy_codex_skills
 
 console = Console()
 
@@ -91,6 +92,8 @@ def execute_clone_plan(
     skip_conflicts: bool = False,
     backup: bool = False,
 ) -> None:
+    migrate_legacy_codex_skills(dry_run=plan.dry_run)
+
     if plan.dry_run:
         target_text = ", ".join(plan.targets) if plan.targets else "all"
         console.print(

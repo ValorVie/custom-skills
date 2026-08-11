@@ -53,7 +53,7 @@ list 指令 MUST (必須) 支援列出 Codex 的 skills。
 #### Scenario: 列出 Codex Skills
 
 給定使用者執行 `ai-dev list --target codex --type skills`
-當 `~/.codex/skills` 目錄存在
+當 `~/.agents/skills` 目錄存在
 則應該列出該目錄下的所有 skills 及其來源
 
 ### Requirement: Gemini CLI Listing Support (Gemini CLI 列表支援)

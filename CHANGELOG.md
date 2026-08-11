@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Codex Skills 改用 Agent Skills 標準路徑**。
+  - 使用者層與專案層分別改為 `~/.agents/skills`、`.agents/skills`；Codex 專用設定仍留在 `.codex`。
+  - install、update、clone 會先備份並遷移舊版可見 skills；同名內容衝突時保留兩份、寫入 audit 並停止，不會覆蓋。
+  - 備份與 `audit.json` 位於 `~/.config/ai-dev/backups/codex-skills-migration/<timestamp>/`。
+
 - **mattpocock/skills 改為上游原生、手動安裝**。
   - 移除本 repo 改寫的 `skills/mp-*`、分發副本、上游 mapping 與現行 MP 規格。
   - 不再由 `ai-dev clone` 或 `upstream/npx-skills.yaml` 管理；需要時執行 `npx skills@latest add mattpocock/skills -g -y`。
