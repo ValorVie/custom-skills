@@ -1,0 +1,60 @@
+{
+  "version": 2,
+  "softBlock": {
+    "confirmWithinSeconds": 3600,
+    "allowForSeconds": 3600
+  },
+  "pathPatterns": [
+    {
+      "id": "agent-auth-files",
+      "pattern": "(?:^|/)(?:\\.prime/agent|\\.codex)/auth\\.json$",
+      "flags": "i",
+      "level": "block",
+      "message": "Agent 登入憑證不得由模型讀取。"
+    },
+    {
+      "id": "ssh-and-gpg-private-state",
+      "pattern": "(?:^|/)(?:\\.ssh|\\.gnupg|\\.password-store)(?:/|$)",
+      "flags": "i",
+      "level": "block",
+      "message": "SSH、GPG 與 password-store 的私密狀態禁止直接存取。"
+    },
+    {
+      "id": "cloud-and-cli-credentials",
+      "pattern": "(?:^|/)(?:\\.aws/credentials|\\.config/gcloud/(?:application_default_credentials\\.json|legacy_credentials(?:/.*)?)|\\.config/gh/hosts\\.yml|\\.docker/config\\.json|\\.kube/config)$",
+      "flags": "i",
+      "level": "block",
+      "message": "雲端或 CLI credential 設定禁止由模型讀取。"
+    }
+  ],
+  "fileNamePatterns": [
+    {
+      "id": "dotenv-secrets",
+      "pattern": "^\\.env(?:$|\\.(?!(?:example|sample|template|dist)$).+)$",
+      "flags": "i",
+      "level": "block",
+      "message": ".env.example、.env.sample、.env.template、.env.dist 以外的 dotenv 檔案視為敏感資料。"
+    },
+    {
+      "id": "package-and-shell-credentials",
+      "pattern": "^(?:\\.netrc|\\.npmrc|\\.pypirc|\\.git-credentials)$",
+      "flags": "i",
+      "level": "block",
+      "message": "套件管理器或 shell credential 檔案禁止讀取。"
+    },
+    {
+      "id": "private-key-files",
+      "pattern": "^(?:id_(?:rsa|dsa|ecdsa|ed25519)|.*\\.(?:pem|key|p12|pfx|jks))$",
+      "flags": "i",
+      "level": "block",
+      "message": "可能含有私鑰或金鑰庫。"
+    },
+    {
+      "id": "named-secret-files",
+      "pattern": "^(?:(?:secrets?|credentials?|token)\\.(?:json|ya?ml|toml)|client_secret(?:_[^.]+)?\\.json|(?:.*[-_])?service[-_]?account(?:[-_][^.]+)?\\.json)$",
+      "flags": "i",
+      "level": "block",
+      "message": "檔名顯示可能存放 secret、token 或 service account credential。"
+    }
+  ]
+}
