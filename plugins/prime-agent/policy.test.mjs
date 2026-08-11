@@ -124,6 +124,24 @@ assert.equal(
 	"home-sensitive",
 );
 
+const staticCompositionCases = [
+	'Path.home() / "private" / "report.txt"',
+	'os.path.join("/home/tester", "private", "report.txt")',
+	'"/home/tester/" + "private/" + "report.txt"',
+	'f"{Path.home()}/private/report.txt"',
+	'base = Path.home(); target = base / "private" / "report.txt"; target.read_text()',
+	'ROOT="$HOME"; cat "$ROOT/private/report.txt"',
+	'join(homedir(), "private", "report.txt")',
+	'cat "${HOME:-/tmp}/private/report.txt"',
+	'cat "/home/tester/%70%72%69%76%61%74%65/report.txt"',
+	'd=pri; cat "$HOME/${d}vate/report.txt"',
+];
+for (const code of staticCompositionCases) {
+	const matches = findBlacklistMatches({ code }, config, "/home/tester");
+	assert.equal(matches[0]?.rule.id, "home-sensitive", code);
+	assert.equal(matches[0]?.target, "/home/tester/private/report.txt", code);
+}
+
 let wallNow = Date.parse("2026-08-11T12:00:00.000Z");
 let monotonicNow = 10_000;
 let nextId = 1;

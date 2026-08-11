@@ -235,20 +235,106 @@ function cleanCandidate(value: string): string {
 
 export function normalizePath(value: string, home: string): string {
 	let normalized = cleanCandidate(value)
-		.replace(/\$\{HOME\}|\$HOME/g, home)
+		.replace(/\$\{HOME(?::-[^}]*)?\}|\$HOME/g, home)
 		.replace(/\\/g, "/");
 	if (normalized === "~") normalized = home;
 	else if (normalized.startsWith("~/")) normalized = `${home}/${normalized.slice(2)}`;
 	return normalized.replace(/\/{2,}/g, "/");
 }
 
+function quotedValues(source: string): string[] {
+	quotedStringPattern.lastIndex = 0;
+	return [...source.matchAll(quotedStringPattern)].map(
+		(match) => match[1] ?? match[2] ?? match[3] ?? "",
+	);
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function expandKnownHomeExpressions(source: string, home: string): string {
+	return source
+		.replace(
+			/\{(?:(?:pathlib\.)?Path\.home\(\)|homedir\(\))\}/g,
+			home,
+		)
+		.replace(
+			/(?:pathlib\.)?Path\.home\(\)|homedir\(\)|os\.path\.expanduser\(\s*["']~["']\s*\)/g,
+			JSON.stringify(home),
+		)
+		.replace(/\$\{HOME(?::-[^}]*)?\}|\$HOME/g, home);
+}
+
+function resolveStaticExpression(
+	expression: string,
+	variables: Map<string, string>,
+	home: string,
+): string | undefined {
+	let expanded = expandKnownHomeExpressions(expression, home);
+	for (const [name, value] of variables) {
+		const escaped = escapeRegExp(name);
+		expanded = expanded.replace(
+			new RegExp(`\\$\\{${escaped}\\}|\\$${escaped}\\b`, "g"),
+			() => value,
+		);
+		expanded = expanded.replace(new RegExp(`\\b${escaped}\\b`, "g"), () => JSON.stringify(value));
+	}
+
+	const parts = quotedValues(expanded);
+	if (parts.length === 1) return parts[0];
+	if (parts.length > 1 && expanded.includes("+")) return parts.join("");
+	if (
+		parts.length > 1 &&
+		/(?:os\.path\.join|\bjoin\s*\(|\s\/\s)/.test(expanded)
+	) {
+		return parts.join("/");
+	}
+	if (parts.length === 0) {
+		const bare = cleanCandidate(expanded);
+		if (/^[A-Za-z0-9_./~:-]+$/.test(bare)) return bare;
+	}
+	return undefined;
+}
+
+function collectStaticCompositions(source: string, home: string): string[] {
+	const results: string[] = [];
+	const variables = new Map<string, string>();
+	for (const statement of source.split(/[;\n]/)) {
+		const assignment = statement.match(
+			/^\s*(?:(?:const|let|var)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(.+)$/,
+		);
+		if (assignment) {
+			const value = resolveStaticExpression(assignment[2], variables, home);
+			if (value !== undefined) {
+				variables.set(assignment[1], value);
+				results.push(value);
+			}
+			continue;
+		}
+		const value = resolveStaticExpression(statement, variables, home);
+		if (value !== undefined) results.push(value);
+	}
+	return results;
+}
+
 export function collectCandidates(input: unknown, home: string): string[] {
 	const strings: string[] = [];
 	collectStrings(input, strings, new Set<object>());
 	const candidates = new Set<string>();
-	const add = (value: string) => {
+	const addNormalized = (value: string) => {
 		const candidate = normalizePath(value, home);
 		if (candidate) candidates.add(candidate);
+	};
+	const add = (value: string) => {
+		addNormalized(value);
+		if (/%[0-9a-f]{2}/i.test(value)) {
+			try {
+				addNormalized(decodeURIComponent(value));
+			} catch {
+				// Malformed percent encoding remains an ordinary unmatched candidate.
+			}
+		}
 	};
 
 	for (const value of strings) {
@@ -257,6 +343,7 @@ export function collectCandidates(input: unknown, home: string): string[] {
 			add(match[1] ?? match[2] ?? match[3] ?? "");
 		}
 		for (const token of value.split(/\s+/)) add(token);
+		for (const composition of collectStaticCompositions(value, home)) add(composition);
 		add(value);
 	}
 	return [...candidates];
