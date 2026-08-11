@@ -45,8 +45,7 @@
 | `~/.config/ai-dev/ecc-profile.yaml` | 使用者層級覆寫，疊加在 repo `distribution.yaml` 之上：`enabled_extra`（額外啟用）／`enabled_remove`（從 repo enabled 拿掉）。合併公式 `final = (repo.enabled ∪ extra) \ remove`。legacy 鍵 `include_skills` / `exclude_skills` 自動相容並印一次性 hint | `clone`, `install`, `update` 讀取 |
 | `~/.config/ai-dev/npx-skills.yaml` | 由 npx 維護的 skills 清單（由 `upstream/npx-skills.yaml` 同步而來） | `install`（repos phase）, `update`（repos phase） |
 | `~/.config/ai-dev/.npx-migration-v1-done` | npx skills 半自動遷移完成 marker | `npx-skills` phase |
-| `~/.config/ai-dev/skills/auto-skill` | `auto-skill` canonical state | `install`, `update`, `clone`, `maintain clone` |
-| `~/.config/ai-dev/projections/<target>/auto-skill` | 各 target 的 `auto-skill` shadow state | `install`, `clone` |
+| `~/.config/ai-dev/backups/auto-skill-removal/<timestamp>/` | 已退役 `auto-skill` 的確認式清理備份與 `audit.json` | `clone`, `project init`, `project update`（僅互動確認後） |
 | `~/.config/ai-dev/manifests/projects/<project_id>.yaml` | 專案 AI projection manifest | `init-from`, `project init`, `project hydrate`, `project reconcile` |
 | `<project>/.ai-dev-project.yaml` | 專案 intent、managed files、git exclude 設定 | `init-from`, `project init`, `project exclude`, `project hydrate` |
 | `<project>/.git/info/exclude` | 本地 git 排除規則 | `init-from`, `project init`, `project hydrate`, `project reconcile`, `project exclude` |
@@ -75,17 +74,14 @@ flowchart LR
     B --> G["~/.config/everything-claude-code (ECC)"]
     H["~/.config/ai-dev/ecc-profile.yaml<br/>(enabled_extra / enabled_remove)"] -.-> G
     G -->|"distribution.yaml.enabled ∪ extra \\ remove"| D
-    B --> E["~/.config/ai-dev/skills/auto-skill (canonical)"]
-    E --> F["~/.config/ai-dev/projections/<target>/auto-skill (shadow)"]
-    F --> D
 ```
 
 | 命令 | 主要副作用 |
 |------|------------|
-| `ai-dev install` | 預設依序執行 `tools → repos → state → npx-skills → targets`，建立工具環境、Clone repo、刷新 canonical state、批次安裝 npx skills，最後分發到各工具目錄 |
+| `ai-dev install` | 預設依序執行 `tools → repos → npx-skills → targets`，建立工具環境、Clone repo、批次安裝 npx skills，最後分發到各工具目錄 |
 | `ai-dev install-npx-skills` | 等同 `install --only npx-skills`，僅執行 npx skills 批次安裝 |
-| `ai-dev update` | 預設依序執行 `tools → repos → state → npx-skills`，更新工具與本機 repo、刷新 `auto-skill` canonical state、更新 npx skills，不直接動 target shadow |
-| `ai-dev clone` | 預設依序執行 `state → targets`，先刷新 `auto-skill` canonical state，再從 `~/.config/custom-skills` 分發資源到各工具目錄並更新各 target shadow |
+| `ai-dev update` | 預設依序執行 `tools → repos → npx-skills`，更新工具、本機 repo 與 npx skills，不直接分發到工具目錄 |
+| `ai-dev clone` | 執行 `targets` 分發；分發前會偵測已退役的 `auto-skill`，只有互動確認後才先備份並清理舊安裝 |
 | `ai-dev status` | 讀取工具安裝狀態；對 repo 會比對 local HEAD 與 `origin/main`，若在 repo 內且存在上游同步紀錄，也會讀 `upstream/last-sync.yaml` / `upstream/sources.yaml` 顯示同步狀態 |
 | `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state；`--target` 可省略，省略時等於列出所有 target，若無符合項目會顯示提示 |
 | `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml`；`--target` 必填，支援 `--dry-run` 預覽 |
@@ -206,10 +202,10 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 
 | 命令 | intent | side_effect_class | target_mode | 主要狀態寫入 |
 |------|--------|-------------------|-------------|--------------|
-| `ai-dev install` | 初始化或補齊全域 AI 開發環境 | `multi_stage_pipeline + system_level_operation` | `explicit_multi` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/projections/<target>/auto-skill`, `~/.config/ai-dev/npx-skills.yaml`, `~/.config/ai-dev/.npx-migration-v1-done` |
+| `ai-dev install` | 初始化或補齊全域 AI 開發環境 | `multi_stage_pipeline + system_level_operation` | `explicit_multi` | `~/.config/*`, `~/.config/ai-dev/npx-skills.yaml`, `~/.config/ai-dev/.npx-migration-v1-done` |
 | `ai-dev install-npx-skills` | 依 `npx-skills.yaml` 批次安裝 npx skills | `single_write` | `none` | npx skills 全域安裝結果、`~/.config/ai-dev/.npx-migration-v1-done` |
-| `ai-dev update` | 刷新工具、repo 與 canonical state，並更新 npx skills | `multi_stage_pipeline + system_level_operation` | `none` | `~/.config/*`, `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/npx-skills.yaml` |
-| `ai-dev clone` | 將目前 state 套用到 targets | `multi_stage_pipeline` | `explicit_multi` | `~/.config/ai-dev/skills/auto-skill`, `~/.config/ai-dev/projections/<target>/auto-skill` |
+| `ai-dev update` | 刷新工具與 repo，並更新 npx skills | `multi_stage_pipeline + system_level_operation` | `none` | `~/.config/*`, `~/.config/ai-dev/npx-skills.yaml` |
+| `ai-dev clone` | 將目前來源分發到 targets | `multi_stage_pipeline` | `explicit_multi` | 各工具資源目錄與 manifest；確認清理舊 `auto-skill` 時另寫入 `~/.config/ai-dev/backups/auto-skill-removal/` |
 | `ai-dev status` | 聚合顯示工具、repo、同步狀態 | `read_only` | `none` | 無 |
 | `ai-dev list` | 列出 target 資源與停用狀態 | `read_only` | `implicit_default` | 無 |
 | `ai-dev toggle` | 切換單一 target 上的單一資源啟用狀態 | `single_write` | `explicit_single` | `~/.config/custom-skills/disabled/`, `~/.config/custom-skills/toggle-config.yaml` |
@@ -291,11 +287,11 @@ AI projection 依型態再分三類：
 
 | 子命令 | 實際語意 | 主要副作用 / 備註 |
 |--------|----------|-------------------|
-| `project init` | 用內建 `project-template/` 初始化專案。先複製 tracked scaffold，再 hydrate AI projection。 | 同名檔案走內容分析；`--force` 直接覆蓋檔案並備份差異檔；同名目錄遞迴到檔案層級處理，不整個刪除重建。 |
+| `project init` | 用內建 `project-template/` 初始化專案。先檢查退役的 `auto-skill`，再複製 tracked scaffold 並 hydrate AI projection。 | `auto-skill` 只有互動確認後才先備份再清理，`--force` 不會略過確認；其他同名檔案走內容分析。 |
 | `project hydrate` | 依 `.ai-dev-project.yaml` 與模板重新生成 AI 管理檔。 | 會更新 projection manifest，並依 `git_exclude.enabled` 決定是否同步 `.git/info/exclude`。 |
 | `project reconcile` | 重新比對 project intent、projection manifest 與實際投影結果後收斂。 | 目前底層仍走 projection/reconcile 流程；`--force` / `--backup` 只影響衝突處理模式。 |
 | `project doctor` | 檢查 tracking file、projection manifest 與 exclude 狀態是否一致。 | 若缺少 `.ai-dev-project.yaml`、manifest，或應存在的 exclude block 不在 `.git/info/exclude`，會以非零碼退出。 |
-| `project update` | 代理執行 `uds update` 與 `openspec update`。 | 先檢查工具是否已安裝與已初始化；若全部未初始化直接失敗，若只有部分未初始化則跳過未初始化工具。 |
+| `project update` | 先檢查退役的 `auto-skill`，再代理執行 `uds update` 與 `openspec update`。 | `auto-skill` 只有互動確認後才先備份再清理；之後檢查工具是否已安裝與已初始化。 |
 | `project exclude` | 手動檢視、啟用或停用 ai-dev 管理的 `.git/info/exclude` 區塊。 | `--list` 可直接看目前 block；`--enable` 需已 `git init`，並會從 tracking/template 推導 patterns。 |
 
 ### `ai-dev project init`
@@ -373,7 +369,7 @@ exclude 規則：
 
 | 子命令 | 實際語意 | 主要副作用 / 備註 |
 |--------|----------|-------------------|
-| `maintain clone` | 把外部來源整合回目前的 `custom-skills` 開發目錄。 | 會把 UDS/Obsidian/Anthropic 等來源複製回 repo 工作樹，並刷新 `auto-skill` canonical state。 |
+| `maintain clone` | 把外部來源整合回目前的 `custom-skills` 開發目錄。 | 會把 UDS/Obsidian/Anthropic 等來源複製回 repo 工作樹。 |
 | `maintain template` | 依 `project-template.manifest.yaml` allowlist 同步 `project-template/`。 | `--check` 只檢查差異，不寫檔；不再透過 `project init --force` 反向同步模板。 |
 
 ### `ai-dev maintain clone`
@@ -483,7 +479,7 @@ exclude 規則：
 ```mermaid
 flowchart TD
     A["install"] --> B["建立本機 repo + npx skills + 分發到工具目錄"]
-    C["update"] --> D["刷新 repo、auto-skill canonical 與 npx skills"]
+    C["update"] --> D["刷新 repo 與 npx skills"]
     R["install-npx-skills"] --> S["依 npx-skills.yaml 批次安裝 npx skills"]
     E["clone"] --> F["從 ~/.config/custom-skills 分發到工具目錄"]
     G["maintain clone"] --> H["整合外部來源到 custom-skills repo"]

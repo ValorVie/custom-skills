@@ -74,7 +74,6 @@
 （無）
 
 ### sources.yaml 有但從未同步
-- auto-skill（建議：跑 `audit` 然後 `update-last-sync`）
 
 ### local_path 不存在
 （無）

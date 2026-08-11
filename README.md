@@ -90,31 +90,31 @@ ai-dev install
 4. 檢查 Bun 是否已安裝，若已安裝則自動安裝 Codex CLI。
 5. Clone 必要的設定儲存庫到 `~/.config/`（Stage 1，包含 `~/.config/custom-skills` 本機 repo）。
 6. Clone 已設定的自訂 repo（若有）。
-7. 同步 `auto-skill` canonical state 到 `~/.config/ai-dev/skills/auto-skill`。
-8. 從 `~/.config/custom-skills` 分發 Skills 與設定到各個 AI 工具的目錄；`auto-skill` 會先為各 target 重建 `~/.config/ai-dev/projections/<target>/auto-skill` shadow，再將工具目錄投影到該 shadow，優先使用 `symlink/junction`，失敗才 fallback copy。
+7. 依設定安裝或更新由 `npx skills` 管理的 Skills。
+8. 從 `~/.config/custom-skills` 分發 Skills 與設定到各個 AI 工具目錄。
 9. 顯示已安裝的 Skills 清單與重複名稱警告。
 10. 顯示 `npx skills` 可用指令提示。
 
 > **注意**：Claude Code 需要使用 native 安裝方式，不再透過 NPM 安裝。
 >
-> `ai-dev install` 預設 phase 為 `tools,repos,state,targets`。
+> `ai-dev install` 預設 phase 為 `tools,repos,npx-skills,targets`。
 
 #### 可選參數
 
 | 參數 | 說明 |
 |------|------|
-| `--only` | 只執行指定 phase：`tools,repos,state,targets` |
+| `--only` | 只執行指定 phase：`tools,repos,npx-skills,targets` |
 | `--skip` | 從預設 phase 中跳過指定 phase |
 | `--target` | 僅分發指定目標：`claude`, `codex`, `agy`, `opencode`, `antigravity` |
 | `--dry-run` | 只顯示執行計畫，不實際寫入 |
 
 **範例：**
 ```bash
-# 只建立 repo 與 canonical state，不分發到工具目錄
-ai-dev install --only repos,state
+# 只建立 repo，不分發到工具目錄
+ai-dev install --only repos
 
 # 僅分發到 Claude Code
-ai-dev install --only state,targets --target claude
+ai-dev install --only targets --target claude
 ```
 
 ### 每日更新 (Update)
@@ -132,24 +132,23 @@ ai-dev update
 4. 更新 Codex CLI（若 Bun 已安裝）。
 5. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
 6. 更新已設定的自訂 repo。
-7. 同步 `auto-skill` canonical state（不直接變更各工具目錄的 shadow/投影）。
 
 > **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
 >
-> `ai-dev update` 預設 phase 為 `tools,repos,state`。
+> `ai-dev update` 預設 phase 為 `tools,repos,npx-skills`。
 
 #### 可選參數
 
 | 參數 | 說明 |
 |------|------|
-| `--only` | 只執行指定 phase：`tools,repos,state` |
+| `--only` | 只執行指定 phase：`tools,repos,npx-skills` |
 | `--skip` | 從預設 phase 中跳過指定 phase |
 | `--dry-run` | 只顯示執行計畫，不實際寫入 |
 
 **範例：**
 ```bash
-# 只更新 repo 與 canonical state，不更新工具
-ai-dev update --only repos,state
+# 只更新 repo，不更新工具
+ai-dev update --only repos
 
 # 只更新工具
 ai-dev update --only tools
@@ -168,7 +167,7 @@ ai-dev clone
 
 Codex 的使用者層 Skills 會寫入共用的 `~/.agents/skills`。專案內的 Codex Skills
 也統一放在 `.agents/skills`；`.codex/config.toml`、agents、hooks、prompts、認證與
-session 等 Codex 專用資料仍留在 `.codex`。
+session 等 Codex 專用資料仍留在 `.codex`。共用路徑可讓 Codex、Prime Agent 與其他支援 Agent Skills 慣例的 harness agent tool 讀取同一份一般 Skills，降低工具綁定。
 
 `ai-dev install`、`ai-dev update` 與 `ai-dev clone` 會先檢查舊版
 `~/.codex/skills`：
@@ -176,6 +175,7 @@ session 等 Codex 專用資料仍留在 `.codex`。
 - 目標沒有同名 skill 時，整個目錄搬到 `~/.agents/skills`。
 - 內容相同時，備份後移除舊副本。
 - 內容不同時保留兩份並列出名稱，不會覆蓋；此次指令會在其他 phase 前停止並留下衝突 audit。
+- 已退役的 `auto-skill` 不參與路徑遷移，交由後述確認式清理處理。
 - `.system` 等隱藏項目由 Codex 管理，不會搬移。
 - `--dry-run` 只列出預計搬移與去重的數量，不建立目錄或備份。
 
@@ -187,23 +187,15 @@ session 等 Codex 專用資料仍留在 `.codex`。
 不得整包覆蓋。`ai-dev toggle --target codex --type skills` 也會操作這個共用目錄，
 因此會同時影響讀取同一 skill 的其他工具。
 
-`auto-skill` 為特殊資源，採三層模型：
+`auto-skill` 已退役，不再參與安裝或分發。`ai-dev clone` 會在分發前檢查既有的來源副本、canonical state、shadow、各工具 projection、舊啟動規則與 Claude Plugin。只有在互動式終端明確確認後，才會先備份至 `~/.config/ai-dev/backups/auto-skill-removal/<timestamp>/` 再清理；拒絕、非互動模式與 `--dry-run` 都不會刪除。退役原因與原始內容見 [`archive/auto-skill/`](archive/auto-skill/README.md)。
 
-1. canonical state：`~/.config/ai-dev/skills/auto-skill`
-2. per-target shadow：`~/.config/ai-dev/projections/<target>/auto-skill`
-3. tool projection：`~/.claude/skills/auto-skill`、`~/.agents/skills/auto-skill` 等
-
-`ai-dev update` 只刷新 canonical state。  
-`ai-dev clone` 會依 `.clonepolicy.json` 重建各 target 的 shadow，然後將工具目錄優先以 `symlink`（Windows 優先 `junction`）投影到 shadow；若平台或權限不支援才 fallback 為複製。
-canonical state 與 shadow 會保留有效的 `.clonepolicy.json`；當 upstream `auto-skill` 缺少 policy 時，canonical refresh 會 fallback 使用 template policy，並以 temp rebuild 方式避免舊 state 反覆產生衝突訊息。
-
-`ai-dev clone` 預設 phase 為 `state,targets`。
+`ai-dev clone` 預設 phase 為 `targets`。
 
 #### 可選參數
 
 | 參數 | 說明 |
 |------|------|
-| `--only` | 只執行指定 phase：`state,targets` |
+| `--only` | 只執行指定 phase：`targets` |
 | `--skip` | 從預設 phase 中跳過指定 phase |
 | `--target` | 僅分發指定目標：`claude`, `codex`, `agy`, `opencode`, `antigravity` |
 | `--dry-run` | 只顯示執行計畫，不實際寫入 |
@@ -280,6 +272,8 @@ ai-dev project update --only openspec
 ```
 
 > **AI 文件本地排除**：`project init` 若偵測到 `.git/`，會詢問是否將 AI 生成檔加入 `.git/info/exclude`。
+>
+> **退役資源清理**：`project init` 與 `project update` 會檢查專案內的 `auto-skill` 副本及舊啟動規則。只有互動確認後才先備份再移除；`--force` 不會略過這項確認。
 > 若目前尚未 `git init`，指令只會提示你稍後手動啟用；`project hydrate` / `project reconcile` 只會在已啟用時同步排除規則。
 > 詳見下方 [AI 文件本地排除](#ai-文件本地排除-project-exclude) 章節。
 
@@ -908,18 +902,6 @@ claude plugin install ecc-hooks@custom-skills
 ```
 
 詳見 `plugins/ecc-hooks/README.md`。
-
-### Auto-Skill Hooks Plugin 安裝
-
-自動注入知識庫與經驗索引到每次對話的 context，搭配 auto-skill 的自進化知識系統。
-
-```bash
-# 從 Git URL 安裝
-claude plugin install auto-skill-hooks@custom-skills
-
-# 或在會話中
-/plugin install auto-skill-hooks@custom-skills
-```
 
 ### OpenCode Plugin (ecc-hooks-opencode)
 

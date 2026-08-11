@@ -36,7 +36,7 @@ def test_command_spec_holds_minimal_task_two_metadata() -> None:
         allowed_phases=("tools", "repos", "state", "targets"),
         allowed_targets=("claude", "codex"),
         flags=("only", "skip", "target", "dry_run"),
-        state_writers=("~/.config/ai-dev/skills/auto-skill",),
+        state_writers=("~/.config/ai-dev/example-state",),
     )
 
     assert spec.path == ("install",)
@@ -45,4 +45,4 @@ def test_command_spec_holds_minimal_task_two_metadata() -> None:
     assert spec.allowed_phases == ("tools", "repos", "state", "targets")
     assert spec.allowed_targets == ("claude", "codex")
     assert spec.flags == ("only", "skip", "target", "dry_run")
-    assert spec.state_writers == ("~/.config/ai-dev/skills/auto-skill",)
+    assert spec.state_writers == ("~/.config/ai-dev/example-state",)

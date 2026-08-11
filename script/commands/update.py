@@ -20,9 +20,7 @@ from ..utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_ecc_dir,
-    get_auto_skill_repo_dir,
 )
-from ..utils.auto_skill_state import refresh_auto_skill_state
 from ..utils.shared import (
     NPM_PACKAGES,
     BUN_PACKAGES,
@@ -250,7 +248,6 @@ def _legacy_update(
             get_obsidian_skills_dir(),
             get_anthropic_skills_dir(),
             get_ecc_dir(),
-            get_auto_skill_repo_dir(),
         ]
 
         # 備份目錄位於使用者目錄
@@ -299,7 +296,7 @@ def _legacy_update(
             for repo_path in missing_repos:
                 console.print(f"  • {repo_path}")
             console.print(
-                "[dim]   請執行 `ai-dev install --only repos,state,targets` 來補齊缺失的儲存庫[/dim]"
+                "[dim]   請執行 `ai-dev install --only repos,targets` 來補齊缺失的儲存庫[/dim]"
             )
 
         # 更新 custom repos（含 tool 和 template 類型）
@@ -347,12 +344,6 @@ def _legacy_update(
 
         # Codex superpowers symlink 刷新（callee 內部檢查 .git 存在性）
         refresh_codex_superpowers_symlinks(get_codex_superpowers_dir())
-        state_dir = refresh_auto_skill_state()
-        if state_dir is not None:
-            console.print(
-                f"[green]✓[/green] auto-skill canonical state 已同步 → [dim]{state_dir}[/dim]"
-            )
-
         # 顯示更新摘要
         if updated_repos:
             console.print()

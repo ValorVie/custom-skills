@@ -1,12 +1,12 @@
 # Skills / Commands / Agents 清單（自動生成）
 
-由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-07-23。
+由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-08-11。
 手動編輯無效；數字或清單過期時重跑腳本。
 
 ## Skills（18）
 
-- auto-skill
 - cloud-infrastructure-security
+- custom-agent-router
 - custom-simplify
 - custom-skill-creator
 - custom-skills-dev

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import typer
 from rich.console import Console
 
 from script.models.execution_plan import ExecutionPlan
-from script.services.state.auto_skill import run_state_phase
 from script.services.targets.distribute import run_targets_phase
 from script.utils.codex_skills_migration import migrate_legacy_codex_skills
+from script.utils.legacy_auto_skill_cleanup import cleanup_global_auto_skill
 
 console = Console()
 
@@ -93,6 +94,11 @@ def execute_clone_plan(
     backup: bool = False,
 ) -> None:
     migrate_legacy_codex_skills(dry_run=plan.dry_run)
+    try:
+        cleanup_global_auto_skill(dry_run=plan.dry_run)
+    except RuntimeError as exc:
+        console.print(f"[bold red]auto-skill 舊安裝清理失敗：{exc}[/bold red]")
+        raise typer.Exit(code=1) from exc
 
     if plan.dry_run:
         target_text = ", ".join(plan.targets) if plan.targets else "all"
@@ -115,9 +121,7 @@ def execute_clone_plan(
         return
 
     for phase in plan.phases:
-        if phase == "state":
-            run_state_phase(plan=plan)
-        elif phase == "targets":
+        if phase == "targets":
             run_targets_phase(
                 plan=plan,
                 force=force,

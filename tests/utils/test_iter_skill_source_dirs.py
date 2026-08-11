@@ -15,6 +15,8 @@ def test_flat_and_uds_subdir(tmp_path: Path) -> None:
     (tmp_path / "uds" / "uds-skill-a").mkdir()
     (tmp_path / "uds" / "uds-skill-b").mkdir()
     (tmp_path / ".hidden").mkdir()
+    (tmp_path / "auto-skill").mkdir()
+    (tmp_path / "uds" / "auto-skill").mkdir()
 
     names = sorted(d.name for d in _iter_skill_source_dirs(tmp_path))
 

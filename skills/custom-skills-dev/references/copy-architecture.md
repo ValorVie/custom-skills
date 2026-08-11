@@ -38,9 +38,6 @@ Detailed documentation for the three-stage copy flow.
 │      ├── claude/    ←── UDS agents                              │
 │      └── opencode/  ←── UDS agents                              │
 │                                                                 │
-│  auto-skill canonical state                                     │
-│  `~/.config/ai-dev/skills/auto-skill`                           │
-│   ←── template + upstream merge                                 │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -58,6 +55,8 @@ Codex 與其他支援 Agent Skills 標準的工具共用 `~/.agents/skills`。�
 共用；Codex 的設定、agents、hooks、prompts、認證與 sessions 仍在 `.codex`。
 舊版 `~/.codex/skills` 由 install、update、clone 的前置遷移處理：先備份，
 再搬移缺項或移除相同副本，內容衝突則保留原狀、寫入 audit 並停止。
+
+`auto-skill` 已退役。`clone` 只保留確認式舊安裝清理，不再建立 canonical state 或 shadow；歷史內容見 `archive/auto-skill/`。
 
 ---
 
@@ -98,14 +97,12 @@ Merge resources from multiple sources into `~/.config/custom-skills/`.
 | UDS commands | `~/.config/universal-dev-standards/skills/claude-code/commands/` | `~/.config/custom-skills/commands/claude/` |
 | Obsidian skills | `~/.config/obsidian-skills/skills/` | `~/.config/custom-skills/skills/` |
 | Anthropic skill-creator | `~/.config/anthropic-skills/skills/skill-creator/` | `~/.config/custom-skills/skills/skill-creator/` |
-| auto-skill state | `~/.config/custom-skills/skills/auto-skill/` + `~/.config/auto-skill/` | `~/.config/ai-dev/skills/auto-skill/` |
 
 ### Implementation
 
-- Code: `script/utils/shared.py`, `script/utils/auto_skill_state.py`
+- Code: `script/utils/shared.py`
 - Notes:
-  - 一般 Skills 仍整合進 `~/.config/custom-skills/`
-  - `auto-skill` 例外，改同步到 canonical state `~/.config/ai-dev/skills/auto-skill`
+  - 一般 Skills 整合進 `~/.config/custom-skills/`
 
 ---
 
@@ -132,11 +129,9 @@ Copy from `~/.config/custom-skills/` to each AI tool's directory.
 
 ### Implementation
 
-- Code: `script/utils/shared.py`, `script/utils/auto_skill_projection.py`
+- Code: `script/utils/shared.py`
 - Notes:
-  - 一般 Skills 仍使用 copy/clone-policy 流程
-  - `auto-skill` 例外，從 canonical state 投影到各工具目錄
-  - 預設使用 `symlink`；Windows 優先 `junction`；失敗 fallback `copy`
+  - Skills 使用 copy/clone-policy 流程；`auto-skill` 名稱由退役保護規則排除。
 
 ---
 
@@ -146,8 +141,7 @@ Copy from `~/.config/custom-skills/` to each AI tool's directory.
 |------|---------|
 | `script/utils/paths.py` | Path resolution functions |
 | `script/utils/shared.py` | Copy logic, source/target configurations |
-| `script/utils/auto_skill_state.py` | auto-skill canonical state refresh |
-| `script/utils/auto_skill_projection.py` | auto-skill projection helper |
+| `script/utils/legacy_auto_skill_cleanup.py` | 已退役 auto-skill 的偵測、備份與確認式清理 |
 | `script/commands/install.py` | First-time installation flow |
 | `script/commands/update.py` | Update flow |
 | `script/commands/clone.py` | Manual distribution trigger |

@@ -61,7 +61,6 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 1. 更新工具 phase（預設包含 Claude Code、NPM、Bun、plugin marketplace）
 2. 在已 clone 的內建儲存庫中執行 `git fetch --all` 與 `git reset --hard origin/<branch>`（預設 repos phase）
 3. 對每個 custom repo 執行相同的 fetch 與 reset 操作（預設 repos phase）
-4. 刷新 `auto-skill` canonical state（預設 state phase）
 
 且不應該執行：
 - Stage 2（整合 skills）
@@ -84,8 +83,8 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 #### Scenario: 跳過特定步驟
 
 給定已安裝的環境
-當執行 `ai-dev update --only repos,state` 時
-則應該只執行 repo 更新與 canonical state 刷新
+當執行 `ai-dev update --only repos` 時
+則應該只執行 repo 更新
 
 當執行 `ai-dev update --only tools` 時
 則應該只執行工具更新

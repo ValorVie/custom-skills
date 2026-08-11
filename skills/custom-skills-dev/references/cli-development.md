@@ -173,7 +173,7 @@ ai-dev tui
 
 ```bash
 # Test install pipeline without tool/repo side effects
-ai-dev install --only state,targets --target claude
+ai-dev install --only targets --target claude
 
 # Test copy logic only
 ai-dev clone --target claude

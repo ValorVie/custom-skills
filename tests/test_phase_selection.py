@@ -25,8 +25,8 @@ def test_target_requires_targets_phase() -> None:
     with pytest.raises(ValueError, match="targets phase"):
         build_execution_plan(
             spec,
-            only="state",
-            skip=None,
+            only=None,
+            skip="targets",
             target="claude",
             dry_run=False,
         )

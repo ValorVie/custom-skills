@@ -5,7 +5,6 @@ from rich.console import Console
 from script.models.execution_plan import ExecutionPlan
 from script.services.npx_skills import run_npx_skills_phase
 from script.services.repos.refresh import run_repos_phase
-from script.services.state.auto_skill import run_state_phase
 from script.services.targets.distribute import run_targets_phase
 from script.services.tools.update import run_install_postflight, run_tools_phase
 from script.utils.codex_skills_migration import migrate_legacy_codex_skills
@@ -30,8 +29,6 @@ def execute_install_plan(plan: ExecutionPlan) -> None:
             run_tools_phase(plan=plan)
         elif phase == "repos":
             run_repos_phase(plan=plan)
-        elif phase == "state":
-            run_state_phase(plan=plan)
         elif phase == "npx-skills":
             run_npx_skills_phase(
                 mode="add",

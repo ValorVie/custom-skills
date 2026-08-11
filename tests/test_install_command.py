@@ -24,7 +24,7 @@ def test_install_builds_execution_plan_and_calls_pipeline(monkeypatch):
     captured: dict[str, object] = {}
     plan = ExecutionPlan(
         command_name="install",
-        phases=("repos", "state"),
+        phases=("repos", "npx-skills"),
         targets=(),
         dry_run=True,
     )
@@ -40,11 +40,11 @@ def test_install_builds_execution_plan_and_calls_pipeline(monkeypatch):
         lambda incoming_plan: captured.update({"plan": incoming_plan}),
     )
 
-    result = runner.invoke(app, ["install", "--only", "repos,state", "--dry-run"])
+    result = runner.invoke(app, ["install", "--only", "repos,npx-skills", "--dry-run"])
 
     assert result.exit_code == 0, result.stdout
     assert captured["kwargs"] == {
-        "only": "repos,state",
+        "only": "repos,npx-skills",
         "skip": None,
         "target": None,
         "dry_run": True,

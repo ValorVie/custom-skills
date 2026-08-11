@@ -131,36 +131,6 @@ def get_ecc_dir() -> Path:
     return get_config_dir() / "everything-claude-code"
 
 
-def get_auto_skill_dir() -> Path:
-    """回傳 auto-skill canonical state 路徑。"""
-    return get_ai_dev_config_dir() / "skills" / "auto-skill"
-
-
-def get_auto_skill_repo_dir() -> Path:
-    """回傳 auto-skill 上游儲存庫的本地路徑。"""
-    return get_config_dir() / "auto-skill"
-
-
-def get_auto_skill_projection_root() -> Path:
-    """回傳 auto-skill projection 根目錄。"""
-    return get_ai_dev_config_dir() / "projections"
-
-
-def get_auto_skill_shadow_dir(target: str) -> Path:
-    """回傳指定 target 的 auto-skill shadow 目錄。"""
-    return get_auto_skill_projection_root() / target / "auto-skill"
-
-
-def get_auto_skill_shadow_state_path(target: str) -> Path:
-    """回傳指定 target 的 auto-skill shadow metadata 路徑。"""
-    return get_auto_skill_projection_root() / target / "auto-skill.state.json"
-
-
-def get_auto_skill_backup_dir(target: str) -> Path:
-    """回傳指定 target 的 auto-skill 備份目錄。"""
-    return get_ai_dev_config_dir() / "backups" / "auto-skill" / target
-
-
 def get_project_root() -> Path:
     """取得用戶當前工作目錄作為專案根目錄。
 

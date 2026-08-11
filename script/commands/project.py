@@ -38,9 +38,18 @@ from ..utils.project_projection import (
 from ..utils.manifest import compute_file_hash
 from ..utils.smart_merge import merge_file
 from ..utils.project_tracking import get_git_exclude_config, update_git_exclude_config
+from ..utils.legacy_auto_skill_cleanup import cleanup_project_auto_skill
 
 app = typer.Typer(help="專案級別的初始化與更新操作")
 console = Console()
+
+
+def _cleanup_retired_auto_skill(target_dir: Path) -> None:
+    try:
+        cleanup_project_auto_skill(target_dir)
+    except Exception as exc:
+        console.print(f"[bold red]auto-skill 舊安裝清理失敗：{exc}[/bold red]")
+        raise typer.Exit(code=1) from exc
 
 # 複製到 project-template 時要排除的檔案名稱（個人設定，不屬於共享範本）
 EXCLUDE_FROM_TEMPLATE = {"settings.local.json"}
@@ -559,6 +568,8 @@ def init(
         console.print("[yellow]請先執行 `ai-dev install` 確保環境已安裝[/yellow]")
         raise typer.Exit(code=1)
 
+    _cleanup_retired_auto_skill(target_dir)
+
     standards_dir = target_dir / ".standards"
     if standards_dir.exists():
         console.print("[dim]偵測到既有 .standards，將依項目規則合併或保留現況[/dim]")
@@ -761,6 +772,8 @@ def update(
     ),
 ):
     """更新專案配置（整合 openspec update + uds update）。"""
+    _cleanup_retired_auto_skill(Path.cwd())
+
     # 決定要更新的工具
     if only:
         if only not in TOOLS:

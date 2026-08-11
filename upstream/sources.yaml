@@ -47,9 +47,3 @@ sources:
     local_path: ~/.config/everything-claude-code/
     format: claude-code-native
     install_method: selective       # 分發規則見 upstream/distribution.yaml
-  auto-skill:
-    repo: Toolsai/auto-skill
-    branch: main
-    local_path: ~/.config/auto-skill/
-    format: claude-code-native
-    install_method: ai-dev          # ai-dev clone 同步到 skills/

@@ -20,7 +20,6 @@ exclude:
   - .claude/settings.json
   - .codex/config.toml
   - .codex/hooks.json
-  - .claude/skills/auto-skill
   - .claude/skills/ask-matt
   - .claude/skills/code-review
   - .claude/skills/codebase-design

@@ -208,7 +208,7 @@ def test_rerun_is_idempotent_and_hidden_system_skill_stays_legacy(
     assert len(list(backups.iterdir())) == 1
 
 
-def test_migrates_skill_symlink_without_changing_relative_target(
+def test_leaves_retired_auto_skill_for_confirmed_cleanup(
     tmp_path: Path,
 ) -> None:
     legacy = tmp_path / ".codex" / "skills"
@@ -217,9 +217,8 @@ def test_migrates_skill_symlink_without_changing_relative_target(
     state = tmp_path / ".config" / "ai-dev" / "projections" / "codex" / "auto-skill"
     _skill(state.parent, "auto-skill")
     legacy.mkdir(parents=True)
-    (legacy / "auto-skill").symlink_to(
-        "../../.config/ai-dev/projections/codex/auto-skill"
-    )
+    legacy_link = legacy / "auto-skill"
+    legacy_link.symlink_to("../../.config/ai-dev/projections/codex/auto-skill")
 
     result = migration.migrate_legacy_codex_skills(
         legacy_dir=legacy,
@@ -227,13 +226,11 @@ def test_migrates_skill_symlink_without_changing_relative_target(
         backup_root=backups,
     )
 
-    migrated_link = target / "auto-skill"
-    assert result.migrated == ("auto-skill",)
-    assert migrated_link.is_symlink()
-    assert migrated_link.resolve() == state.resolve()
-    assert result.backup_dir is not None
-    assert (result.backup_dir / "auto-skill").is_symlink()
-
+    assert result.migrated == ()
+    assert result.skipped == ("auto-skill",)
+    assert legacy_link.is_symlink()
+    assert not (target / "auto-skill").exists()
+    assert result.backup_dir is None
 
 def test_migrates_broken_skill_symlink_without_following_it(tmp_path: Path) -> None:
     legacy = tmp_path / ".codex" / "skills"

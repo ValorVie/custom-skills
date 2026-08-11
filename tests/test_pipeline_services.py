@@ -22,21 +22,16 @@ def test_update_pipeline_runs_migration_then_requested_phases_in_order(monkeypat
         "script.services.pipeline.update_pipeline.run_repos_phase",
         lambda **_: calls.append("repos"),
     )
-    monkeypatch.setattr(
-        "script.services.pipeline.update_pipeline.run_state_phase",
-        lambda **_: calls.append("state"),
-    )
-
     execute_update_plan(
         ExecutionPlan(
             command_name="update",
-            phases=("tools", "repos", "state"),
+            phases=("tools", "repos"),
             targets=(),
             dry_run=False,
         )
     )
 
-    assert calls == ["migration", "tools", "repos", "state"]
+    assert calls == ["migration", "tools", "repos"]
 
 
 def test_install_pipeline_previews_migration_during_dry_run(monkeypatch) -> None:
@@ -65,6 +60,10 @@ def test_clone_pipeline_runs_migration_before_other_work(monkeypatch) -> None:
         lambda **_: calls.append("migration"),
     )
     monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline.cleanup_global_auto_skill",
+        lambda **_: calls.append("cleanup"),
+    )
+    monkeypatch.setattr(
         "script.services.pipeline.clone_pipeline._build_source_summary",
         lambda _plan: [],
     )
@@ -78,7 +77,7 @@ def test_clone_pipeline_runs_migration_before_other_work(monkeypatch) -> None:
         )
     )
 
-    assert calls == ["migration"]
+    assert calls == ["migration", "cleanup"]
 
 
 def test_update_pipeline_stops_before_phases_on_migration_conflict(monkeypatch) -> None:
@@ -102,3 +101,62 @@ def test_update_pipeline_stops_before_phases_on_migration_conflict(monkeypatch) 
         )
 
     assert exc_info.value.exit_code == 1
+
+
+def test_clone_pipeline_cleans_legacy_auto_skill_before_distribution(monkeypatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline.migrate_legacy_codex_skills",
+        lambda **_: calls.append("migration"),
+    )
+    monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline.cleanup_global_auto_skill",
+        lambda **_: calls.append("cleanup"),
+    )
+    monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline._build_source_summary",
+        lambda _plan: [],
+    )
+    monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline.run_targets_phase",
+        lambda **_: calls.append("targets"),
+    )
+
+    execute_clone_plan(
+        ExecutionPlan(
+            command_name="clone",
+            phases=("targets",),
+            targets=(),
+            dry_run=False,
+        )
+    )
+
+    assert calls == ["migration", "cleanup", "targets"]
+
+
+def test_clone_pipeline_passes_dry_run_to_cleanup_without_force_override(monkeypatch) -> None:
+    dry_run_values: list[bool] = []
+    monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline.migrate_legacy_codex_skills",
+        lambda **_: None,
+    )
+    monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline.cleanup_global_auto_skill",
+        lambda *, dry_run: dry_run_values.append(dry_run),
+    )
+    monkeypatch.setattr(
+        "script.services.pipeline.clone_pipeline._build_source_summary",
+        lambda _plan: [],
+    )
+
+    execute_clone_plan(
+        ExecutionPlan(
+            command_name="clone",
+            phases=("targets",),
+            targets=(),
+            dry_run=True,
+        ),
+        force=True,
+    )
+
+    assert dry_run_values == [True]

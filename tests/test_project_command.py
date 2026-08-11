@@ -516,3 +516,56 @@ def test_run_tool_command_treats_openspec_false_success_as_failure(
     monkeypatch.setattr(project_command.subprocess, "run", lambda *args, **kwargs: completed)
 
     assert project_command.run_tool_command("openspec", "update") is False
+
+
+def test_project_init_checks_retired_auto_skill_before_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    manifest_dir = tmp_path / "manifests" / "projects"
+    checked: list[Path] = []
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+    monkeypatch.setattr(project_command, "_cleanup_retired_auto_skill", checked.append)
+
+    result = runner.invoke(app, ["project", "init", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert checked == [project_root]
+
+
+def test_project_update_checks_retired_auto_skill_before_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    checked: list[Path] = []
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "_cleanup_retired_auto_skill", checked.append)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda _tool: False)
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert result.exit_code == 1, result.stdout
+    assert checked == [project_root]
+
+
+def test_project_init_force_does_not_bypass_auto_skill_confirmation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    template_dir = _make_template(tmp_path)
+    project_root = tmp_path / "project"
+    legacy_skill = project_root / ".agents" / "skills" / "auto-skill"
+    _write(legacy_skill / "SKILL.md", "legacy")
+    manifest_dir = tmp_path / "manifests" / "projects"
+
+    monkeypatch.setattr(project_command, "get_project_template_dir", lambda: template_dir)
+    monkeypatch.setattr(ppm, "get_project_manifest_dir", lambda: manifest_dir)
+
+    result = runner.invoke(app, ["project", "init", "--force", str(project_root)])
+
+    assert result.exit_code == 0, result.stdout
+    assert (legacy_skill / "SKILL.md").read_text(encoding="utf-8") == "legacy"
+    assert "非互動模式不會自動刪除" in result.stdout

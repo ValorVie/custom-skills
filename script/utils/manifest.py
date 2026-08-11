@@ -740,6 +740,11 @@ def cleanup_orphans(target: TargetType, orphans: dict[ResourceType, list[str]]) 
 
     for resource_type, names in orphans.items():
         for name in names:
+            if resource_type == "skills" and name == "auto-skill":
+                console.print(
+                    "  [dim]保留退役的 skills/auto-skill；由確認式清理流程處理[/dim]"
+                )
+                continue
             target_path = _get_target_resource_path(target, resource_type, name)
             if target_path is None:
                 continue

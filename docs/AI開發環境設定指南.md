@@ -62,7 +62,7 @@ Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態�
 1. 簡單任務直接處理，按需要使用最小技能。
 2. Superpowers、OpenSpec 與 Matt 高階流程由使用者明確啟動。
 3. tracker、Git、安全與部署規則由專案自己的 `AGENTS.md`／`CLAUDE.md` 覆寫。
-4. `auto-skill` 負責知識載入，不代表已授權啟動高階流程。
+4. 經驗學習與持久記憶交由各 harness agent tool 的原生能力處理。
 
 完整設計請閱讀
 [AI 工作流路由與專案覆寫指南](dev-guide/workflow/WORKFLOW-ROUTING.md)；OpenSpec
@@ -269,7 +269,6 @@ ai-dev status
 # 安裝 custom-skills ecc-hooks 插件
 /plugin marketplace add https://github.com/ValorVie/custom-skills.git
 /plugin install ecc-hooks@custom-skills
-/plugin install auto-skill-hooks@custom-skills
 /plugin install custom-skills-notify@custom-skills
 
 # 安裝 Codex Plugin（選用，需 Codex API Key）

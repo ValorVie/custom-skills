@@ -1,7 +1,8 @@
 # bun-package-management Specification
 
 ## Purpose
-TBD
+
+定義 ai-dev 對 Bun 執行環境與全域套件的偵測、版本查詢、安裝及更新行為，並約束各 pipeline phase 在跳過 Bun 或只執行部分流程時的邊界。
 
 ## Requirements
 
@@ -56,7 +57,7 @@ TBD
 - **AND** 繼續執行其他安裝步驟（不中斷流程）
 
 #### Scenario: 使用者選擇跳過 Bun 套件
-- **WHEN** 使用者執行 `ai-dev install --only repos,state,targets`
+- **WHEN** 使用者執行 `ai-dev install --only repos,npx-skills,targets`
 - **THEN** 系統不執行任何 Bun 相關操作
 - **AND** 仍可完成 repo/state/targets phase
 
@@ -76,9 +77,9 @@ TBD
 - **AND** 繼續執行其他更新步驟
 
 #### Scenario: 使用者選擇跳過 Bun 套件
-- **WHEN** 使用者執行 `ai-dev update --only repos,state`
+- **WHEN** 使用者執行 `ai-dev update --only repos,npx-skills`
 - **THEN** 系統不執行任何 Bun 相關操作
-- **AND** 仍可完成 repo/state phase
+- **AND** 仍可完成 repo/npx-skills phase
 
 ### Requirement: Bun 安裝指引
 系統 SHALL 在 Bun 未安裝時顯示清晰的安裝指引。

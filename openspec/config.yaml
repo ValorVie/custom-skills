@@ -45,7 +45,7 @@ context: |
 
   Dependencies:
     - Node.js >= 20.19.0, Git >= 2.x
-    - upstream: universal-dev-standards, everything-claude-code, superpowers, anthropic-skills, obsidian-skills, auto-skill
+    - upstream: universal-dev-standards, everything-claude-code, superpowers, anthropic-skills, obsidian-skills
 
 specs: []
 

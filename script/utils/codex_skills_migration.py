@@ -150,7 +150,11 @@ def migrate_legacy_codex_skills(
     skipped_names: list[str] = []
 
     for source in sorted(legacy_dir.iterdir(), key=lambda item: item.name):
-        if source.name.startswith(".") or not (source.is_dir() or source.is_symlink()):
+        if (
+            source.name.startswith(".")
+            or source.name == "auto-skill"
+            or not (source.is_dir() or source.is_symlink())
+        ):
             skipped_names.append(source.name)
             continue
 

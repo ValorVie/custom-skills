@@ -108,8 +108,6 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
   會改變工作範圍與狀態的完整流程。
 - 使用專案已宣告的 tracker、文件真相來源、Git 與安全規則；不得自行建立第二套
   任務系統。專案未宣告 tracker 時，不因形式需要擅自新增。
-- `auto-skill` 只負責知識與經驗載入，不構成啟動高階工作流、修改 tracker 或執行
-  其他具副作用操作的授權。
 - 使用者當前指令與專案層規則優先；衝突時採用較高層規則，並說明調整之處。
 
 ---

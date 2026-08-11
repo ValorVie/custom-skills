@@ -118,16 +118,12 @@ OpenSpec 或 Matt Pocock skills 的高階流程。
 
 代理可以建議使用高階流程，但不能把建議當成已取得授權。
 
-## auto-skill 的邊界
+## Harness 原生記憶的邊界
 
-`auto-skill` 負責載入知識庫與技能經驗。它不是工作流 router，也不會因為被載入而
-取得下列權限：
-
-- 啟動 Superpowers、OpenSpec 或 Matt 高階流程。
-- 建立或改寫 tracker。
-- 修改 Git 狀態、正式環境、服務、資料庫或機密。
-
-這些行為仍須依使用者指令與專案規則判斷。
+經驗學習與持久記憶交由各 harness agent tool 的原生能力處理。記憶或經驗被載入，
+不代表已取得啟動高階流程、修改 tracker、Git、正式環境、服務、資料庫或機密的權限；
+這些行為仍須依使用者指令與專案規則判斷。已退役機制見
+[`archive/auto-skill/`](../../../archive/auto-skill/README.md)。
 
 ## 專案覆寫範例
 

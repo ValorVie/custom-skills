@@ -22,7 +22,6 @@ from script.utils.paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_ecc_dir,
-    get_auto_skill_repo_dir,
     get_opencode_config_dir,
     get_superpowers_dir,
     get_uds_dir,
@@ -221,7 +220,6 @@ def _run_update_repos_phase() -> None:
         get_obsidian_skills_dir(),
         get_anthropic_skills_dir(),
         get_ecc_dir(),
-        get_auto_skill_repo_dir(),
     ]
 
     backup_root = Path.home() / ".cache" / "ai-dev" / "backups"
@@ -253,7 +251,7 @@ def _run_update_repos_phase() -> None:
         for repo_path in missing_repos:
             console.print(f"  • {repo_path}")
         console.print(
-            "[dim]   請執行 `ai-dev install --only repos,state,targets` 來補齊缺失的儲存庫[/dim]"
+            "[dim]   請執行 `ai-dev install --only repos,targets` 來補齊缺失的儲存庫[/dim]"
         )
 
     custom_repos = load_custom_repos().get("repos", {})

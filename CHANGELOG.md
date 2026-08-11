@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING：完整退役 `auto-skill`。**
+  - 移除 canonical state、per-target shadow、工具 projection、上游 repo 與 `auto-skill-hooks` SessionStart Plugin，不再安裝或分發。
+  - 原始 Skill、專案知識資料、Plugin、實作、測試與規格分類封存於 `archive/auto-skill/`。
+  - `ai-dev clone`、`project init` 與 `project update` 會偵測舊安裝；只有互動確認後才先備份再清理，拒絕、非互動模式及 dry-run 均保留資料。
+  - 改用各 harness agent tool 原生的記憶與經驗學習機制；一般 Skills 改用 `.agents/skills`，提高 Prime Agent 等不同 harness 的共用相容性。
+
 ### Changed
 
 - **Codex Skills 改用 Agent Skills 標準路徑**。

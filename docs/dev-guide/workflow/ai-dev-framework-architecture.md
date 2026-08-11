@@ -147,36 +147,19 @@ sources:
 
 | 方法 | 同步方式 | 範例 |
 |------|----------|------|
-| `ai-dev` | `ai-dev clone` 自動複製到 skills/ | obsidian-skills、anthropic-skills、auto-skill |
+| `ai-dev` | 由 `ai-dev install/update` 管理來源，再由 `ai-dev clone` 分發 | obsidian-skills、anthropic-skills |
 | `plugin` | Claude Code Plugin 安裝 | superpowers |
 | `standards` | 同步到 .standards/，需手動 diff 合併 | universal-dev-standards |
 | `manual` | 需手動比對與複製 | everything-claude-code |
 
 ### 新增上游來源的完整步驟
 
-以 `auto-skill` 為例：
+新增來源時應依現有來源類型選擇最小整合方式：
 
-1. **`paths.py`** — 新增路徑函式：
-   ```python
-   def get_auto_skill_dir() -> Path:
-       return get_config_dir() / "auto-skill"
-   ```
-
-2. **`shared.py`** — 新增到 REPOS dict（供 install clone）：
-   ```python
-   "auto_skill": (
-       "https://github.com/Toolsai/auto-skill.git",
-       get_auto_skill_dir,
-   ),
-   ```
-
-3. **`shared.py`** — 在複製函式中加入複製邏輯（`integrate_to_dev_project` 和 Stage 2 copy）
-
-4. **`shared.py`** — 在 `SOURCE_NAMES` 和 `get_source_skills()` 加入來源追蹤
-
-5. **`update.py`** — 在 repos list 加入新路徑函式
-
-6. **`sources.yaml`** — 註冊上游來源
+1. 在 `upstream/sources.yaml` 註冊來源與安裝方式。
+2. 只有需要由 `ai-dev` 管理本機 clone 時，才在 `paths.py` 與 `shared.py` 的 `REPOS` 增加路徑及 repo。
+3. 需要參與 Skills 分發時，沿用 `_iter_skill_source_dirs()`、manifest 與既有 target 配置，不另建平行複製流程。
+4. 更新 `SOURCE_NAMES`、`get_source_skills()`、相關測試與使用者文件。
 
 ### 來源追蹤
 
@@ -188,7 +171,6 @@ SOURCE_NAMES = {
     "obsidian":    "obsidian-skills",
     "anthropic":   "anthropic-skills",
     "ecc":         "everything-claude-code",
-    "auto_skill":  "auto-skill",
     "custom":      "custom-skills",
     "user":        "user",
 }
@@ -219,7 +201,7 @@ SOURCE_NAMES = {
 使用者可針對特定工具停用特定資源：
 
 ```bash
-ai-dev toggle --target claude --type skills --name auto-skill --disable
+ai-dev toggle --target claude --type skills --name custom-agent-router --disable
 ```
 
 配置存儲在 `~/.config/ai-dev/toggle.yaml`，在 Stage 3 分發時檢查。

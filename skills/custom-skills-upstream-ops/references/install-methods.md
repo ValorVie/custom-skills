@@ -7,7 +7,7 @@
 | install_method | 同步命令 | 典型來源 | 備註 |
 |---------------|---------|---------|------|
 | `plugin` | `claude plugin update <plugin_id>` + 重啟 Claude Code | superpowers | 不需手動複製檔案 |
-| `ai-dev` | `ai-dev update --only repos` → `ai-dev clone` | obsidian-skills, anthropic-skills, auto-skill | 自動同步到 `skills/` |
+| `ai-dev` | `ai-dev update --only repos` → `ai-dev clone` | obsidian-skills, anthropic-skills | 自動同步到 `skills/` |
 | `standards` | `ai-dev update --only repos` → `ai-dev clone` → `uds-check` mode 做 diff | universal-dev-standards | `.standards/` 需逐檔合併 |
 | `selective` | `ai-dev clone`（讀 `distribution.yaml` 過濾） | everything-claude-code | 依排除清單選擇性分發 |
 | `manual` | 手動比對與複製 | （本專案目前無） | 本地有深度客製時用 |

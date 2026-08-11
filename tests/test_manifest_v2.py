@@ -182,3 +182,31 @@ def test_prompt_file_decision_base_unavailable_eof_returns_skip(monkeypatch, tmp
         base_blob_getter=lambda rel: None,
     )
     assert result == "skip"
+
+
+def test_cleanup_orphans_leaves_retired_auto_skill_for_confirmed_cleanup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auto_skill = tmp_path / "auto-skill"
+    auto_skill.mkdir()
+    other = tmp_path / "other-skill"
+    other.mkdir()
+
+    monkeypatch.setattr(
+        M,
+        "_get_target_resource_path",
+        lambda _target, _resource_type, name: tmp_path / name,
+    )
+
+    M.cleanup_orphans(
+        "claude",
+        {
+            "skills": ["auto-skill", "other-skill"],
+            "commands": [],
+            "agents": [],
+            "workflows": [],
+        },
+    )
+
+    assert auto_skill.exists()
+    assert not other.exists()

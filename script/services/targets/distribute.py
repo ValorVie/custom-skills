@@ -39,5 +39,4 @@ def run_targets_phase(
         skip_conflicts=skip_conflicts,
         backup=backup,
         selected_targets=plan.targets or None,
-        refresh_state=False,
     )

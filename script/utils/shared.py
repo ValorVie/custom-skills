@@ -34,8 +34,6 @@ from .paths import (
     get_uds_dir,
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
-    get_auto_skill_dir,
-    get_auto_skill_repo_dir,
     get_ai_dev_config_dir,
     get_project_root,
 )
@@ -95,10 +93,6 @@ REPOS = {
     "everything_claude_code": (
         "https://github.com/affaan-m/everything-claude-code.git",
         get_ecc_dir,
-    ),
-    "auto_skill": (
-        "https://github.com/Toolsai/auto-skill.git",
-        get_auto_skill_repo_dir,
     ),
 }
 
@@ -632,17 +626,6 @@ def copy_sources_to_custom_skills() -> None:
         console.print(f"    → [dim]{shorten_path(dst_skill_creator)}[/dim]")
         shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
 
-    # ============================================================
-    # Auto-Skill（自進化知識系統）
-    # ============================================================
-    from .auto_skill_state import refresh_auto_skill_state
-
-    state_dir = refresh_auto_skill_state()
-    if state_dir is not None:
-        console.print(f"  [dim]{shorten_path(state_dir)}[/dim]")
-        console.print("    → [dim]auto-skill canonical state 已同步[/dim]")
-
-
 def _ensure_opencode_plugin_entry_file(dst: Path) -> None:
     """確保 OpenCode plugins 第一層存在明確 entry 檔。"""
     plugin_ts = dst / "plugin.ts"
@@ -698,14 +681,23 @@ def _iter_skill_source_dirs(src: Path):
 
     若 src 內有以 SKILL_SUBDIRS 中名稱的子目錄（如 'uds'），該子目錄下的每個
     直屬目錄都會被視為 skill。其他不在 SKILL_SUBDIRS 中的子目錄則視為
-    skill 本身（扁平模式）。隱藏目錄（以 "." 開頭）一律跳過。
+    skill 本身（扁平模式）。隱藏目錄（以 "." 開頭）與已退役的
+    ``auto-skill`` 一律跳過。
     """
     for item in src.iterdir():
-        if not item.is_dir() or item.name.startswith("."):
+        if (
+            not item.is_dir()
+            or item.name.startswith(".")
+            or item.name == "auto-skill"
+        ):
             continue
         if item.name in SKILL_SUBDIRS:
             for child in item.iterdir():
-                if child.is_dir() and not child.name.startswith("."):
+                if (
+                    child.is_dir()
+                    and not child.name.startswith(".")
+                    and child.name != "auto-skill"
+                ):
                     yield child
         else:
             yield item
@@ -958,13 +950,11 @@ def _copy_with_log(
     dst: Path,
     resource_type: str,
     target_name: str,
-    target_key: TargetType | None = None,
     tracker: "ManifestTracker | None" = None,
     skip_names: set[str] | None = None,
     source: str = "custom-skills",
     force: bool = False,
     skip_conflicts: bool = False,
-    auto_skill_state_dir: Path | None = None,
 ) -> None:
     """複製目錄並輸出帶路徑的日誌。
 
@@ -986,28 +976,6 @@ def _copy_with_log(
     console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
     dst.mkdir(parents=True, exist_ok=True)
 
-    def _project_auto_skill(item: Path, dst_item: Path) -> Path | None:
-        if auto_skill_state_dir is None:
-            return None
-        if not auto_skill_state_dir.exists() or not (auto_skill_state_dir / "SKILL.md").exists():
-            return None
-
-        from .auto_skill_projection import project_auto_skill
-
-        result = project_auto_skill(
-            auto_skill_state_dir,
-            dst_item,
-            target_name=target_key,
-            policy_source_dir=auto_skill_state_dir,
-        )
-        log_source = result.shadow_dir or auto_skill_state_dir
-        console.print(
-            "    [dim]"
-            f"{shorten_path(log_source)} → {shorten_path(dst_item)} "
-            f"({result.mode})[/dim]"
-        )
-        return log_source
-
     # 如果有 tracker，需要逐一記錄
     if tracker is not None:
         record_method = {
@@ -1024,13 +992,6 @@ def _copy_with_log(
                     console.print(f"    [yellow]跳過（衝突）: {item.name}[/yellow]")
                     continue
                 dst_item = dst / item.name
-                if item.name == "auto-skill":
-                    actual_source = _project_auto_skill(item, dst_item)
-                    if actual_source is not None:
-                        if record_method:
-                            # 用 dst_item 而非來源路徑：多來源合併後目標內容可能與任一來源不同
-                            record_method(item.name, dst_item, source=source)
-                        continue
                 policy = _load_clone_policy(item)
                 if policy is not None:
                     _copy_skill_with_policy(
@@ -1069,8 +1030,6 @@ def _copy_with_log(
         if resource_type == "skills":
             for item in _iter_skill_source_dirs(src):
                 dst_item = dst / item.name
-                if item.name == "auto-skill" and _project_auto_skill(item, dst_item) is not None:
-                    continue
                 policy = _load_clone_policy(item)
                 if policy is not None:
                     _copy_skill_with_policy(
@@ -1436,7 +1395,6 @@ def copy_custom_skills_to_targets(
     skip_conflicts: bool = False,
     backup: bool = False,
     selected_targets: tuple[str, ...] | None = None,
-    refresh_state: bool = True,
 ) -> None:
     """Stage 3: 將 custom-skills 分發到各工具目錄。
 
@@ -1446,7 +1404,6 @@ def copy_custom_skills_to_targets(
         skip_conflicts: 跳過有衝突的檔案
         backup: 備份衝突檔案後覆蓋
         selected_targets: 限制要分發的目標平台
-        refresh_state: 是否在分發前刷新 auto-skill canonical state
     """
     from .manifest import (
         ManifestTracker,
@@ -1491,14 +1448,6 @@ def copy_custom_skills_to_targets(
     src_agents_claude = get_custom_skills_dir() / "agents" / "claude"
     src_agents_opencode = get_custom_skills_dir() / "agents" / "opencode"
     src_plugins_opencode = get_custom_skills_dir() / "plugins" / "ecc-hooks-opencode"
-    if refresh_state:
-        from .auto_skill_state import refresh_auto_skill_state
-
-        auto_skill_state_dir = refresh_auto_skill_state(
-            template_dir=src_skills / "auto-skill"
-        )
-    else:
-        auto_skill_state_dir = get_auto_skill_dir()
 
     # 定義各平台的分發配置
     platform_configs = {
@@ -1666,7 +1615,6 @@ def copy_custom_skills_to_targets(
                 dst,
                 resource_type,
                 target_name,
-                target_key=target,
                 tracker=tracker,
                 skip_names=(
                     skip_names
@@ -1676,7 +1624,6 @@ def copy_custom_skills_to_targets(
                 source="custom-skills",
                 force=force,
                 skip_conflicts=skip_conflicts,
-                auto_skill_state_dir=auto_skill_state_dir,
             )
 
         # 5.5 分發 custom repos 的資源
@@ -1785,7 +1732,11 @@ def _scan_repo_resources(
         record = record_method_map.get("skills")
         if record:
             for item in skills_dir.iterdir():
-                if item.is_dir() and not item.name.startswith("."):
+                if (
+                    item.is_dir()
+                    and not item.name.startswith(".")
+                    and item.name != "auto-skill"
+                ):
                     # 已交接給 npx 管理的 skill 不記錄，避免 conflict 誤判
                     if item.name in npx_managed:
                         continue
@@ -2142,6 +2093,7 @@ def _distribute_ecc_selective(
         dst = COPY_TARGETS.get(target, {}).get("skills")
         if src.exists() and dst:
             enabled_skills = set(skills_config.get("enabled", []))
+            enabled_skills.discard("auto-skill")
             console.print(f"  [green]skills[/green] → [cyan]{target_name}[/cyan]")
             console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
             dst.mkdir(parents=True, exist_ok=True)
@@ -2369,7 +2321,6 @@ def copy_skills(
     skip_conflicts: bool = False,
     backup: bool = False,
     selected_targets: tuple[str, ...] | None = None,
-    refresh_state: bool = True,
 ) -> None:
     """將 ~/.config/custom-skills 分發到各工具目錄。
 
@@ -2387,7 +2338,6 @@ def copy_skills(
         skip_conflicts: 跳過有衝突的檔案
         backup: 備份衝突檔案後覆蓋
         selected_targets: 限制要分發的目標平台
-        refresh_state: 是否在分發前刷新 auto-skill canonical state
     """
     # Stage 3: 分發到目標目錄
     copy_custom_skills_to_targets(
@@ -2396,7 +2346,6 @@ def copy_skills(
         skip_conflicts=skip_conflicts,
         backup=backup,
         selected_targets=selected_targets,
-        refresh_state=refresh_state,
     )
 
 
@@ -2410,7 +2359,6 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
     - UDS (skills, agents, workflows, commands)
     - Obsidian skills
     - Anthropic skill-creator
-    - Auto-Skill（自進化知識系統）
 
     Args:
         dev_project_root: 開發專案的根目錄
@@ -2491,16 +2439,6 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
         console.print(f"  [dim]{shorten_path(src_anthropic)}[/dim]")
         console.print(f"    → [dim]{shorten_path(dst_skill_creator)}[/dim]")
         shutil.copytree(src_anthropic, dst_skill_creator, dirs_exist_ok=True)
-
-    # ============================================================
-    # Auto-Skill（自進化知識系統）
-    # ============================================================
-    from .auto_skill_state import refresh_auto_skill_state
-
-    state_dir = refresh_auto_skill_state()
-    if state_dir is not None:
-        console.print(f"  [dim]{shorten_path(state_dir)}[/dim]")
-        console.print("    → [dim]auto-skill canonical state 已同步[/dim]")
 
     console.print("[green]✓ 外部來源整合完成[/green]")
 
@@ -2927,7 +2865,6 @@ SOURCE_NAMES = {
     "obsidian": "obsidian-skills",
     "anthropic": "anthropic-skills",
     "ecc": "everything-claude-code",
-    "auto_skill": "auto-skill",
     "custom": "custom-skills",
     "user": "user",
 }
@@ -2965,13 +2902,6 @@ def get_source_skills() -> dict[str, set[str]]:
     else:
         sources["ecc"] = set()
 
-    # Auto-Skill
-    auto_skill_path = get_auto_skill_dir()
-    if auto_skill_path.exists() and (auto_skill_path / "SKILL.md").exists():
-        sources["auto_skill"] = {"auto-skill"}
-    else:
-        sources["auto_skill"] = set()
-
     # Custom skills (本專案)；支援 skills/<subdir>/<name>/ 扁平化
     custom_path = get_custom_skills_dir() / "skills"
     if custom_path.exists():
@@ -2981,7 +2911,6 @@ def get_source_skills() -> dict[str, set[str]]:
             | sources["obsidian"]
             | sources["anthropic"]
             | sources["ecc"]
-            | sources["auto_skill"]
         )
         sources["custom"] = {
             d.name

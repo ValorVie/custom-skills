@@ -96,7 +96,7 @@ ai-dev --version
 ai-dev status
 
 # Test specific command
-ai-dev install --only state,targets --target claude
+ai-dev install --only targets --target claude
 ```
 
 ## References

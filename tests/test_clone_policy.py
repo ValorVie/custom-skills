@@ -14,7 +14,7 @@ def _write_json(path: Path, data: dict) -> None:
 
 
 def test_load_clone_policy_valid(tmp_path: Path):
-    skill_dir = tmp_path / "auto-skill"
+    skill_dir = tmp_path / "policy-skill"
     skill_dir.mkdir(parents=True)
     _write_json(
         skill_dir / ".clonepolicy.json",
@@ -203,7 +203,7 @@ def test_copy_with_log_passes_flags_to_policy_copy(tmp_path: Path, monkeypatch):
     src_root.mkdir(parents=True)
     dst_root.mkdir(parents=True)
 
-    skill = src_root / "auto-skill"
+    skill = src_root / "policy-skill"
     skill.mkdir(parents=True)
     _write_json(skill / ".clonepolicy.json", {"rules": []})
 
@@ -283,10 +283,10 @@ def test_conflict_prescan_skips_skill_with_valid_clone_policy(
     src_skills = custom_dir / "skills"
     src_skills.mkdir(parents=True)
 
-    with_policy = src_skills / "auto-skill"
+    with_policy = src_skills / "policy-skill"
     with_policy.mkdir(parents=True)
     _write_json(with_policy / ".clonepolicy.json", {"rules": []})
-    (with_policy / "SKILL.md").write_text("auto\n", encoding="utf-8")
+    (with_policy / "SKILL.md").write_text("policy\n", encoding="utf-8")
 
     plain_skill = src_skills / "plain-skill"
     plain_skill.mkdir(parents=True)
@@ -376,125 +376,4 @@ def test_conflict_prescan_skips_skill_with_valid_clone_policy(
     assert captured_skill_sets
     for skill_set in captured_skill_sets:
         assert "plain-skill" in skill_set
-        assert "auto-skill" not in skill_set
-
-
-def test_copy_custom_skills_projects_auto_skill_via_shadow_dir(
-    tmp_path: Path, monkeypatch
-):
-    custom_dir = tmp_path / "custom-skills"
-    src_skills = custom_dir / "skills"
-    src_skills.mkdir(parents=True)
-
-    auto_skill = src_skills / "auto-skill"
-    auto_skill.mkdir(parents=True)
-    (auto_skill / "SKILL.md").write_text("auto\n", encoding="utf-8")
-    _write_json(
-        auto_skill / ".clonepolicy.json",
-        {
-            "rules": [
-                {"pattern": "*/_index.json", "strategy": "key-merge"},
-                {"pattern": "knowledge-base/*.md", "strategy": "skip-if-exists"},
-            ]
-        },
-    )
-    _write_json(auto_skill / "knowledge-base" / "_index.json", {"categories": []})
-    (auto_skill / "knowledge-base" / "workflow.md").write_text(
-        "workflow\n", encoding="utf-8"
-    )
-
-    empty = custom_dir / "commands"
-    (empty / "claude").mkdir(parents=True)
-    (empty / "antigravity").mkdir(parents=True)
-    (empty / "opencode").mkdir(parents=True)
-    (empty / "agy").mkdir(parents=True)
-    (empty / "workflows").mkdir(parents=True)
-    (custom_dir / "agents" / "claude").mkdir(parents=True)
-    (custom_dir / "agents" / "opencode").mkdir(parents=True)
-    (custom_dir / "plugins" / "ecc-hooks-opencode").mkdir(parents=True)
-
-    fake_targets = {
-        "claude": {
-            "skills": tmp_path / "targets" / "claude" / "skills",
-            "commands": tmp_path / "targets" / "claude" / "commands",
-            "agents": tmp_path / "targets" / "claude" / "agents",
-            "workflows": tmp_path / "targets" / "claude" / "workflows",
-        },
-        "antigravity": {
-            "skills": tmp_path / "targets" / "antigravity" / "skills",
-            "workflows": tmp_path / "targets" / "antigravity" / "workflows",
-        },
-        "opencode": {
-            "skills": tmp_path / "targets" / "opencode" / "skills",
-            "commands": tmp_path / "targets" / "opencode" / "commands",
-            "agents": tmp_path / "targets" / "opencode" / "agents",
-            "plugins": tmp_path / "targets" / "opencode" / "plugins",
-        },
-        "codex": {
-            "skills": tmp_path / "targets" / "codex" / "skills",
-        },
-        "agy": {
-            "skills": tmp_path / "targets" / "agy" / "skills",
-        },
-    }
-    state_dir = tmp_path / "state" / "auto-skill"
-    projection_root = tmp_path / "projections"
-    backup_root = tmp_path / "backups"
-
-    monkeypatch.setattr(shared, "get_custom_skills_dir", lambda: custom_dir)
-    monkeypatch.setattr(shared, "COPY_TARGETS", fake_targets)
-    monkeypatch.setattr(shared, "_migrate_opencode_plugin_dir_if_needed", lambda: None)
-    monkeypatch.setattr(shared, "_prescan_custom_repos", lambda *args, **kwargs: None)
-    monkeypatch.setattr(shared, "_distribute_custom_repos", lambda *args, **kwargs: None)
-    monkeypatch.setattr(shared, "_distribute_ecc_selective", lambda *args, **kwargs: None)
-    monkeypatch.setattr(shared, "_sync_to_project_directory", lambda *args, **kwargs: None)
-    monkeypatch.setattr(manifest, "read_manifest", lambda target: {"files": {"skills": {}}})
-    monkeypatch.setattr(manifest, "write_manifest", lambda target, data: None)
-    monkeypatch.setattr(manifest, "display_conflicts", lambda conflicts: None)
-    monkeypatch.setattr(manifest, "prompt_conflict_action", lambda conflicts=None: "skip")
-    monkeypatch.setattr(manifest, "show_conflict_diff", lambda conflicts: None)
-    monkeypatch.setattr(
-        manifest,
-        "find_orphans",
-        lambda old_manifest, new_manifest: {
-            "skills": [],
-            "commands": [],
-            "agents": [],
-            "workflows": [],
-        },
-    )
-    monkeypatch.setattr(manifest, "cleanup_orphans", lambda target, orphans: None)
-    monkeypatch.setattr(manifest, "backup_file", lambda target, resource_type, name: None)
-    monkeypatch.setattr(manifest, "get_project_version", lambda: "1.0.0")
-    monkeypatch.setattr(
-        "script.utils.auto_skill_state.get_auto_skill_dir", lambda: state_dir
-    )
-    monkeypatch.setattr(
-        "script.utils.auto_skill_state.get_auto_skill_repo_dir",
-        lambda: tmp_path / "missing-upstream",
-    )
-    monkeypatch.setattr(
-        "script.utils.auto_skill_projection.get_auto_skill_projection_root",
-        lambda: projection_root,
-    )
-    monkeypatch.setattr(
-        "script.utils.auto_skill_projection.get_auto_skill_shadow_dir",
-        lambda target: projection_root / target / "auto-skill",
-    )
-    monkeypatch.setattr(
-        "script.utils.auto_skill_projection.get_auto_skill_shadow_state_path",
-        lambda target: projection_root / target / "auto-skill.state.json",
-    )
-    monkeypatch.setattr(
-        "script.utils.auto_skill_projection.get_auto_skill_backup_dir",
-        lambda target: backup_root / target,
-    )
-
-    shared.copy_custom_skills_to_targets(sync_project=False)
-
-    target_dir = fake_targets["claude"]["skills"] / "auto-skill"
-    shadow_dir = projection_root / "claude" / "auto-skill"
-
-    assert target_dir.is_symlink()
-    assert target_dir.resolve() == shadow_dir.resolve()
-    assert target_dir.resolve() != state_dir.resolve()
+        assert "policy-skill" not in skill_set
