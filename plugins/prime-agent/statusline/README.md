@@ -2,7 +2,7 @@
 
 > 核對版本：Prime Agent 0.7.2，2026-08-12。
 >
-> 這份文件整理目前公開 Extension API 能安全取得的資料。它是能力清單與實作指南，不包含可直接載入的 Extension。
+> 這份文件整理目前公開 Extension API 能安全取得的資料。本目錄同時包含可直接載入的試用版 Extension。
 
 ## 結論
 
@@ -220,122 +220,97 @@ Prime Agent 互動 UI 內部雖然持有更多狀態，但 Extension API 0.7.2 �
 
 狀態列會長時間留在畫面，也可能被 terminal scrollback、截圖或錄影保存。只顯示短、低敏感度、對當下操作有用的摘要。
 
-## 建議的預設內容
+## 目前試用版
 
-一行狀態列的實用順序：
+本目錄的主要檔案：
 
-```text
-model · effort/fast · project:branch · ctx% · session tokens/cost · working/tool · extension statuses
-```
+| 檔案 | 用途 |
+|---|---|
+| `index.ts` | Prime Agent Extension 入口，只接上 renderer |
+| `statusline.ts` | 狀態彙整、格式化、事件追蹤與寬度安全截斷 |
+| `statusline.test.mjs` | 純 Node 測試，不需啟動 Prime Agent |
+| `package.json` | ESM 與測試命令 |
+| `README.md` | API 能力、限制與操作說明 |
+
+### 顯示順序
+
+試用版依指定順序輸出下列欄位：
+
+| 順序 | 格式 | 資料來源 |
+|---|---|---|
+| 1 | `rlm:0` | `sessionManager.getHeader()?.rlmDepth` |
+| 2 | `model:gpt-5.4` | active branch 最後一個 `model_change`，否則使用 `ctx.model.id` |
+| 3 | `eff:high/fast` | `pi.getThinkingLevel()` 與最後一個 `service_tier_change` |
+| 4 | `custom-skills:main` | 工作目錄 basename 與 `footerData.getGitBranch()` |
+| 5 | `ctx:37%` | `ctx.getContextUsage()?.percent` |
+| 6 | `sess:↑12k/↓3k/$0.12` | Session input token、output token與估算費用 |
+| 7 | `work:ipython`／`work:-`／`idle` | Agent 狀態與 active tool event |
+| 8 | `ext:guard:ok` | 所有 `ctx.ui.setStatus()` 值；沒有時為 `ext:-` |
+| 9 | `cache:R4k/W1k` | Session cache read／write token |
+| 10 | `total:20k` | input + output + cache read + cache write |
+| 11 | `cost:~$0.12` | Session 累積估算費用 |
 
 例如：
 
 ```text
-gpt-5.4 · high/fast · custom-skills:main · ctx:37% · tok:128k/$0.42 · idle · bead:6bo
+rlm:0 · model:gpt-5.4 · eff:high/fast · custom-skills:main · ctx:37% · sess:↑12k/↓3k/$0.12 · idle · ext:- · cache:R4k/W1k · total:20k · cost:~$0.12
 ```
 
-窄終端建議依序移除：
+第 6 與第 11 欄都出現費用是刻意保留的。前者和 input／output token 放在一起，方便快速看 session；後者則保留指定的獨立估算費用欄位。`total` 也刻意和 input／output 分開，且包含 cache token。
 
-1. Session token 與費用。
-2. Extension statuses。
-3. project，只保留 branch。
-4. thinking level，只保留 model、context 與 working state。
+### 更新時機
 
-所有輸出都要使用 `truncateToWidth()`，不能用字串長度直接裁切含 ANSI 色碼或寬字元的內容。
+Extension 會在下列事件要求 TUI 重繪：
 
-## 最小 custom footer 範例
+- `session_start`
+- `agent_start`、`agent_end`
+- `turn_end`
+- `session_compact`
+- `model_select`
+- `thinking_level_select`
+- `tool_execution_start`、`tool_execution_end`
+- Git branch 變化
 
-下面範例顯示：目前模型、thinking level、fast mode、專案、Git branch、context、session 累積 token／費用、working 狀態，以及其他 Extension 用 `setStatus()` 發布的內容。
+`setStatus()` 本身也會要求 Prime Agent 重繪，因此其他 Extension 的狀態會跟著更新。`/fast` 目前沒有公開的 Extension 專用事件，但 Prime Agent 會在切換後重繪 UI；renderer 每次都從 active branch 讀取最後的 service tier，因此仍會反映新狀態。
 
-```typescript
-import path from "node:path";
-import type { AssistantMessage } from "@earendil-works/pi-ai";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
+### 顯示與效能邊界
 
-function compactNumber(value: number): string {
-  if (value < 1_000) return String(value);
-  if (value < 1_000_000) return `${(value / 1_000).toFixed(1)}k`;
-  return `${(value / 1_000_000).toFixed(1)}m`;
-}
-
-export default function (pi: ExtensionAPI) {
-  pi.on("session_start", async (_event, ctx) => {
-    ctx.ui.setFooter((tui, theme, footerData) => {
-      const requestRender = () => tui.requestRender();
-      const unsubscribe = footerData.onBranchChange(requestRender);
-
-      return {
-        dispose: unsubscribe,
-        invalidate() {},
-
-        render(width: number): string[] {
-          // ponytail: 最小範例每次 render 掃描 branch；長 session 應改為事件增量快取。
-          const branch = ctx.sessionManager.getBranch();
-          let model = ctx.model?.id ?? "no-model";
-          let fast = false;
-          let tokens = 0;
-          let cost = 0;
-
-          for (const entry of branch) {
-            if (entry.type === "model_change") model = entry.modelId;
-            if (entry.type === "service_tier_change") {
-              fast = entry.serviceTier === "priority";
-            }
-            if (entry.type === "message" && entry.message.role === "assistant") {
-              const message = entry.message as AssistantMessage;
-              tokens +=
-                message.usage.input +
-                message.usage.output +
-                message.usage.cacheRead +
-                message.usage.cacheWrite;
-              cost += message.usage.cost.total;
-            }
-          }
-
-          const context = ctx.getContextUsage();
-          const contextText =
-            context?.percent == null ? "ctx:?" : `ctx:${Math.round(context.percent)}%`;
-          const project = path.basename(ctx.sessionManager.getCwd());
-          const gitBranch = footerData.getGitBranch();
-          const working = ctx.isIdle() ? "idle" : "working";
-          const pending = ctx.hasPendingMessages() ? "+queued" : "";
-
-          const base = [
-            model,
-            `${pi.getThinkingLevel()}${fast ? "/fast" : ""}`,
-            gitBranch ? `${project}:${gitBranch}` : project,
-            contextText,
-            `tok:${compactNumber(tokens)}/$${cost.toFixed(2)}`,
-            `${working}${pending}`,
-          ];
-
-          const separator = theme.fg("dim", " · ");
-          const line = [
-            theme.fg("dim", base.join(" · ")),
-            ...footerData.getExtensionStatuses().values(),
-          ].join(separator);
-
-          return [truncateToWidth(line, width)];
-        },
-      };
-    });
-  });
-}
-```
-
-這個範例刻意不執行外部命令，也不顯示完整路徑或敏感資料。它為了保持短小，每次 render 都掃描目前 branch；session 很長時，應改在 `turn_end`、`session_compact` 與 `session_start` 更新 usage 快取。若要加上目前工具名稱、turn 耗時或 Git dirty，也應另外維護快取狀態，不要把命令塞進 `render()`。
+- 狀態列固定為一行，超過終端寬度時從右側截斷並加上 `…`。
+- 截斷發生在加上 ANSI 顏色前，並以 grapheme 與常見 CJK／emoji 寬度計算，不會從 UTF-16 code unit 中間切斷文字。
+- 因為欄位順序固定，窄終端可能看不到右側的 cache、total 與 cost。這是試用版刻意保留的效果，後續可依實際使用感受改成二行或 responsive priority。
+- renderer 不執行 shell、網路或檔案掃描。
+- usage 只累加 active branch 的 assistant message，不另外累加 `child_usage_attributed`，避免 RLM child usage 重複計算。
+- 每次 render 會掃描 active branch。一般 session 成本很低；若超長 session 出現 UI 延遲，再改成事件增量快取。
+- 費用來自 assistant message 的 `usage.cost.total`，是 client 估算，不是 provider 帳單。
 
 ## 安裝與驗證
 
-未來若在此目錄加入 `index.ts`，可把整個目錄複製到使用者層或專案層 Extension 路徑：
+在此目錄先執行單元測試：
+
+```bash
+node --no-warnings statusline.test.mjs
+```
+
+使用者層安裝位置：
 
 ```text
 ~/.prime/agent/extensions/statusline/
-<project>/.prime/agent/extensions/statusline/
 ```
 
-Prime Agent 直接透過 jiti 載入 TypeScript，不需事先編譯。安裝後執行：
+從 repo 根目錄同步試用版：
+
+```bash
+source_dir="plugins/prime-agent/statusline"
+target_dir="$HOME/.prime/agent/extensions/statusline"
+mkdir -p "$target_dir"
+install -m 0644 "$source_dir/index.ts" "$target_dir/index.ts"
+install -m 0644 "$source_dir/statusline.ts" "$target_dir/statusline.ts"
+install -m 0644 "$source_dir/package.json" "$target_dir/package.json"
+```
+
+主要來源是 repo 內的 `index.ts`、`statusline.ts` 與 `package.json`。測試與 README 不必複製到 runtime 目錄。Prime Agent 透過 jiti 載入 TypeScript，不需事先編譯。
+
+已開啟的互動 session 安裝後執行：
 
 ```text
 /reload
@@ -346,14 +321,19 @@ Prime Agent 直接透過 jiti 載入 TypeScript，不需事先編譯。安裝後
 1. 一般 session 能看見一行 footer，窄終端不破版。
 2. 切換模型後 model ID 更新。
 3. 執行 `/effort` 與 `/fast` 後狀態更新。
-4. 完成一輪對話後 token、費用與 context 更新。
-5. `/compact` 後允許暫時顯示 `ctx:?`，下一次模型回應後恢復數值。
-6. Git branch 切換後 footer 更新；非 Git 目錄不顯示 branch。
-7. 其他 Extension 呼叫 `setStatus()` 後，文字能出現在 custom footer。
-8. `/reload`、`/new`、resume 與 fork 後不殘留前一個 session 的 state。
-9. 離開 session 或 reload 時，branch watcher 與自訂 timer 都已在 `dispose()` 清理。
+4. 完成一輪對話後 input、output、cache、total、費用與 context 更新。
+5. 工具執行期間顯示 `work:<tool>`，完成後回到 `idle`。
+6. `/compact` 後允許暫時顯示 `ctx:?`，下一次模型回應後恢復數值。
+7. Git branch 切換後 footer 更新；非 Git 目錄不顯示 branch。
+8. 其他 Extension 呼叫 `setStatus()` 後，文字出現在 `ext:` 欄位。
+9. `/reload`、`/new`、resume 與 fork 後不殘留前一個 session 的 active tool state。
+10. 離開 session 或 reload 時，branch watcher 已在 `dispose()` 清理。
 
 需要核對 token、費用與 context 時，以 `/usage` 的輸出作為同一客戶端內的對照。真實費用仍以 provider 帳單為準。
+
+### 移除
+
+刪除或移走使用者層的 `statusline` Extension 目錄後執行 `/reload`，Prime Agent 就會恢復內建空 footer。移除前可先把目錄改名保存，方便復原。
 
 ## 來源
 
