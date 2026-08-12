@@ -1,6 +1,7 @@
+import { execFile } from "node:child_process";
 import path from "node:path";
 import { stripVTControlCharacters } from "node:util";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 export interface UsageTotals {
 	input: number;
@@ -218,17 +219,96 @@ export function buildStatusSegments(input: StatusSegmentsInput): string[] {
 	];
 }
 
-export function registerStatusline(pi: ExtensionAPI, truncateToWidth: TruncateToWidth): void {
+export type ReadBranch = (cwd: string) => Promise<string | null>;
+
+export function readGitBranch(cwd: string): Promise<string | null> {
+	return new Promise((resolve) => {
+		execFile(
+			"git",
+			["-C", cwd, "branch", "--show-current"],
+			{ timeout: 1_000, maxBuffer: 4_096, windowsHide: true },
+			(_error, stdout) => resolve(oneLine(stdout, "") || null),
+		);
+	});
+}
+
+export function registerStatusline(
+	pi: ExtensionAPI,
+	truncateToWidth: TruncateToWidth,
+	readBranch: ReadBranch = readGitBranch,
+): void {
 	const activeTools = new Map<string, string>();
 	let requestRender: (() => void) | undefined;
+	let snapshot: SessionSnapshot = {
+		modelId: "no-model",
+		fast: false,
+		usage: { ...EMPTY_USAGE },
+	};
+	let widgetBranch: string | null = null;
+	let widgetMode = false;
+	let branchReadSequence = 0;
 
+	const refreshSnapshot = (ctx: ExtensionContext) => {
+		snapshot = summarizeBranch(ctx.sessionManager.getBranch(), ctx.model?.id ?? "no-model");
+	};
+	const buildLine = (
+		ctx: ExtensionContext,
+		branch: string | null,
+		extensionStatuses: readonly string[],
+	) => {
+		const project = path.basename(ctx.sessionManager.getCwd() || ctx.cwd) || "/";
+		const context = ctx.getContextUsage();
+		const header = ctx.sessionManager.getHeader();
+		return buildStatusSegments({
+			rlmDepth: header?.rlmDepth ?? 0,
+			modelId: snapshot.modelId,
+			thinkingLevel: pi.getThinkingLevel(),
+			fast: snapshot.fast,
+			project,
+			branch,
+			contextPercent: context?.percent,
+			usage: snapshot.usage,
+			idle: ctx.isIdle(),
+			pending: ctx.hasPendingMessages(),
+			activeTools: [...activeTools.values()],
+			extensionStatuses,
+		}).join(" · ");
+	};
 	const redraw = () => requestRender?.();
+	const refreshAndRedraw = (_event: unknown, ctx: ExtensionContext) => {
+		refreshSnapshot(ctx);
+		redraw();
+	};
+	const refreshWidgetBranch = (ctx: ExtensionContext) => {
+		if (!widgetMode) return;
+		const sequence = ++branchReadSequence;
+		const cwd = ctx.sessionManager.getCwd() || ctx.cwd;
+		void Promise.resolve()
+			.then(() => readBranch(cwd))
+			.then((branch) => {
+				if (sequence !== branchReadSequence) return;
+				widgetBranch = branch;
+				try {
+					redraw();
+				} catch {
+					// The captured context becomes stale when a reload wins this race.
+				}
+			})
+			.catch(() => {});
+	};
 
 	pi.on("session_start", (_event, ctx) => {
 		activeTools.clear();
+		requestRender = undefined;
+		widgetBranch = null;
+		widgetMode = false;
+		branchReadSequence++;
+		refreshSnapshot(ctx);
 		if (!ctx.hasUI) return;
 
+		let footerCreated = false;
 		ctx.ui.setFooter((tui, theme, footerData) => {
+			footerCreated = true;
 			const render = () => tui.requestRender();
 			requestRender = render;
 			const unsubscribe = footerData.onBranchChange(render);
@@ -240,38 +320,41 @@ export function registerStatusline(pi: ExtensionAPI, truncateToWidth: TruncateTo
 				},
 				invalidate() {},
 				render(width: number): string[] {
-					const snapshot = summarizeBranch(
-						ctx.sessionManager.getBranch(),
-						ctx.model?.id ?? "no-model",
+					const line = buildLine(
+						ctx,
+						footerData.getGitBranch(),
+						[...footerData.getExtensionStatuses().values()],
 					);
-					const project = path.basename(ctx.sessionManager.getCwd() || ctx.cwd) || "/";
-					const context = ctx.getContextUsage();
-					const header = ctx.sessionManager.getHeader();
-					const segments = buildStatusSegments({
-						rlmDepth: header?.rlmDepth ?? 0,
-						modelId: snapshot.modelId,
-						thinkingLevel: pi.getThinkingLevel(),
-						fast: snapshot.fast,
-						project,
-						branch: footerData.getGitBranch(),
-						contextPercent: context?.percent,
-						usage: snapshot.usage,
-						idle: ctx.isIdle(),
-						pending: ctx.hasPendingMessages(),
-						activeTools: [...activeTools.values()],
-						extensionStatuses: [...footerData.getExtensionStatuses().values()],
-					});
-					return [theme.fg("dim", truncateToWidth(segments.join(" · "), width))];
+					return [theme.fg("dim", truncateToWidth(line, width))];
 				},
 			};
 		});
+		if (footerCreated) return;
+
+		// Prime Agent 0.7.2's daemon bridge intentionally ignores setFooter factories.
+		// A below-editor widget is the only serializable one-line fallback it exposes.
+		const renderWidget = () => {
+			ctx.ui.setWidget(
+				"prime-agent-statusline",
+				[buildLine(ctx, widgetBranch, ["?"])],
+				{ placement: "belowEditor" },
+			);
+		};
+		widgetMode = true;
+		requestRender = renderWidget;
+		renderWidget();
+		refreshWidgetBranch(ctx);
 	});
 
+	pi.on("before_agent_start", refreshAndRedraw);
 	pi.on("agent_start", redraw);
-	pi.on("agent_end", redraw);
-	pi.on("turn_end", redraw);
-	pi.on("session_compact", redraw);
-	pi.on("model_select", redraw);
+	pi.on("agent_end", refreshAndRedraw);
+	pi.on("turn_end", (event, ctx) => {
+		refreshAndRedraw(event, ctx);
+		refreshWidgetBranch(ctx);
+	});
+	pi.on("session_compact", refreshAndRedraw);
+	pi.on("model_select", refreshAndRedraw);
 	pi.on("thinking_level_select", redraw);
 	pi.on("tool_execution_start", (event) => {
 		activeTools.set(event.toolCallId, event.toolName);

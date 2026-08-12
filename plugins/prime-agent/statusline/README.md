@@ -8,27 +8,25 @@
 
 Prime Agent 沒有 Claude Code `statusLine.command` 這類宣告式設定。statusline 要用 TypeScript Extension 實作。
 
-目前版本還有一個容易誤判的地方：
+目前版本還有兩個容易誤判的地方：
 
-- Prime Agent 的 `README.md` 明確說明內建 footer 預設為空。
-- `FooterComponent.render()` 實際固定回傳 `[]`。
-- `ctx.ui.setStatus()` 仍會把文字存入 `footerData`，但內建空 footer 不會把它畫出來。
-- 要看見 statusline，應使用 `ctx.ui.setFooter()`；若要整合其他 Extension 的 `setStatus()`，再由 custom footer 呼叫 `footerData.getExtensionStatuses()`。
+- Prime Agent 的 `README.md` 明確說明內建 footer 預設為空，`FooterComponent.render()` 也固定回傳 `[]`。因此 `ctx.ui.setStatus()` 雖會把文字存入 `footerData`，預設仍看不到。
+- 本機 in-process 互動模式可用 `ctx.ui.setFooter()` 建立真正的 statusline；但 Prime Agent 0.7.2 預設使用 daemon-backed 互動模式，而 daemon UI bridge 的 `setFooter()` 是 no-op，factory 不會送到 TUI client。
 
-因此，單獨複製官方 `examples/extensions/status-line.ts` 在 Prime Agent 0.7.2 上可能沒有可見輸出。完整 custom footer 才是可靠做法。
+本試用版會偵測 footer factory 是否實際建立。若沒有，便改用 daemon bridge 能序列化的 `belowEditor` widget 顯示同一行狀態。因此單獨複製官方 `examples/extensions/status-line.ts`，或只呼叫 `setFooter()`，在預設 daemon 模式都可能沒有可見輸出。
 
 ## 可用的 UI 入口
 
 | API | 顯示位置 | 目前行為 | 適用情境 |
 |---|---|---|---|
-| `ctx.ui.setFooter()` | 輸入框下方 | 完整取代內建 footer | 建立真正的 statusline，建議使用 |
+| `ctx.ui.setFooter()` | 輸入框下方 | in-process 模式會取代內建 footer；0.7.2 daemon bridge 忽略 factory | 本機直連 runtime 的真正 statusline |
 | `ctx.ui.setStatus(key, text)` | 交由 footer 決定 | 只保存狀態；預設空 footer 不顯示 | 讓多個 Extension 提供狀態，再由 custom footer 彙整 |
-| `ctx.ui.setWidget(..., { placement: "belowEditor" })` | 輸入框下方、footer 上方 | 可見，可多行 | 狀態內容太長、不適合塞成一行時 |
+| `ctx.ui.setWidget(..., { placement: "belowEditor" })` | 輸入框下方、footer 上方 | daemon bridge 可傳輸；過長時由 TUI 換行 | 預設 daemon 模式的可見 fallback |
 | `ctx.ui.setWorkingMessage()` | 回應生成中的 loader | 只在串流期間出現 | 顯示目前工作階段，不是常駐 statusline |
 | `ctx.ui.setWorkingIndicator()` | 回應生成中的 loader | 可換圖示、動畫或隱藏 | 調整工作中提示，不承載 session 統計 |
 | `ctx.ui.setTitle()` | Terminal 視窗或分頁標題 | 改 Terminal title | 顯示專案或 session 名稱的輔助位置 |
 
-`setFooter()` 一次只能有一個生效。若多個 Extension 都呼叫它，最後設定者會取代前一個 footer。較好的組合方式是由其他 Extension 使用 `setStatus()`，再由單一 footer 統一渲染。
+在 in-process 模式，`setFooter()` 一次只能有一個生效；多個 Extension 呼叫時由最後一個取代。在 daemon fallback，client 不會收到 footer factory，也不會把 `footerData` 傳回 Extension，所以只能顯示 `ext:?`，無法可靠彙整其他 Extension 的 `setStatus()`。
 
 ## 直接可取得的資料
 
@@ -241,11 +239,11 @@ Prime Agent 互動 UI 內部雖然持有更多狀態，但 Extension API 0.7.2 �
 | 1 | `rlm:0` | `sessionManager.getHeader()?.rlmDepth` |
 | 2 | `model:gpt-5.4` | active branch 最後一個 `model_change`，否則使用 `ctx.model.id` |
 | 3 | `eff:high/fast` | `pi.getThinkingLevel()` 與最後一個 `service_tier_change` |
-| 4 | `custom-skills:main` | 工作目錄 basename 與 `footerData.getGitBranch()` |
+| 4 | `custom-skills:main` | 工作目錄 basename；footer 用 `footerData.getGitBranch()`，daemon widget 在事件外非同步查詢 Git branch |
 | 5 | `ctx:37%` | `ctx.getContextUsage()?.percent` |
 | 6 | `sess:↑12k/↓3k/$0.12` | Session input token、output token與估算費用 |
 | 7 | `work:ipython`／`work:-`／`idle` | Agent 狀態與 active tool event |
-| 8 | `ext:guard:ok` | 所有 `ctx.ui.setStatus()` 值；沒有時為 `ext:-` |
+| 8 | `ext:guard:ok`／`ext:?` | footer 可讀所有 `setStatus()` 值；daemon bridge 不回傳時顯示 `?` |
 | 9 | `cache:R4k/W1k` | Session cache read／write token |
 | 10 | `total:20k` | input + output + cache read + cache write |
 | 11 | `cost:~$0.12` | Session 累積估算費用 |
@@ -269,18 +267,18 @@ Extension 會在下列事件要求 TUI 重繪：
 - `model_select`
 - `thinking_level_select`
 - `tool_execution_start`、`tool_execution_end`
-- Git branch 變化
+- Git branch 變化：footer 使用 Prime 的 branch watcher；daemon widget 在 `session_start` 與 `turn_end` 後非同步重查
 
-`setStatus()` 本身也會要求 Prime Agent 重繪，因此其他 Extension 的狀態會跟著更新。`/fast` 目前沒有公開的 Extension 專用事件，但 Prime Agent 會在切換後重繪 UI；renderer 每次都從 active branch 讀取最後的 service tier，因此仍會反映新狀態。
+其他 Extension 的 `setStatus()` 只有在真正的 custom footer 模式能即時彙整；daemon widget 顯示 `ext:?`。`/fast` 沒有公開的 Extension 專用事件，因此切換後會在下一次 `before_agent_start` 更新，無須掃描每一幀 render。
 
 ### 顯示與效能邊界
 
-- 狀態列固定為一行，超過終端寬度時從右側截斷並加上 `…`。
-- 截斷發生在加上 ANSI 顏色前，並以 grapheme 與常見 CJK／emoji 寬度計算，不會從 UTF-16 code unit 中間切斷文字。
+- 真正的 footer 固定為一行，超過終端寬度時從右側截斷並加上 `…`。daemon 不提供 client 寬度，fallback widget 過長時改由 TUI 自動換行。
+- footer 截斷發生在加上 ANSI 顏色前，並以 grapheme 與常見 CJK／emoji 寬度計算，不會從 UTF-16 code unit 中間切斷文字。
 - 因為欄位順序固定，窄終端可能看不到右側的 cache、total 與 cost。這是試用版刻意保留的效果，後續可依實際使用感受改成二行或 responsive priority。
-- renderer 不執行 shell、網路或檔案掃描。
+- renderer 只格式化已快取資料，不執行 shell、網路或檔案掃描。daemon 的 Git branch 透過事件外的非同步 `git -C <cwd> branch --show-current` 更新，參數不經 shell 展開。
 - usage 只累加 active branch 的 assistant message，不另外累加 `child_usage_attributed`，避免 RLM child usage 重複計算。
-- 每次 render 會掃描 active branch。一般 session 成本很低；若超長 session 出現 UI 延遲，再改成事件增量快取。
+- active branch 統計只在 session／agent／turn／model／compaction 事件重算，不在每次 TUI render 掃描。
 - 費用來自 assistant message 的 `usage.cost.total`，是 client 估算，不是 provider 帳單。
 
 ## 安裝與驗證
@@ -318,22 +316,22 @@ install -m 0644 "$source_dir/package.json" "$target_dir/package.json"
 
 手動驗證至少涵蓋：
 
-1. 一般 session 能看見一行 footer，窄終端不破版。
+1. 預設 daemon session 能在輸入框下方看見狀態 widget；in-process session 則看見一行 footer。
 2. 切換模型後 model ID 更新。
-3. 執行 `/effort` 與 `/fast` 後狀態更新。
+3. 執行 `/effort` 後立即更新；`/fast` 在下一次送出 prompt 時更新。
 4. 完成一輪對話後 input、output、cache、total、費用與 context 更新。
 5. 工具執行期間顯示 `work:<tool>`，完成後回到 `idle`。
 6. `/compact` 後允許暫時顯示 `ctx:?`，下一次模型回應後恢復數值。
-7. Git branch 切換後 footer 更新；非 Git 目錄不顯示 branch。
-8. 其他 Extension 呼叫 `setStatus()` 後，文字出現在 `ext:` 欄位。
+7. Git branch 切換後，footer 即時更新；daemon widget 最遲在下一個 `turn_end` 更新。非 Git 目錄不顯示 branch。
+8. in-process footer 能彙整其他 Extension 的 `setStatus()`；daemon widget 明確顯示 `ext:?`。
 9. `/reload`、`/new`、resume 與 fork 後不殘留前一個 session 的 active tool state。
-10. 離開 session 或 reload 時，branch watcher 已在 `dispose()` 清理。
+10. 離開 session 或 reload 時，footer branch watcher 已在 `dispose()` 清理。
 
 需要核對 token、費用與 context 時，以 `/usage` 的輸出作為同一客戶端內的對照。真實費用仍以 provider 帳單為準。
 
 ### 移除
 
-刪除或移走使用者層的 `statusline` Extension 目錄後執行 `/reload`，Prime Agent 就會恢復內建空 footer。移除前可先把目錄改名保存，方便復原。
+刪除或移走使用者層的 `statusline` Extension 目錄後執行 `/reload`，Prime Agent 會移除 fallback widget，並恢復內建空 footer。移除前可先把目錄改名保存，方便復原。
 
 ## 來源
 
@@ -345,10 +343,12 @@ install -m 0644 "$source_dir/package.json" "$target_dir/package.json"
 - `examples/extensions/status-line.ts`：官方 `setStatus()` 範例。
 - `examples/extensions/custom-footer.ts`：官方 custom footer、usage 與 Git branch 範例。
 - `dist/modes/interactive/components/footer.js`：Prime 品牌 footer 的 `render()` 固定回傳空陣列。
+- `dist/modes/daemon/daemon-extension-binding.js`：daemon bridge 的 `setFooter()` 為 no-op，`setWidget()` 會發送可序列化 UI request。
+- `dist/modes/interactive/interactive-mode.js`：daemon client 接收 `setWidget` request 後建立可見 widget。
 - `dist/core/extensions/types.d.ts`：`ExtensionAPI`、`ExtensionContext`、`ContextUsage` 與所有公開事件型別。
 - `dist/core/footer-data-provider.d.ts`：custom footer 可讀取的 Git branch、Extension statuses 與 provider count。
 - `dist/core/session-manager.d.ts`：read-only session manager、session entries 與 header 型別。
 - `dist/core/agent-session.js`：`/session` token／費用加總及 context usage 算法。
 - `@earendil-works/pi-ai/dist/types.d.ts`：`Model`、`Usage` 與 `AssistantMessage` 欄位。
 
-Prime Agent 後續版本若恢復非空內建 footer，`setStatus()` 可能重新直接可見。升級後應先重查 `FooterComponent.render()` 與型別檔，再決定是否仍需要完整 custom footer。
+Prime Agent 後續版本若恢復非空內建 footer，或 daemon bridge 開始支援 `setFooter()`，fallback 條件都可能改變。升級後應先重查 `FooterComponent.render()`、daemon binding 與型別檔，再決定是否保留 widget fallback。

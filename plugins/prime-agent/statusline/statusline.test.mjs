@@ -134,7 +134,7 @@ test("uses compact, stable fallbacks for unknown and idle state", () => {
 	]);
 });
 
-function createHarness() {
+function createHarness({ footerSupported = true, readBranch = async () => "main" } = {}) {
 	const handlers = new Map();
 	const entries = [
 		{ type: "model_change", modelId: "test-model" },
@@ -148,6 +148,8 @@ function createHarness() {
 		}),
 	];
 	let footerFactory;
+	let footerComponent;
+	let widget;
 	let idle = true;
 	let pending = false;
 	let thinkingLevel = "medium";
@@ -163,6 +165,18 @@ function createHarness() {
 			return thinkingLevel;
 		},
 	};
+	const footerData = {
+		getGitBranch: () => "main",
+		getExtensionStatuses: () => new Map([["guard", "guard:ok"]]),
+		onBranchChange(callback) {
+			branchListener = callback;
+			return () => {
+				unsubscribed = true;
+			};
+		},
+	};
+	const tui = { requestRender: () => renderRequests++ };
+	const theme = { fg: (_name, text) => text };
 	const ctx = {
 		hasUI: true,
 		cwd: "/workspace/custom-skills",
@@ -184,24 +198,16 @@ function createHarness() {
 		ui: {
 			setFooter(factory) {
 				footerFactory = factory;
+				if (footerSupported) footerComponent = factory(tui, theme, footerData);
+			},
+			setWidget(key, content, options) {
+				widget = { key, content, options };
 			},
 		},
 	};
-	const footerData = {
-		getGitBranch: () => "main",
-		getExtensionStatuses: () => new Map([["guard", "guard:ok"]]),
-		onBranchChange(callback) {
-			branchListener = callback;
-			return () => {
-				unsubscribed = true;
-			};
-		},
-	};
-	const tui = { requestRender: () => renderRequests++ };
-	const theme = { fg: (_name, text) => text };
 	const truncate = (text, width) => text.slice(0, width);
 
-	registerStatusline(pi, truncate);
+	registerStatusline(pi, truncate, readBranch);
 
 	return {
 		ctx,
@@ -211,6 +217,8 @@ function createHarness() {
 		theme,
 		tui,
 		getFooterFactory: () => footerFactory,
+		getFooterComponent: () => footerComponent,
+		getWidget: () => widget,
 		getRenderRequests: () => renderRequests,
 		getUnsubscribed: () => unsubscribed,
 		setIdle: (value) => {
@@ -229,7 +237,7 @@ function createHarness() {
 test("registers a reactive footer and tracks tools, branch, model, effort, and session changes", async () => {
 	const harness = createHarness();
 	await harness.handlers.get("session_start")({}, harness.ctx);
-	const component = harness.getFooterFactory()(harness.tui, harness.theme, harness.footerData);
+	const component = harness.getFooterComponent();
 
 	const initial = component.render(1_000)[0];
 	assert.match(initial, /^rlm:1 · model:test-model · eff:medium · custom-skills:main · ctx:50%/);
@@ -267,6 +275,31 @@ test("registers a reactive footer and tracks tools, branch, model, effort, and s
 
 	component.dispose();
 	assert.equal(harness.getUnsubscribed(), true);
+});
+
+test("falls back to a visible widget when daemon mode ignores footer factories", async () => {
+	let branch = "main";
+	const harness = createHarness({ footerSupported: false, readBranch: async () => branch });
+	await harness.handlers.get("session_start")({}, harness.ctx);
+	await new Promise((resolve) => setImmediate(resolve));
+
+	const widget = harness.getWidget();
+	assert.equal(widget.key, "prime-agent-statusline");
+	assert.deepEqual(widget.options, { placement: "belowEditor" });
+	assert.match(widget.content[0], /^rlm:1 · model:test-model · eff:medium · custom-skills:main · ctx:50%/);
+	assert.match(widget.content[0], /idle · ext:\? · cache:R3\/W2 · total:20 · cost:~\$0\.0040$/);
+
+	harness.setIdle(false);
+	await harness.handlers.get("tool_execution_start")(
+		{ toolCallId: "t1", toolName: "ipython" },
+		harness.ctx,
+	);
+	assert.match(harness.getWidget().content[0], /work:ipython/);
+
+	branch = "feature/daemon";
+	await harness.handlers.get("turn_end")({}, harness.ctx);
+	await new Promise((resolve) => setImmediate(resolve));
+	assert.match(harness.getWidget().content[0], /custom-skills:feature\/daemon/);
 });
 
 test("does not install a footer without an interactive UI", async () => {
