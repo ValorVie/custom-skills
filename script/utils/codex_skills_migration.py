@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-import typer
 from rich.console import Console
 
 from .paths import get_agents_skills_dir, get_ai_dev_config_dir, get_codex_config_dir
@@ -66,6 +65,71 @@ def _fingerprint(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _entry_digest(entry: Path) -> str:
+    """單一項目的內容標記，供逐檔差異比對。"""
+    if entry.is_symlink():
+        return "L:" + os.readlink(entry)
+    if entry.is_dir():
+        return "D"
+    if entry.is_file():
+        digest = hashlib.sha256()
+        with entry.open("rb") as file_handle:
+            for chunk in iter(lambda: file_handle.read(8192), b""):
+                digest.update(chunk)
+        return "F:" + digest.hexdigest()
+    return "O"
+
+
+def _entry_map(root: Path) -> dict[str, str]:
+    entries = {".": _entry_digest(root)}
+    if root.is_dir() and not root.is_symlink():
+        for entry in root.rglob("*"):
+            entries[entry.relative_to(root).as_posix()] = _entry_digest(entry)
+    return entries
+
+
+def _describe_conflict(source: Path, destination: Path) -> dict[str, object]:
+    """列出衝突 skill 兩端的實際差異，讓使用者不必自行 diff。"""
+    legacy_entries = _entry_map(source)
+    target_entries = _entry_map(destination)
+    shared = legacy_entries.keys() & target_entries.keys()
+    return {
+        "name": source.name,
+        "legacy_only": sorted(legacy_entries.keys() - target_entries.keys()),
+        "target_only": sorted(target_entries.keys() - legacy_entries.keys()),
+        "content_differs": sorted(
+            path for path in shared if legacy_entries[path] != target_entries[path]
+        ),
+    }
+
+
+def _print_conflicts(
+    details: list[dict[str, object]], *, legacy_dir: Path, target_dir: Path
+) -> None:
+    console.print(
+        f"[yellow]Codex skills 遷移略過 {len(details)} 個內容衝突，"
+        "其餘項目照常處理。舊版與共用路徑都保留。[/yellow]"
+    )
+    for detail in details:
+        name = detail["name"]
+        console.print(f"[yellow]  {name}[/yellow]")
+        for label, key in (
+            ("舊版獨有", "legacy_only"),
+            ("共用端獨有", "target_only"),
+            ("同名內容不同", "content_differs"),
+        ):
+            paths = [path for path in detail[key] if path != "."]
+            if paths:
+                console.print(f"[dim]    {label}：{', '.join(paths)}[/dim]")
+        console.print(
+            f"[dim]    比對：diff -r {legacy_dir / name} {target_dir / name}[/dim]"
+        )
+        console.print(
+            f"[dim]    處理：確認要保留的版本後補齊差異使兩端一致（下次執行會自動去重），"
+            f"或直接移除 {legacy_dir / name}[/dim]"
+        )
+
+
 def _copy_entry(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if source.is_symlink():
@@ -111,7 +175,7 @@ def _write_audit(
     legacy_dir: Path,
     target_dir: Path,
     actions: list[dict[str, str]],
-    conflicts: tuple[str, ...],
+    conflicts: list[dict[str, object]],
 ) -> None:
     payload = {
         "status": status,
@@ -119,7 +183,7 @@ def _write_audit(
         "legacy_dir": str(legacy_dir),
         "target_dir": str(target_dir),
         "actions": actions,
-        "conflicts": list(conflicts),
+        "conflicts": conflicts,
     }
     (backup_dir / "audit.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -147,6 +211,7 @@ def migrate_legacy_codex_skills(
     migrate_names: list[str] = []
     deduplicate_names: list[str] = []
     conflict_names: list[str] = []
+    conflict_details: list[dict[str, object]] = []
     skipped_names: list[str] = []
 
     for source in sorted(legacy_dir.iterdir(), key=lambda item: item.name):
@@ -165,6 +230,7 @@ def migrate_legacy_codex_skills(
             deduplicate_names.append(source.name)
         else:
             conflict_names.append(source.name)
+            conflict_details.append(_describe_conflict(source, destination))
 
     migrated = tuple(migrate_names)
     deduplicated = tuple(deduplicate_names)
@@ -176,11 +242,10 @@ def migrate_legacy_codex_skills(
     ]
 
     if conflicts:
-        console.print(
-            "[yellow]Codex skills 遷移略過內容衝突："
-            f"{', '.join(conflicts)}。舊版與共用路徑都保留，請人工比對。[/yellow]"
-        )
-        if not dry_run:
+        _print_conflicts(conflict_details, legacy_dir=legacy_dir, target_dir=target_dir)
+
+    if not actions:
+        if conflicts and not dry_run:
             audit_dir = _create_audit_dir(backup_root)
             try:
                 _write_audit(
@@ -189,18 +254,12 @@ def migrate_legacy_codex_skills(
                     legacy_dir=legacy_dir,
                     target_dir=target_dir,
                     actions=actions,
-                    conflicts=conflicts,
+                    conflicts=conflict_details,
                 )
             except Exception:
                 shutil.rmtree(audit_dir, ignore_errors=True)
                 raise
             console.print(f"[dim]衝突稽核：{audit_dir}[/dim]")
-            console.print(
-                "[red]Codex skills 遷移因內容衝突停止，未修改任何 skill。[/red]"
-            )
-            raise typer.Exit(code=1)
-
-    if not actions:
         return CodexSkillsMigrationResult(
             conflicts=conflicts,
             skipped=skipped,
@@ -208,6 +267,8 @@ def migrate_legacy_codex_skills(
         )
 
     action_text = f"搬移 {len(migrated)}、去重 {len(deduplicated)}"
+    if conflicts:
+        action_text += f"、略過衝突 {len(conflicts)}"
     if dry_run:
         console.print(
             "[dim][dry-run] Codex skills 遷移："
@@ -236,7 +297,7 @@ def migrate_legacy_codex_skills(
             legacy_dir=legacy_dir,
             target_dir=target_dir,
             actions=actions,
-            conflicts=conflicts,
+            conflicts=conflict_details,
         )
     except Exception:
         shutil.rmtree(backup_dir, ignore_errors=True)
@@ -265,11 +326,11 @@ def migrate_legacy_codex_skills(
 
         _write_audit(
             backup_dir,
-            status="complete",
+            status="partial" if conflicts else "complete",
             legacy_dir=legacy_dir,
             target_dir=target_dir,
             actions=actions,
-            conflicts=conflicts,
+            conflicts=conflict_details,
         )
     except Exception as exc:
         rollback_errors: list[str] = []
@@ -299,7 +360,7 @@ def migrate_legacy_codex_skills(
             legacy_dir=legacy_dir,
             target_dir=target_dir,
             actions=actions,
-            conflicts=conflicts,
+            conflicts=conflict_details,
         )
         if rollback_errors:
             raise RuntimeError(
@@ -309,9 +370,7 @@ def migrate_legacy_codex_skills(
             f"Codex skills 遷移失敗，已回復原狀；備份保留於 {backup_dir}"
         ) from exc
 
-    console.print(
-        "[green]Codex skills 遷移完成：" f"{action_text} → {target_dir}[/green]"
-    )
+    console.print(f"[green]Codex skills 遷移完成：{action_text} → {target_dir}[/green]")
     console.print(f"[dim]備份與稽核：{backup_dir}[/dim]")
     return CodexSkillsMigrationResult(
         migrated=migrated,

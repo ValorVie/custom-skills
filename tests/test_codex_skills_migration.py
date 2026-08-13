@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 
 import pytest
-import typer
 
 from script.utils import codex_skills_migration as migration
 
@@ -97,24 +96,31 @@ def test_conflict_keeps_both_versions_and_writes_audit(
     _skill(legacy, "conflict", "legacy")
     _skill(target, "conflict", "target")
 
-    with pytest.raises(typer.Exit) as exc_info:
-        migration.migrate_legacy_codex_skills(
-            legacy_dir=legacy,
-            target_dir=target,
-            backup_root=backups,
-        )
+    result = migration.migrate_legacy_codex_skills(
+        legacy_dir=legacy,
+        target_dir=target,
+        backup_root=backups,
+    )
 
-    assert exc_info.value.exit_code == 1
+    assert result.conflicts == ("conflict",)
+    assert result.changed is False
     assert (legacy / "conflict" / "SKILL.md").read_text(encoding="utf-8") == "legacy"
     assert (target / "conflict" / "SKILL.md").read_text(encoding="utf-8") == "target"
     audit_dir = next(backups.iterdir())
     audit = json.loads((audit_dir / "audit.json").read_text(encoding="utf-8"))
     assert audit["status"] == "conflict"
-    assert audit["conflicts"] == ["conflict"]
+    assert audit["conflicts"] == [
+        {
+            "name": "conflict",
+            "legacy_only": [],
+            "target_only": [],
+            "content_differs": ["SKILL.md"],
+        }
+    ]
     assert not (audit_dir / "conflict").exists()
 
 
-def test_one_conflict_stops_all_other_planned_moves(tmp_path: Path) -> None:
+def test_one_conflict_skips_only_that_skill(tmp_path: Path) -> None:
     legacy = tmp_path / ".codex" / "skills"
     target = tmp_path / ".agents" / "skills"
     backups = tmp_path / "backups"
@@ -122,21 +128,53 @@ def test_one_conflict_stops_all_other_planned_moves(tmp_path: Path) -> None:
     _skill(legacy, "conflict", "legacy")
     _skill(target, "conflict", "target")
 
-    with pytest.raises(typer.Exit) as exc_info:
-        migration.migrate_legacy_codex_skills(
-            legacy_dir=legacy,
-            target_dir=target,
-            backup_root=backups,
-        )
+    result = migration.migrate_legacy_codex_skills(
+        legacy_dir=legacy,
+        target_dir=target,
+        backup_root=backups,
+    )
 
-    assert exc_info.value.exit_code == 1
-    assert (legacy / "safe" / "SKILL.md").exists()
-    assert not (target / "safe").exists()
+    assert result.migrated == ("safe",)
+    assert result.conflicts == ("conflict",)
+    assert not (legacy / "safe").exists()
+    assert (target / "safe" / "SKILL.md").exists()
+    assert (legacy / "conflict" / "SKILL.md").read_text(encoding="utf-8") == "legacy"
+    assert (target / "conflict" / "SKILL.md").read_text(encoding="utf-8") == "target"
     audit = json.loads(
         (next(backups.iterdir()) / "audit.json").read_text(encoding="utf-8")
     )
+    assert audit["status"] == "partial"
     assert audit["actions"] == [{"action": "migrate", "name": "safe"}]
-    assert audit["conflicts"] == ["conflict"]
+    assert [entry["name"] for entry in audit["conflicts"]] == ["conflict"]
+
+
+def test_conflict_audit_lists_extra_files_on_each_side(tmp_path: Path) -> None:
+    legacy = tmp_path / ".codex" / "skills"
+    target = tmp_path / ".agents" / "skills"
+    backups = tmp_path / "backups"
+    _skill(legacy, "partial-diff")
+    _skill(target, "partial-diff")
+    (legacy / "partial-diff" / "references" / "notes.md").write_text(
+        "notes\n", encoding="utf-8"
+    )
+    (target / "partial-diff" / "assets" / "extra.txt").write_text(
+        "extra\n", encoding="utf-8"
+    )
+
+    result = migration.migrate_legacy_codex_skills(
+        legacy_dir=legacy,
+        target_dir=target,
+        backup_root=backups,
+    )
+
+    assert result.conflicts == ("partial-diff",)
+    audit = json.loads(
+        (next(backups.iterdir()) / "audit.json").read_text(encoding="utf-8")
+    )
+    detail = audit["conflicts"][0]
+    assert detail["legacy_only"] == ["references/notes.md"]
+    assert detail["target_only"] == ["assets/extra.txt"]
+    assert detail["content_differs"] == []
 
 
 def test_conflict_dry_run_does_not_write_audit_or_move_skills(tmp_path: Path) -> None:
@@ -231,6 +269,7 @@ def test_leaves_retired_auto_skill_for_confirmed_cleanup(
     assert legacy_link.is_symlink()
     assert not (target / "auto-skill").exists()
     assert result.backup_dir is None
+
 
 def test_migrates_broken_skill_symlink_without_following_it(tmp_path: Path) -> None:
     legacy = tmp_path / ".codex" / "skills"
