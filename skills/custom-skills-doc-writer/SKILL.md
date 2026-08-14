@@ -1,293 +1,157 @@
 ---
 name: custom-skills-doc-writer
 description: |
-  以統一格式撰寫計畫、報告、指南、教學、紀錄、規範等文件，並依專案慣例決定知識庫放置路徑、主題分類與索引更新。
-  Use when: 使用者要求撰寫或起草文件，或需要整理 docs 目錄、文件分類、主題索引與知識庫結構。包含但不限於：計畫書（新功能/重構/遷移）、報告（調查/階段/分析）、指南、教學、會議紀錄、事件紀錄、決策紀錄、規範文件。
-  觸發方式: /custom-skills-doc-writer [type] [variant]
-  Keywords: 撰寫文件, 文件模板, 文件分類, 文件目錄, 知識庫, 主題索引, 計畫書, 報告, 指南, 教學, 紀錄, 規範, document writer, plan, report, guide, tutorial, record, standard, 寫文件, 起草, draft
+  依讀者任務與可驗證主線撰寫、重構及整理技術文件，並依專案慣例處理文件類型、路徑、檔名、frontmatter、索引與生命週期。技術文件另保護中英混合內容中的事實、命令、路徑與識別字，英文說明文字採 ASD-STE100 大原則；使用者同時提供合法標準 PDF 與本機檢查器時可自動輔助檢查。只要使用者要新增或實質改寫計畫、調查、分析、研究、進度、指南、維運手冊、教學、參考資料、原理解釋、決策、事件、會議、變更日誌或規範，就應使用本技能；整理 docs 目錄與主題索引時也適用。單純翻譯、一小段文字潤飾、只改程式碼或只查一個事實時不要使用。
 ---
 
-# Document Writer — 統一格式文件撰寫
+# Document Writer
+
+完整流程是：調查 → 寫作小卡 → 文件組裝 → 語言與事實守門 → 成稿檢查 → 發布與維護。草稿寫完不代表完成；受保護內容、路徑、連結、索引、證據界線與讀者檢查都完成才交付。
+
+開始前先在內部確認六個階段及各自產出，不必為了流程向使用者重述已知資訊。
 
 ## 使用方式
 
-```
+```text
 /custom-skills-doc-writer [type] [variant]
 ```
 
-若使用者已提供完整引數，直接載入對應模板執行。若未提供或資訊不足，透過互動引導。
-
----
-
-## 引數解析
-
-### type（文件類型）與 variant（子類型）
-
-| type | variant | 模板 | 說明 |
-|------|---------|------|------|
-| `plan` | `feature` | template-plan-feature.md | 新功能計畫 |
-| `plan` | `refactoring` | template-plan-refactoring.md | 重構計畫 |
-| `plan` | `migration` | template-plan-migration.md | 遷移計畫 |
-| `plan` | `general` | template-plan-general.md | 通用計畫（預設） |
-| `plan` | `rfc` | template-plan-rfc.md | 技術提案 |
-| `report` | `investigation` | template-report-investigation.md | 調查報告 |
-| `report` | `status` | template-report-status.md | 階段/進度報告 |
-| `report` | `analysis` | template-report-analysis.md | 分析報告 |
-| `research` | — | template-research.md | 探索性調查與外部證據整理 |
-| `guide` | — | template-guide.md | 操作指南 |
-| `runbook` | — | template-runbook.md | 可重複執行且需驗證與回復的維運手冊 |
-| `tutorial` | — | template-tutorial.md | 教學文件 |
-| `record` | `meeting` | template-record-meeting.md | 會議紀錄 |
-| `record` | `incident` | template-record-incident.md | 事件紀錄 |
-| `record` | `decision` | template-record-decision.md | 決策紀錄 |
-| `record` | `changelog` | template-record-changelog.md | 變更日誌 |
-| `standard` | — | template-standard.md | 規範文件 |
+若使用者指定類型，直接採用。未指定時先從對話與現有文件推斷；只有不同選擇會改變讀者、用途、保留方式或輸出位置時才確認。
 
----
+| type | variant | 用途 |
+| --- | --- | --- |
+| `plan` | `general`、`feature`、`refactoring`、`migration`、`rfc` | 規劃工作或提出方案 |
+| `report` | `investigation`、`analysis`、`status` | 保存調查、分析或進度結果 |
+| `research` | 無 | 整理外部證據、可能性與未知 |
+| `guide` | 無 | 完成一個特定目標 |
+| `runbook` | 無 | 安全重複執行可能改變系統的操作 |
+| `tutorial` | 無 | 透過一條可成功完成的路徑學會能力 |
+| `reference` | 無 | 精確查找欄位、介面、限制或定義 |
+| `explanation` | 無 | 理解原理、原因、關係與取捨 |
+| `record` | `meeting`、`incident`、`decision`、`changelog` | 保存事實、事件、決定或變更 |
+| `standard` | 無 | 定義規則、例外與檢查方式 |
 
-## 流程
+選定後讀取 [document-types.md](references/document-types.md) 的對應章節。不要載入或照填其他類型。
 
-### Step 1: 判斷引數來源
+## 第一階段：調查
 
-依以下優先順序決定 type/variant：
+先讀取使用者要求、專案中的 `AGENTS.md`、`CLAUDE.md`、文件索引、同主題文件與直接證據。專案沒有某個入口時跳過，不要自行建立空架構。
 
-1. **使用者明確指定** → 直接使用，跳到 Step 3
-2. **未指定但有對話脈絡** → 進入 Step 1.5 脈絡推斷
-3. **無引數且無脈絡** → 進入 Step 2 互動引導
+整理四類資訊：
 
-### Step 1.5: 脈絡推斷（從對話內容判斷文件類型）
+- 已直接確認的事實。
+- 根據證據得到的推論。
+- 仍未知而且會影響內容的問題。
+- 本次不能修改、不能公開或不能宣稱的範圍。
 
-當使用者在對話中說「把剛才的討論寫成文件」「整理成報告」等模糊指令時，根據對話內容特徵推斷文件類型。
+AI 助理應先自己查。只有資料找不到、正式來源互相衝突，或答案需要使用者決定目標、取捨、公開範圍與授權時才提問。
 
-**推斷規則 — 依對話內容的核心動詞/意圖判斷：**
+## 第二階段：寫作小卡
 
-| 對話特徵 | 推斷結果 | 常見混淆 |
-|----------|----------|----------|
-| 分析了問題根因、追蹤了呼叫鏈、讀了原始碼 | `report/investigation` | 非 `record/incident`（incident 是事後紀錄時間線，investigation 是深入分析） |
-| 比較了多個方案、評估了優缺點 | `report/analysis` | 非 `record/decision`（decision 是記錄最終選擇，analysis 是完整比較過程） |
-| 討論了線上事故的時間線與處理過程 | `record/incident` | 非 `report/investigation`（incident 重點是「發生了什麼、怎麼處理」） |
-| 做出了技術選型或架構決定 | `record/decision` | 非 `report/analysis`（decision 重點是「選了什麼、為什麼」） |
-| 規劃了要做的功能或改善 | `plan/*` | 再看子類型：有技術債→refactoring、有平台切換→migration、有新需求→feature |
-| 討論了某個流程怎麼操作 | `guide` | 非 `tutorial`（guide 是參考手冊，tutorial 是分步教學含練習） |
-| 操作會改變系統、需要停止點、驗證與回復 | `runbook` | 非一般 `guide`（runbook 強調可安全重複執行） |
-| 尚無定論，正在整理外部資料、方案與未知 | `research` | 非 `report/analysis`（research 保留未知，analysis 通常要回答明確比較問題） |
-| 教學性質、有步驟練習 | `tutorial` | 非 `guide` |
-
-**關鍵區分原則：**
-
-- **report vs record**：report 是「分析與結論」（有方法論、有證據鏈、有建議），record 是「事實紀錄」（有時間線、有出席者、有決議）
-- **investigation vs incident**：investigation 回答「為什麼發生」，incident 回答「發生了什麼、怎麼處理」
-- **analysis vs decision**：analysis 回答「哪個比較好」，decision 回答「我們選了什麼」
-
-**只在實質歧義時確認：** 若不同類型會改變文件用途、保留期限或輸出路徑，先向使用者說明推斷結果並確認：
-
-```
-根據我們剛才的討論（分析了 XX 的根因與影響範圍），建議使用「調查報告」格式。確認嗎？
-```
-
-若類型與路徑都能由專案慣例或對話明確判定，直接執行，不為了形式確認而打斷工作。
+在動筆前建立一張內部小卡。小卡用來決定文章，不要原封不動貼進成稿。
 
-### Step 2: 互動引導（無脈絡時）
+1. 主要讀者是誰？可以假設他已經知道什麼？
+2. 他現在要完成哪件事，或回答哪個問題？
+3. 讀完後應該知道、決定或做到什麼？
+4. 最主要的答案、決定或行動是什麼？
+5. 哪些是證據、推論與未知？
+6. 哪些內容在範圍內？哪些不應放進這份文件？
+7. 這是保留某個時點的結果，還是持續維護的入口？
 
-使用 `AskUserQuestion` 逐層引導：
+接著列出讀者完成任務前必須回答的三到五個問題。簡單文件不必硬湊三題；超過五個主要問題時，先檢查是否混入第二種文件用途，或是否該拆成入口與細節文件。
 
-**第一層 — 文件類型：**
-- 計畫 (plan) — 規劃未來要做的事
-- 報告 (report) — 記錄已完成的分析或進展
-- 研究 (research) — 整理外部證據、可能性與未知
-- 指南 (guide) — 說明如何完成某件事
-- 維運手冊 (runbook) — 可重複執行，含驗證、停止與回復
-- 教學 (tutorial) — 分步驟教學，含練習
-- 紀錄 (record) — 記錄事件或決策
-- 規範 (standard) — 定義規則與標準
+## 第三階段：組裝文件
 
-**第二層 — 子類型（僅 plan、report、record 需要）：**
+### 先用最小骨架
 
-plan:
-- 新功能 (feature)
-- 重構 (refactoring)
-- 遷移 (migration)
-- 通用 (general)
-- 技術提案 (rfc)
+從 [document-types.md](references/document-types.md) 取得該類型的問題順序。標題可以配合內容改寫，重點是每一節都回答一個真實讀者問題。
 
-report:
-- 調查報告 (investigation)
-- 階段報告 (status)
-- 分析報告 (analysis)
+需要證據分級、方案比較、安全操作、相容性或任務連結時，再讀 [content-blocks.md](references/content-blocks.md) 的對應內容。可選內容不是待填欄位；沒有證據或不影響本次讀者的內容直接省略。
 
-record:
-- 會議紀錄 (meeting)
-- 事件紀錄 (incident)
-- 決策紀錄 (decision)
-- 變更日誌 (changelog)
-
-### Step 3: 載入模板
-
-根據確定的 type/variant，讀取 `references/template-{type}-{variant}.md`（或 `references/template-{type}.md`）。
-
-### Step 4: 收集文件資訊
+### 依答案順序寫作
 
-先讀取專案內的 `AGENTS.md`、`CLAUDE.md`、`docs/INDEX.md`、同主題文件與現有目錄，再決定輸出路徑。只有專案沒有慣例、同時存在多個合理位置，或路徑會改變文件定位時，才詢問使用者。
+- 開頭先說文件目的、目前答案或要採取的行動，再放細節。
+- 一個章節回答一個主要問題。第一段直接給答案、狀態或行動。
+- 相鄰章節若有因果、依賴、時間或狀態變化，直接說明關係。
+- 摘要放結論，正文放證據；不要在摘要、發現、建議與結論重複同一段內容。
+- 表格只用於多個項目的固定欄位比較或精確查找。原因、過程與論證優先使用段落。
+- 已有正式入口的內容用連結，不複製一份新的真相。
+- 資訊暫時未知但不影響結論時清楚標示；若會改變結論或操作安全，停止並詢問。
 
-預設輸出路徑：
+### 高風險內容不能因精簡而消失
 
-| type | 預設路徑 |
-|------|----------|
-| `plan` | `docs/plans/` |
-| `report` | `docs/report/` |
-| `research` | `docs/research/` |
-| `guide` | `docs/guide/` |
-| `runbook` | `docs/runbook/` 或專案已有的 `docs/guide/` |
-| `tutorial` | `docs/tutorial/` |
-| `record` | `docs/record/` |
-| `standard` | `.standards/` 或 `docs/` |
+操作會改變系統、資料、服務、流量、權限或費用時，必須保留目標、執行身分、影響、非目標、完整操作、前置檢查、預覽、備份、成功條件、停止點、驗證、回復與稽核紀錄。細節使用 [content-blocks.md](references/content-blocks.md) 的安全操作內容。
 
-上表只在專案沒有現成結構時使用。若同一文件類型已經依主題分目錄，預設放在 `docs/<type>/<topic>/`，不繼續堆到類型根目錄。
+## 第四階段：語言與事實守門
 
-### Step 4.1: 決定知識庫位置
+正式技術文件，尤其是中英混合內容，讀取 [language-and-fact-check.md](references/language-and-fact-check.md)。先列出不能改寫的技術字串與事實，再分別處理可改寫的中文與英文說明文字。
 
-當專案的文件已經跨越多個主題或類型，讀取 [knowledge-base-organization.md](references/knowledge-base-organization.md)。
+英文使用 ASD-STE100 的大原則，中文使用可跨語言的清楚表達原則。這些原則不等於正式符合性判定；不能因簡化而改動人物、時間、數字、命令、條件、狀態、範圍或不確定性。
 
-預設採用下列二維分類：
+完成規則式改寫後，才用 `humanizer-zh-tw` 整理可改寫說明文字的自然語氣。接著重新比對技術字串與事實，最後才對成稿執行選用的機器檢查。自然語氣整理不得改變技術意義、證據、數字、條件、安全界線或受保護字串。
 
-1. **實體路徑以文件用途為第一層**：`docs/<type>/<topic>/`。
-2. **主題視角由索引與 metadata 提供**：在 `docs/INDEX.md` 從主題連回 plan、report、guide 等實體文件，不複製或鏡像同一份文件。
-3. **第二層用穩定領域或服務名稱**：例如 `image-cdn`、`mysql84-migration`，避免使用 `misc`、`others` 或過於寬泛的 repo 名稱形成新的雜物區。
-4. **沒有內容就不先建空目錄**：只在實際有文件時建立對應的 type/topic 目錄。
-5. **專案現有慣例優先**：例如專案已使用 `docs/plans/` 或把 runbook 放在 `docs/guide/`，就沿用現狀，不為了套用通用規則批次搬檔。
+若使用者同時提供合法取得的 ASD-STE100 PDF 絕對路徑，以及使用者或專案明確批准的本機檢查器可執行檔絕對路徑，依參考文件的固定介面自動執行。缺少任一項時不執行機器檢查，仍完成原則式審閱。不要自行搜尋、下載或安裝 PDF、字典或檢查器。
 
-按文件類型補問必要資訊（若已在對話脈絡或指令中提供則跳過）：
+## 第五階段：成稿檢查
 
-| type | 額外必問欄位 |
-|------|-------------|
-| `plan` | 目標、背景/動機 |
-| `report/investigation` | 觸發事件、調查範圍 |
-| `report/status` | 報告期間 |
-| `report/analysis` | 分析目的、分析對象 |
-| `research` | 研究問題、資料範圍、希望回答與保留的未知 |
-| `guide` | 適用對象、前置條件 |
-| `runbook` | 操作目標、影響邊界、需要的權限、成功條件、停止點與回復方式 |
-| `tutorial` | 難度等級、預估時間 |
-| `record/meeting` | 日期時間、出席者、議程 |
-| `record/incident` | 嚴重度、發生時間、影響範圍 |
-| `record/decision` | 待決策的問題、考量因素 |
-| `record/changelog` | 版本號 |
-| `standard` | 適用範圍 |
+依 [review-checklist.md](references/review-checklist.md) 檢查四件事：
 
-Metadata 自動填入：
-- `title`: 從檔名的標題部分自動填入
-- `date`: 時點型文件從檔名的 `YYYYMMDDhh-NN` 部分自動填入；穩定檔名使用文件建立日期或本次更新日期
-- `author`: 從 git config 取得或留空
+1. 只看標題與開頭，能否知道目的和主要答案？
+2. 只看二級標題，能否看出閱讀順序？
+3. 每節是否回答寫作小卡中的問題，而且前後關係清楚？
+4. 重要結論是否能回到證據，操作是否能驗證與停止？
 
-### Step 4.5: 判斷內容來源
-
-- **對話轉文件**：對話中已有充分的技術討論內容，直接從對話萃取，掃描對話中的事實、結論、建議，對應到模板章節，不重複詢問已知資訊
-- **從零撰寫**：無對話脈絡或資訊不足，依 Step 4 的類型必要欄位逐項收集
-
-### Step 5: 撰寫文件
-
-根據模板結構撰寫文件內容：
-
-1. 填入 frontmatter metadata
-2. 根據使用者提供的背景資訊，填充各章節內容
-3. 若章節明確不適用於當前文件，直接刪除該章節，不留空佔位符。僅在資訊暫時不足但章節本身合理時才保留 `<!-- TODO: 補充 -->`
-4. 若使用者提供了參考資料（如 `@file`），讀取後融入文件內容
-5. 若新文件建立了新主題、使目錄清單變得難以瀏覽，或取代舊文件，同步更新最近的 `INDEX.md` 與 `superseded_by` / `supersedes` 關係。
-
-### Step 5.5: 品質自檢
-
-撰寫完成後執行以下檢查：
-
-1. frontmatter 所有必填欄位是否完整
-2. 殘留的 `<!-- TODO -->` 是否合理（不可填的才留）
-3. 表格是否有空行或格式錯誤
-4. 標題層級是否符合規範（最深不超過 `####`）
-5. 檔名是否符合文件生命週期：時點型文件使用 `YYYYMMDDhh-NN-標題.md`，長期入口使用穩定檔名
-6. 目錄、frontmatter `type` / `topic` 與文件實際用途是否一致
-7. 相關 `INDEX.md`、舊文件取代關係與內部連結是否已更新
-
-### Step 6: 後續建議
-
-文件撰寫完成後，根據文件類型提示：
-
-| 文件類型 | 建議 |
-|----------|------|
-| plan | 建議使用 `/custom-skills-plan-analyze` 檢查完整性 |
-| report | 建議使用 `/custom-skills-plan-analyze` 評估分析品質，或提示是否需要補充資料 |
-| research | 提示尚待驗證的假設與下一個證據取得點 |
-| runbook | 提示應先預覽、同行審閱，再於受控環境驗證 rollback |
-| record/changelog | 提示是否需要同步更新版本號或 release 標籤 |
-| record/decision | 提示是否需要通知相關方 |
-| standard | 提示是否需要版本控制與審批流程 |
-| 其他 | 提示是否需要請相關人員審閱 |
-
----
-
-## 共通格式規範
-
-### 檔名命名規則
-
-調查報告、階段報告、事件紀錄、會議紀錄、短期計畫與其他保留時點證據的文件，使用以下格式：
-
-```
-YYYYMMDDhh-NN-標題.md
-```
-
-| 欄位 | 說明 | 範例 |
-|------|------|------|
-| `YYYYMMDDhh` | 產出時間（24 小時制，UTC+8，精確到小時） | `2026040914` |
-| `NN` | 當日流水編，從 `01` 起算，每日歸零，遞增無上限 | `01`、`02`、`100` |
-| `標題` | 文件主題，中英文皆可，以連字號分隔多詞 | `上游更新調查`、`hook-error-analysis` |
-
-**流水編判定邏輯：**
-1. 掃描專案目錄內所有以當日日期 `YYYYMMDD` 開頭的檔案
-2. 取最大流水編 +1；若無則從 `01` 開始，`YYYYMMDDhh-NN` 流水編全域唯一
-
-長期維護的架構真相、規範、索引、狀態看板、長期操作入口與 API 參考文件，優先使用穩定檔名，例如：
-
-```text
-architecture.md
-deployment-guide.md
-migration-status-board.md
-INDEX.md
-```
-
-若不確定，問「新讀者應該繼續找到同一個入口，還是需要保留每次產出的歷史版本？」前者用穩定檔名，後者用時間戳。
-
-### 格式基線
-
-- **Frontmatter**: 新撰寫的 Markdown 文件包含 YAML frontmatter（title、type、date、author、status）；專案已有規範時從其規範，不改寫外部原始資料
-- **主題 metadata**: 多主題知識庫可增加 `topic`；存在取代關係時增加 `supersedes` 或 `superseded_by`
-- **標題層級**: `#` 文件標題、`##` 主要章節、`###` 子章節，最深不超過 `####`
-- **表格**: 結構化比較或清單使用 Markdown 表格
-- **清單**: 待辦事項使用 `- [ ]`，一般列表使用 `-`
-- **程式碼**: 使用 fenced code block 並標註語言
-- **語言**: 預設繁體中文，除非使用者指定其他語言
-
----
-
-## 模板索引
-
-所有模板位於 `references/` 目錄：
-
-| 檔案 | 文件類型 |
-|------|----------|
-| [template-plan-feature.md](references/template-plan-feature.md) | 新功能計畫 |
-| [template-plan-refactoring.md](references/template-plan-refactoring.md) | 重構計畫 |
-| [template-plan-migration.md](references/template-plan-migration.md) | 遷移計畫 |
-| [template-plan-general.md](references/template-plan-general.md) | 通用計畫 |
-| [template-plan-rfc.md](references/template-plan-rfc.md) | 技術提案 |
-| [template-report-investigation.md](references/template-report-investigation.md) | 調查報告 |
-| [template-report-status.md](references/template-report-status.md) | 階段報告 |
-| [template-report-analysis.md](references/template-report-analysis.md) | 分析報告 |
-| [template-research.md](references/template-research.md) | 研究文件 |
-| [template-guide.md](references/template-guide.md) | 操作指南 |
-| [template-runbook.md](references/template-runbook.md) | 維運手冊 |
-| [template-tutorial.md](references/template-tutorial.md) | 教學文件 |
-| [template-record-meeting.md](references/template-record-meeting.md) | 會議紀錄 |
-| [template-record-incident.md](references/template-record-incident.md) | 事件紀錄 |
-| [template-record-decision.md](references/template-record-decision.md) | 決策紀錄 |
-| [template-record-changelog.md](references/template-record-changelog.md) | 變更日誌 |
-| [template-standard.md](references/template-standard.md) | 規範文件 |
-
-擴展時只需在 `references/` 新增 `template-{type}-{variant}.md` 並更新上方引數表。
+長篇、跨層或高風險文件再做陌生讀者試讀：挑三到五個真實問題，讓沒有對話背景的 AI 助理或真人只憑文件作答。記錄答對、答錯、靠猜或找不到，以及引用位置。
+
+AI 試讀只能標成「AI 可理解性檢查」，不能代替真人使用結果、命令測試、程式測試、同行審查或正式批准。短小、單純查值或只有一個明確步驟的文件不啟動額外試讀。
+
+## 第六階段：發布與維護
+
+專案慣例優先。需要判斷知識庫位置時讀取 [knowledge-base-organization.md](references/knowledge-base-organization.md)。
+
+### 路徑與檔名
+
+- 依專案現有結構選擇 `docs/<type>/<topic>/` 或既有位置，不為單一文件建立整套空目錄。
+- 調查、階段、事件、會議、執行結果與短期計畫等時點證據使用 `YYYYMMDDhh-NN-<title>.md`。
+- 架構、規範、索引、狀態看板、參考資料與長期操作入口使用穩定檔名。
+- `NN` 是當天整個專案的流水編；掃描所有當日檔名後取最大值加一。
+
+### Frontmatter 與索引
+
+新 Markdown 文件預設包含 `title`、`type`、`date`、`author`、`status`；專案規則不同時從專案。大型知識庫再加入實際會查找的 `topic`、`related_topics`、`supersedes` 或 `superseded_by`，不要建立沒有人維護的欄位。
+
+新文件建立新主題、取代舊文件或讓清單難以瀏覽時，更新最近且能幫讀者找到它的索引與取代關係。不需要機械式更新每一層索引。
+
+### 完成交付
+
+回覆使用者時說明：
+
+- 建立或修改哪些文件。
+- 主要結論、使用方式或決定。
+- 做過哪些格式、連結、內容與行為驗證。
+- 技術文件是否執行 ASD 檢查；結果是未檢查、無提醒、有提醒或工具失敗。
+- 哪些仍未知、尚未執行或需要人工確認。
+- 若有操作手冊，成功後應回到哪份文件的哪個段落繼續。
+
+## 停止條件
+
+遇到以下情況先停止，不自行放大範圍：
+
+- 讀者或文件用途無法由現有資料判定，而且不同選擇會改變內容。
+- 正式來源對主要結論互相衝突，無法合理說明。
+- 缺少會影響安全、公開範圍、回復或驗收的資訊。
+- 使用者把機器語言檢查列為必要驗收，但 PDF／檢查器路徑無效、工具失敗或輸出無法判讀。
+- 新文件會建立第二套任務狀態、正式規格或重複真相。
+- 必須批次搬移歷史文件或修改無關文件才能套用新結構。
+
+停止時說明已確認的事實、缺少什麼、可選方向和每個方向的影響，再請使用者決定。
+
+## 資源索引
+
+| 資源 | 何時讀取 |
+| --- | --- |
+| [document-types.md](references/document-types.md) | 選定文件類型後，讀對應章節 |
+| [content-blocks.md](references/content-blocks.md) | 文件需要證據、方案、安全、相容性或任務資訊時 |
+| [language-and-fact-check.md](references/language-and-fact-check.md) | 正式技術文件、中英混合內容或使用選用 ASD 檢查器時 |
+| [review-checklist.md](references/review-checklist.md) | 草稿完成後 |
+| [knowledge-base-organization.md](references/knowledge-base-organization.md) | 需要決定路徑、索引、主題或生命週期時 |
