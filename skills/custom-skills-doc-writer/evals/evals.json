@@ -74,26 +74,41 @@
     },
     {
       "id": 7,
-      "prompt": "寫一份最多 18 行的本機檢查結果說明。讀者會依現有固定 CLI 介面執行檢查，但不會實作程式化整合或 wrapper；只需要必要輸入、固定命令、未執行、已執行且無提醒、已執行且有提醒、工具執行失敗四種狀態與各自下一步。沒有提供 ASD PDF 或檢查器，不要實際執行。",
-      "expected_output": "在 18 行內說清楚固定命令與四種讀者狀態；不把 Agent 或 wrapper 的呼叫與輸出處理細節寫給只使用 CLI 的讀者。",
-      "files": [],
+      "prompt": "根據附檔，為只會直接執行現有 CLI 的文件作者撰寫繁體中文操作指南。讀者沒有原始資料，也不會修改檢查工具。保留精確命令、必要輸入、所有結果狀態與後續處理。正文最多 18 個非空白行。這輪只寫文件，不執行檢查器。",
+      "expected_output": "在 18 個非空白行內提供可直接使用的 CLI 指南；保留命令、輸入、四種結果與下一步，不把維護工具才需要的程式整合細節寫進正文。",
+      "files": ["evals/files/reader-boundary-source.md"],
       "expectations": [
-        "四種狀態與各自下一步完整",
-        "不把參數陣列、eval、stdout 或 stderr 當成讀者前置知識",
-        "未實際執行機器檢查",
-        "成稿不超過 18 行"
+        "逐字保留固定 CLI 命令與三個必要輸入",
+        "四種結果狀態及其後續處理完整，且無提醒沒有被寫成正式符合",
+        "正文沒有 argv、eval、stdout、stderr、subprocess.run、wrapper 或參數陣列",
+        "明確標示這輪未執行檢查器",
+        "正文不超過 18 個非空白行"
       ]
     },
     {
       "id": 8,
-      "prompt": "寫一份最多 12 行的短決策紀錄：決定以 Beads 作為唯一動態任務真相來源，以 agent-ready 作為 Agent 開工門檻。這份紀錄不取代 issue tracker 正式規範；後續改善計畫仍是 proposed。保留 Beads、agent-ready 與 issue tracker 這些固定名稱，其他一般說明優先使用通行中文。",
-      "expected_output": "保留三個固定名稱與 proposed 狀態，其他一般治理說明使用清楚中文，並在 12 行內完成。",
-      "files": [],
+      "prompt": "根據附檔，為剛加入專案的工程師撰寫繁體中文短決策紀錄。保留來源標示為固定字串的內容，其他敘述使用自然繁體中文，不需提供雙語對照。正文最多 14 個非空白行。",
+      "expected_output": "保留四個固定字串及所有治理事實，一般說明不殘留來源英文片語，並在 14 個非空白行內完成。",
+      "files": ["evals/files/terminology-boundary-source.md"],
       "expectations": [
-        "逐字保留 Beads、agent-ready 與 issue tracker",
-        "proposed 仍是未完成狀態，沒有改寫成已接受或已實作",
-        "一般說明不在中英同義詞之間來回切換",
-        "成稿不超過 12 行"
+        "逐字保留 Beads、agent-ready、docs/agents/issue-tracker.md 與 proposed",
+        "唯一動態真相來源、開工門檻、使用者確認與範圍改變後重新確認等事實完整",
+        "proposed 仍是尚未實作的狀態",
+        "一般說明沒有原樣保留來源中的非固定英文片語，也沒有加入不必要的中英對照",
+        "正文不超過 14 個非空白行"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "將附檔整理成供 Agent 開工前確認的繁體中文任務摘要。讀者不能回頭查原始資料，因此內容必須足以判斷是否可開始、怎樣算成功，以及看到什麼要停止。保留所有精確字串。正文最多 12 個非空白行。不要實際執行任何命令。",
+      "expected_output": "在 12 個非空白行內保留完整任務契約、真正 blocker、非 blocker、成功與停止條件，且不把未執行寫成已完成。",
+      "files": ["evals/files/constraint-pressure-source.md"],
+      "expectations": [
+        "交付、現況證據、可改與不可改範圍、正式規格、真正 blocker、成功及停止條件完整",
+        "demo-tools-42 是 blocker，demo-tools-19 明確不是 blocker",
+        "逐字保留 /opt/demo/drift-policy.yaml、/etc/demo-api/config.toml、docs/standards/drift-policy.md、E217 config drift、drift_count=0 與完整 dry-run 命令",
+        "沒有宣稱已執行 dry-run 或已完成發布",
+        "正文不超過 12 個非空白行"
       ]
     }
   ]
