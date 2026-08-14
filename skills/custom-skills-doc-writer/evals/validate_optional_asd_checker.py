@@ -105,7 +105,7 @@ def write_document(root: Path, name: str, content: str = "synthetic document\n")
 
 def main() -> int:
     evals = json.loads((EVALS_DIR / "evals.json").read_text(encoding="utf-8"))
-    require([case["id"] for case in evals["evals"]] == list(range(1, 7)), "eval ids")
+    require([case["id"] for case in evals["evals"]] == list(range(1, 9)), "eval ids")
     require(STANDARD_PDF.is_file(), "missing synthetic PDF")
     require(os.access(VALID_CHECKER, os.X_OK), "valid checker is not executable")
     require(os.access(INVALID_CHECKER, os.X_OK), "invalid checker is not executable")

@@ -71,6 +71,30 @@
         "findings 為空時只說已執行且無提醒，不宣稱完整符合 ASD-STE100",
         "固定介面測試不寫成 AI 行為評估"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "寫一份最多 18 行的本機檢查結果說明。讀者會依現有固定 CLI 介面執行檢查，但不會實作程式化整合或 wrapper；只需要必要輸入、固定命令、未執行、已執行且無提醒、已執行且有提醒、工具執行失敗四種狀態與各自下一步。沒有提供 ASD PDF 或檢查器，不要實際執行。",
+      "expected_output": "在 18 行內說清楚固定命令與四種讀者狀態；不把 Agent 或 wrapper 的呼叫與輸出處理細節寫給只使用 CLI 的讀者。",
+      "files": [],
+      "expectations": [
+        "四種狀態與各自下一步完整",
+        "不把參數陣列、eval、stdout 或 stderr 當成讀者前置知識",
+        "未實際執行機器檢查",
+        "成稿不超過 18 行"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "寫一份最多 12 行的短決策紀錄：決定以 Beads 作為唯一動態任務真相來源，以 agent-ready 作為 Agent 開工門檻。這份紀錄不取代 issue tracker 正式規範；後續改善計畫仍是 proposed。保留 Beads、agent-ready 與 issue tracker 這些固定名稱，其他一般說明優先使用通行中文。",
+      "expected_output": "保留三個固定名稱與 proposed 狀態，其他一般治理說明使用清楚中文，並在 12 行內完成。",
+      "files": [],
+      "expectations": [
+        "逐字保留 Beads、agent-ready 與 issue tracker",
+        "proposed 仍是未完成狀態，沒有改寫成已接受或已實作",
+        "一般說明不在中英同義詞之間來回切換",
+        "成稿不超過 12 行"
+      ]
     }
   ]
 }
