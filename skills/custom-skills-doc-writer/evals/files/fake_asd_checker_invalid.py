@@ -21,8 +21,11 @@ def main() -> int:
     if not args.standard_pdf.is_absolute() or not args.standard_pdf.is_file():
         parser.error("--standard-pdf must be an existing absolute file")
 
+    document_text = args.document.read_text(encoding="utf-8")
     marker = Path(f"{args.document}.checker-invoked")
     marker.write_text("invalid checker invoked\n", encoding="utf-8")
+    if "ASD_FIXTURE_NONZERO" in document_text:
+        return 9
     print("this is not json")
     return 0
 

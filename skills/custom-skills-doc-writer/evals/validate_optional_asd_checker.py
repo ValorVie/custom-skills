@@ -165,6 +165,15 @@ def main() -> int:
         require(status == "tool-failure", "missing line status")
         require(marker_for(missing_line_document).is_file(), "missing line checker was not called")
 
+        for name, fixture in (
+            ("missing-category", "ASD_FIXTURE_MISSING_CATEGORY\n"),
+            ("missing-message", "ASD_FIXTURE_MISSING_MESSAGE\n"),
+        ):
+            document = write_document(root, name, fixture)
+            status, _, _ = run_checker(document, STANDARD_PDF, VALID_CHECKER)
+            require(status == "tool-failure", f"{name} status")
+            require(marker_for(document).is_file(), f"{name} checker was not called")
+
         invalid_json_document = write_document(root, "invalid-json")
         status, _, _ = run_checker(
             invalid_json_document,
@@ -173,6 +182,15 @@ def main() -> int:
         )
         require(status == "tool-failure", "invalid JSON status")
         require(marker_for(invalid_json_document).is_file(), "invalid checker was not called")
+
+        nonzero_document = write_document(
+            root,
+            "nonzero-exit",
+            "ASD_FIXTURE_NONZERO\n",
+        )
+        status, _, _ = run_checker(nonzero_document, STANDARD_PDF, INVALID_CHECKER)
+        require(status == "tool-failure", "nonzero exit status")
+        require(marker_for(nonzero_document).is_file(), "nonzero checker was not called")
 
     print("PASS optional checker interface fixtures")
     return 0

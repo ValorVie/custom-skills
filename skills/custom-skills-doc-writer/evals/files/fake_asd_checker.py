@@ -26,6 +26,8 @@ def main() -> int:
     document_text = args.document.read_text(encoding="utf-8")
     no_findings = "ASD_FIXTURE_NO_FINDINGS" in document_text
     missing_line = "ASD_FIXTURE_MISSING_LINE" in document_text
+    missing_category = "ASD_FIXTURE_MISSING_CATEGORY" in document_text
+    missing_message = "ASD_FIXTURE_MISSING_MESSAGE" in document_text
     marker = Path(f"{args.document}.checker-invoked")
     marker.write_text(json.dumps({"argv": sys.argv[1:]}) + "\n", encoding="utf-8")
     findings = [] if no_findings else [{
@@ -35,6 +37,10 @@ def main() -> int:
     }]
     if missing_line:
         del findings[0]["line"]
+    if missing_category:
+        del findings[0]["category"]
+    if missing_message:
+        del findings[0]["message"]
     print(json.dumps({"schema_version": 1, "status": "checked", "findings": findings}))
     return 0
 
