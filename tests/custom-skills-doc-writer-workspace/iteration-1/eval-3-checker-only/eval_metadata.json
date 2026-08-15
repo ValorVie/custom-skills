@@ -1,0 +1,1 @@
+{"eval_id":3,"eval_name":"checker-only-decision","prompt":"整理 API 欄位決策；只有 checker、沒有 PDF。","assertions":["保留欄位與版本","生效日期維持未知","不執行 checker 並標示未檢查"]}

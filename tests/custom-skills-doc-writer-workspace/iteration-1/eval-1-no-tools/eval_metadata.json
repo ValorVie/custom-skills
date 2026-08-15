@@ -1,0 +1,1 @@
+{"eval_id":1,"eval_name":"no-tools-investigation","prompt":"整理 config 與 log 證據成調查報告；沒有 PDF 或 checker。","assertions":["保留精確字串與未知負責人","交付標示未執行 ASD 機器檢查","文件先說結論且無空章節"]}

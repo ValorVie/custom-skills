@@ -1,0 +1,1 @@
+{"eval_id":5,"eval_name":"invalid-checker-json","prompt":"整理維護說明；PDF 有效但 checker 回傳無效 JSON。","assertions":["保留路徑、欄位與布林值","套用狀態維持未知","執行 checker 並留下 marker","回報工具失敗而非通過"]}

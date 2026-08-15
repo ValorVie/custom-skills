@@ -1,0 +1,1 @@
+{"eval_id":2,"eval_name":"pdf-only-runbook","prompt":"依唯一核准命令撰寫 runbook；只有合成 PDF。","assertions":["保留兩條命令與設定路徑","不增加未核准命令","交付標示未執行 ASD 機器檢查"]}

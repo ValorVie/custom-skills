@@ -1,0 +1,1 @@
+{"eval_id":4,"eval_name":"both-valid-mixed-document","prompt":"撰寫中英混合部署說明；PDF 與 checker 都有效。","assertions":["保留命令、URL、欄位、路徑與 log","英文仍明確保留 operator","執行 checker 並留下 marker","把 finding 寫成提醒而非完整符合"]}
