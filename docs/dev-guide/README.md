@@ -67,7 +67,7 @@
 | 文件 | 說明 |
 |------|------|
 | [DEVELOPMENT-WORKFLOW.md](workflow/DEVELOPMENT-WORKFLOW.md) | 開發工作流程 |
-| [AI-AGENT-TASK-COLLABORATION-GUIDE.md](workflow/AI-AGENT-TASK-COLLABORATION-GUIDE.md) | AI Agent 任務契約、文件、注意力與視覺說明的協作指南 |
+| [AI-AGENT-TASK-COLLABORATION-GUIDE.md](workflow/AI-AGENT-TASK-COLLABORATION-GUIDE.md) | Beads 任務契約、提示分層、文件、注意力與視覺說明的協作指南 |
 | [MATTPOCOCK-SKILLS-GUIDE.md](workflow/MATTPOCOCK-SKILLS-GUIDE.md) | mattpocock/skills 安裝、設計哲學與 41 個技能使用指南 |
 | [VIBE-CODING-DEV-STACK-FRAMEWORK.md](workflow/VIBE-CODING-DEV-STACK-FRAMEWORK.md) | Vibe Coding 開發堆疊框架與工作流 |
 | [CODE-QUALITY-TOOLS.md](workflow/CODE-QUALITY-TOOLS.md) | 程式碼品質工具 |
