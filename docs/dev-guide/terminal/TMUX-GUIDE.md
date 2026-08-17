@@ -96,7 +96,7 @@ tmux -V
 
 ### 1. 安裝前置套件
 
-TPM 本身需要 tmux 1.9 以上、Git 與 Bash。若要直接採用本指南的完整推薦設定，則需要 tmux 3.2 以上，因為設定檔使用了 `display-popup`：
+TPM 本身需要 tmux 1.9 以上、Git 與 Bash。若要直接採用本指南的完整推薦設定，則需要 tmux 3.3 以上，因為設定檔使用了 `display-popup` 與 `allow-passthrough`：
 
 ```bash
 # Ubuntu / Debian
@@ -581,6 +581,7 @@ source-file /path/to/file.conf
 | `renumber-windows` | 自動重新編號 | `off` | `on` |
 | `mode-keys` | Copy mode 按鍵風格 | `emacs` | `vi` |
 | `set-clipboard` | 系統剪貼簿 | `external` | `on` |
+| `allow-passthrough` | 應用程式 escape sequence passthrough（tmux 3.3+） | `off` | `on` |
 | `set-titles` | 設定終端標題 | `off` | `on` |
 | `display-time` | 訊息顯示時間（ms） | `750` | `3000` |
 | `display-panes-time` | 面板編號顯示時間（ms） | `1000` | `2000` |
@@ -660,7 +661,29 @@ bind - split-window -v -c "#{pane_current_path}"
 
 ### 系統剪貼簿整合
 
-設定檔使用 `if-shell` 自動偵測平台，選擇正確的剪貼簿指令：
+Vim、Neovim 等 tmux 內應用程式若要透過 OSC 52 寫入外層 terminal clipboard，需要下列設定：
+
+```bash
+# 允許應用程式透過 OSC 52 操作外層 terminal clipboard
+set -g set-clipboard on
+
+# tmux 3.3+：允許 OSC escape sequence passthrough
+set -g allow-passthrough on
+```
+
+`allow-passthrough` 需要 tmux 3.3 以上。較舊版本不要加入此選項，應先升級 tmux；否則重新載入設定時會回報 unknown option。
+
+重新載入後可檢查實際值：
+
+```bash
+tmux show-options -gqv set-clipboard
+# 預期：on
+
+tmux show-options -gqv allow-passthrough
+# 預期：on
+```
+
+Copy mode 則使用 `if-shell` 自動偵測平台，選擇正確的剪貼簿指令：
 
 | 平台 | 剪貼簿指令 |
 |------|------------|

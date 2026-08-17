@@ -52,6 +52,8 @@
 |------|------|
 | [ALACRITTY-GUIDE.md](terminal/ALACRITTY-GUIDE.md) | Alacritty GPU 加速終端模擬器指南 |
 | [WEZTERM-GUIDE.md](terminal/WEZTERM-GUIDE.md) | WezTerm 終端模擬器指南 |
+| [TMUX-GUIDE.md](terminal/TMUX-GUIDE.md) | tmux 安裝、設定、快捷鍵、Session 恢復與 OSC 52 指南 |
+| [NEOVIM-GUIDE.md](terminal/NEOVIM-GUIDE.md) | 透過 settingZsh 安裝、設定與使用 Neovim／LazyVim |
 | [YAZI-GUIDE.md](terminal/YAZI-GUIDE.md) | Yazi 終端檔案管理器教學（安裝/設定/使用） |
 | [ZELLIJ-GUIDE.md](terminal/ZELLIJ-GUIDE.md) | Zellij 終端多工器指南 |
 
