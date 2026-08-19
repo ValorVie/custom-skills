@@ -1,0 +1,26 @@
+{
+  "lastChangelogVersion": "0.84.2",
+  "theme": "dark",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "xhigh",
+  "packages": [
+    "npm:@narumitw/pi-statusline",
+    "npm:pi-lens",
+    "npm:pi-permission-system",
+    "npm:pi-web-access",
+    {
+      "source": "npm:pi-lean-ctx",
+      "extensions": [
+        "-extensions/index.ts"
+      ]
+    },
+    "npm:@plannotator/pi-extension",
+    "npm:pi-subagents",
+    "npm:pi-mcp-adapter",
+    "https://github.com/cathrynlavery/diagram-design"
+  ],
+  "terminal": {
+    "showTerminalProgress": true
+  }
+}
