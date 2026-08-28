@@ -45,6 +45,7 @@ Repository desired state 存在 `upstream/npx-skills.yaml`。`~/.agents/.skill-l
 規則：
 
 - 每個 package 必須明確列出 canonical IDs；禁止 wildcard。
+- global agent targets 固定列出 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`，不使用 `-a '*'`。
 - 同一 repository 的 skills 合併成一個 add/update command。
 - manifest 缺 repo、空 skills、重複 ID 或多來源同名時，phase 在執行 npx 前失敗。
 - first-party migration 先比較 target 與 stored manifest base。modified 或 unknown target 會被保留並阻擋該 skill。

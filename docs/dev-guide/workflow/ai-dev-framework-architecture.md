@@ -71,6 +71,8 @@ clone 只處理 clone-owned resources。第一方與其他 npx-managed canonical
 
 `upstream/npx-skills.yaml` 是 ai-dev 的 reviewable desired state。它逐 package 列出 canonical IDs、source label 與 rationale。
 
+global add 只指定 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`。Eve 與 PromptScript 不支援 global skill installation，因此不屬於 baseline targets；需要時在各自專案內安裝。
+
 manifest loader 會拒絕：
 
 - 缺少 repository。

@@ -28,7 +28,7 @@ def test_build_add_command_includes_global_and_agents():
         SkillEntry(repo="anthropics/skills", skill="claude-api", source="anthropic"),
         SkillEntry(repo="anthropics/skills", skill="skill-creator", source="anthropic"),
     )
-    defaults = NpxDefaults(agents="*", scope="global", yes=True)
+    defaults = NpxDefaults(agents=("*",), scope="global", yes=True)
 
     cmd = build_add_command(entries, defaults)
 
@@ -41,9 +41,45 @@ def test_build_add_command_includes_global_and_agents():
     ]
 
 
+def test_build_add_command_expands_explicit_agents_without_project_only_targets():
+    entries = (SkillEntry(repo="x/y", skill="z", source="x"),)
+    defaults = NpxDefaults(
+        agents=(
+            "claude-code",
+            "codex",
+            "gemini-cli",
+            "opencode",
+            "antigravity",
+        ),
+        scope="global",
+        yes=True,
+    )
+
+    cmd = build_add_command(entries, defaults)
+
+    assert cmd == [
+        "npx",
+        "skills",
+        "add",
+        "x/y",
+        "--skill",
+        "z",
+        "-g",
+        "-a",
+        "claude-code",
+        "codex",
+        "gemini-cli",
+        "opencode",
+        "antigravity",
+        "--yes",
+    ]
+    assert "eve" not in cmd
+    assert "promptscript" not in cmd
+
+
 def test_build_add_command_project_scope_omits_global():
     entries = (SkillEntry(repo="x/y", skill="z", source="x"),)
-    defaults = NpxDefaults(agents="claude", scope="project", yes=False)
+    defaults = NpxDefaults(agents=("claude",), scope="project", yes=False)
 
     cmd = build_add_command(entries, defaults)
 
@@ -72,7 +108,7 @@ def test_build_update_command_global_scope_includes_g():
 
 def test_build_update_command_project_scope_omits_g():
     entries = (SkillEntry(repo="x/y", skill="z", source="x"),)
-    defaults = NpxDefaults(agents="claude", scope="project", yes=False)
+    defaults = NpxDefaults(agents=("claude",), scope="project", yes=False)
 
     cmd = build_update_command(entries, defaults)
 
@@ -348,7 +384,11 @@ packages:
             "safe",
             "-g",
             "-a",
-            "*",
+            "claude-code",
+            "codex",
+            "gemini-cli",
+            "opencode",
+            "antigravity",
             "--yes",
         ]
     ]

@@ -9,7 +9,7 @@
 # 欄位說明：
 #   version        : 設定檔版本
 #   defaults.scope : 安裝範圍（global|project）
-#   defaults.agents: 分發到哪些 agent 目錄（* 為全部）
+#   defaults.agents: 全域安裝的 agent ID 清單
 #   packages[].repo: GitHub owner/repo
 #   packages[].skills: 要安裝的 skill 名稱列表（對應 npx skills add repo@skill）
 #   packages[].source: 來源註記（文件用）
@@ -26,7 +26,12 @@ version: 1
 
 defaults:
   scope: global       # 安裝到各 agent 的全域 skills 目錄
-  agents: "*"         # claude / opencode / gemini / codex / antigravity
+  agents:             # 只列 ai-dev 實際支援全域 skills 的工具
+    - claude-code
+    - codex
+    - gemini-cli
+    - opencode
+    - antigravity
   yes: true           # 跳過互動提示
 
 packages:

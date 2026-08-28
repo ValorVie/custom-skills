@@ -176,12 +176,12 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 - 資料來源：`~/.config/ai-dev/npx-skills.yaml`（由 repos phase 從 `upstream/npx-skills.yaml` 同步）
 - 實際動作：
   - manifest validation 先拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
-  - `install` 模式：同一 repository 合併成一個 `npx skills add <repo> --skill <name>... -g -a '*' --yes`。
+  - `install` 模式：同一 repository 合併成一個 `npx skills add <repo> --skill <name>... -g -a claude-code codex gemini-cli opencode antigravity --yes`。
   - `update` 模式：同一 repository 的 IDs 合併成一個 `npx skills update <name>... -g -y`。
   - package 部分失敗時保留成功結果，但 phase 以 exit 1 結束，失敗項目不 detach ownership。
 - 安裝參數語意：
   - `-g`：user-level（全域）安裝
-  - `-a '*'`：套用到所有 agents
+  - `-a claude-code codex gemini-cli opencode antigravity`：只套用到 ai-dev 支援 global skills 的五個 agents；Eve 與 PromptScript 留在 project scope 手動安裝
   - `--yes`：跳過互動確認
 - 跳過方式：`ai-dev install --skip npx-skills` 或 `ai-dev update --skip npx-skills`
 - 僅執行：`ai-dev install-npx-skills`（等同 `install --only npx-skills`）

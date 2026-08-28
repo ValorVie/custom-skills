@@ -70,3 +70,9 @@
 - [x] 9.4 對所有 changed public files 與 staged diffs 執行不分大小寫掃描，檢查內部 identifiers、private paths、hosts、accounts、credentials 與 organization-specific examples。
 - [x] 9.5 分別提交兩個 repositories 的 scoped changes，回報兩個 commit hashes 與驗證結果；未批准的 remote changes 不得 push。
 - [x] 9.6 分開確認最終狀態：public source 已發布、npx install 已驗證、framework ownership 已 detach、舊未修改副本已清理、local conflicts 已保留、ECC 未變更，且未進行 production、service 或 credential mutation。
+
+## 10. 限縮 global agent targets
+
+- [x] 10.1 將 `defaults.agents` 擴充為向後相容的字串或清單輸入，add command 以多個 agent arguments 展開。
+- [x] 10.2 將 repository baseline 改為 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`，並加入不包含 Eve／PromptScript 的回歸測試。
+- [x] 10.3 更新現行文件與 CHANGELOG，執行 focused／完整測試、OpenSpec strict validation、public-boundary scan 與 diff check，完成後另行提交且不推送。

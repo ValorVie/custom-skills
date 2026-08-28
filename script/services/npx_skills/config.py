@@ -5,10 +5,44 @@ from pathlib import Path
 
 import yaml
 
+DEFAULT_AGENTS = (
+    "claude-code",
+    "codex",
+    "gemini-cli",
+    "opencode",
+    "antigravity",
+)
+
+
+def _parse_agents(value: object) -> tuple[str, ...]:
+    if isinstance(value, str):
+        raw_agents = [value]
+    elif isinstance(value, list):
+        raw_agents = value
+    else:
+        raise ValueError("npx-skills.yaml defaults.agents 必須是字串或非空清單")
+
+    agents: list[str] = []
+    for agent in raw_agents:
+        if not isinstance(agent, str) or not agent.strip():
+            raise ValueError("npx-skills.yaml defaults.agents 必須只包含非空字串")
+        normalized = agent.strip()
+        if normalized in agents:
+            raise ValueError(f"npx-skills.yaml defaults.agents 不得重複: {normalized}")
+        agents.append(normalized)
+
+    if not agents:
+        raise ValueError("npx-skills.yaml defaults.agents 不得為空")
+    if "*" in agents and len(agents) > 1:
+        raise ValueError(
+            "npx-skills.yaml defaults.agents 的 wildcard 不得與其他項目並用"
+        )
+    return tuple(agents)
+
 
 @dataclass(frozen=True)
 class NpxDefaults:
-    agents: str = "*"
+    agents: tuple[str, ...] = DEFAULT_AGENTS
     scope: str = "global"
     yes: bool = True
 
@@ -35,7 +69,7 @@ class NpxSkillsConfig:
             raise ValueError(f"npx-skills.yaml 根節點必須是 mapping: {path}")
         defaults_raw = data.get("defaults") or {}
         defaults = NpxDefaults(
-            agents=defaults_raw.get("agents", "*"),
+            agents=_parse_agents(defaults_raw.get("agents", list(DEFAULT_AGENTS))),
             scope=defaults_raw.get("scope", "global"),
             yes=bool(defaults_raw.get("yes", True)),
         )

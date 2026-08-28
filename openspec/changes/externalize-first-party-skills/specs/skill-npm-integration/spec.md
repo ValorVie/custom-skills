@@ -10,6 +10,13 @@ ai-dev SHALL 以 `upstream/npx-skills.yaml` 作為 baseline skills 的 declarati
 - **THEN** 系統 SHALL 對每個 manifest package 執行 add 語意
 - **THEN** SHALL 明確傳入 scope、agents、skills 與 non-interactive 選項
 
+#### Scenario: global install 只指定 ai-dev 支援的 agents
+
+- **WHEN** manifest 使用 global scope 執行 add
+- **THEN** `-a` SHALL 明確列出 `claude-code`、`codex`、`gemini-cli`、`opencode` 與 `antigravity`
+- **THEN** SHALL NOT 使用 `'*'`，也不得把只支援 project scope 的 Eve 或 PromptScript 當成 global target
+- **THEN** Eve 與 PromptScript 的使用者仍可在各自專案內手動執行原生 `npx skills add`
+
 #### Scenario: update 更新已安裝 skills
 
 - **WHEN** 使用者執行包含 npx-skills phase 的 `ai-dev update`

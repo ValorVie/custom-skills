@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING：第一方 global skills 改由 `npx skills` 獨占 ownership。**
   - `ai-dev clone` 不再從 framework root `skills/` 分發第一方 skills，也不再為它們建立新的 ManifestTracker entries。
   - 同 repository 的 npx skills 合併成單一 add/update command；manifest 會拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
+  - global add 改為明確指定 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`，不再以 `-a '*'` 嘗試 Eve、PromptScript 等 project-only targets。
   - ECC 或 custom repo 若啟用同名 npx-managed skill，clone 會在寫入前停止；5 個已由 npx 管理的 ECC entries 已移出 distribution whitelist。
   - `ai-dev list` 依 declarative manifest 顯示 `ai-dev-skills` source；manifest 無法讀取時標成 `unknown`。
   - `toggle`、resource-disable 與 standards profile 不再搬動 npx-managed skill，改為 fail closed 與原生 npx 指引。

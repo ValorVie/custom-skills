@@ -93,6 +93,8 @@ work-log-claude
 
 manifest SHALL 明確列出每個第一方 canonical ID。不使用 wildcard installation，避免新的公開 skill 在審查前自動進入所有 ai-dev baseline。
 
+global add 的 agent targets 也使用明確清單：`claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`。Eve 與 PromptScript 只支援 project scope，不納入 ai-dev global phase；需要時由使用者在對應專案內手動安裝。loader 保留單一字串格式的讀取相容性，但 repository baseline 使用 YAML 清單。
+
 executor SHALL 依 repository 分組，每個 package 建立一個 add command，並重複傳入 `--skill`。update 可一次傳入目前 CLI 支援的多個 skill IDs。config schema 維持 version 1 相容，只加強 validation，不新增檔案格式。
 
 ### 5. 第一方 target files 只由 npx 管理

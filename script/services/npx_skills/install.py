@@ -59,7 +59,7 @@ def build_add_command(
         cmd += ["--skill", entry.skill]
     if defaults.scope == "global":
         cmd.append("-g")
-    cmd += ["-a", defaults.agents]
+    cmd += ["-a", *defaults.agents]
     if defaults.yes:
         cmd.append("--yes")
     return cmd

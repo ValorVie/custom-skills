@@ -8,7 +8,7 @@
 
 - 建立公開的 `ValorVie/ai-dev-skills` collection repository，保存目前 `skills/` 下的第一方 skill 及其自帶 scripts、references、assets、evals 與測試。
 - 清理第一方 skill 中的內部名稱、私有路徑與逃出 skill 根目錄的相對連結；新 repository 加入 metadata、內部連結及公開邊界驗證。
-- 將第一方 skill 的期望清單加入 `upstream/npx-skills.yaml`，使用明確名稱批次執行 `npx skills add`／`npx skills update`，不使用 wildcard 自動納入新 skill。
+- 將第一方 skill 的期望清單加入 `upstream/npx-skills.yaml`，使用明確 skill 名稱與全域 agent IDs 批次執行 `npx skills add`／`npx skills update`，不使用 wildcard 自動納入新 skill 或不相關 agent。
 - 以 frontmatter `name` 作為 canonical skill ID；初始遷移包含 `custom-simplify` 目錄名到 `simplify` 的一次性對照。
 - **BREAKING**：`ai-dev clone` 不再從 `~/.config/custom-skills/skills/` 分發第一方 skills，也不再以 ai-dev ManifestTracker 擁有這批目標檔案。
 - **BREAKING**：`ai-dev toggle`、resource-disable 與 standards profile 不再搬動 npx-managed skill 目錄；這類操作應停止並顯示對應的 `npx skills` 指引，非 npx-managed 資源維持既有行為。
