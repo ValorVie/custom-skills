@@ -19,6 +19,7 @@ import yaml
 
 from script.services.npx_skills.config import SkillEntry
 from script.services.npx_skills.first_party_overlay import (
+    FilePlan,
     FileState,
     FirstPartyState,
     FirstPartyStateStore,
@@ -107,6 +108,38 @@ class DecisionResolver:
         )
         self.output_func(rendered or f"{path}: no content difference")
 
+    def _show_menu(self, conflict: FileConflict) -> None:
+        plan = conflict.plan
+        status = {
+            "both-changed": "上游與本機都已修改（both-changed）",
+            "no-base": "沒有可信的共同基準（no-base）",
+        }[plan.classification]
+        self.output_func(f"衝突：{plan.path}")
+        self.output_func(f"狀態：{status}")
+        self.output_func("")
+        self.output_func("查看差異：")
+        if plan.classification == "no-base":
+            self.output_func("  [Ds] 無法使用：沒有可信的共同基準")
+            self.output_func("  [Dl] 無法使用：沒有可信的共同基準")
+        else:
+            self.output_func("  [Ds] 比較上游版本與上次共同基準")
+            self.output_func("  [Dl] 比較本機版本與上次共同基準")
+        self.output_func("  [Dc] 比較上游版本與本機版本")
+        self.output_func("")
+        self.output_func("處理方式：")
+        self.output_func(
+            "  [K] 保留本機內容／刪除狀態，存成持久覆寫層；後續更新仍會套用"
+        )
+        self.output_func(
+            "  [O] 採用上游內容／刪除狀態；系統會先備份目前本機內容，再覆蓋"
+        )
+        self.output_func("  [A] 中止本次第一方 skills 更新；目前尚未寫入任何變更")
+
+    @staticmethod
+    def _prompt(plan: FilePlan) -> str:
+        choices = "Dc/K/O/A" if plan.classification == "no-base" else "Ds/Dl/Dc/K/O/A"
+        return f"請選擇 [{choices}]: "
+
     def resolve(self, conflicts: Sequence[FileConflict]) -> DecisionResolution:
         decisions: dict[str, Decision] = {}
         unresolved: list[str] = []
@@ -122,30 +155,31 @@ class DecisionResolver:
                 unresolved.append(plan.path)
                 continue
 
+            self._show_menu(conflict)
             while True:
-                answer = (
-                    self.input_func(
-                        f"{plan.path} ({plan.classification}) " "[Ds/Dl/Dc/K/O/A]: "
-                    )
-                    .strip()
-                    .upper()
-                )
+                answer = self.input_func(self._prompt(plan)).strip().upper()
                 if answer == "DS":
-                    self._show_diff(
-                        conflict,
-                        conflict.base_content,
-                        conflict.source_content,
-                        "base",
-                        "upstream",
-                    )
+                    if plan.classification == "no-base":
+                        self.output_func("無法使用：沒有可信的共同基準。請改用 [Dc]。")
+                    else:
+                        self._show_diff(
+                            conflict,
+                            conflict.base_content,
+                            conflict.source_content,
+                            "base",
+                            "upstream",
+                        )
                 elif answer == "DL":
-                    self._show_diff(
-                        conflict,
-                        conflict.base_content,
-                        conflict.local_content,
-                        "base",
-                        "local",
-                    )
+                    if plan.classification == "no-base":
+                        self.output_func("無法使用：沒有可信的共同基準。請改用 [Dc]。")
+                    else:
+                        self._show_diff(
+                            conflict,
+                            conflict.base_content,
+                            conflict.local_content,
+                            "base",
+                            "local",
+                        )
                 elif answer == "DC":
                     self._show_diff(
                         conflict,
@@ -162,6 +196,8 @@ class DecisionResolver:
                     break
                 elif answer == "A":
                     return DecisionResolution({}, aborted=True)
+                else:
+                    self.output_func(f"無效選項：{answer or '(空白)'}")
 
         return DecisionResolution(decisions, tuple(unresolved))
 

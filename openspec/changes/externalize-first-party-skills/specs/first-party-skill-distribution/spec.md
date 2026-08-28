@@ -145,6 +145,17 @@ reconcile SHALL 對 base、source、local、overlay 的 path union 分類。miss
 
 FirstPartyReconciler SHALL 先規劃所有第一方 files，再執行任何 npx command。`local-only` 自動 keep-local；`both-changed` 與內容不同的 `no-base` 必須先完成 decision resolution。
 
+#### Scenario: interactive menu 說明每個選項的影響
+
+- **WHEN** TTY 需要使用者處理 `both-changed` 或 `no-base` file
+- **THEN** menu SHALL 先顯示 file path 與狀態的中文說明，再等待輸入
+- **THEN** `Ds`、`Dl`、`Dc` SHALL 分別說明比較的兩個版本
+- **THEN** `K` SHALL 說明本機內容或刪除狀態會保存成持久 overlay，後續更新仍會套用
+- **THEN** `O` SHALL 說明系統會先備份目前本機內容，再採用 upstream 內容或刪除狀態
+- **THEN** `A` SHALL 說明整個第一方更新會在任何 mutation 前停止
+- **WHEN** file 是 `no-base`
+- **THEN** `Ds` 與 `Dl` SHALL 顯示為不可用，input prompt SHALL 只列 `Dc/K/O/A`
+
 #### Scenario: interactive keep local
 
 - **WHEN** 使用者對 conflict file 選擇 keep-local

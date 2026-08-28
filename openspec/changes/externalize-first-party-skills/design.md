@@ -194,11 +194,21 @@ base unknown + source/local different → no-base
 `local-only` 自動保存或更新 overlay，不需要 prompt。`both-changed` 與內容不同的 `no-base` 在 TTY 顯示：
 
 ```text
-Diff: [Ds] upstream vs base  [Dl] local vs base  [Dc] upstream vs local
-Action: [K] keep local  [O] use upstream  [A] abort
+衝突：<path>
+狀態：<上游與本機都已修改／沒有可信的共同基準>
+
+查看差異：
+  [Ds] 比較上游版本與上次共同基準
+  [Dl] 比較本機版本與上次共同基準
+  [Dc] 比較上游版本與本機版本
+
+處理方式：
+  [K] 保留本機內容／刪除狀態，存成持久覆寫層；後續更新仍會套用
+  [O] 採用上游內容／刪除狀態；系統會先備份目前本機內容，再覆蓋
+  [A] 中止本次第一方 skills 更新；目前尚未寫入任何變更
 ```
 
-`K` 將 local bytes 或 deletion marker 保存為持久 overlay；`O` 移除該檔案 overlay，並採用 upstream；`A` 在任何第一方 mutation 前停止。所有 overwrite 都保留 transaction backup，不提供無備份的 force path。
+`no-base` 沒有可信 base，因此 `Ds`／`Dl` 必須標成不可用，prompt 只列 `Dc/K/O/A`。`K` 將 local bytes 或 deletion marker 保存為持久 overlay；`O` 移除該檔案 overlay，並採用 upstream；`A` 在任何第一方 mutation 前停止。所有 overwrite 都保留 transaction backup，不提供無備份的 force path。
 
 non-interactive 時，`clean` 與 `local-only` 可自動處理；未解決的 `both-changed`／`no-base` 跳過整個 skill、允許其他安全 skills 繼續，phase 最後 exit 1。不得自動選擇 keep-local 或 overwrite。
 

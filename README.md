@@ -599,6 +599,10 @@ overlay 與 installed local，分類為 `clean`、`local-only`、`both-changed` 
 `no-base` 會在互動終端要求 keep-local、use-upstream 或 abort。非互動模式不會猜測，
 會略過該 skill、繼續安全項目，最後回傳 exit 1。其他 npx packages 不經過這層處理。
 
+互動選單會先以中文說明每個 diff 與處理選項。`K` 會保存本機覆寫；`O` 會先備份
+再採用上游；`A` 會在尚未寫入時中止。`no-base` 沒有共同基準，只提供 `Dc` 比較
+上游與本機，不會把不可用的 `Ds`／`Dl` 留給使用者猜測。
+
 每個第一方 skill 在 npx 寫入前都有完整 transaction backup。npx 寫入、base
 驗證、overlay 套用、effective tree 驗證或 state 寫入失敗時，會還原 installed
 roots、舊 manifest 與舊 overlay。直接執行原生 npx 若蓋掉 materialized overlay，

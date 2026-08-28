@@ -26,6 +26,23 @@ def _conflict(*, binary: bool = False) -> FileConflict:
     )
 
 
+def _no_base_conflict() -> FileConflict:
+    return FileConflict(
+        plan=FilePlan(
+            path="scripts/improve_description.py",
+            classification="no-base",
+            base_hash=None,
+            source_hash="source-hash",
+            local_hash="local-hash",
+            overlay_hash=None,
+            effective_hash="local-hash",
+        ),
+        base_content=None,
+        source_content=b"upstream\n",
+        local_content=b"local\n",
+    )
+
+
 def test_noninteractive_resolver_skips_unresolved_skill():
     resolution = DecisionResolver(interactive=False).resolve((_conflict(),))
 
@@ -71,6 +88,73 @@ def test_interactive_resolver_shows_requested_diff_then_keeps_local():
     assert resolution.decisions == {"SKILL.md": Decision.KEEP_LOCAL}
     assert any("--- base/SKILL.md" in line for line in output)
     assert any("+++ upstream/SKILL.md" in line for line in output)
+
+
+def test_interactive_resolver_explains_actions_before_prompting():
+    prompts: list[str] = []
+    output: list[str] = []
+
+    resolution = DecisionResolver(
+        interactive=True,
+        input_func=lambda prompt: prompts.append(prompt) or "K",
+        output_func=output.append,
+    ).resolve((_conflict(),))
+
+    rendered = "\n".join(output)
+    assert resolution.decisions == {"SKILL.md": Decision.KEEP_LOCAL}
+    assert "衝突：SKILL.md" in rendered
+    assert "上游與本機都已修改（both-changed）" in rendered
+    assert "[Ds] 比較上游版本與上次共同基準" in rendered
+    assert "[Dl] 比較本機版本與上次共同基準" in rendered
+    assert "[Dc] 比較上游版本與本機版本" in rendered
+    assert "[K] 保留本機內容／刪除狀態" in rendered
+    assert "後續更新仍會套用" in rendered
+    assert "[O] 採用上游內容／刪除狀態" in rendered
+    assert "先備份目前本機內容" in rendered
+    assert "[A] 中止本次第一方 skills 更新" in rendered
+    assert "目前尚未寫入任何變更" in rendered
+    assert prompts == ["請選擇 [Ds/Dl/Dc/K/O/A]: "]
+
+
+def test_no_base_menu_marks_base_diffs_unavailable():
+    answers = iter(("Ds", "Dc", "K"))
+    prompts: list[str] = []
+    output: list[str] = []
+    resolver = DecisionResolver(
+        interactive=True,
+        input_func=lambda prompt: prompts.append(prompt) or next(answers),
+        output_func=output.append,
+    )
+
+    resolution = resolver.resolve((_no_base_conflict(),))
+
+    rendered = "\n".join(output)
+    assert resolution.decisions == {
+        "scripts/improve_description.py": Decision.KEEP_LOCAL
+    }
+    assert "沒有可信的共同基準（no-base）" in rendered
+    assert rendered.count("無法使用：沒有可信的共同基準") >= 3
+    assert "--- upstream/scripts/improve_description.py" in rendered
+    assert "+++ local/scripts/improve_description.py" in rendered
+    assert prompts == [
+        "請選擇 [Dc/K/O/A]: ",
+        "請選擇 [Dc/K/O/A]: ",
+        "請選擇 [Dc/K/O/A]: ",
+    ]
+
+
+def test_invalid_interactive_choice_is_explained_before_reprompt():
+    answers = iter(("?", "O"))
+    output: list[str] = []
+
+    resolution = DecisionResolver(
+        interactive=True,
+        input_func=lambda _prompt: next(answers),
+        output_func=output.append,
+    ).resolve((_conflict(),))
+
+    assert resolution.decisions == {"SKILL.md": Decision.USE_UPSTREAM}
+    assert "無效選項：?" in output
 
 
 def test_interactive_resolver_can_use_upstream_or_abort():

@@ -120,3 +120,11 @@
 - [x] 14.3 將 symlink 判斷移到 real-path 去重後；三個 tree readers 共用 `is_excluded_skill_path()` 排除平台 metadata。
 - [x] 14.4 更新 OpenSpec、architecture 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
 - [x] 14.5 提交 scoped implementation，回報 commit hash；不 push、不 archive，也不修改 Mac installed state。
+
+## 15. 說明 conflict decision 選項
+
+- [x] 15.1 以 production prompt `scripts/improve_description.py (no-base) [Ds/Dl/Dc/K/O/A]` 固定 UX 缺口：代碼沒有比較對象、資料保留、備份、覆蓋或停止時點說明。
+- [x] 15.2 先加入互動輸出回歸測試，涵蓋 `both-changed` 完整選單與 `no-base` 不可用 base diffs。
+- [x] 15.3 實作中文 conflict header、狀態、diff 說明與 action 影響；`no-base` prompt 只列 `Dc/K/O/A`，誤輸入 `Ds`／`Dl` 時顯示原因。
+- [x] 15.4 更新 README、OpenSpec 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
+- [x] 15.5 提交 scoped implementation，回報 commit hash；不 push、不 archive。
