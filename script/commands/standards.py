@@ -22,6 +22,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.tree import Tree
 
+from script.services.npx_skills import get_npx_managed_skill_names
 from ..utils.shared import (
     disable_resource,
     enable_resource,
@@ -272,6 +273,10 @@ def sync_resources(disabled: dict, target: str = "claude", dry_run: bool = False
         # 計算需要的操作
         skills_to_actually_disable = skills_to_disable - currently_disabled_skills
         skills_to_enable = currently_disabled_skills - skills_to_disable
+        npx_managed = get_npx_managed_skill_names()
+        npx_changes = sorted(
+            (skills_to_actually_disable | skills_to_enable) & npx_managed
+        )
 
         commands_to_actually_disable = commands_to_disable - currently_disabled_commands
         commands_to_enable = currently_disabled_commands - commands_to_disable
@@ -288,6 +293,12 @@ def sync_resources(disabled: dict, target: str = "claude", dry_run: bool = False
 
         if dry_run:
             result['success'] = True
+            result['npx_managed'] = npx_changes
+            if npx_changes:
+                result['warnings'].append(
+                    "npx-managed skills 不會由 standards 搬動："
+                    + ", ".join(npx_changes)
+                )
             result['to_disable'] = {
                 'skills': sorted(skills_to_actually_disable),
                 'commands': sorted(commands_to_actually_disable),
@@ -298,6 +309,13 @@ def sync_resources(disabled: dict, target: str = "claude", dry_run: bool = False
                 'commands': sorted(commands_to_enable),
                 'agents': sorted(agents_to_enable)
             }
+            return result
+
+        if npx_changes:
+            result['npx_managed'] = npx_changes
+            result['error'] = (
+                "profile 需要變更 npx-managed skills；已在 filesystem mutation 前停止"
+            )
             return result
 
         # 執行操作（靜默模式，避免每個操作都印出訊息）
@@ -698,6 +716,10 @@ def sync(
     # 計算需要的操作
     skills_to_actually_disable = skills_to_disable - currently_disabled_skills
     skills_to_enable = currently_disabled_skills - skills_to_disable
+    npx_changes = sorted(
+        (skills_to_actually_disable | skills_to_enable)
+        & get_npx_managed_skill_names()
+    )
 
     commands_to_actually_disable = commands_to_disable - currently_disabled_commands
     commands_to_enable = currently_disabled_commands - commands_to_disable
@@ -709,9 +731,11 @@ def sync(
     console.print()
     console.print("[bold]Skills:[/bold]")
     for name in sorted(skills_to_actually_disable):
-        console.print(f"  [red]- 停用: {name}[/red]")
+        suffix = " [npx-managed]" if name in npx_changes else ""
+        console.print(f"  [red]- 停用: {name}{suffix}[/red]")
     for name in sorted(skills_to_enable):
-        console.print(f"  [green]+ 啟用: {name}[/green]")
+        suffix = " [npx-managed]" if name in npx_changes else ""
+        console.print(f"  [green]+ 啟用: {name}{suffix}[/green]")
     if not skills_to_actually_disable and not skills_to_enable:
         console.print("  [dim]無變更[/dim]")
 
@@ -745,6 +769,13 @@ def sync(
         console.print()
         console.print("[dim]Dry-run 模式，未執行任何變更[/dim]")
         return
+
+    if npx_changes:
+        console.print(
+            "[red]同步需要變更 npx-managed skills，已在 filesystem mutation 前停止。[/red]"
+        )
+        console.print(f"[red]受影響：{', '.join(npx_changes)}[/red]")
+        raise typer.Exit(code=1)
 
     # 執行操作（靜默模式，避免每個操作都印出訊息）
     console.print()

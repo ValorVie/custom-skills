@@ -5,6 +5,7 @@ import pytest
 
 from script.services.npx_skills.manifest_sync import (
     cleanup_skills_from_manifests,
+    get_npx_managed_skill_entry,
     get_npx_managed_skill_names,
 )
 
@@ -23,6 +24,8 @@ def test_get_npx_managed_skill_names_reads_yaml(tmp_path: Path):
     names = get_npx_managed_skill_names(yaml_path=yaml_file)
 
     assert names == {"alpha", "beta", "gamma"}
+    assert get_npx_managed_skill_entry("gamma", yaml_path=yaml_file).repo == "c/d"
+    assert get_npx_managed_skill_entry("missing", yaml_path=yaml_file) is None
 
 
 def test_get_npx_managed_skill_names_missing_returns_empty(tmp_path: Path):

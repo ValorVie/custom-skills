@@ -3,6 +3,7 @@ install 與 maintain 指令的共用函式與配置。
 """
 
 import os
+import copy
 import re
 import stat
 import sys
@@ -16,6 +17,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
+import typer
 from rich.console import Console
 
 from .paths import (
@@ -35,6 +37,8 @@ from .paths import (
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_ai_dev_config_dir,
+    get_npx_skills_project_yaml,
+    get_npx_skills_user_yaml,
     get_project_root,
 )
 from .system import run_command
@@ -1440,7 +1444,6 @@ def copy_custom_skills_to_targets(
     _migrate_opencode_plugin_dir_if_needed()
 
     # 來源路徑
-    src_skills = get_custom_skills_dir() / "skills"
     src_cmd_claude = get_custom_skills_dir() / "commands" / "claude"
     src_cmd_antigravity = get_custom_skills_dir() / "commands" / "antigravity"
     src_cmd_opencode = get_custom_skills_dir() / "commands" / "opencode"
@@ -1454,7 +1457,6 @@ def copy_custom_skills_to_targets(
         "claude": {
             "name": "Claude Code",
             "resources": [
-                ("skills", src_skills, COPY_TARGETS["claude"]["skills"]),
                 ("commands", src_cmd_claude, COPY_TARGETS["claude"]["commands"]),
                 ("agents", src_agents_claude, COPY_TARGETS["claude"]["agents"]),
                 ("workflows", src_cmd_workflows, COPY_TARGETS["claude"]["workflows"]),
@@ -1463,7 +1465,6 @@ def copy_custom_skills_to_targets(
         "antigravity": {
             "name": "Antigravity",
             "resources": [
-                ("skills", src_skills, COPY_TARGETS["antigravity"]["skills"]),
                 (
                     "workflows",
                     src_cmd_antigravity,
@@ -1474,7 +1475,6 @@ def copy_custom_skills_to_targets(
         "opencode": {
             "name": "OpenCode",
             "resources": [
-                ("skills", src_skills, COPY_TARGETS["opencode"]["skills"]),
                 ("commands", src_cmd_opencode, COPY_TARGETS["opencode"]["commands"]),
                 ("agents", src_agents_opencode, COPY_TARGETS["opencode"]["agents"]),
                 ("plugins", src_plugins_opencode, COPY_TARGETS["opencode"]["plugins"]),
@@ -1482,15 +1482,11 @@ def copy_custom_skills_to_targets(
         },
         "codex": {
             "name": "Codex",
-            "resources": [
-                ("skills", src_skills, COPY_TARGETS["codex"]["skills"]),
-            ],
+            "resources": [],
         },
         "agy": {
             "name": "Antigravity CLI (agy)",
-            "resources": [
-                ("skills", src_skills, COPY_TARGETS["agy"]["skills"]),
-            ],
+            "resources": [],
         },
     }
 
@@ -1687,6 +1683,10 @@ def copy_custom_skills_to_targets(
                 source_heads=source_heads,
             )
 
+        # npx migration 尚未完成時，保留舊第一方 manifest entry，避免一般 clone
+        # 把它當 orphan 清除。完成 npx 安裝與讀回驗證後，由 migration 明確 detach。
+        _preserve_pending_npx_migration_entries(old_manifest, new_manifest)
+
         # 8. 清理孤兒檔案
         # 注意：跳過的衝突檔案不應被視為孤兒（因為已在步驟 7 中加回 manifest）
         orphans = find_orphans(old_manifest, new_manifest)
@@ -1697,7 +1697,7 @@ def copy_custom_skills_to_targets(
 
     # 專案目錄同步（不使用 manifest 追蹤）
     if sync_project:
-        _sync_to_project_directory(src_skills)
+        _sync_to_project_directory()
 
 
 def _prescan_custom_repos(
@@ -1737,9 +1737,8 @@ def _scan_repo_resources(
                     and not item.name.startswith(".")
                     and item.name != "auto-skill"
                 ):
-                    # 已交接給 npx 管理的 skill 不記錄，避免 conflict 誤判
                     if item.name in npx_managed:
-                        continue
+                        _raise_npx_skill_collision(item.name, source)
                     # 含 clone policy 的 skill 跳過 prescan（衝突在檔案層級處理）
                     if _load_clone_policy(item, show_warning=False) is not None:
                         continue
@@ -1779,6 +1778,40 @@ def _scan_platform_resources(
             record(item.stem, item, source=source)
 
 
+def _raise_npx_skill_collision(name: str, source: str) -> None:
+    console.print(
+        f"[red]✗ skill 名稱衝突：{name} 同時由 npx 與 {source} 啟用。[/red]"
+    )
+    console.print("[red]  請先從其中一個來源移除該名稱，再重新執行。[/red]")
+    raise typer.Exit(code=1)
+
+
+def _preserve_pending_npx_migration_entries(
+    old_manifest: dict | None,
+    new_manifest: dict,
+    *,
+    npx_names: set[str] | None = None,
+) -> None:
+    """保留尚未由 migration 明確 detach 的舊 npx-managed skill entries。"""
+    if not old_manifest:
+        return
+    if npx_names is None:
+        from script.services.npx_skills import get_npx_managed_skill_names
+
+        npx_names = get_npx_managed_skill_names()
+    from script.services.npx_skills import manifest_names_for_detach
+
+    protected_names = manifest_names_for_detach(npx_names)
+    old_skills = (old_manifest.get("files", {}) or {}).get("skills", {}) or {}
+    new_skills = new_manifest.setdefault("files", {}).setdefault("skills", {})
+    for name in protected_names:
+        if name in new_skills:
+            continue
+        entry = old_skills.get(name)
+        if isinstance(entry, dict) and entry.get("source") == "custom-skills":
+            new_skills[name] = copy.deepcopy(entry)
+
+
 def _distribute_custom_repos(
     target: str,
     target_name: str,
@@ -1790,7 +1823,10 @@ def _distribute_custom_repos(
     """分發 custom repos 的資源到指定平台。"""
     from .custom_repos import expand_local_path, load_custom_repos
 
+    from script.services.npx_skills import get_npx_managed_skill_names
+
     custom_repos = load_custom_repos().get("repos", {})
+    npx_managed = get_npx_managed_skill_names()
     if not custom_repos:
         return
 
@@ -1807,6 +1843,9 @@ def _distribute_custom_repos(
         # Skills（所有平台共用）
         skills_src = local_path / "skills"
         if skills_src.exists():
+            for item in skills_src.iterdir():
+                if item.is_dir() and item.name in npx_managed:
+                    _raise_npx_skill_collision(item.name, repo_name)
             skills_dst = COPY_TARGETS.get(target, {}).get("skills")
             if skills_dst:
                 _copy_with_log(
@@ -2026,8 +2065,9 @@ def _prescan_ecc(
                         and not item.name.startswith(".")
                         and item.name not in skip_dirs
                         and item.name in enabled_skills
-                        and item.name not in npx_managed
                     ):
+                        if item.name in npx_managed:
+                            _raise_npx_skill_collision(item.name, "ecc")
                         record(item.name, item, source="ecc")
 
     # Commands
@@ -2092,8 +2132,22 @@ def _distribute_ecc_selective(
         src = source_base / skills_config["source_path"]
         dst = COPY_TARGETS.get(target, {}).get("skills")
         if src.exists() and dst:
+            from script.services.npx_skills import get_npx_managed_skill_names
+
             enabled_skills = set(skills_config.get("enabled", []))
             enabled_skills.discard("auto-skill")
+            available_names = {
+                path.name
+                for path in src.iterdir()
+                if path.is_dir() and not path.name.startswith(".")
+            }
+            collisions = sorted(
+                enabled_skills
+                & available_names
+                & get_npx_managed_skill_names()
+            )
+            if collisions:
+                _raise_npx_skill_collision(collisions[0], "ecc")
             console.print(f"  [green]skills[/green] → [cyan]{target_name}[/cyan]")
             console.print(f"    [dim]{shorten_path(src)} → {shorten_path(dst)}[/dim]")
             dst.mkdir(parents=True, exist_ok=True)
@@ -2115,7 +2169,6 @@ def _distribute_ecc_selective(
                 )
 
             # enabled 列出但 ECC 不存在 → 一次性警告
-            available_names = {p.name for p in src.iterdir() if p.is_dir() and not p.name.startswith(".")}
             missing = sorted(enabled_skills - available_names - skip_dirs)
             if missing:
                 console.print(
@@ -2233,7 +2286,7 @@ def _copy_dir_with_managed_skip(
         shutil.copy2(src_file, dst_file)
 
 
-def _sync_to_project_directory(src_skills: Path) -> None:
+def _sync_to_project_directory() -> None:
     """同步資源到 custom-skills 專案目錄（內部函式）。
 
     只有當前目錄是 custom-skills 專案時才會同步，
@@ -2267,22 +2320,6 @@ def _sync_to_project_directory(src_skills: Path) -> None:
     if tracking:
         managed_files = set(tracking.get("managed_files", []))
         template_name = tracking.get("template", {}).get("name", "模板")
-
-    # Skills → Project
-    if src_skills.exists():
-        dst_project_skills = project_root / "skills"
-        console.print(f"  [green]skills[/green] → [cyan]專案目錄[/cyan]")
-        console.print(
-            f"    [dim]{shorten_path(src_skills)} → {shorten_path(dst_project_skills)}[/dim]"
-        )
-        if managed_files:
-            _copy_dir_with_managed_skip(
-                src_skills, dst_project_skills, project_root, managed_files, template_name
-            )
-        else:
-            dst_project_skills.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(src_skills, dst_project_skills, dirs_exist_ok=True)
-        clean_unwanted_files(dst_project_skills, use_readonly_handler=True)
 
     # Commands → Project
     src_commands = get_custom_skills_dir() / "commands"
@@ -2556,6 +2593,16 @@ def disable_resource(
     Returns:
         bool: True 表示成功，False 表示失敗
     """
+    if resource_type == "skills":
+        from script.services.npx_skills import get_npx_managed_skill_names
+
+        if name in get_npx_managed_skill_names():
+            if not quiet:
+                console.print(
+                    f"[red]{name} 由 npx skills 管理，拒絕移入 disabled 目錄。[/red]"
+                )
+            return False
+
     # 1. 取得來源路徑
     source_path = get_resource_file_path(target, resource_type, name)
     if not source_path:
@@ -2638,6 +2685,16 @@ def enable_resource(
     Returns:
         bool: True 表示成功，False 表示失敗
     """
+    if resource_type == "skills":
+        from script.services.npx_skills import get_npx_managed_skill_names
+
+        if name in get_npx_managed_skill_names():
+            if not quiet:
+                console.print(
+                    f"[red]{name} 由 npx skills 管理，拒絕從 disabled 目錄還原。[/red]"
+                )
+            return False
+
     # 1. 取得 disabled 路徑
     if resource_type == "skills":
         disabled_path = get_disabled_path(target, resource_type, name)
@@ -2861,6 +2918,11 @@ def is_resource_enabled(
 
 # 來源名稱映射
 SOURCE_NAMES = {
+    "ai-dev-first-party": "ai-dev-skills",
+    "anthropic-official": "anthropic-skills",
+    "kepano-obsidian": "obsidian-skills",
+    "everything-claude-code": "everything-claude-code",
+    "tanweai": "tanweai",
     "uds": "universal-dev-standards",
     "obsidian": "obsidian-skills",
     "anthropic": "anthropic-skills",
@@ -2872,7 +2934,22 @@ SOURCE_NAMES = {
 
 def get_source_skills() -> dict[str, set[str]]:
     """取得各來源的 skill 名稱集合。"""
-    sources = {}
+    sources: dict[str, set[str]] = {}
+
+    # npx declarative manifest 優先。它描述 reviewable desired state；global lock
+    # 只代表單一機器的實際狀態，不用來判斷來源名稱。
+    from script.services.npx_skills.config import NpxSkillsConfig
+
+    npx_manifest = get_npx_skills_user_yaml()
+    if not npx_manifest.exists():
+        npx_manifest = get_npx_skills_project_yaml()
+    try:
+        npx_config = NpxSkillsConfig.load(npx_manifest)
+    except (FileNotFoundError, ValueError):
+        sources["__npx_manifest_unavailable__"] = set()
+    else:
+        for entry in npx_config.entries:
+            sources.setdefault(entry.source, set()).add(entry.skill)
 
     # UDS skills
     uds_path = get_uds_dir() / "skills" / "claude-code"
@@ -2925,9 +3002,23 @@ def get_source_skills() -> dict[str, set[str]]:
 
 def identify_source(name: str, sources: dict[str, set[str]]) -> str:
     """識別資源的來源。"""
+    from script.services.npx_skills import LEGACY_PATH_BY_CANONICAL_ID
+
+    canonical_by_legacy = {
+        legacy: canonical
+        for canonical, legacy in LEGACY_PATH_BY_CANONICAL_ID.items()
+    }
+    lookup_name = canonical_by_legacy.get(name, name)
     for source_key, names in sources.items():
-        if name in names:
-            return SOURCE_NAMES.get(source_key, source_key)
+        if source_key == "__npx_manifest_unavailable__":
+            continue
+        if lookup_name in names:
+            source = SOURCE_NAMES.get(source_key, source_key)
+            if lookup_name != name:
+                return f"{source} (legacy: {lookup_name})"
+            return source
+    if "__npx_manifest_unavailable__" in sources:
+        return "unknown"
     return SOURCE_NAMES["user"]
 
 

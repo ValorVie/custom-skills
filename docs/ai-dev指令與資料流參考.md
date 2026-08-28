@@ -36,15 +36,15 @@
 
 | 路徑 | 用途 | 主要寫入者 |
 |------|------|------------|
-| `~/.config/custom-skills/` | 已安裝的 `custom-skills` 本機 repo，也是 Stage 3 分發來源 | `install`, `update` |
+| `~/.config/custom-skills/` | 已安裝的 ai-dev framework repo；提供 commands、agents、plugins、project-template 與 retained distribution policy | `install`, `update` |
 | `~/.config/custom-skills/disabled/` | 被停用後暫存的資源目錄 | `toggle`, `standards sync` |
 | `~/.config/custom-skills/toggle-config.yaml` | toggle 資源開關狀態 | `toggle` |
 | `<custom-skills repo>/upstream/sources.yaml` | 上游來源註冊表 | `add-repo`, repo 維護者手動維護 |
 | `~/.config/ai-dev/repos.yaml` | custom repo / template repo 註冊表 | `add-custom-repo`, `init-from` |
 | `<custom-skills repo>/upstream/ecc-catalog.yaml` | ECC 上游 skill 分類目錄（純資料，供 `ai-dev ecc audit` 與人工審視） | `ecc audit`, repo 維護者手動維護 |
 | `~/.config/ai-dev/ecc-profile.yaml` | 使用者層級覆寫，疊加在 repo `distribution.yaml` 之上：`enabled_extra`（額外啟用）／`enabled_remove`（從 repo enabled 拿掉）。合併公式 `final = (repo.enabled ∪ extra) \ remove`。legacy 鍵 `include_skills` / `exclude_skills` 自動相容並印一次性 hint | `clone`, `install`, `update` 讀取 |
-| `~/.config/ai-dev/npx-skills.yaml` | 由 npx 維護的 skills 清單（由 `upstream/npx-skills.yaml` 同步而來） | `install`（repos phase）, `update`（repos phase） |
-| `~/.config/ai-dev/.npx-migration-v1-done` | npx skills 半自動遷移完成 marker | `npx-skills` phase |
+| `~/.config/ai-dev/npx-skills.yaml` | ai-dev 的 declarative skill desired state（由 `upstream/npx-skills.yaml` 同步而來） | `install`（repos phase）, `update`（repos phase） |
+| `~/.agents/.skill-lock.json` | npx 的本機實際安裝狀態；不取代 repository manifest | 外部 `npx skills` CLI |
 | `~/.config/ai-dev/backups/auto-skill-removal/<timestamp>/` | 已退役 `auto-skill` 的確認式清理備份與 `audit.json` | `clone`, `project init`, `project update`（僅互動確認後） |
 | `~/.config/ai-dev/manifests/projects/<project_id>.yaml` | 專案 AI projection manifest | `init-from`, `project init`, `project hydrate`, `project reconcile` |
 | `<project>/.ai-dev-project.yaml` | 專案 intent、managed files、git exclude 設定 | `init-from`, `project init`, `project exclude`, `project hydrate` |
@@ -68,9 +68,11 @@
 
 ```mermaid
 flowchart LR
-    A["GitHub / upstream repos"] --> B["~/.config/* cloned repos (Stage 1)"]
-    B --> C["~/.config/custom-skills (distribution source repo)"]
-    C --> D["Tool dirs: ~/.claude ~/.codex ~/.gemini ~/.config/opencode"]
+    A["GitHub / upstream repos"] --> B["~/.config/* cloned repos"]
+    S["ValorVie/ai-dev-skills + npx upstreams"] --> N["npx-skills phase"]
+    N --> D["Global skill dirs / canonical links"]
+    B --> C["~/.config/custom-skills (framework source)"]
+    C --> D2["commands / agents / workflows / plugins"]
     B --> G["~/.config/everything-claude-code (ECC)"]
     H["~/.config/ai-dev/ecc-profile.yaml<br/>(enabled_extra / enabled_remove)"] -.-> G
     G -->|"distribution.yaml.enabled ∪ extra \\ remove"| D
@@ -81,10 +83,10 @@ flowchart LR
 | `ai-dev install` | 預設依序執行 `tools → repos → npx-skills → targets`，建立工具環境、Clone repo、批次安裝 npx skills，最後分發到各工具目錄 |
 | `ai-dev install-npx-skills` | 等同 `install --only npx-skills`，僅執行 npx skills 批次安裝 |
 | `ai-dev update` | 預設依序執行 `tools → repos → npx-skills`，更新工具、本機 repo 與 npx skills，不直接分發到工具目錄 |
-| `ai-dev clone` | 執行 `targets` 分發；分發前會偵測已退役的 `auto-skill`，只有互動確認後才先備份並清理舊安裝 |
+| `ai-dev clone` | 執行 retained `targets` 分發；不複製第一方 npx-managed skills，仍處理 commands、agents、workflows、plugins、custom repos 與 ECC whitelist |
 | `ai-dev status` | 讀取工具安裝狀態；對 repo 會比對 local HEAD 與 `origin/main`，若在 repo 內且存在上游同步紀錄，也會讀 `upstream/last-sync.yaml` / `upstream/sources.yaml` 顯示同步狀態 |
 | `ai-dev list` | 讀取各 target 的資源清單與停用狀態，不寫入 state；`--target` 可省略，省略時等於列出所有 target，若無符合項目會顯示提示 |
-| `ai-dev toggle` | 移動或還原 target 資源，並更新 `toggle-config.yaml`；`--target` 必填，支援 `--dry-run` 預覽 |
+| `ai-dev toggle` | 移動或還原非 npx-managed target 資源；npx-managed skill 採 fail closed 並顯示原生 npx 指引 |
 | `ai-dev ecc audit` | 偵測 ECC 來源與 `upstream/ecc-catalog.yaml` 差異，輸出 NEW / GONE / RENAMED? 建議 patch。退出碼 0=無差異、1=有差異、2=ECC 缺失 |
 
 ### 終端使用者個人化（`~/.config/ai-dev/ecc-profile.yaml`）
@@ -173,15 +175,19 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 - 觸發命令：`install`、`update`、`install-npx-skills`
 - 資料來源：`~/.config/ai-dev/npx-skills.yaml`（由 repos phase 從 `upstream/npx-skills.yaml` 同步）
 - 實際動作：
-  - `install` 模式：對清單中每個 entry 執行 `npx skills add <pkg>@<skill> -g -a '*' --yes`
-  - `update` 模式：對清單中每個 entry 執行 `npx skills update <pkg>@<skill> -g -a '*' --yes`
+  - manifest validation 先拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
+  - `install` 模式：同一 repository 合併成一個 `npx skills add <repo> --skill <name>... -g -a '*' --yes`。
+  - `update` 模式：同一 repository 的 IDs 合併成一個 `npx skills update <name>... -g -y`。
+  - package 部分失敗時保留成功結果，但 phase 以 exit 1 結束，失敗項目不 detach ownership。
 - 安裝參數語意：
   - `-g`：user-level（全域）安裝
   - `-a '*'`：套用到所有 agents
   - `--yes`：跳過互動確認
 - 跳過方式：`ai-dev install --skip npx-skills` 或 `ai-dev update --skip npx-skills`
 - 僅執行：`ai-dev install-npx-skills`（等同 `install --only npx-skills`）
-- 遷移 marker：首次成功執行後會建立 `~/.config/ai-dev/.npx-migration-v1-done`，代表半自動遷移已完成
+- 第一方遷移：先分類 missing／unchanged／modified／unknown／already-migrated；modified 或 unknown 只阻擋該 skill，其他安全項目仍可安裝。
+- 讀回驗證：canonical path、frontmatter name、npx lock source 與必要 agent path 通過後，才清舊 manifest ownership。
+- legacy `custom-simplify` 會先逐 target 備份，再於 `simplify` 驗證成功後清理。
 
 #### Superpowers 處理
 
@@ -202,13 +208,13 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 
 | 命令 | intent | side_effect_class | target_mode | 主要狀態寫入 |
 |------|--------|-------------------|-------------|--------------|
-| `ai-dev install` | 初始化或補齊全域 AI 開發環境 | `multi_stage_pipeline + system_level_operation` | `explicit_multi` | `~/.config/*`, `~/.config/ai-dev/npx-skills.yaml`, `~/.config/ai-dev/.npx-migration-v1-done` |
-| `ai-dev install-npx-skills` | 依 `npx-skills.yaml` 批次安裝 npx skills | `single_write` | `none` | npx skills 全域安裝結果、`~/.config/ai-dev/.npx-migration-v1-done` |
+| `ai-dev install` | 初始化或補齊全域 AI 開發環境 | `multi_stage_pipeline + system_level_operation` | `explicit_multi` | `~/.config/*`, `~/.config/ai-dev/npx-skills.yaml`, npx global state 與 retained targets |
+| `ai-dev install-npx-skills` | 依 `npx-skills.yaml` 批次安裝 npx skills | `single_write` | `none` | npx global state；驗證成功後 detach 對應舊 manifest entries |
 | `ai-dev update` | 刷新工具與 repo，並更新 npx skills | `multi_stage_pipeline + system_level_operation` | `none` | `~/.config/*`, `~/.config/ai-dev/npx-skills.yaml` |
 | `ai-dev clone` | 將目前來源分發到 targets | `multi_stage_pipeline` | `explicit_multi` | 各工具資源目錄與 manifest；確認清理舊 `auto-skill` 時另寫入 `~/.config/ai-dev/backups/auto-skill-removal/` |
 | `ai-dev status` | 聚合顯示工具、repo、同步狀態 | `read_only` | `none` | 無 |
 | `ai-dev list` | 列出 target 資源與停用狀態 | `read_only` | `implicit_default` | 無 |
-| `ai-dev toggle` | 切換單一 target 上的單一資源啟用狀態 | `single_write` | `explicit_single` | `~/.config/custom-skills/disabled/`, `~/.config/custom-skills/toggle-config.yaml` |
+| `ai-dev toggle` | 切換單一 target 的非 npx-managed resource；npx-managed skill 只顯示指引 | `single_write` 或 fail-closed | `explicit_single` | 非 npx-managed 時寫 `disabled/` 與 `toggle-config.yaml` |
 | `ai-dev init-from` | 以外部模板 repo 初始化或更新專案 | `multi_stage_pipeline` | `none` | `~/.config/ai-dev/repos.yaml`, `<project>/.ai-dev-project.yaml`, `<project>/.git/info/exclude` |
 
 ### `ai-dev status`
@@ -481,7 +487,7 @@ flowchart TD
     A["install"] --> B["建立本機 repo + npx skills + 分發到工具目錄"]
     C["update"] --> D["刷新 repo 與 npx skills"]
     R["install-npx-skills"] --> S["依 npx-skills.yaml 批次安裝 npx skills"]
-    E["clone"] --> F["從 ~/.config/custom-skills 分發到工具目錄"]
+    E["clone"] --> F["分發 retained framework / custom repo / ECC resources"]
     G["maintain clone"] --> H["整合外部來源到 custom-skills repo"]
     I["maintain template"] --> J["同步 project-template/"]
     K["init-from"] --> L["建立專案 + tracking + optional exclude"]

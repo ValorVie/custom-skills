@@ -276,7 +276,7 @@ def test_copy_with_log_invalid_policy_falls_back_to_copytree(tmp_path: Path):
     assert (dst_root / "bad-policy" / ".clonepolicy.json").exists()
 
 
-def test_conflict_prescan_skips_skill_with_valid_clone_policy(
+def test_first_party_root_skills_are_excluded_from_conflict_prescan(
     tmp_path: Path, monkeypatch
 ):
     custom_dir = tmp_path / "custom-skills"
@@ -375,5 +375,5 @@ def test_conflict_prescan_skips_skill_with_valid_clone_policy(
 
     assert captured_skill_sets
     for skill_set in captured_skill_sets:
-        assert "plain-skill" in skill_set
+        assert "plain-skill" not in skill_set
         assert "policy-skill" not in skill_set

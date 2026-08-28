@@ -28,7 +28,6 @@ distribute:
       - ai-first-engineering
       - architecture-decision-records
       - coding-standards
-      - context-budget
       - council
       - error-handling
       - hexagonal-architecture
@@ -50,7 +49,6 @@ distribute:
       - continuous-learning-v2
       - enterprise-agent-ops
       - eval-harness
-      - mcp-server-patterns
       - mle-workflow
       - plan-orchestrate
       - prompt-optimizer
@@ -97,7 +95,6 @@ distribute:
       # === 文件、知識管理、研究 (docs-knowledge) — 9 個 ===
       - brand-voice
       - code-tour
-      - codebase-onboarding
       - deep-research
       - documentation-lookup
       - exa-search
@@ -116,7 +113,6 @@ distribute:
       - hookify-rules
       - jira-integration
       - opensource-pipeline
-      - safety-guard
       - terminal-ops
 
       # === 規範、流程、RFC、PR (process-rfc) — 5 個 ===
@@ -130,7 +126,6 @@ distribute:
       - rules-distill
       - security-bounty-hunter
       - security-review
-      - security-scan
 
       # === AI 工具、Token、媒體生成 (ai-cost-tooling) — 6 個 ===
       - click-path-audit

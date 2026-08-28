@@ -67,3 +67,68 @@ def test_codex_skill_toggle_warns_about_shared_agents_directory(monkeypatch):
     assert result.exit_code == 0
     assert "~/.agents/skills" in result.stdout
     assert "其他工具" in result.stdout
+
+
+def test_npx_managed_skill_toggle_fails_without_mutation(monkeypatch):
+    monkeypatch.setattr(toggle_cmd, "load_toggle_config", lambda: {})
+    monkeypatch.setattr(
+        toggle_cmd, "get_npx_managed_skill_names", lambda: {"managed"}
+    )
+    monkeypatch.setattr(
+        toggle_cmd,
+        "get_npx_managed_skill_entry",
+        lambda _name: type("Entry", (), {"repo": "owner/repo"})(),
+    )
+    monkeypatch.setattr(
+        toggle_cmd,
+        "disable_resource",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("must not move npx skill")
+        ),
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "toggle",
+            "--target",
+            "claude",
+            "--type",
+            "skills",
+            "--name",
+            "managed",
+            "--disable",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "npx skills remove --global --agent claude-code managed" in result.stdout
+
+
+def test_npx_managed_skill_without_verified_agent_mapping_fails_closed(monkeypatch):
+    monkeypatch.setattr(toggle_cmd, "load_toggle_config", lambda: {})
+    monkeypatch.setattr(
+        toggle_cmd, "get_npx_managed_skill_names", lambda: {"managed"}
+    )
+    monkeypatch.setattr(
+        toggle_cmd,
+        "get_npx_managed_skill_entry",
+        lambda _name: type("Entry", (), {"repo": "owner/repo"})(),
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "toggle",
+            "--target",
+            "antigravity",
+            "--type",
+            "skills",
+            "--name",
+            "managed",
+            "--enable",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "尚未驗證 npx agent mapping" in result.stdout

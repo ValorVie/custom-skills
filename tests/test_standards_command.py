@@ -82,3 +82,38 @@ def test_standards_sync_invalid_target_then_exit_1(monkeypatch):
 
     assert result.exit_code == 1
     assert "無效的目標工具" in result.output
+
+
+def test_standards_dry_run_labels_npx_managed_skills(monkeypatch):
+    monkeypatch.setattr(standards_cmd, "list_disabled_resources", lambda *_args: [])
+    monkeypatch.setattr(
+        standards_cmd, "get_npx_managed_skill_names", lambda: {"managed"}
+    )
+
+    result = standards_cmd.sync_resources(
+        {"skills": ["managed"]}, target="claude", dry_run=True
+    )
+
+    assert result["success"] is True
+    assert result["npx_managed"] == ["managed"]
+
+
+def test_standards_apply_stops_before_npx_managed_mutation(monkeypatch):
+    monkeypatch.setattr(standards_cmd, "list_disabled_resources", lambda *_args: [])
+    monkeypatch.setattr(
+        standards_cmd, "get_npx_managed_skill_names", lambda: {"managed"}
+    )
+    monkeypatch.setattr(
+        standards_cmd,
+        "disable_resource",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("must not move npx skill")
+        ),
+    )
+
+    result = standards_cmd.sync_resources(
+        {"skills": ["managed"]}, target="claude", dry_run=False
+    )
+
+    assert result["success"] is False
+    assert result["npx_managed"] == ["managed"]

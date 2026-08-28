@@ -40,12 +40,35 @@ class NpxSkillsConfig:
             yes=bool(defaults_raw.get("yes", True)),
         )
         entries: list[SkillEntry] = []
+        seen_skills: dict[str, str] = {}
         for pkg in data.get("packages") or []:
-            if "repo" not in pkg:
+            if not isinstance(pkg, dict) or "repo" not in pkg:
                 raise ValueError(f"npx-skills.yaml package 缺少 repo 欄位: {pkg}")
             repo = pkg["repo"]
+            if not isinstance(repo, str) or not repo.strip():
+                raise ValueError(f"npx-skills.yaml package repo 必須是非空字串: {pkg}")
+            repo = repo.strip()
             source = pkg.get("source", repo)
-            for skill in pkg.get("skills") or []:
+            skills = pkg.get("skills")
+            if not isinstance(skills, list) or not skills:
+                raise ValueError(f"npx-skills.yaml package skills 不得為空: {repo}")
+            for skill in skills:
+                if not isinstance(skill, str) or not skill.strip():
+                    raise ValueError(
+                        f"npx-skills.yaml skill 必須是非空字串: repo={repo} skill={skill!r}"
+                    )
+                skill = skill.strip()
+                if skill == "*":
+                    raise ValueError(
+                        f"npx-skills.yaml 不得使用 wildcard skill: repo={repo}"
+                    )
+                previous_repo = seen_skills.get(skill)
+                if previous_repo is not None:
+                    raise ValueError(
+                        "npx-skills.yaml 重複 canonical ID: "
+                        f"{skill} ({previous_repo}, {repo})"
+                    )
+                seen_skills[skill] = repo
                 entries.append(SkillEntry(repo=repo, skill=skill, source=source))
         return cls(
             version=int(data.get("version", 1)),

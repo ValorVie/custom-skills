@@ -90,8 +90,8 @@ ai-dev install
 4. 檢查 Bun 是否已安裝，若已安裝則自動安裝 Codex CLI。
 5. Clone 必要的設定儲存庫到 `~/.config/`（Stage 1，包含 `~/.config/custom-skills` 本機 repo）。
 6. Clone 已設定的自訂 repo（若有）。
-7. 依設定安裝或更新由 `npx skills` 管理的 Skills。
-8. 從 `~/.config/custom-skills` 分發 Skills 與設定到各個 AI 工具目錄。
+7. 依 `upstream/npx-skills.yaml` 安裝或更新第一方與第三方 global Skills。
+8. 從 `~/.config/custom-skills` 分發 commands、agents、workflows、plugins，以及保留 clone ownership 的 custom repo／ECC resources。
 9. 顯示已安裝的 Skills 清單與重複名稱警告。
 10. 顯示 `npx skills` 可用指令提示。
 
@@ -128,12 +128,12 @@ ai-dev update
 這會自動：
 1. 更新 Claude Code（若已安裝）。
 2. 更新全域 NPM 工具。
-3. 更新已安裝的第三方 Skills（`npx skills update`）。
+3. 更新 manifest 管理的第一方與第三方 Skills（`npx skills update`）。
 4. 更新 Codex CLI（若 Bun 已安裝）。
 5. 拉取所有設定儲存庫的最新變更 (`git fetch` + `git reset`)。
 6. 更新已設定的自訂 repo。
 
-> **注意**：此指令不會自動分發 Skills 到各工具目錄。如需分發，請執行 `ai-dev clone`。
+> **注意**：此指令不會自動分發 clone-owned resources。如需更新 commands、agents、workflows、plugins、custom repos 或 ECC，請執行 `ai-dev clone`。
 >
 > `ai-dev update` 預設 phase 為 `tools,repos,npx-skills`。
 
@@ -153,17 +153,19 @@ ai-dev update --only repos
 # 只更新工具
 ai-dev update --only tools
 
-# 更新後分發 Skills
+# 更新後分發 clone-owned resources
 ai-dev update && ai-dev clone
 ```
 
-### 分發 Skills (Clone)
+### 分發保留資源 (Clone)
 
-將統一管理目錄的 Skills 分發到各 AI 工具目錄：
+分發仍由 framework ownership 管理的 commands、agents、workflows、plugins、custom repos 與 ECC 白名單 resources：
 
 ```bash
 ai-dev clone
 ```
+
+第一方 global skills 由 [`ValorVie/ai-dev-skills`](https://github.com/ValorVie/ai-dev-skills) 維護，透過 `npx-skills` phase 安裝。`ai-dev clone` 不再從本 repository 的 `skills/` 複製第一方 skills，也不會替它們建立新的 ManifestTracker ownership。
 
 Codex 的使用者層 Skills 會寫入共用的 `~/.agents/skills`。專案內的 Codex Skills
 也統一放在 `.agents/skills`；`.codex/config.toml`、agents、hooks、prompts、認證與
@@ -586,9 +588,9 @@ claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"
 | `f` | 在檔案管理器中開啟 MCP 設定檔所在目錄 |
 | `t` | 切換 Standards Profile |
 
-### 第三方 Skills 管理
+### Skills 管理
 
-使用 `npx skills` 安裝第三方 Skills：
+ai-dev baseline 的第一方與第三方 Skills 定義於 `upstream/npx-skills.yaml`。需要手動安裝其他 skill 時，直接使用 `npx skills`：
 
 ```bash
 # 可用指令
@@ -603,6 +605,9 @@ npx skills update             # 更新已安裝的 skills
 
 # 範例
 npx skills add vercel-labs/agent-skills
+
+# ai-dev 第一方 collection
+npx skills add ValorVie/ai-dev-skills --list
 
 # Matt Pocock 工程工作流（全域手動安裝）
 npx skills@latest add mattpocock/skills -g -y
@@ -688,7 +693,7 @@ ai-dev hooks status --target claude
 |------|------|
 | `ai-dev install` | 首次安裝 AI 開發環境 |
 | `ai-dev update` | 每日更新：更新工具與儲存庫 |
-| `ai-dev clone` | 分發 Skills 內容到各 AI 工具目錄 |
+| `ai-dev clone` | 分發 commands、agents、workflows、plugins、custom repos 與 ECC resources |
 | `ai-dev maintain clone` | 整合外部來源回 custom-skills 開發目錄 |
 | `ai-dev maintain template` | 依 manifest 同步 `project-template/` |
 | `ai-dev project init` | 初始化專案 tracked scaffold 並投影 AI 檔 |

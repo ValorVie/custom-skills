@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
-from script.services.npx_skills.config import NpxSkillsConfig
+from script.services.npx_skills.config import NpxSkillsConfig, SkillEntry
 from script.utils.paths import (
     get_npx_skills_project_yaml,
     get_npx_skills_user_yaml,
@@ -39,6 +39,24 @@ def get_npx_managed_skill_names(yaml_path: Path | None = None) -> set[str]:
     except Exception:
         return set()
     return {entry.skill for entry in config.entries}
+
+
+def get_npx_managed_skill_entry(
+    skill_name: str, yaml_path: Path | None = None
+) -> SkillEntry | None:
+    """回傳 declarative manifest 中指定 canonical ID 的 entry。"""
+    if yaml_path is None:
+        candidate = get_npx_skills_user_yaml()
+        if not candidate.exists():
+            candidate = get_npx_skills_project_yaml()
+        yaml_path = candidate
+    if not yaml_path.exists():
+        return None
+    try:
+        config = NpxSkillsConfig.load(yaml_path)
+    except Exception:
+        return None
+    return next((entry for entry in config.entries if entry.skill == skill_name), None)
 
 
 def cleanup_skills_from_manifests(

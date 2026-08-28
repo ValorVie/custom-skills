@@ -1,314 +1,136 @@
-# ai-dev CLI 框架技術架構
+# ai-dev CLI framework architecture
 
-> **版本**: 1.0.0
-> **更新日期**: 2026-02-12
+> **版本**：2.0.0
+> **更新日期**：2026-08-28
 
----
+`ai-dev` 是多工具 AI 開發環境的 control plane。它管理 CLI tools、repositories、npx skill desired state、非 skill resources、project projection 與 migration；第一方 skill content 則由獨立的 [`ValorVie/ai-dev-skills`](https://github.com/ValorVie/ai-dev-skills) 維護。
 
-## 概述
+## Repository responsibilities
 
-`ai-dev` 是 custom-skills 專案的核心 CLI 工具，負責管理多 AI 工具的 Skills、Commands、Agents、Workflows 的安裝、更新與分發。採用 Python + Typer 框架實作，搭配 Rich 進行終端輸出美化。
+| Repository | 負責內容 |
+| --- | --- |
+| `ValorVie/custom-skills` | ai-dev CLI、commands、agents、plugins、project-template、OpenSpec、upstream policies 與 `npx-skills.yaml` |
+| `ValorVie/ai-dev-skills` | 第一方 installable skills、skill tests 與 collection validation |
 
----
+`custom-skills` 不再保存或分發第一方 `skills/` content。新 skill 只有在 `upstream/npx-skills.yaml` 明確列出後，才會進入 ai-dev baseline。
 
-## 技術堆疊
+## Runtime modules
 
-| 元件 | 技術 | 用途 |
-|------|------|------|
-| CLI 框架 | [Typer](https://typer.tiangolo.com/) | 指令定義與參數解析 |
-| TUI 介面 | [Textual](https://textual.textualize.io/) | 互動式終端 UI |
-| 終端輸出 | [Rich](https://rich.readthedocs.io/) | 彩色輸出、表格、進度條 |
-| 配置格式 | YAML | sources.yaml、toggle config |
-| 套件管理 | [uv](https://docs.astral.sh/uv/) | Python 套件管理 |
-| 追蹤機制 | SHA-256 Manifest | 檔案分發追蹤與衝突檢測 |
-
----
-
-## 專案結構
-
-```
+```text
 script/
-├── main.py                    # 進入點，註冊所有指令
-├── commands/                  # 指令實作
-│   ├── install.py             # 首次安裝
-│   ├── update.py              # 日常更新
-│   ├── clone.py               # 分發 Skills
-│   ├── status.py              # 環境狀態檢查
-│   ├── list.py                # 列出已安裝資源
-│   ├── toggle.py              # 啟用/停用資源
-│   ├── add_repo.py            # 新增上游 repo
-│   ├── add_custom_repo.py     # 新增自訂 repo
-│   ├── update_custom_repo.py  # 更新自訂 repo
-│   ├── test.py                # 測試
-│   ├── coverage.py            # 覆蓋率
-│   ├── derive_tests.py        # 測試推導
-│   ├── project.py             # 專案子指令群
-│   ├── standards.py           # Standards 子指令群
-│   └── hooks.py               # Hooks 子指令群
-├── utils/                     # 共用工具
-│   ├── paths.py               # 路徑定義（所有目錄路徑集中管理）
-│   ├── shared.py              # 核心邏輯：REPOS、複製、來源追蹤
-│   ├── manifest.py            # Manifest 追蹤系統
-│   ├── system.py              # 系統工具（指令執行、OS 偵測）
-│   ├── custom_repos.py        # 自訂 repo 管理
-│   └── git_helpers.py         # Git 操作輔助
-└── tui/                       # TUI 互動介面
-    └── app.py
+├── main.py
+├── cli/                     command manifest 與 phase selection
+├── commands/                user-facing commands
+├── models/                  execution plan 等資料模型
+├── services/
+│   ├── npx_skills/          manifest、grouped commands、migration、detach
+│   ├── pipeline/            install/update/clone orchestration
+│   ├── repos/               repository refresh
+│   ├── targets/             retained resource distribution
+│   └── tools/               CLI tool lifecycle
+├── utils/
+│   ├── manifest.py          clone-owned resource tracking
+│   ├── shared.py            paths、source lookup、distribution、toggle helpers
+│   ├── paths.py
+│   └── custom_repos.py
+└── tui/
 ```
 
----
+## Command pipeline
 
-## 指令架構與職責分工
+### `ai-dev install`
 
-### 核心指令
-
-```
-ai-dev
-├── install          # 首次安裝（冪等）
-├── update           # 日常更新
-├── clone            # 分發到各工具目錄
-├── status           # 環境狀態檢查
-├── list             # 列出已安裝資源
-├── toggle           # 啟用/停用特定資源
-├── add-repo         # 新增上游 repo
-├── add-custom-repo  # 新增自訂 repo
-├── update-custom-repo # 更新自訂 repo 設定
-├── init-from        # 從客製化模板 repo 初始化專案目錄
-├── test             # 執行測試
-├── coverage         # 覆蓋率分析
-├── derive-tests     # 測試推導
-├── tui              # 互動式 TUI 介面
-├── project          # 專案子指令群
-├── standards        # Standards 子指令群
-└── hooks            # Hooks 子指令群
+```text
+tools → repos → npx-skills → targets
 ```
 
-### install vs update 設計決策
+- `tools`：補齊必要 CLI。
+- `repos`：clone／refresh framework 與保留的 upstream repositories。
+- `npx-skills`：安裝明確 manifest 中的 global skills。
+- `targets`：分發 commands、agents、workflows、plugins、custom repos 與 ECC 白名單 resources。
 
-這兩個指令有明確的職責分工：
+### `ai-dev update`
 
-| 面向 | `install` | `update` |
-|------|-----------|----------|
-| **定位** | 首次環境建置 | 日常更新 |
-| **冪等性** | 完全冪等（已存在即跳過） | 冪等（只更新有差異的） |
-| **前置檢查** | Node.js、Git、Bun、gh | 無 |
-| **目錄建立** | 建立所有必要目錄 | 不建立目錄 |
-| **缺失 repo** | 自動 clone | 顯示警告，提示執行 install |
-| **已有 repo** | 跳過 | fetch + reset --hard |
-| **NPM/Bun 套件** | install | install（同效果） |
-| **Skills 分發** | 自動執行 `copy_skills()` | 不執行，提示手動跑 `clone` |
-| **Shell completion** | 安裝 | 不處理 |
-| **Custom repos** | clone 缺失的 | 缺失時顯示警告 |
-
-**設計原則**：
-- `install` 是完整的環境建置，可安全重複執行
-- `update` 只負責「拉取最新」，不改變環境結構
-- 如果 `update` 發現缺失 repo，應引導使用者回到 `install` 補齊，而非自動 clone（避免模糊職責邊界）
-
-### clone 的雙重行為
-
-`clone` 指令會根據執行位置決定行為：
-
-| 執行位置 | 行為 |
-|----------|------|
-| 任意目錄 | Stage 3：將 `~/.config/custom-skills/` 分發到各工具目錄 |
-| custom-skills 開發目錄 | Stage 2 + Stage 3：先整合外部來源到開發目錄，再分發 |
-
-判斷依據：檢查 `pyproject.toml` 中是否包含 `name = "ai-dev"` 且非 `~/.config/custom-skills/` 本身。
-
----
-
-## 資源管理系統
-
-### 資源類型
-
-| 類型 | 說明 | 共用/專屬 |
-|------|------|-----------|
-| Skills | 行為規範與知識 | 共用（所有工具） |
-| Commands | 可呼叫的指令 | 工具專屬 |
-| Agents | 自主代理定義 | 工具專屬 |
-| Workflows | 工作流程 | 工具專屬 |
-
-### 上游來源系統
-
-所有第三方 repo 在 `upstream/sources.yaml` 中註冊：
-
-```yaml
-sources:
-  <name>:
-    repo: <github-org/repo>
-    branch: main
-    local_path: ~/.config/<name>/
-    format: claude-code-native | uds
-    install_method: ai-dev | plugin | standards | manual
+```text
+tools → repos → npx-skills
 ```
 
-#### install_method 說明
+update 不執行 targets。需要重跑 clone-owned resource distribution 時，另外執行 `ai-dev clone`。
 
-| 方法 | 同步方式 | 範例 |
-|------|----------|------|
-| `ai-dev` | 由 `ai-dev install/update` 管理來源，再由 `ai-dev clone` 分發 | obsidian-skills、anthropic-skills |
-| `plugin` | Claude Code Plugin 安裝 | superpowers |
-| `standards` | 同步到 .standards/，需手動 diff 合併 | universal-dev-standards |
-| `manual` | 需手動比對與複製 | everything-claude-code |
+### `ai-dev clone`
 
-### 新增上游來源的完整步驟
+clone 只處理 clone-owned resources。第一方與其他 npx-managed canonical IDs 會被排除，不進入新的 ManifestTracker entries。
 
-新增來源時應依現有來源類型選擇最小整合方式：
+分發順序：
 
-1. 在 `upstream/sources.yaml` 註冊來源與安裝方式。
-2. 只有需要由 `ai-dev` 管理本機 clone 時，才在 `paths.py` 與 `shared.py` 的 `REPOS` 增加路徑及 repo。
-3. 需要參與 Skills 分發時，沿用 `_iter_skill_source_dirs()`、manifest 與既有 target 配置，不另建平行複製流程。
-4. 更新 `SOURCE_NAMES`、`get_source_skills()`、相關測試與使用者文件。
+1. framework commands、agents、workflows、plugins。
+2. custom repos。
+3. ECC whitelist。
 
-### 來源追蹤
+## Skill desired state
 
-`get_source_skills()` 函式追蹤每個 skill 的來源：
+`upstream/npx-skills.yaml` 是 ai-dev 的 reviewable desired state。它逐 package 列出 canonical IDs、source label 與 rationale。
 
-```
-SOURCE_NAMES = {
-    "uds":         "universal-dev-standards",
-    "obsidian":    "obsidian-skills",
-    "anthropic":   "anthropic-skills",
-    "ecc":         "everything-claude-code",
-    "custom":      "custom-skills",
-    "user":        "user",
-}
-```
+manifest loader 會拒絕：
 
-優先順序：外部來源 > custom-skills 自有 > 使用者自訂
+- 缺少 repository。
+- 空 skill list。
+- wildcard skill。
+- 同一 canonical ID 重複或由多個來源宣告。
 
----
+同 package 的 skills 以一個 command 安裝或更新。部分 package 失敗時，成功 package 可以保留，但 phase 仍以 exit 1 結束，且失敗項目不會 detach 舊 ownership。
 
-## Manifest 追蹤機制
+## First-party migration
 
-每個目標工具維護一份 `.manifest.yaml`，記錄：
+第一方 skills 從舊 copy model 遷移到 npx 時，使用以下 state：
 
-- 資源名稱與路徑
-- 來源（custom-skills、third-party）
-- 檔案 SHA-256 hash
-- 分發時間戳
-
-用途：
-- **衝突檢測**：分發前比對 hash，偵測使用者手動修改
-- **孤兒清理**：移除已從來源刪除但仍存在於目標的資源
-- **差異追蹤**：判斷是否需要更新
-
----
-
-## Toggle 機制
-
-使用者可針對特定工具停用特定資源：
-
-```bash
-ai-dev toggle --target claude --type skills --name custom-agent-router --disable
+```text
+PREPARED → PUBLISHED → INSTALLED → VERIFIED → DETACHED
 ```
 
-配置存儲在 `~/.config/ai-dev/toggle.yaml`，在 Stage 3 分發時檢查。
+preflight 對每個 target／skill 分類：
 
----
+- `missing`：沒有舊副本，可以安裝。
+- `unchanged`：target 與 stored manifest base 相同，可以安裝。
+- `modified`：使用者或其他流程改過，保留並阻擋該 skill。
+- `unknown`：無法證明 ownership，保留並阻擋。
+- `already-migrated`：npx lock source 與 canonical install 已符合。
 
-## 三階段複製架構
+npx add 成功後還要驗證 canonical path、frontmatter name、lock source 與必要 agent path。全部通過後才移除舊 manifest entries。legacy alias 另做備份後清理。
 
-詳見 [copy-architecture.md](copy-architecture.md)。
+## Clone ManifestTracker
 
-```
-Stage 1: Clone     GitHub repos → ~/.config/<repo>/
-Stage 2: Integrate ~/.config/<repos> → custom-skills/skills/  (僅開發目錄)
-Stage 3: Distribute custom-skills/ → ~/.claude/, ~/.gemini/, etc.
-```
+ManifestTracker 只管理 clone-owned resources，保存 source、hash、file-level base 與 decision。用途包括：
 
----
+- 3-way conflict classification。
+- 使用者修改保護。
+- retained source 的 orphan cleanup。
+- per-source update summary。
 
-## 自訂 Repo 系統
+npx-managed skill 不建立新的 clone entry。migration 尚未完成時，舊 `source=custom-skills` entry 會暫時保留，不能由一般 orphan cleanup 移除。
 
-除了內建的 `REPOS` dict，使用者可透過 `add-custom-repo` 新增私有 repo：
+## List、toggle 與 standards
 
-```bash
-ai-dev add-custom-repo --name my-skills --url https://github.com/user/my-skills.git
-```
+- `ai-dev list` 優先讀 declarative npx manifest 判斷 source；manifest 不可讀時，無法證明的項目標成 `unknown`，不執行 mutation。
+- `custom-simplify` 顯示為 `ai-dev-skills (legacy: simplify)`，canonical ID 是 `simplify`。
+- `ai-dev toggle` 對 npx-managed skill 採 fail closed，提示原生 npx command。
+- resource-disable 不跟隨、複製或刪除 npx canonical copy／symlink。
+- standards dry-run 標示 npx-managed skills；實際切換在 mutation 前停止。
 
-配置存儲在 `~/.config/ai-dev/custom-repos.yaml`，在 install/update 時一併處理。
+## Project-level resources
 
----
+project-template 內的 repo-local skills 仍隨專案版本控制，不改用 global npx installation。project init、hydrate、reconcile 與 doctor 的 ownership 不受本次 global skill migration 影響。
 
-## 模板 Repo 系統（init-from）
+## Safety boundaries
 
-客製化模板 repo 提供專案級 AI 配置初始化，與工具 repo 分為兩條獨立管線：
+- dry-run 不執行 npx、不寫 lock、不清 manifest ownership。
+- modified／unknown target 不得用 `--yes` 或 force 覆蓋。
+- npx 與 clone source 同名時，在寫入該 skill 前停止。
+- remote repository creation、release、tag 與 push 需要目前工作流程的明確授權。
+- 已安裝、已驗證與已 detach 是不同狀態，不得只用「完成」合併描述。
 
-### 管線比較
+## Related documents
 
-| 管線 | 指令 | 來源 | 目標 |
-|------|------|------|------|
-| 工具分發 | `add-custom-repo` + `clone` | 客製化工具 repo | 全域目錄（~/.claude/ 等） |
-| 模板初始化 | `init-from` | 客製化模板 repo | CWD（當前專案目錄） |
-
-### init-from 工作流程
-
-```
-ai-dev init-from ValorVie/qdm-ai-base
-    │
-    ├─ Clone 模板到 ~/.config/qdm-ai-base/
-    ├─ 寫入 repos.yaml（type: template）
-    ├─ 智慧合併：逐檔比對，[A]附加/[O]覆蓋/[S]跳過/[D]diff
-    └─ 建立 .ai-dev-project.yaml（追蹤 managed_files）
-```
-
-### repos.yaml 格式
-
-```yaml
-repos:
-  qdm-ai-base:
-    url: https://github.com/ValorVie/qdm-ai-base.git
-    branch: main
-    local_path: ~/.config/qdm-ai-base/
-    type: template          # 區分模板與工具 repo
-    added_at: 2026-01-01T00:00:00+08:00
-  qdm-ai-tools:
-    url: https://github.com/ValorVie/qdm-ai-tools.git
-    branch: main
-    local_path: ~/.config/qdm-ai-tools/
-    type: tool              # 預設值
-    added_at: 2026-01-01T00:00:00+08:00
-```
-
-### .ai-dev-project.yaml（專案追蹤檔）
-
-初始化後會在專案根目錄建立此檔案，記錄由模板管理的每個檔案：
-
-```yaml
-template:
-  name: qdm-ai-base
-  url: https://github.com/ValorVie/qdm-ai-base.git
-  branch: main
-  initialized_at: 2026-01-01T00:00:00+08:00
-  last_updated: 2026-01-01T00:00:00+08:00
-
-managed_files:
-  - .claude/commands/tdd.md
-  - .standards/commit-message.ai.yaml
-  - CLAUDE.md
-```
-
-此檔案應提交到 git。`ai-dev clone` 分發時會跳過 `managed_files` 中的檔案。
-
-更多詳細說明請參考 [custom-template-format.md](./custom-template-format.md)。
-
----
-
-## 相關文件
-
-| 文件 | 說明 |
-|------|------|
-| [copy-architecture.md](copy-architecture.md) | 三階段複製流程詳細說明 |
-| [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) | 開發工作流程 |
-| `upstream/sources.yaml` | 上游來源註冊表 |
-| `pyproject.toml` | 專案配置與版本定義 |
-
----
-
-## 版本歷史
-
-| 版本 | 日期 | 變更 |
-|------|------|------|
-| 1.0.0 | 2026-02-12 | 初版：框架架構、指令職責分工、資源管理系統、上游來源整合流程 |
+- [Resource ownership and distribution](copy-architecture.md)
+- [ai-dev command and data-flow reference](../../ai-dev指令與資料流參考.md)
+- [OpenSpec change: externalize-first-party-skills](../../../openspec/changes/externalize-first-party-skills/proposal.md)

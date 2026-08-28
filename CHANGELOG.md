@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **第一方 Skills 獨立發布與 npx migration。**
+  - 建立公開 [`ValorVie/ai-dev-skills`](https://github.com/ValorVie/ai-dev-skills)，以 frontmatter `name` 管理 19 個 canonical IDs。
+  - `upstream/npx-skills.yaml` 加入 `ai-dev-first-party` package，baseline 逐項列名，不使用 wildcard。
+  - 新增 migration preflight、npx lock／canonical path 讀回驗證、`custom-simplify → simplify` 備份清理及 modified／unknown target 保護。
+  - 新增 npx/clone ownership、list source、toggle、resource-disable 與 standards profile regression tests。
+
+### Changed
+
+- **BREAKING：第一方 global skills 改由 `npx skills` 獨占 ownership。**
+  - `ai-dev clone` 不再從 framework root `skills/` 分發第一方 skills，也不再為它們建立新的 ManifestTracker entries。
+  - 同 repository 的 npx skills 合併成單一 add/update command；manifest 會拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
+  - ECC 或 custom repo 若啟用同名 npx-managed skill，clone 會在寫入前停止；5 個已由 npx 管理的 ECC entries 已移出 distribution whitelist。
+  - `ai-dev list` 依 declarative manifest 顯示 `ai-dev-skills` source；manifest 無法讀取時標成 `unknown`。
+  - `toggle`、resource-disable 與 standards profile 不再搬動 npx-managed skill，改為 fail closed 與原生 npx 指引。
+
 ### Removed
 
 - **BREAKING：完整退役 `auto-skill`。**
@@ -65,7 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**：v1 manifest 在第一次跑 v2 程式時自動 migration 並備份至 `~/.config/ai-dev/manifests/.backup-v1/<target>.yaml.<timestamp>`。對 `dst==src` 的檔案保守標 base、其他退回 no-base。可透過備份 rollback。
 - `ai-dev install-npx-skills` 命令：依 `upstream/npx-skills.yaml` 批次安裝 npx skills
 - 新 pipeline phase `npx-skills`，整合進 install/update 預設流程
-- `upstream/npx-skills.yaml`：定義由 npx 維護的官方/權威 skill 清單（12 個 skill、3 個 package）
+- `upstream/npx-skills.yaml`：定義由 npx 維護的第一方／官方 skill 清單（32 個 skill、5 個 package）
 - `skills/uds/` 子目錄：明確標示 24 個 UDS 上游鏡像 skill 來源
 - 遷移 marker `~/.config/ai-dev/.npx-migration-v1-done`：半自動遷移完成標記
 

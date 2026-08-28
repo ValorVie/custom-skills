@@ -8,6 +8,10 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from script.services.npx_skills import (
+    get_npx_managed_skill_entry,
+    get_npx_managed_skill_names,
+)
 from ..utils.shared import (
     load_toggle_config,
     disable_resource,
@@ -24,6 +28,42 @@ TARGET_DISPLAY_NAMES = {
     "codex": "Codex",
     "agy": "Antigravity CLI (agy)",
 }
+
+NPX_AGENT_BY_TARGET = {
+    "claude": "claude-code",
+    "codex": "codex",
+    "agy": "gemini-cli",
+}
+
+
+def _stop_for_npx_managed_skill(
+    *, target: str, name: str, enable: bool
+) -> None:
+    if name not in get_npx_managed_skill_names():
+        return
+
+    console.print(f"[red]{name} 由 npx skills 管理，ai-dev 不會移動其檔案。[/red]")
+    agent = NPX_AGENT_BY_TARGET.get(target)
+    if agent is None:
+        console.print(
+            f"[red]{target} 尚未驗證 npx agent mapping；未執行任何變更。[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    if enable:
+        entry = get_npx_managed_skill_entry(name)
+        if entry is None:
+            console.print("[red]無法從 declarative manifest 證明 skill 來源。[/red]")
+            raise typer.Exit(code=1)
+        command = (
+            f"npx skills add {entry.repo} --skill {name} "
+            f"--global --agent {agent} --yes"
+        )
+    else:
+        command = f"npx skills remove --global --agent {agent} {name}"
+
+    console.print(f"[yellow]請使用原生 npx 操作：[/yellow]\n{command}")
+    raise typer.Exit(code=1)
 
 
 @app.command()
@@ -117,6 +157,9 @@ def toggle(
         console.print(
             "[yellow]注意：~/.agents/skills 是共用目錄，此切換也會影響讀取同一 skill 的其他工具。[/yellow]"
         )
+
+    if resource_type == "skills":
+        _stop_for_npx_managed_skill(target=target, name=name, enable=enable)
 
     if dry_run:
         action = "啟用" if enable else "停用"

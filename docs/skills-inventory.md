@@ -1,13 +1,13 @@
 # Skills / Commands / Agents 清單（自動生成）
 
-由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-08-11。
-手動編輯無效；數字或清單過期時重跑腳本。
+由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-08-28。
+Skills 來自 `upstream/npx-skills.yaml` 的 `ai-dev-first-party` 清單；手動編輯無效。
 
-## Skills（18）
+## Skills（19）
 
 - cloud-infrastructure-security
 - custom-agent-router
-- custom-simplify
+- simplify
 - custom-skill-creator
 - custom-skills-dev
 - custom-skills-doc-updater
@@ -20,6 +20,7 @@
 - custom-skills-tool-overlap-analyzer
 - custom-skills-upstream-ops
 - discuss-multi-ai
+- eli5
 - first-principles
 - wiki
 - work-log-claude

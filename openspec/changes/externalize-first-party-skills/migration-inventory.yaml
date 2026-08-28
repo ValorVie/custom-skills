@@ -1,0 +1,73 @@
+version: 1
+source_repository: ValorVie/custom-skills
+source_commit: 56953acf0709f6841d52ded85bc0e67d52cb540a
+captured_on: '2026-08-28'
+target_repository: ValorVie/ai-dev-skills
+skills:
+- source_dir: cloud-infrastructure-security
+  canonical_id: cloud-infrastructure-security
+- source_dir: custom-agent-router
+  canonical_id: custom-agent-router
+- source_dir: custom-simplify
+  canonical_id: simplify
+  legacy_path: custom-simplify
+- source_dir: custom-skill-creator
+  canonical_id: custom-skill-creator
+- source_dir: custom-skills-dev
+  canonical_id: custom-skills-dev
+- source_dir: custom-skills-doc-updater
+  canonical_id: custom-skills-doc-updater
+- source_dir: custom-skills-doc-writer
+  canonical_id: custom-skills-doc-writer
+- source_dir: custom-skills-ecc-analyze
+  canonical_id: custom-skills-ecc-analyze
+- source_dir: custom-skills-git-commit
+  canonical_id: custom-skills-git-commit
+- source_dir: custom-skills-notify
+  canonical_id: custom-skills-notify
+- source_dir: custom-skills-plan-analyze
+  canonical_id: custom-skills-plan-analyze
+- source_dir: custom-skills-threads-research
+  canonical_id: custom-skills-threads-research
+- source_dir: custom-skills-tool-overlap-analyzer
+  canonical_id: custom-skills-tool-overlap-analyzer
+- source_dir: custom-skills-upstream-ops
+  canonical_id: custom-skills-upstream-ops
+- source_dir: discuss-multi-ai
+  canonical_id: discuss-multi-ai
+- source_dir: eli5
+  canonical_id: eli5
+- source_dir: first-principles
+  canonical_id: first-principles
+- source_dir: wiki
+  canonical_id: wiki
+- source_dir: work-log-claude
+  canonical_id: work-log-claude
+content_tests_to_move:
+- tests/test_custom_agent_router_contract.py
+- skills/*/tests/**
+- skills/*/evals/**
+framework_tests_to_keep:
+- tests/services/npx_skills/**
+- tests/test_clone_policy.py
+- tests/test_ecc_whitelist.py
+- tests/test_list_command.py
+- tests/test_project_template_manifest.py
+latest_preflight:
+  checked_on: '2026-08-28'
+  state_counts:
+    unchanged: 94
+    modified: 1
+  resolved_records:
+  - target: codex
+    canonical_id: custom-agent-router
+    legacy_name: custom-agent-router
+    original_state: modified
+    resolution: backed_up_and_replaced_with_canonical
+    backup_path: ~/.config/ai-dev/backups/codex/skills/custom-agent-router.20260828_131844
+    evidence:
+    - target_only: DESIGN.md
+    - file: profiles/codex.md
+      difference: target uses gpt-5.6-sol high while source uses gpt-5.6-sol xhigh
+  installed_verified_detached: 19
+  remaining_blocked: 0

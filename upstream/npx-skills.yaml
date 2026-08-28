@@ -30,6 +30,30 @@ defaults:
   yes: true           # 跳過互動提示
 
 packages:
+  - repo: ValorVie/ai-dev-skills
+    source: ai-dev-first-party
+    rationale: ai-dev 第一方公開 skills，由獨立 repository 維護
+    skills:
+      - cloud-infrastructure-security
+      - custom-agent-router
+      - simplify
+      - custom-skill-creator
+      - custom-skills-dev
+      - custom-skills-doc-updater
+      - custom-skills-doc-writer
+      - custom-skills-ecc-analyze
+      - custom-skills-git-commit
+      - custom-skills-notify
+      - custom-skills-plan-analyze
+      - custom-skills-threads-research
+      - custom-skills-tool-overlap-analyzer
+      - custom-skills-upstream-ops
+      - discuss-multi-ai
+      - eli5
+      - first-principles
+      - wiki
+      - work-log-claude
+
   - repo: anthropics/skills
     source: anthropic-official
     rationale: Anthropic 官方維護，版本權威
@@ -62,4 +86,3 @@ packages:
     rationale: PUA 官方維護
     skills:
       - pua
-

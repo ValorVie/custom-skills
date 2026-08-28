@@ -10,16 +10,18 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "docs" / "skills-inventory.md"
 
 
 def _skill_entries() -> list[str]:
-    entries = []
-    for path in sorted((ROOT / "skills").iterdir()):
-        if path.is_dir() and (path / "SKILL.md").is_file():
-            entries.append(path.name)
-    return entries
+    data = yaml.safe_load((ROOT / "upstream" / "npx-skills.yaml").read_text()) or {}
+    for package in data.get("packages") or []:
+        if package.get("source") == "ai-dev-first-party":
+            return list(package.get("skills") or [])
+    return []
 
 
 def _flat_entries(dirname: str, suffix: str = ".md") -> list[str]:
@@ -40,7 +42,7 @@ def main() -> None:
         "# Skills / Commands / Agents 清單（自動生成）",
         "",
         f"由 `script/dev_tools/generate_skills_inventory.py` 產生於 {date.today().isoformat()}。",
-        "手動編輯無效；數字或清單過期時重跑腳本。",
+        "Skills 來自 `upstream/npx-skills.yaml` 的 `ai-dev-first-party` 清單；手動編輯無效。",
         "",
         f"## Skills（{len(skills)}）",
         "",
