@@ -592,6 +592,8 @@ claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"
 
 ai-dev baseline 的第一方與第三方 Skills 定義於 `upstream/npx-skills.yaml`。global phase 只指定 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`；Eve 與 PromptScript 需在各自專案內手動安裝。需要手動安裝其他 skill 時，直接使用 `npx skills`：
 
+`ai-dev-first-party` 另有 conflict guard。`ai-dev install` 與 `ai-dev update` 會先將每個第一方 skill 分類為 `clean`、`local-only`、`both-changed` 或 `no-base`；只有 fresh install 與沒有本機修改的 `clean` 項目會交給 npx 寫入。其他 npx packages 不經過這層 guard。
+
 ```bash
 # 可用指令
 npx skills add <package>      # 安裝 skill 套件

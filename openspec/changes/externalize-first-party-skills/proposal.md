@@ -14,6 +14,7 @@
 - **BREAKING**：`ai-dev toggle`、resource-disable 與 standards profile 不再搬動 npx-managed skill 目錄；這類操作應停止並顯示對應的 `npx skills` 指引，非 npx-managed 資源維持既有行為。
 - 更新 `ai-dev list`／status 的來源辨識，使 npx-managed 第一方 skill 顯示為 `ai-dev-skills`，而不是 `user`。
 - 先完成 npx 安裝與讀回驗證，再移除舊 manifest ownership 與未修改的舊副本；偵測到本機修改、名稱衝突或目標路徑不一致時停止，不自動覆蓋。
+- 第一方 skills 在 detach 後仍由 ai-dev conflict guard 保留 `clean`、`local-only`、`both-changed`、`no-base` 判斷；guard 只決定是否允許 npx 寫入，不取得 copy、toggle 或 orphan cleanup ownership。
 - 保留 ECC 白名單 skill、custom repo skill、project-template repo-local skill，以及 commands、agents、workflows、plugins 的現行管理方式；它們不在本次遷移範圍。
 
 ## Capabilities
@@ -24,7 +25,7 @@
 
 ### Modified Capabilities
 
-- `skill-npm-integration`: 從提示第三方 `npx skills` 指令，擴充為 ai-dev 依 declarative manifest 安裝與更新第一方 skills。
+- `skill-npm-integration`: 從提示第三方 `npx skills` 指令，擴充為 ai-dev 依 declarative manifest 安裝與更新第一方 skills，並在第一方寫入前執行 conflict guard。
 - `clone-command`: 移除第一方 `skills/` 的 Stage 3 copy ownership，保留其他資源與 ECC 分發。
 - `cli-distribution`: 調整 Stage 3 的第一方資源映射與 manifest source ownership。
 - `skill-listing`: 依 npx 管理清單辨識第一方 skill 來源及 canonical ID。
@@ -35,7 +36,7 @@
 ## Impact
 
 - 新增公開 repository：`ValorVie/ai-dev-skills`。建立 repository、首次發布及任何 remote push 都是獨立外部 mutation，實作時需在操作點確認。
-- `custom-skills` 受影響區域包括 `skills/`、`upstream/npx-skills.yaml`、`script/services/npx_skills/`、`script/utils/shared.py`、list／toggle／standards 流程、manifest migration、測試、README、架構文件與 CHANGELOG。
+- `custom-skills` 受影響區域包括 `skills/`、`upstream/npx-skills.yaml`、`script/services/npx_skills/`、`script/utils/shared.py`、第一方 guard manifest、list／toggle／standards 流程、manifest migration、測試、README、架構文件與 CHANGELOG。
 - 現有 `ecc-whitelist-distribution` change 不被取代；ECC 仍由 `ai-dev clone` 白名單分發與 ManifestTracker 管理。
 - project-template 內隨專案版本控制的 skills 不改用 global npx 安裝。
 - 不修改正式環境、資料庫、服務、credential 或流量。

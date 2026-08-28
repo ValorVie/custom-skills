@@ -76,3 +76,13 @@
 - [x] 10.1 將 `defaults.agents` 擴充為向後相容的字串或清單輸入，add command 以多個 agent arguments 展開。
 - [x] 10.2 將 repository baseline 改為 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`，並加入不包含 Eve／PromptScript 的回歸測試。
 - [x] 10.3 更新現行文件與 CHANGELOG，執行 focused／完整測試、OpenSpec strict validation、public-boundary scan 與 diff check，完成後另行提交且不推送。
+
+## 11. 第一方 npx conflict guard
+
+- [x] 11.1 更新 proposal、design 與 delta specs：npx 維持唯一 writer，只有 `ai-dev-first-party` 使用 directory-level guard，其他 packages 保持直通。
+- [x] 11.2 先加入 guard state 與四態分類測試，涵蓋 fresh install、clean no-op、source-only update、local-only、both-changed、no-base 與既有 npx 安裝 bootstrap。
+- [x] 11.3 實作 `FirstPartyReconciler` 深 module：單次暫存 source snapshot、既有 `FileEntry` schema、directory hashes、原子 guard manifest 與無 mutation dry-run。
+- [x] 11.4 將第一方 install／update 接到 reconcile，missing 項目自動 add，明確傳入五個 agents；第三方 add／update semantics 不變。
+- [x] 11.5 對 canonical path 與五個 configured agent paths 做完整讀回；npx partial failure、hash mismatch 或 lock source mismatch 時不得寫 guard、cleanup legacy 或 detach ownership。
+- [x] 11.6 更新 README、架構、資料流與 CHANGELOG，執行 focused／完整測試、OpenSpec strict validation、ASD 提醒檢查、public-boundary scan、Ruff／Black scoped checks 與 diff check。
+- [x] 11.7 提交本輪 scoped changes，回報 commit hash；不 push、不 archive。

@@ -49,7 +49,8 @@ Repository desired state 存在 `upstream/npx-skills.yaml`。`~/.agents/.skill-l
 - 同一 repository 的 skills 合併成一個 add/update command。
 - manifest 缺 repo、空 skills、重複 ID 或多來源同名時，phase 在執行 npx 前失敗。
 - first-party migration 先比較 target 與 stored manifest base。modified 或 unknown target 會被保留並阻擋該 skill。
-- npx 安裝、lock source、frontmatter name 與必要 agent path 通過讀回驗證後，才 detach 舊 manifest ownership。
+- first-party ongoing update 另讀 `~/.config/ai-dev/manifests/npx-first-party.yaml`，維持 `clean`、`local-only`、`both-changed`、`no-base` 判斷；其他 npx packages 不使用此 guard。
+- 第一方安全項目以 guarded add 安裝或更新；npx 安裝、lock source、frontmatter name、source hash 與 configured agent-visible roots 通過讀回驗證後，才原子更新 guard baseline 並 detach 舊 manifest ownership。
 
 ### 一次性 legacy mapping
 

@@ -65,7 +65,7 @@
 
 ### Requirement: 安裝與更新由 npx 擁有
 
-ai-dev SHALL 使用 `npx skills add` 安裝缺少的第一方 skills，並使用 `npx skills update` 更新已安裝的第一方 skills。npx 安裝完成後，ai-dev SHALL 不再用 copy、ManifestTracker 或 disabled 目錄覆蓋這些 skill 的目標內容。
+ai-dev SHALL 使用受 conflict guard 保護的 `npx skills add` 安裝或更新第一方 skills。npx 是唯一 writer；ai-dev guard 只保存衝突分類所需的 base，不得用 copy、ManifestTracker ownership、disabled 目錄或 orphan cleanup 覆蓋目標內容。
 
 #### Scenario: 新工作站安裝
 
@@ -78,6 +78,44 @@ ai-dev SHALL 使用 `npx skills add` 安裝缺少的第一方 skills，並使用
 - **WHEN** 公開來源只修改一個已安裝的第一方 skill，且使用者執行 `ai-dev update`
 - **THEN** npx-skills phase SHALL 讓該 skill 取得新版本
 - **THEN** 使用者 SHALL 不需要重新發布或重新安裝整個 ai-dev framework 才能取得該變更
+
+#### Scenario: 本機手動修改第一方 skill
+
+- **WHEN** canonical install directory 或任一 configured agent-visible path 與 guard base 不同
+- **AND** 上游 source 與 guard base 相同
+- **THEN** skill SHALL 分類為 `local-only` 並保留本機內容
+- **THEN** ai-dev SHALL 不執行 npx add 或 update
+
+#### Scenario: 上游與本機都改變
+
+- **WHEN** upstream source 與 guard base 不同
+- **AND** canonical install directory 或任一 configured agent-visible path 也與 guard base 不同
+- **THEN** skill SHALL 分類為 `both-changed`
+- **THEN** ai-dev SHALL 停止該 skill 並回報 source、local 與 base hashes
+
+#### Scenario: guard 無可信 base
+
+- **WHEN** guard 沒有該 skill 的可信 base，且任一目標已有內容
+- **THEN** skill SHALL 分類為 `no-base` 並停止，不得把現有內容當成可覆蓋的 generated output
+- **WHEN** guard 沒有 base 且所有必要目標都不存在
+- **THEN** SHALL 視為 fresh install；驗證成功後建立第一份 guard base
+
+### Requirement: 第一方 conflict guard 與 npx ownership 解耦
+
+guard SHALL 使用獨立的 `npx-first-party.yaml` 保存既有 `FileEntry` schema 的 directory-level base。該檔案 SHALL 不進入 target ManifestTracker，不列舉第三方 packages，也不提供 copy、merge、toggle、remove 或 orphan cleanup 能力。
+
+#### Scenario: guard baseline 成功更新
+
+- **WHEN** npx 安裝完成，canonical path、frontmatter、lock source 與五個 configured agent paths 都與 source snapshot 相符
+- **THEN** guard SHALL 原子寫入新的 source hash、destination hash、source commit 與 source identifier
+- **THEN** 後續 reconcile SHALL 以該 entry 作為四態分類 base
+
+#### Scenario: 已由舊版本 npx 遷移但沒有 guard
+
+- **WHEN** npx lock source 正確、現有所有必要 paths 與目前 source snapshot 完全相同，但 guard entry 不存在
+- **THEN** reconcile MAY 安全建立 baseline，不需重裝
+- **WHEN** 現有內容與 source snapshot 不同
+- **THEN** SHALL 分類為 `no-base` 並保留內容
 
 #### Scenario: npx phase 失敗
 

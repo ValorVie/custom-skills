@@ -15,6 +15,7 @@
 - 只用既有 npx-skills phase 安裝與更新第一方 skills。
 - 從 clone、ManifestTracker、disabled directory 與 standards profile 移除第一方 skill ownership，不影響其他資源類型。
 - 保留使用者修改過的安裝內容，並提供可回復的 migration。
+- 第一方 skills 完成 npx ownership 移交後，仍保留 `clean`、`local-only`、`both-changed`、`no-base` 衝突判斷。
 - 讓抽離後的 repository 可獨立驗證、符合公開邊界，且支援單一 skill 安裝。
 
 **Non-Goals:**
@@ -23,7 +24,7 @@
 - 不把 project-template repo-local skills 改為 global installation。
 - 不因 commands、agents、workflows 或 plugins 與 skill 有關，就一併搬移。
 - 不重新命名既有 `custom-skills-*` canonical IDs，也不重新命名 framework repository。
-- 不新增 npm package、custom registry、第二種 lock format 或自製 skill installer。
+- 不新增 npm package、custom registry、自製 skill installer，或為第三方 npx packages 增加 guard state。
 - 未在操作點取得批准前，不建立 GitHub repository，也不 push remote content。
 
 ## Decisions
@@ -97,13 +98,13 @@ global add 的 agent targets 也使用明確清單：`claude-code`、`codex`、`
 
 executor SHALL 依 repository 分組，每個 package 建立一個 add command，並重複傳入 `--skill`。update 可一次傳入目前 CLI 支援的多個 skill IDs。config schema 維持 version 1 相容，只加強 validation，不新增檔案格式。
 
-### 5. 第一方 target files 只由 npx 管理
+### 5. 第一方 target files 只由 npx 寫入
 
 migration 後，framework 不再把 `custom-skills/skills/` 當成 Stage 3 第一方來源。保留的 distribution flow 繼續管理 commands、agents、workflows、plugins、custom repos 與 ECC。
 
 prescan 與 distribution SHALL 對每個 clone source 過濾 canonical npx-managed IDs。這可防止同名 custom repo 或 ECC skill 靜默覆蓋 npx content。同名衝突必須在寫入前停止該 skill，並列出兩個來源。
 
-不保留 npx 與 ManifestTracker 雙 writer，因為 npx symlinks、clone overwrite、orphan cleanup 與 disabled-directory moves 無法形成可靠的共同 ownership model。
+不保留 npx 與 ManifestTracker 雙 writer，因為 npx symlinks、clone overwrite、orphan cleanup 與 disabled-directory moves 無法形成可靠的共同 ownership model。ai-dev 只在 npx 寫入前執行第一方 conflict guard；guard 不複製、不刪除、不移動目標內容。
 
 ### 6. ai-dev toggle 與 standards operations 採 fail closed
 
@@ -141,12 +142,32 @@ PREPARED → PUBLISHED → INSTALLED → VERIFIED → DETACHED
 
 任何 stage 都不自動代表下一個 stage 已完成。在 `VERIFIED` 前失敗時，舊 ownership 必須保持不變。local hash mismatch 或 unknown ownership 只停止受影響 skill，但整體 migration 不得宣稱完成。
 
+### 9. 第一方使用 directory-level guard manifest
+
+新增 `~/.config/ai-dev/manifests/npx-first-party.yaml`，沿用既有 `FileEntry` 欄位保存每個 canonical skill 的 `src_hash`、`src_commit`、`src_source` 與 `dst_hash_at_sync`。這是 conflict base，不是第二個 installer lock，也不代表 target ownership。
+
+reconcile 每次只為 `ai-dev-first-party` 建立一次暫存 shallow clone，使用 `compute_dir_hash()` 計算 upstream skill directory hash；local 則檢查 canonical directory 與 configured agent-visible paths，symlink 以 real path 去重。分類沿用 `classify_file()`：
+
+```text
+source == base, local == base  → clean / no-op
+source != base, local == base  → clean / apply
+source == base, local != base  → local-only / block
+source != base, local != base  → both-changed / block
+missing base + existing local  → no-base / block
+missing base + all paths absent → fresh install
+```
+
+第一方 install 與 update 都使用具明確 agent IDs 的 `npx skills add`。這避開原生 update 不安裝 missing skills、未保留 agent selection，以及不檢查 local drift 的限制。其他 package 繼續使用既有 add／update commands。
+
+npx command 回傳 0 只代表命令完成，不足以更新 base。reconcile 必須讀回 canonical path、frontmatter、lock source，以及五個 configured agent paths 的內容 hash；全部與暫存 source snapshot 相符後，才原子寫入 guard manifest並 detach legacy ownership。
+
 ## Risks / Trade-offs
 
 - [Risk] 新 repository 不會保留方便查找的 per-file history。→ 記錄來源 framework commit，需要追查時使用既有 repository。
 - [Risk] 第一方 skill 依賴目錄外檔案。→ 發布前檢查 escaping links 與 runtime inputs；把必要檔案移入 skill，或改成公開 integration reference。
 - [Risk] npx 改變 agent IDs 或 global paths。→ 記錄驗證使用的 `skills --version`，用 list/path probes 驗證 mapping；無法證明時停止。
 - [Risk] `--yes` 覆蓋使用者修改過的 target。→ add 前比較舊 manifest base 與現場內容；保留或備份修改內容，並要求明確決定。
+- [Risk] npx update 不比較本機內容，且 partial agent failure 仍可能回傳 0。→ 第一方不使用原生 update；guard 先分類 local drift，add 後再驗證所有 configured paths。
 - [Risk] `custom-simplify` 與 `simplify` 並存。→ canonical install 通過且舊路徑可證明未修改後，才套用一次性 mapping。
 - [Risk] 同名 ECC 或 custom repo skill 繞過第一方 filter。→ 寫入前檢查所有來源的 canonical IDs，並加入 collision tests。
 - [Risk] framework release 與 skill release 暫時不相容。→ 先發布並驗證 skill repository，再發布 framework integration；保留上一個 known-good source revision 供 rollback。
@@ -176,8 +197,8 @@ framework integration 前的 rollback：ai-dev 不引用 remote source，也不�
 ### Phase 3：加入 framework support
 
 1. 將第一方 package 與明確 IDs 加入 `upstream/npx-skills.yaml`。
-2. 加強 manifest validation，依 package 分組 add/update commands。
-3. 加入 migration preflight、canonical legacy mapping 與 post-install readback。
+2. 加強 manifest validation，依 package 分組；第三方維持 add/update，第一方交給 reconcile。
+3. 加入 directory-level guard manifest、migration preflight、canonical legacy mapping 與全 target post-install readback。
 4. 從 Stage 3 source configuration 與 clone ownership 移除第一方 skills。
 5. 更新 list、toggle、resource-disable 與 standards boundaries。
 
@@ -187,10 +208,11 @@ npx phase 保持在 targets phase 之前，讓 fresh install 先取得第一方 
 
 1. 讀取舊 target manifests，比較每個第一方 target 與 stored base。
 2. 若 target 已修改或 ownership 未知，停止並保留內容。
-3. 安裝明確的 npx inventory。
-4. 驗證 canonical IDs 與 agent-visible locations。
-5. 移除舊 manifest entries 與未修改的 legacy paths，包含 mapped `custom-simplify` path。
-6. 重跑 clone，確認它不會重新取得第一方 ownership。
+3. 取得第一方 source snapshot，建立或讀取 conflict guard base。
+4. 安裝明確的 npx inventory。
+5. 驗證 canonical IDs、內容 hash 與所有 configured agent-visible locations。
+6. 原子寫入 guard baseline，再移除舊 manifest entries 與未修改的 legacy paths，包含 mapped `custom-simplify` path。
+7. 重跑 clone，確認它不會重新取得第一方 ownership。
 
 detach 後的 rollback：需要時還原 preserved content，回復上一個 framework release，再執行其 clone flow。rollback 不得移除 user-modified backups。
 

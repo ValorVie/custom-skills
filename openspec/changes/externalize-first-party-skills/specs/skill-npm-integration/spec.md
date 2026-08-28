@@ -20,8 +20,21 @@ ai-dev SHALL 以 `upstream/npx-skills.yaml` 作為 baseline skills 的 declarati
 #### Scenario: update 更新已安裝 skills
 
 - **WHEN** 使用者執行包含 npx-skills phase 的 `ai-dev update`
-- **THEN** 系統 SHALL 更新 manifest 中已安裝的 skills
-- **THEN** 未安裝項目 SHALL 顯示可執行 `ai-dev install-npx-skills` 的明確訊息
+- **THEN** 非第一方 package SHALL 維持原生 `npx skills update` 行為
+- **THEN** 第一方 package SHALL 以 reconcile 流程自動安裝缺少項目並更新安全項目
+- **THEN** 使用者 SHALL 不需要另行執行 `ai-dev install-npx-skills` 才能完成第一方遷移
+
+#### Scenario: 第一方 reconcile 保留四態判斷
+
+- **WHEN** canonical ID 的 `source` 是 `ai-dev-first-party`
+- **THEN** ai-dev SHALL 在呼叫 npx 前以 source、base、local directory hashes 分類 `clean`、`local-only`、`both-changed` 或 `no-base`
+- **THEN** source-only change SHALL 維持 `clean` 分類並允許更新
+- **THEN** `local-only`、`both-changed` 與有既存內容的 `no-base` SHALL 停止該 skill，不呼叫 npx
+
+#### Scenario: 其他 npx 來源保持直通
+
+- **WHEN** package source 不是 `ai-dev-first-party`
+- **THEN** ai-dev SHALL 不建立 guard baseline、不執行四態分類，也不改變其 add／update command semantics
 
 #### Scenario: 同一 package 含多個 skills
 
@@ -40,6 +53,12 @@ ai-dev SHALL 以 `upstream/npx-skills.yaml` 作為 baseline skills 的 declarati
 - **WHEN** 任一 package command 回傳非零退出碼
 - **THEN** phase SHALL 保存該 package 的失敗結果並顯示失敗摘要
 - **THEN** SHALL 不把失敗 package 的 skills 標記為完成遷移
+
+#### Scenario: npx 回傳成功但 agent path 不完整
+
+- **WHEN** 第一方 npx command 回傳 0，但任一 configured agent path 缺少 skill 或內容與 source snapshot 不同
+- **THEN** reconcile SHALL 將該 skill 視為失敗
+- **THEN** SHALL 不更新 guard baseline，也不得 detach legacy ownership
 
 ### Requirement: Manifest schema validates canonical skill IDs
 

@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -10,6 +11,7 @@ from script.services.npx_skills.config import (
     NpxDefaults,
     SkillEntry,
 )
+from script.services.npx_skills.first_party_reconcile import SourceSnapshot
 from script.services.npx_skills.install import (
     build_add_command,
     build_update_command,
@@ -21,6 +23,46 @@ from script.services.npx_skills.migration import (
     MigrationState,
     VerificationResult,
 )
+
+
+def _mock_first_party_runtime(
+    monkeypatch,
+    tmp_path: Path,
+    skill_names: tuple[str, ...],
+) -> Path:
+    source_skills = tmp_path / "source" / "skills"
+    for name in skill_names:
+        skill = source_skills / name
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            f"---\nname: {name}\n---\n",
+            encoding="utf-8",
+        )
+
+    @contextmanager
+    def fake_checkout(_repo):
+        yield SourceSnapshot(source_skills, "source-commit")
+
+    monkeypatch.setattr(install_mod, "checkout_first_party_source", fake_checkout)
+    monkeypatch.setattr(
+        install_mod,
+        "get_first_party_local_roots",
+        lambda _agents: {"canonical": tmp_path / "installed"},
+    )
+    monkeypatch.setattr(install_mod, "read_npx_lock", lambda: {"skills": {}})
+    monkeypatch.setattr(
+        manifest_sync,
+        "cleanup_skills_from_manifests",
+        lambda _names: {},
+    )
+    monkeypatch.setattr(
+        install_mod,
+        "verify_first_party_paths",
+        lambda entries, **_kwargs: VerificationResult(
+            tuple(entry.skill for entry in entries), ()
+        ),
+    )
+    return tmp_path / "guard.yaml"
 
 
 def test_build_add_command_includes_global_and_agents():
@@ -252,10 +294,8 @@ packages:
         lambda *_args, **_kwargs: SimpleNamespace(returncode=0),
     )
     monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
-    monkeypatch.setattr(
-        install_mod,
-        "_verify_first_party_group",
-        lambda _group: VerificationResult(("simplify",), ()),
+    guard_path = _mock_first_party_runtime(
+        monkeypatch, tmp_path, ("simplify",)
     )
     monkeypatch.setattr(
         install_mod,
@@ -269,10 +309,15 @@ packages:
     )
 
     run_npx_skills_phase(
-        mode="add", project_yaml=project, user_yaml=user, dry_run=False
+        mode="add",
+        project_yaml=project,
+        user_yaml=user,
+        dry_run=False,
+        first_party_guard_path=guard_path,
     )
 
     assert cleaned == ["custom-simplify", "simplify"]
+    assert guard_path.exists()
 
 
 def test_first_party_add_stops_before_npx_when_preflight_is_unsafe(
@@ -309,10 +354,17 @@ packages:
         "run_command",
         lambda *_args, **_kwargs: pytest.fail("unsafe preflight executed npx"),
     )
+    guard_path = _mock_first_party_runtime(
+        monkeypatch, tmp_path, ("simplify",)
+    )
 
     with pytest.raises(typer.Exit) as error:
         run_npx_skills_phase(
-            mode="add", project_yaml=project, user_yaml=user, dry_run=False
+            mode="add",
+            project_yaml=project,
+            user_yaml=user,
+            dry_run=False,
+            first_party_guard_path=guard_path,
         )
 
     assert error.value.exit_code == 1
@@ -352,10 +404,8 @@ packages:
         return SimpleNamespace(returncode=0)
 
     monkeypatch.setattr(install_mod, "run_command", fake_run)
-    monkeypatch.setattr(
-        install_mod,
-        "_verify_first_party_group",
-        lambda group: VerificationResult(tuple(entry.skill for entry in group), ()),
+    guard_path = _mock_first_party_runtime(
+        monkeypatch, tmp_path, ("safe", "blocked")
     )
     monkeypatch.setattr(
         install_mod,
@@ -370,7 +420,11 @@ packages:
 
     with pytest.raises(typer.Exit) as error:
         run_npx_skills_phase(
-            mode="add", project_yaml=project, user_yaml=user, dry_run=False
+            mode="add",
+            project_yaml=project,
+            user_yaml=user,
+            dry_run=False,
+            first_party_guard_path=guard_path,
         )
 
     assert error.value.exit_code == 1
@@ -393,3 +447,164 @@ packages:
         ]
     ]
     assert cleaned == ["safe"]
+
+
+def test_first_party_update_uses_guarded_add_for_missing_skill(
+    tmp_path: Path, monkeypatch
+):
+    project = tmp_path / "npx-skills.yaml"
+    project.write_text(
+        """version: 1
+packages:
+  - repo: ValorVie/ai-dev-skills
+    source: ai-dev-first-party
+    skills: [new-skill]
+""",
+        encoding="utf-8",
+    )
+    user = tmp_path / "user" / "npx-skills.yaml"
+    commands: list[list[str]] = []
+    cleaned: list[str] = []
+    monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
+    monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
+    guard_path = _mock_first_party_runtime(
+        monkeypatch, tmp_path, ("new-skill",)
+    )
+    monkeypatch.setattr(
+        manifest_sync,
+        "cleanup_skills_from_manifests",
+        lambda names: cleaned.extend(names) or {},
+    )
+
+    def fake_run(cmd, **_kwargs):
+        commands.append(cmd)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(install_mod, "run_command", fake_run)
+
+    run_npx_skills_phase(
+        mode="update",
+        project_yaml=project,
+        user_yaml=user,
+        first_party_guard_path=guard_path,
+    )
+
+    assert commands[0][:4] == [
+        "npx",
+        "skills",
+        "add",
+        "ValorVie/ai-dev-skills",
+    ]
+    assert "update" not in commands[0]
+    assert cleaned == ["new-skill"]
+
+
+def test_third_party_update_remains_native_passthrough(tmp_path: Path, monkeypatch):
+    project = tmp_path / "npx-skills.yaml"
+    project.write_text(
+        """version: 1
+packages:
+  - repo: example/skills
+    source: third-party
+    skills: [one]
+""",
+        encoding="utf-8",
+    )
+    user = tmp_path / "user" / "npx-skills.yaml"
+    commands: list[list[str]] = []
+    monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
+    monkeypatch.setattr(
+        install_mod,
+        "checkout_first_party_source",
+        lambda _repo: pytest.fail("third-party update entered first-party guard"),
+    )
+
+    def fake_run(cmd, **_kwargs):
+        commands.append(cmd)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(install_mod, "run_command", fake_run)
+
+    run_npx_skills_phase(mode="update", project_yaml=project, user_yaml=user)
+
+    assert commands == [["npx", "skills", "update", "one", "-g", "-y"]]
+
+
+def test_first_party_verification_failure_keeps_guard_and_manifest(
+    tmp_path: Path, monkeypatch
+):
+    project = tmp_path / "npx-skills.yaml"
+    project.write_text(
+        """version: 1
+packages:
+  - repo: ValorVie/ai-dev-skills
+    source: ai-dev-first-party
+    skills: [one]
+""",
+        encoding="utf-8",
+    )
+    user = tmp_path / "user" / "npx-skills.yaml"
+    cleaned: list[str] = []
+    monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
+    monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
+    guard_path = _mock_first_party_runtime(monkeypatch, tmp_path, ("one",))
+    monkeypatch.setattr(
+        install_mod,
+        "run_command",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0),
+    )
+    monkeypatch.setattr(
+        install_mod,
+        "verify_first_party_paths",
+        lambda *_args, **_kwargs: VerificationResult((), ("one: codex hash mismatch",)),
+    )
+    monkeypatch.setattr(
+        manifest_sync,
+        "cleanup_skills_from_manifests",
+        lambda names: cleaned.extend(names) or {},
+    )
+
+    with pytest.raises(typer.Exit) as error:
+        run_npx_skills_phase(
+            mode="update",
+            project_yaml=project,
+            user_yaml=user,
+            first_party_guard_path=guard_path,
+        )
+
+    assert error.value.exit_code == 1
+    assert not guard_path.exists()
+    assert cleaned == []
+
+
+def test_first_party_dry_run_does_not_write_or_execute(tmp_path: Path, monkeypatch):
+    project = tmp_path / "npx-skills.yaml"
+    project.write_text(
+        """version: 1
+packages:
+  - repo: ValorVie/ai-dev-skills
+    source: ai-dev-first-party
+    skills: [one]
+""",
+        encoding="utf-8",
+    )
+    user = tmp_path / "user" / "npx-skills.yaml"
+    monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
+    monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
+    guard_path = _mock_first_party_runtime(monkeypatch, tmp_path, ("one",))
+    monkeypatch.setattr(
+        install_mod,
+        "run_command",
+        lambda *_args, **_kwargs: pytest.fail("dry-run executed npx"),
+    )
+
+    run_npx_skills_phase(
+        mode="update",
+        project_yaml=project,
+        user_yaml=user,
+        dry_run=True,
+        first_party_guard_path=guard_path,
+    )
+
+    assert not guard_path.exists()
+    assert not user.exists()

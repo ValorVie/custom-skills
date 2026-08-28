@@ -45,6 +45,7 @@
 | `~/.config/ai-dev/ecc-profile.yaml` | 使用者層級覆寫，疊加在 repo `distribution.yaml` 之上：`enabled_extra`（額外啟用）／`enabled_remove`（從 repo enabled 拿掉）。合併公式 `final = (repo.enabled ∪ extra) \ remove`。legacy 鍵 `include_skills` / `exclude_skills` 自動相容並印一次性 hint | `clone`, `install`, `update` 讀取 |
 | `~/.config/ai-dev/npx-skills.yaml` | ai-dev 的 declarative skill desired state（由 `upstream/npx-skills.yaml` 同步而來） | `install`（repos phase）, `update`（repos phase） |
 | `~/.agents/.skill-lock.json` | npx 的本機實際安裝狀態；不取代 repository manifest | 外部 `npx skills` CLI |
+| `~/.config/ai-dev/manifests/npx-first-party.yaml` | 第一方 npx skills 的 directory-level conflict base；不代表 copy ownership | `install`, `update`, `install-npx-skills` |
 | `~/.config/ai-dev/backups/auto-skill-removal/<timestamp>/` | 已退役 `auto-skill` 的確認式清理備份與 `audit.json` | `clone`, `project init`, `project update`（僅互動確認後） |
 | `~/.config/ai-dev/manifests/projects/<project_id>.yaml` | 專案 AI projection manifest | `init-from`, `project init`, `project hydrate`, `project reconcile` |
 | `<project>/.ai-dev-project.yaml` | 專案 intent、managed files、git exclude 設定 | `init-from`, `project init`, `project exclude`, `project hydrate` |
@@ -176,8 +177,8 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 - 資料來源：`~/.config/ai-dev/npx-skills.yaml`（由 repos phase 從 `upstream/npx-skills.yaml` 同步）
 - 實際動作：
   - manifest validation 先拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
-  - `install` 模式：同一 repository 合併成一個 `npx skills add <repo> --skill <name>... -g -a claude-code codex gemini-cli opencode antigravity --yes`。
-  - `update` 模式：同一 repository 的 IDs 合併成一個 `npx skills update <name>... -g -y`。
+  - `ai-dev-first-party`：install 與 update 都先執行 conflict guard；安全項目合併成 `npx skills add <repo> --skill <name>... -g -a claude-code codex gemini-cli opencode antigravity --yes`。缺少項目會在 update 自動補裝。
+  - 其他來源：install 維持 grouped add，update 維持 `npx skills update <name>... -g -y`。
   - package 部分失敗時保留成功結果，但 phase 以 exit 1 結束，失敗項目不 detach ownership。
 - 安裝參數語意：
   - `-g`：user-level（全域）安裝
@@ -186,7 +187,8 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 - 跳過方式：`ai-dev install --skip npx-skills` 或 `ai-dev update --skip npx-skills`
 - 僅執行：`ai-dev install-npx-skills`（等同 `install --only npx-skills`）
 - 第一方遷移：先分類 missing／unchanged／modified／unknown／already-migrated；modified 或 unknown 只阻擋該 skill，其他安全項目仍可安裝。
-- 讀回驗證：canonical path、frontmatter name、npx lock source 與必要 agent path 通過後，才清舊 manifest ownership。
+- ongoing guard：以 source、base、local directory hashes 判斷 `clean`／`local-only`／`both-changed`／`no-base`；後三種不呼叫 npx。
+- 讀回驗證：canonical path、frontmatter name、npx lock source 與所有 configured agent-visible roots 通過後，才寫 guard base 並清舊 manifest ownership。npx 回傳 0 不單獨視為成功。
 - legacy `custom-simplify` 會先逐 target 備份，再於 `simplify` 驗證成功後清理。
 
 #### Superpowers 處理

@@ -80,7 +80,22 @@ manifest loader 會拒絕：
 - wildcard skill。
 - 同一 canonical ID 重複或由多個來源宣告。
 
-同 package 的 skills 以一個 command 安裝或更新。部分 package 失敗時，成功 package 可以保留，但 phase 仍以 exit 1 結束，且失敗項目不會 detach 舊 ownership。
+同 package 的 skills 以一個 command 處理。第一方 install／update 使用 guarded add；其他 packages 維持原生 add／update。部分 package 失敗時，成功項目可以保留，但 phase 仍以 exit 1 結束，且失敗項目不會 detach 舊 ownership。
+
+## First-party conflict guard
+
+`ai-dev-first-party` 在 npx 寫入前使用 directory-level guard。baseline 位於 `~/.config/ai-dev/manifests/npx-first-party.yaml`，沿用 `FileEntry` 的 source/base/destination hashes，但不進入 target ManifestTracker，也沒有 copy、toggle 或 orphan cleanup 能力。
+
+| 分類 | Source | Local | 動作 |
+| --- | --- | --- | --- |
+| `clean` | 未變或單獨變更 | 等於 base | no-op 或交給 npx 更新 |
+| `local-only` | 等於 base | 不同於 base | 保留並阻擋 |
+| `both-changed` | 不同於 base | 不同於 base | 保留並阻擋 |
+| `no-base` | 無可信 base | 已有內容 | 保留並阻擋 |
+
+沒有 base 且所有必要路徑都不存在時是 fresh install。已由舊版 npx 安裝、內容與目前 source 完全相同且 lock source 正確時，可以直接建立第一份 guard baseline。
+
+每次 phase 只 shallow clone 一份暫存 source snapshot。npx 完成後，系統驗證 source hash、canonical path、frontmatter、lock source 與 configured agent-visible roots；全部通過才原子更新 guard baseline。snapshot 與 npx 實際取得的上游若在執行窗口內改變，hash 驗證會停止本輪，且不寫 baseline、不 detach。
 
 ## First-party migration
 

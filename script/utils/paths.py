@@ -49,6 +49,11 @@ def get_npx_skills_user_yaml() -> Path:
     return get_ai_dev_config_dir() / "npx-skills.yaml"
 
 
+def get_npx_first_party_guard_path() -> Path:
+    """第一方 npx skill 的 conflict guard baseline。"""
+    return get_ai_dev_manifest_dir() / "npx-first-party.yaml"
+
+
 def get_claude_config_dir() -> Path:
     return get_home_dir() / ".claude"
 
