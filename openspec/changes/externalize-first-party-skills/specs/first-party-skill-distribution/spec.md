@@ -14,6 +14,14 @@
 - **THEN** 指令 SHALL 成功列出 `upstream/npx-skills.yaml` 宣告的全部第一方 skill 名稱
 - **THEN** 不得出現同名、空名稱或只靠目錄名稱才能辨識的 skill
 
+#### Scenario: collection 可在互動 picker 整組選取
+
+- **WHEN** 使用者以互動模式執行 `npx skills add ValorVie/ai-dev-skills`
+- **THEN** repository SHALL 透過 `.claude-plugin/plugin.json` 將全部第一方 skills 宣告為單一 `Ai Dev Skills` group
+- **THEN** plugin manifest 的 skills 清單 SHALL 與 repository 的 canonical inventory 完全一致，不得漏列、重複或加入未發布 ID
+- **THEN** 使用者 SHALL 可由 group row 整組選取，且在支援的 CLI 版本可使用頂層 `Select All`
+- **THEN** 單一 `--skill <canonical-id>` 安裝語意與 ai-dev 的明確 baseline 清單 SHALL 維持不變
+
 #### Scenario: canonical ID 與目錄名不一致
 
 - **WHEN** 舊來源目錄名與 frontmatter `name` 不一致

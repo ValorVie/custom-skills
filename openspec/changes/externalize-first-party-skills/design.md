@@ -37,6 +37,8 @@
 
 ```text
 ai-dev-skills/
+├── .claude-plugin/
+│   └── plugin.json
 ├── skills/
 │   ├── cloud-infrastructure-security/
 │   ├── custom-agent-router/
@@ -50,6 +52,13 @@ ai-dev-skills/
 ```
 
 每個 skill 維持 self-contained。根目錄測試檢查跨 skill 規則，例如 frontmatter 名稱唯一、內部連結有效及公開邊界。skill 專用的 scripts、fixtures 與 evals 留在該 skill 內，避免透過 npx 單獨安裝時漏掉 runtime inputs。
+
+`.claude-plugin/plugin.json` 只負責宣告 collection 分組，並明確列出全部
+`./skills/<canonical-id>`。它讓 `npx skills` 的互動 picker 提供可整組選取的
+`Ai Dev Skills` group，不改變單一 skill 的安裝路徑或 ai-dev baseline 清單。
+`skills@1.5.22` 由 group row 整組選取；`skills@1.5.23` 以上另有頂層
+`Select All`。本次不新增 `.claude-plugin/marketplace.json`，因為 Claude Code
+native marketplace 不是這個 npx picker 問題的必要條件。
 
 替代方案：
 

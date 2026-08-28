@@ -105,3 +105,10 @@
 - [x] 12.12 更新 README、架構、資料流、migration／rollback 指引與 CHANGELOG；執行 focused／完整測試、OpenSpec strict validation、ASD 提醒檢查、public-boundary scan、scoped lint／format 及 diff check。
 - [x] 12.13 在隔離 HOME 驗證 clean、source-only、local-only、both-changed、no-base、keep-local、use-upstream、abort、non-interactive 與 raw-npx recovery；不得先改真實 installed overlays。
 - [x] 12.14 提交本輪 implementation，回報 commit hash；未批准前不 push、不 archive。
+
+## 13. 第一方 collection picker 分組
+
+- [x] 13.1 比對 `mattpocock/skills` 與 `skills@1.5.23`，確認 `.claude-plugin/plugin.json` 會建立可整組選取的 picker group；`.claude-plugin/marketplace.json` 不是本需求的必要條件。
+- [x] 13.2 在 `ValorVie/ai-dev-skills` 明確列出 19 個 canonical skill paths，並擴充 repository validator，拒絕缺漏、重複或額外項目。
+- [x] 13.3 以 `skills@1.5.22` 與 `skills@1.5.23` 驗證 discovery 及真實互動 picker；確認 1.5.22 可從 group row 整組選取，1.5.23 另顯示頂層 `Select All (0/19)`。
+- [x] 13.4 更新 `ai-dev-skills` README／CHANGELOG，執行直接測試、公開邊界、JSON 與 diff checks，提交 `b9a9ce3ef523f99851fa12859973c1a77f795943`；不 push、不 archive。
