@@ -128,3 +128,11 @@
 - [x] 15.3 實作中文 conflict header、狀態、diff 說明與 action 影響；`no-base` prompt 只列 `Dc/K/O/A`，誤輸入 `Ds`／`Dl` 時顯示原因。
 - [x] 15.4 更新 README、OpenSpec 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
 - [x] 15.5 提交 scoped implementation，回報 commit hash；不 push、不 archive。
+
+## 16. 第一方 safe inventory grouped install
+
+- [x] 16.1 以 Mac 多段 installation summary 與 `reconcile()` call flow 確認：實作在 `_apply()` 逐 skill 呼叫 npx，偏離既有「同 package 一個 command」規格。
+- [x] 16.2 先將 multi-skill partial-success 測試改成單一 grouped command，固定多個明確 `--skill`、單次 command 與逐 skill verification／rollback。
+- [x] 16.3 實作 per-skill backup、一次 grouped npx base apply、逐 skill verification、失敗項 rollback、成功項 atomic state commit 與 expected-state fingerprint recovery。
+- [x] 16.4 更新 README、資料流、OpenSpec 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
+- [x] 16.5 提交 scoped implementation，回報 commit hash；不 push、不 archive。

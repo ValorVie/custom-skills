@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **補齊第一方 conflict decision 的互動說明。**
   - menu 會顯示 `Ds`／`Dl`／`Dc` 的比較對象，以及 `K`／`O`／`A` 對 overlay、備份與 mutation 的影響。
   - `no-base` 只列可用的 `Dc/K/O/A`；`Ds`／`Dl` 會明確標成沒有共同基準而無法使用。
+- **第一方 safe inventory 改為 grouped npx add。**
+  - 所有 safe skills 先建立各自的 transaction backup，再以一條包含多個明確 `--skill` 的 command 安裝，避免逐 skill 重複 clone 與 installation summary。
+  - grouped command 回傳 0 後仍逐 skill 驗證；失敗項 rollback，成功項可共同提交 state。
+  - `VERIFIED` journal 會保存 expected SkillState fingerprint，避免程序在 grouped state write 與逐 journal finalize 之間中斷時誤回滾已提交內容。
 
 - **BREAKING：第一方 global skills 改由 `npx skills` 獨占 ownership。**
   - `ai-dev clone` 不再從 framework root `skills/` 分發第一方 skills，也不再為它們建立新的 ManifestTracker entries。

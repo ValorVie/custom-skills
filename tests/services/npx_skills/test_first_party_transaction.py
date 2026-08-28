@@ -3,9 +3,13 @@ from pathlib import Path
 import pytest
 
 from script.services.npx_skills.first_party_overlay import (
+    FileState,
+    FirstPartyState,
     FirstPartyStateStore,
+    SkillState,
     TransactionJournalStore,
     TransactionStatus,
+    skill_state_hash,
 )
 from script.services.npx_skills.first_party_transaction import SkillTransaction
 
@@ -92,6 +96,43 @@ def test_committed_transaction_can_retain_user_backup(tmp_path: Path):
 
     assert transaction.journal_store.read("demo") is None
     assert (transaction.backup_root / journal.backup_dir).is_dir()
+
+
+def test_verified_transaction_recovers_as_committed_when_state_matches(
+    tmp_path: Path,
+):
+    transaction, installed, _old_overlay = _transaction(tmp_path)
+    transaction.begin()
+    (installed / "SKILL.md").write_text("new\n", encoding="utf-8")
+    transaction.mark(TransactionStatus.VERIFIED)
+    skill_state = SkillState(
+        source="ValorVie/ai-dev-skills",
+        source_commit="new-commit",
+        files={
+            "SKILL.md": FileState(
+                src_hash="source-hash",
+                src_commit="new-commit",
+                src_source="ValorVie/ai-dev-skills",
+                dst_hash_at_sync="installed-hash",
+                decision="use-upstream",
+                decided_at="now",
+            )
+        },
+    )
+    transaction.expect_state(skill_state_hash(skill_state), retain_backup=False)
+    transaction.state_store.write(FirstPartyState(skills={"demo": skill_state}))
+
+    recovered = SkillTransaction(
+        "demo",
+        roots=transaction.roots,
+        state_store=transaction.state_store,
+        journal_store=transaction.journal_store,
+        backup_root=transaction.backup_root,
+    )
+
+    assert not recovered.recover_if_needed()
+    assert (installed / "SKILL.md").read_text(encoding="utf-8") == "new\n"
+    assert recovered.journal_store.read("demo") is None
 
 
 def test_rollback_failure_keeps_journal_and_evidence(tmp_path: Path, monkeypatch):

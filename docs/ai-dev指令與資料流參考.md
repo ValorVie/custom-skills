@@ -180,7 +180,7 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 - 資料來源：`~/.config/ai-dev/npx-skills.yaml`（由 repos phase 從 `upstream/npx-skills.yaml` 同步）
 - 實際動作：
   - manifest validation 先拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
-  - `ai-dev-first-party`：install 與 update 共用 `FirstPartyReconciler`。每個安全 skill 使用 `npx skills add <repo> --skill <name> -g -a claude-code codex gemini-cli opencode antigravity --yes`，並以獨立 transaction 驗證與提交。缺少項目會在 update 自動補裝。
+  - `ai-dev-first-party`：install 與 update 共用 `FirstPartyReconciler`。每個安全 skill 先建立獨立 transaction backup，再以一次 `npx skills add <repo> --skill <name-1> --skill <name-2> ... -g -a claude-code codex gemini-cli opencode antigravity --yes` 安裝整組 safe inventory。缺少項目會在 update 自動補裝。
   - 其他來源：install 維持 grouped add，update 維持 `npx skills update <name>... -g -y`。
   - package 部分失敗時保留成功結果，但 phase 以 exit 1 結束，失敗項目不 detach ownership。
 - 安裝參數語意：
@@ -192,7 +192,7 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 - 第一方遷移：舊 schema v1 依 source commit 展開成 per-file base。多個舊 target copies 只有在本機修改一致時才合併；不同修改會保留並阻擋該 skill。
 - per-file planner：比較 base、current source、persistent overlay 與 installed local。`local-only` 自動保存 overlay；`both-changed`／內容不同的 `no-base` 先完成 keep-local、use-upstream 或 abort。
 - 非互動模式：未解決衝突略過整個 skill，其他安全 skill 可繼續，phase 最後 exit 1。
-- transaction：依序 backup、npx base、pure-base verification、overlay materialization、effective verification、atomic state commit。任一步失敗都 rollback，npx 回傳 0 不單獨視為成功。
+- transaction：依序 per-skill backup、grouped npx base、per-skill pure-base verification、overlay materialization、effective verification、atomic state commit。grouped command 非零時全部 rollback；回傳 0 但部分驗證失敗時只 rollback 失敗項，成功項可提交。
 - legacy `custom-simplify` 與其他舊 target copies 納入同一 transaction；overlay 已保存且讀回驗證成功後才清理 alias 與舊 manifest ownership。
 
 #### Superpowers 處理

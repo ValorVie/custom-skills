@@ -418,12 +418,20 @@ def test_multiple_skills_continue_after_one_transaction_fails(tmp_path: Path):
     def base_provider(_snapshot, _commit, skill):
         return {"SKILL.md": TreeFile.from_content(f"{skill}-base\n".encode())}
 
+    commands: list[list[str]] = []
+
     def runner(command, **_kwargs):
-        name = command[command.index("--skill") + 1]
-        if name == "bad":
-            return SimpleNamespace(returncode=7)
-        shutil.rmtree(installed_parent / name)
-        shutil.copytree(source_skills / name, installed_parent / name)
+        commands.append(command)
+        names = [
+            command[index + 1]
+            for index, value in enumerate(command)
+            if value == "--skill"
+        ]
+        for name in names:
+            if name == "bad":
+                continue
+            shutil.rmtree(installed_parent / name)
+            shutil.copytree(source_skills / name, installed_parent / name)
         return SimpleNamespace(returncode=0)
 
     reconciler = FirstPartyReconciler(
@@ -454,6 +462,22 @@ def test_multiple_skills_continue_after_one_transaction_fails(tmp_path: Path):
 
     assert result.successful_names == ("good",)
     assert result.failed_names == ("bad",)
+    assert commands == [
+        [
+            "npx",
+            "skills",
+            "add",
+            REPO,
+            "--skill",
+            "good",
+            "--skill",
+            "bad",
+            "-g",
+            "-a",
+            "codex",
+            "--yes",
+        ]
+    ]
     assert (installed_parent / "good" / "SKILL.md").read_bytes() == b"good-source\n"
     assert (installed_parent / "bad" / "SKILL.md").read_bytes() == b"bad-base\n"
     updated = state_store.read()

@@ -31,6 +31,7 @@ from script.services.npx_skills.first_party_overlay import (
     TreeFile,
     plan_skill,
     snapshot_tree,
+    skill_state_hash,
 )
 from script.services.npx_skills.first_party_transaction import SkillTransaction
 from script.services.npx_skills.migration import (
@@ -671,15 +672,17 @@ class FirstPartyReconciler:
         return work, failed, False
 
     @staticmethod
-    def _command(entry: SkillEntry, defaults: object) -> list[str]:
+    def _command(entries: Sequence[SkillEntry], defaults: object) -> list[str]:
+        if not entries:
+            raise ValueError("first-party npx command requires at least one skill")
         command = [
             "npx",
             "skills",
             "add",
-            entry.repo,
-            "--skill",
-            entry.skill,
+            entries[0].repo,
         ]
+        for entry in entries:
+            command.extend(["--skill", entry.skill])
         if getattr(defaults, "scope") == "global":
             command.append("-g")
         command.extend(["-a", *getattr(defaults, "agents")])
@@ -778,60 +781,141 @@ class FirstPartyReconciler:
         }
         return SkillState(item.entry.repo, source_commit, files)
 
-    def _apply(
-        self,
-        item: _SkillWork,
-        defaults: object,
-        source_commit: str,
-        state: FirstPartyState,
-    ) -> tuple[bool, Path | None, FirstPartyState]:
-        transaction = SkillTransaction(
+    def _transaction_for(self, item: _SkillWork) -> SkillTransaction:
+        return SkillTransaction(
             item.entry.skill,
             roots=item.transaction_roots,
             state_store=self.state_store,
             journal_store=TransactionJournalStore(self.transaction_root),
             backup_root=self.backup_root,
         )
-        retained: Path | None = None
+
+    def _prepare_applied_item(
+        self,
+        item: _SkillWork,
+        source_commit: str,
+        transaction: SkillTransaction,
+    ) -> tuple[SkillState, bool, Path | None]:
+        journal = transaction.journal
+        if journal is None:
+            raise RuntimeError(f"transaction not started: {item.entry.skill}")
+        self._verify_base(item)
+        transaction.mark(TransactionStatus.BASE_APPLIED)
+        overlays, expected = self._materialize(item)
+        transaction.mark(TransactionStatus.OVERLAY_APPLIED)
+        for root in item.roots.values():
+            if not _same_tree(snapshot_tree(root.resolve()), expected):
+                raise RuntimeError(f"effective tree mismatch: {item.entry.skill}")
+        transaction.mark(TransactionStatus.VERIFIED)
+        for legacy_alias in item.legacy_aliases:
+            _remove_tree(legacy_alias)
+        retain = any(
+            conflict.plan.classification in {"both-changed", "no-base"}
+            and item.decisions[conflict.plan.path] is Decision.USE_UPSTREAM
+            for conflict in item.conflicts
+        )
+        retained = self.backup_root / journal.backup_dir if retain else None
+        return (
+            self._skill_state(item, overlays, source_commit, expected),
+            retain,
+            retained,
+        )
+
+    def _rollback(self, item: _SkillWork, transaction: SkillTransaction) -> None:
         try:
-            journal = transaction.begin()
-            result = self.command_runner(
-                self._command(item.entry, defaults), check=False
-            )
-            if getattr(result, "returncode", 1) != 0:
-                raise RuntimeError(f"npx returned {getattr(result, 'returncode', 1)}")
-            self._verify_base(item)
-            transaction.mark(TransactionStatus.BASE_APPLIED)
-            overlays, expected = self._materialize(item)
-            transaction.mark(TransactionStatus.OVERLAY_APPLIED)
-            for root in item.roots.values():
-                if not _same_tree(snapshot_tree(root.resolve()), expected):
-                    raise RuntimeError(f"effective tree mismatch: {item.entry.skill}")
-            transaction.mark(TransactionStatus.VERIFIED)
-            updated_skills = dict(state.skills)
-            updated_skills[item.entry.skill] = self._skill_state(
-                item, overlays, source_commit, expected
-            )
-            updated = FirstPartyState(updated_skills)
-            self.state_store.write(updated)
-            for legacy_alias in item.legacy_aliases:
-                _remove_tree(legacy_alias)
-            retain = any(
-                conflict.plan.classification in {"both-changed", "no-base"}
-                and item.decisions[conflict.plan.path] is Decision.USE_UPSTREAM
-                for conflict in item.conflicts
-            )
-            if retain:
-                retained = self.backup_root / journal.backup_dir
-            transaction.commit(retain_backup=retain)
-            return True, retained, updated
-        except Exception as exc:
-            self.output_func(f"{item.entry.skill}: {exc}")
+            transaction.rollback()
+        except RuntimeError as rollback_error:
+            self.output_func(f"{item.entry.skill}: {rollback_error}")
+
+    def _apply_group(
+        self,
+        work: Sequence[_SkillWork],
+        defaults: object,
+        source_commit: str,
+        state: FirstPartyState,
+    ) -> tuple[list[str], list[str], list[Path]]:
+        ready: list[tuple[_SkillWork, SkillTransaction]] = []
+        failed: list[str] = []
+        for item in work:
+            transaction = self._transaction_for(item)
             try:
-                transaction.rollback()
-            except RuntimeError as rollback_error:
-                self.output_func(str(rollback_error))
-            return False, None, state
+                transaction.begin()
+                ready.append((item, transaction))
+            except Exception as exc:
+                self.output_func(f"{item.entry.skill}: {exc}")
+                failed.append(item.entry.skill)
+
+        if not ready:
+            return [], failed, []
+
+        try:
+            result = self.command_runner(
+                self._command([item.entry for item, _transaction in ready], defaults),
+                check=False,
+            )
+        except Exception as exc:
+            self.output_func(f"first-party npx failed: {exc}")
+            for item, transaction in ready:
+                self._rollback(item, transaction)
+                failed.append(item.entry.skill)
+            return [], failed, []
+        if getattr(result, "returncode", 1) != 0:
+            self.output_func(
+                f"first-party npx returned {getattr(result, 'returncode', 1)}"
+            )
+            for item, transaction in ready:
+                self._rollback(item, transaction)
+                failed.append(item.entry.skill)
+            return [], failed, []
+
+        prepared: list[
+            tuple[_SkillWork, SkillTransaction, SkillState, bool, Path | None]
+        ] = []
+        for item, transaction in ready:
+            try:
+                skill_state, retain, backup = self._prepare_applied_item(
+                    item, source_commit, transaction
+                )
+                prepared.append((item, transaction, skill_state, retain, backup))
+            except Exception as exc:
+                self.output_func(f"{item.entry.skill}: {exc}")
+                self._rollback(item, transaction)
+                failed.append(item.entry.skill)
+
+        if not prepared:
+            return [], failed, []
+
+        try:
+            updated_skills = dict(state.skills)
+            for item, _transaction, skill_state, _retain, _backup in prepared:
+                updated_skills[item.entry.skill] = skill_state
+            for _item, transaction, skill_state, retain, _backup in prepared:
+                transaction.expect_state(
+                    skill_state_hash(skill_state), retain_backup=retain
+                )
+            self.state_store.write(FirstPartyState(updated_skills))
+            for _item, transaction, _skill_state, _retain, _backup in prepared:
+                transaction.prepare_commit()
+        except Exception as exc:
+            self.output_func(f"first-party state commit failed: {exc}")
+            for item, transaction, _skill_state, _retain, _backup in prepared:
+                self._rollback(item, transaction)
+                failed.append(item.entry.skill)
+            return [], failed, []
+
+        successful: list[str] = []
+        backups: list[Path] = []
+        for item, transaction, _skill_state, retain, backup in prepared:
+            try:
+                transaction.finish_commit(retain_backup=retain)
+            except Exception as exc:
+                self.output_func(
+                    f"{item.entry.skill}: committed; cleanup failed: {exc}"
+                )
+            successful.append(item.entry.skill)
+            if backup is not None:
+                backups.append(backup)
+        return successful, failed, backups
 
     def reconcile(
         self,
@@ -860,19 +944,10 @@ class FirstPartyReconciler:
                 return ReconcileResult((), tuple(failed), aborted=True)
             if dry_run:
                 return ReconcileResult((), tuple(failed))
-            successful: list[str] = []
-            backups: list[Path] = []
-            current_state = state
-            for item in work:
-                success, backup, current_state = self._apply(
-                    item, defaults, snapshot.commit, current_state
-                )
-                if success:
-                    successful.append(item.entry.skill)
-                    if backup is not None:
-                        backups.append(backup)
-                else:
-                    failed.append(item.entry.skill)
+            successful, apply_failed, backups = self._apply_group(
+                work, defaults, snapshot.commit, state
+            )
+            failed.extend(apply_failed)
             return ReconcileResult(
                 tuple(successful), tuple(failed), tuple(backups), aborted=False
             )

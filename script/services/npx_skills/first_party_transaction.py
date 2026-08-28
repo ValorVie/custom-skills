@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from script.services.npx_skills.first_party_overlay import (
     TransactionJournal,
     TransactionJournalStore,
     TransactionStatus,
+    skill_state_hash,
 )
 
 
@@ -107,6 +109,20 @@ class SkillTransaction:
         self.journal = self.journal_store.update(self._journal(), status)
         return self.journal
 
+    def expect_state(
+        self, expected_state_hash: str, *, retain_backup: bool
+    ) -> TransactionJournal:
+        journal = self._journal()
+        if journal.status is not TransactionStatus.VERIFIED:
+            raise RuntimeError(f"transaction not verified: {self.skill}")
+        self.journal = replace(
+            journal,
+            expected_state_hash=expected_state_hash,
+            retain_backup=retain_backup,
+        )
+        self.journal_store.write(self.journal)
+        return self.journal
+
     def _restore_roots(self, journal: TransactionJournal) -> None:
         backup_dir = self.backup_root / journal.backup_dir
         for label, relative in journal.roots.items():
@@ -161,15 +177,40 @@ class SkillTransaction:
             return False
         self.journal = journal
         if journal.status is TransactionStatus.COMMITTED:
-            self.journal_store.path_for(self.skill).unlink(missing_ok=True)
-            self.journal = None
+            if journal.expected_state_hash is not None:
+                self.finish_commit(retain_backup=journal.retain_backup)
+            else:
+                self.journal_store.path_for(self.skill).unlink(missing_ok=True)
+                self.journal = None
             return False
+        if (
+            journal.status is TransactionStatus.VERIFIED
+            and journal.expected_state_hash is not None
+        ):
+            state = self.state_store.read().skills.get(self.skill)
+            if (
+                state is not None
+                and skill_state_hash(state) == journal.expected_state_hash
+            ):
+                self.prepare_commit()
+                self.finish_commit(retain_backup=journal.retain_backup)
+                return False
         self.rollback()
         return True
 
-    def commit(self, *, retain_backup: bool) -> None:
-        journal = self.mark(TransactionStatus.COMMITTED)
+    def prepare_commit(self) -> TransactionJournal:
+        return self.mark(TransactionStatus.COMMITTED)
+
+    def finish_commit(self, *, retain_backup: bool) -> None:
+        journal = self._journal()
+        if journal.status is not TransactionStatus.COMMITTED:
+            raise RuntimeError(f"transaction not committed: {self.skill}")
+        backup_dir = self.backup_root / journal.backup_dir
+        if not retain_backup and backup_dir.exists():
+            shutil.rmtree(backup_dir)
         self.journal_store.path_for(self.skill).unlink(missing_ok=True)
         self.journal = None
-        if not retain_backup:
-            shutil.rmtree(self.backup_root / journal.backup_dir)
+
+    def commit(self, *, retain_backup: bool) -> None:
+        self.prepare_commit()
+        self.finish_commit(retain_backup=retain_backup)

@@ -214,25 +214,29 @@ non-interactive 時，`clean` 與 `local-only` 可自動處理；未解決的 `b
 
 ### 12. Apply 使用可回復 transaction
 
-所有第一方檔案先完成 planning 與 decision resolution，才開始 mutation。每個要交給 npx 的 skill 先保存完整 installed roots 與 transaction journal，再依序執行：
+所有第一方檔案先完成 planning 與 decision resolution，才開始 mutation。每個要交給 npx 的 skill 先保存獨立的完整 installed roots 與 transaction journal。全部 safe skills 都到達 `BACKED_UP` 後，同一 repository 只執行一次 grouped npx command，並以多個明確 `--skill <canonical-id>` 傳入 safe inventory；不得用 wildcard 取代 manifest allowlist。
 
 ```text
-capture overlay candidates
-→ npx add upstream base
-→ verify pure base
-→ materialize overlays / tombstones
-→ verify effective tree
-→ atomically commit schema v2 state and active overlays
-→ detach legacy ownership
+capture overlay candidates per skill
+→ backup every safe skill
+→ one grouped npx add for explicit safe IDs
+→ verify pure base per skill
+→ rollback only failed verification items
+→ materialize overlays / tombstones for verified items
+→ verify effective trees
+→ atomically commit successful schema v2 state
+→ detach successful legacy ownership
 ```
 
-npx non-zero、partial success、base mismatch、overlay apply failure、effective mismatch 或 state commit failure，都必須從 transaction backup 還原該 skill，保留舊 manifest／overlay，不 detach，並 exit 1。下次執行若發現未完成 journal，先恢復或明確停止，不直接開始新 transaction。
+npx command 非零時，所有參與該 command 的 skills 都 rollback。npx 回傳 0 但只有部分 skill 通過 base／lock／path verification 時，只 rollback 失敗項；其餘成功項可共同提交 state。overlay apply failure、effective mismatch 或 state commit failure 都必須從對應 transaction backup 還原，保留舊 manifest／overlay，不 detach，並 exit 1。下次執行若發現未完成 journal，先恢復或明確停止，不直接開始新 transaction。
 
 transaction state 為：
 
 ```text
 PLANNED → BACKED_UP → BASE_APPLIED → OVERLAY_APPLIED → VERIFIED → COMMITTED
 ```
+
+grouped state commit 前，每個 `VERIFIED` journal 先記錄預期 `SkillState` fingerprint 與 backup retention。若程序在 atomic manifest write 後、全部 journals 完成 `COMMITTED` 前中斷，下次 recovery 以 manifest 中該 skill 的 fingerprint 判斷：吻合時完成 commit cleanup，不吻合時 rollback。不得因逐 journal finalize 的 crash window 把已共同提交的 state 部分回復。
 
 只有 `COMMITTED` 可清除暫存 transaction。使用者明確選擇 use-upstream 的舊 local content 要移入可讀的 timestamped backup；純 clean 更新成功後的 transaction backup 可以清除。
 

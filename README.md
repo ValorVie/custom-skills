@@ -603,6 +603,10 @@ overlay 與 installed local，分類為 `clean`、`local-only`、`both-changed` 
 再採用上游；`A` 會在尚未寫入時中止。`no-base` 沒有共同基準，只提供 `Dc` 比較
 上游與本機，不會把不可用的 `Ds`／`Dl` 留給使用者猜測。
 
+完成 decision resolution 後，ai-dev 會把同一 repository 的安全第一方 skills 合併成
+一次 npx add，並以多個明確 `--skill` 傳入清單。這是 non-interactive 模式的
+`Select All` 等價操作，但不使用 wildcard，因此未列入 baseline 的新 skill 不會被自動安裝。
+
 每個第一方 skill 在 npx 寫入前都有完整 transaction backup。npx 寫入、base
 驗證、overlay 套用、effective tree 驗證或 state 寫入失敗時，會還原 installed
 roots、舊 manifest 與舊 overlay。直接執行原生 npx 若蓋掉 materialized overlay，

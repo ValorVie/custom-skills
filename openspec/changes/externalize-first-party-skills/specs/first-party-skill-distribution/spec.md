@@ -185,11 +185,22 @@ FirstPartyReconciler SHALL 先規劃所有第一方 files，再執行任何 npx 
 
 每個要更新的第一方 skill SHALL 在 npx 前建立完整 installed-root backup 與 transaction journal。apply 順序 SHALL 是 capture overlay candidates、npx base、base verification、overlay materialization、effective verification、atomic state commit、legacy detach。
 
+#### Scenario: safe skills 使用一次 grouped npx add
+
+- **WHEN** 同一第一方 repository 有多個已完成 decision resolution 的 safe skills
+- **THEN** reconcile SHALL 先讓每個 safe skill 的 transaction 到達 `BACKED_UP`
+- **THEN** SHALL 只執行一次 npx add command，並以多個明確 `--skill <canonical-id>` 傳入 safe inventory
+- **THEN** SHALL NOT 使用 wildcard，也不得為每個 safe skill 重複 clone 或顯示獨立 installation summary
+- **THEN** unresolved skills SHALL 不出現在 grouped command
+
 #### Scenario: npx partial success 或回傳 0 但內容錯誤
 
-- **WHEN** npx 非零，或回傳 0 但 lock、frontmatter、base hash、canonical path 或 agent-visible root 不符合 plan
-- **THEN** transaction SHALL 還原該 skill 的所有 pre-update roots
-- **THEN** SHALL 保留舊 manifest 與 active overlay，不 detach ownership
+- **WHEN** grouped npx command 非零
+- **THEN** transaction SHALL 還原所有參與該 command 的 skills
+- **WHEN** npx 回傳 0，但部分 skills 的 lock、frontmatter、base hash、canonical path 或 agent-visible root 不符合 plan
+- **THEN** transaction SHALL 只還原驗證失敗 skill 的所有 pre-update roots
+- **THEN** 驗證成功的 skills MAY 共同提交 schema v2 state
+- **THEN** 失敗項 SHALL 保留舊 manifest 與 active overlay，不 detach ownership
 
 #### Scenario: overlay 或 state commit 失敗
 
@@ -202,6 +213,13 @@ FirstPartyReconciler SHALL 先規劃所有第一方 files，再執行任何 npx 
 - **WHEN** 下次執行發現 journal 尚未 committed
 - **THEN** 系統 SHALL 先依 backup 恢復，或在無法證明 rollback 前提時停止
 - **THEN** SHALL NOT 直接開始新的 npx transaction
+
+#### Scenario: grouped state write 後 finalize 中斷
+
+- **WHEN** successful skills 已共同寫入 schema v2 state，但只有部分 journals 到達 `COMMITTED`
+- **THEN** 每個 `VERIFIED` journal SHALL 以事前保存的 expected SkillState fingerprint 比對 active manifest
+- **THEN** fingerprint 吻合時 SHALL 完成 commit cleanup，不得 rollback 已提交 skill
+- **THEN** fingerprint 不吻合或 state 無法證明時 SHALL rollback 或停止，不得猜測完成
 
 ### Requirement: 單一 canonical overlay
 

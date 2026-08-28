@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import stat
 import tempfile
@@ -306,6 +307,16 @@ class SkillState:
         return cls(source=source, source_commit=source_commit, files=files)
 
 
+def skill_state_hash(state: SkillState) -> str:
+    payload = json.dumps(
+        state.to_dict(),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return f"sha256:{hashlib.sha256(payload).hexdigest()}"
+
+
 @dataclass(frozen=True)
 class FirstPartyState:
     skills: dict[str, SkillState] = field(default_factory=dict)
@@ -327,9 +338,11 @@ class TransactionJournal:
     backup_dir: str
     roots: dict[str, str]
     started_at: str
+    expected_state_hash: str | None = None
+    retain_backup: bool = False
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "schema_version": 1,
             "skill": self.skill,
             "status": self.status.value,
@@ -337,6 +350,10 @@ class TransactionJournal:
             "roots": dict(sorted(self.roots.items())),
             "started_at": self.started_at,
         }
+        if self.expected_state_hash is not None:
+            payload["expected_state_hash"] = self.expected_state_hash
+            payload["retain_backup"] = self.retain_backup
+        return payload
 
     @classmethod
     def from_dict(cls, data: dict) -> TransactionJournal:
@@ -364,7 +381,21 @@ class TransactionJournal:
                 raise ValueError("invalid transaction journal")
             _safe_relative(relative, label="backup root")
             checked_roots[label] = relative
-        return cls(skill, status, backup_dir, checked_roots, started_at)
+        expected_state_hash = data.get("expected_state_hash")
+        retain_backup = data.get("retain_backup", False)
+        if expected_state_hash is not None and not isinstance(expected_state_hash, str):
+            raise ValueError("invalid transaction journal")
+        if not isinstance(retain_backup, bool):
+            raise ValueError("invalid transaction journal")
+        return cls(
+            skill=skill,
+            status=status,
+            backup_dir=backup_dir,
+            roots=checked_roots,
+            started_at=started_at,
+            expected_state_hash=expected_state_hash,
+            retain_backup=retain_backup,
+        )
 
 
 class TransactionJournalStore:
