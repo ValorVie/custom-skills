@@ -129,11 +129,17 @@ reconcile SHALL 對 base、source、local、overlay 的 path union 分類。miss
 - **THEN** file SHALL 分類為 `local-only`
 - **THEN** overlay SHALL 保存 deletion tombstone，後續 npx 寫入後重新刪除該 file
 
+#### Scenario: 平台 metadata 不屬於 skill 內容
+
+- **WHEN** 任一 installed root 只多出 `.DS_Store` 或明確排除的 runtime metadata
+- **THEN** file map、directory hash、local tree comparison 與 overlay snapshot SHALL 忽略該檔案
+- **THEN** 不得把內容相同的 roots 誤判為不同 local modifications
+
 #### Scenario: binary 或 unsupported file type
 
 - **WHEN** conflict file 無法顯示文字 diff
 - **THEN** 系統 SHALL 顯示 path、hash、size 與存在狀態
-- **THEN** 仍 SHALL 提供 keep-local、use-upstream、abort；無法安全保存的 symlink 或特殊型態 SHALL fail closed
+- **THEN** 仍 SHALL 提供 keep-local、use-upstream、abort；skill tree 內無法安全保存的 symlink 或特殊型態 SHALL fail closed
 
 ### Requirement: conflict decision 在 mutation 前完成
 
@@ -189,6 +195,13 @@ FirstPartyReconciler SHALL 先規劃所有第一方 files，再執行任何 npx 
 ### Requirement: 單一 canonical overlay
 
 同一 canonical skill SHALL 只有一份所有 agents 共用的 overlay。canonical 與 agent-visible roots SHALL 依 real path 去重；獨立 copy roots 仍需 materialize 並驗證相同 effective tree。
+
+#### Scenario: npx projection symlink 指向 canonical root
+
+- **WHEN** agent-visible root 是 symlink，且 real path 等於已知 canonical active root
+- **THEN** reconcile SHALL 將兩者去重，不得視為不安全 legacy symlink
+- **WHEN** root symlink 指向 canonical active roots 以外的位置
+- **THEN** migration SHALL fail closed，且不得跟隨或改寫該 symlink
 
 #### Scenario: 舊 target copies 完全相同
 

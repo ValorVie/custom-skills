@@ -112,3 +112,11 @@
 - [x] 13.2 在 `ValorVie/ai-dev-skills` 明確列出 19 個 canonical skill paths，並擴充 repository validator，拒絕缺漏、重複或額外項目。
 - [x] 13.3 以 `skills@1.5.22` 與 `skills@1.5.23` 驗證 discovery 及真實互動 picker；確認 1.5.22 可從 group row 整組選取，1.5.23 另顯示頂層 `Select All (0/19)`。
 - [x] 13.4 更新 `ai-dev-skills` README／CHANGELOG，執行直接測試、公開邊界、JSON 與 diff checks，提交 `b9a9ce3ef523f99851fa12859973c1a77f795943`；不 push、不 archive。
+
+## 14. 修正 Mac migration false positives
+
+- [x] 14.1 以 Mac production classifier 與逐 root hash 重現：18 個 `already-migrated` Claude projection symlinks 都指向 canonical `.agents/skills`；`custom-skills-doc-writer` 五個 roots 只差 `.DS_Store`。
+- [x] 14.2 先加入回歸測試：canonical projection symlink 去重、未知 symlink fail closed、`.DS_Store` 不影響 file map／directory hash／overlay snapshot／multi-root comparison。
+- [x] 14.3 將 symlink 判斷移到 real-path 去重後；三個 tree readers 共用 `is_excluded_skill_path()` 排除平台 metadata。
+- [x] 14.4 更新 OpenSpec、architecture 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
+- [x] 14.5 提交 scoped implementation，回報 commit hash；不 push、不 archive，也不修改 Mac installed state。

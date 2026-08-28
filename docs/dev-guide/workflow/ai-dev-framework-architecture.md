@@ -98,8 +98,10 @@ overlay、目前 installed local。
 | `both-changed` | 不同於 base | 有本機 override | keep-local、use-upstream 或 abort |
 | `no-base` | 無可信 base | 與 source 不同 | keep-local、use-upstream 或 abort |
 
-missing 是明確狀態；刪除使用 tombstone，不與空檔案混淆。binary 仍可用 hash、size
-與存在狀態決定；skill tree 內的 symlink 或特殊檔案 fail closed。
+missing 是明確狀態；刪除使用 tombstone，不與空檔案混淆。`.DS_Store` 不屬於
+skill 內容，不參與 hash 或 root comparison。binary 仍可用 hash、size 與存在狀態
+決定；skill tree 內的 symlink 或特殊檔案 fail closed。agent projection root symlink
+若解析到 canonical active root，則以 real path 去重；指向其他位置時仍停止。
 
 state 與 overlay 路徑如下：
 

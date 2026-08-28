@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **修正第一方 npx reconcile 的 Mac false positives。**
+  - Claude Code 的 agent projection symlink 若解析到 canonical `.agents/skills`，會以 real path 去重；未知 symlink 仍 fail closed。
+  - `.DS_Store` 不再參與 skill file map、directory hash 或 overlay snapshot，避免把內容相同的 agent roots 判成不同 local modifications。
+
 - **BREAKING：第一方 global skills 改由 `npx skills` 獨占 ownership。**
   - `ai-dev clone` 不再從 framework root `skills/` 分發第一方 skills，也不再為它們建立新的 ManifestTracker entries。
   - 同 repository 的 npx skills 合併成單一 add/update command；manifest 會拒絕缺 repo、空清單、wildcard 與重複 canonical ID。

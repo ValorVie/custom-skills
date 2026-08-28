@@ -370,11 +370,13 @@ def test_snapshot_tree_supports_binary_and_rejects_symlink(tmp_path: Path):
     root = tmp_path / "skill"
     root.mkdir()
     (root / "binary.dat").write_bytes(b"\x00\xff")
+    (root / ".DS_Store").write_bytes(b"Finder metadata")
 
     snapshot = snapshot_tree(root)
 
     assert snapshot["binary.dat"].content == b"\x00\xff"
     assert snapshot["binary.dat"].hash.startswith("sha256:")
+    assert ".DS_Store" not in snapshot
 
     (root / "link").symlink_to(root / "binary.dat")
     with pytest.raises(ValueError, match="unsupported file type"):

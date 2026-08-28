@@ -261,6 +261,77 @@ def test_different_legacy_copies_fail_closed_without_per_agent_overlay(
     assert state_store.manifest_path.read_bytes() == before
 
 
+def test_npx_projection_symlink_to_active_root_is_deduplicated(tmp_path: Path):
+    reconciler, _state_store, installed, commands = _runtime(
+        tmp_path, base=b"base\n", source=b"base\n", local=b"base\n"
+    )
+    projection = tmp_path / "home" / ".claude" / "skills" / "demo"
+    projection.parent.mkdir(parents=True)
+    projection.symlink_to(installed, target_is_directory=True)
+    reconciler.local_roots = {
+        "canonical": installed.parent,
+        "claude": projection.parent,
+    }
+    reconciler.migration_loader = lambda _entries: (
+        MigrationRecord(
+            "claude",
+            "demo",
+            "demo",
+            projection,
+            MigrationState.ALREADY_MIGRATED,
+        ),
+    )
+
+    result = _run(reconciler)
+
+    assert result.successful_names == ("demo",)
+    assert result.failed_names == ()
+    assert projection.is_symlink()
+    assert projection.resolve() == installed.resolve()
+    assert len(commands) == 1
+
+
+def test_legacy_symlink_to_unknown_root_still_fails_closed(tmp_path: Path):
+    reconciler, state_store, installed, commands = _runtime(
+        tmp_path, base=b"base\n", source=b"base\n", local=b"base\n"
+    )
+    outside = tmp_path / "outside"
+    _write_skill(outside, b"base\n")
+    legacy = tmp_path / "legacy"
+    legacy.symlink_to(outside, target_is_directory=True)
+    before = state_store.manifest_path.read_bytes()
+    reconciler.migration_loader = lambda _entries: (
+        MigrationRecord("legacy", "demo", "demo", legacy, MigrationState.UNKNOWN),
+    )
+
+    result = _run(reconciler)
+
+    assert result.failed_names == ("demo",)
+    assert commands == []
+    assert legacy.is_symlink()
+    assert (installed / "SKILL.md").read_bytes() == b"base\n"
+    assert state_store.manifest_path.read_bytes() == before
+
+
+def test_ds_store_does_not_make_agent_roots_diverge(tmp_path: Path):
+    reconciler, _state_store, installed, commands = _runtime(
+        tmp_path, base=b"base\n", source=b"base\n", local=b"base\n"
+    )
+    claude = tmp_path / "home" / ".claude" / "skills" / "demo"
+    shutil.copytree(installed, claude)
+    (claude / ".DS_Store").write_bytes(b"Finder metadata")
+    reconciler.local_roots = {
+        "canonical": installed.parent,
+        "claude": claude.parent,
+    }
+
+    result = _run(reconciler)
+
+    assert result.successful_names == ("demo",)
+    assert result.failed_names == ()
+    assert len(commands) == 1
+
+
 def test_raw_npx_wipe_does_not_erase_persistent_local_intent(tmp_path: Path):
     reconciler, _state_store, installed, commands = _runtime(
         tmp_path, base=b"base\n", source=b"base\n", local=b"local\n"

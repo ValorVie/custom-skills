@@ -56,8 +56,10 @@ def compute_file_hash(path: Path) -> str:
     return f"sha256:{sha256.hexdigest()}"
 
 
-def _is_excluded_for_hash(file_path: Path) -> bool:
-    """檢查檔案是否應被 hash 計算排除。"""
+def is_excluded_skill_path(file_path: Path) -> bool:
+    """檢查檔案是否應從 skill 內容比較排除。"""
+    if file_path.name == ".DS_Store":
+        return True
     if "__pycache__" in file_path.parts:
         return True
     if file_path.suffix in {".pyc", ".pyo"}:
@@ -74,7 +76,7 @@ def compute_skill_file_map(path: Path) -> dict[str, str]:
         return {}
     out: dict[str, str] = {}
     for file_path in sorted(path.rglob("*"), key=lambda p: str(p.relative_to(path))):
-        if not file_path.is_file() or _is_excluded_for_hash(file_path):
+        if not file_path.is_file() or is_excluded_skill_path(file_path):
             continue
         rel = str(file_path.relative_to(path))
         out[rel] = compute_file_hash(file_path)
@@ -103,11 +105,7 @@ def compute_dir_hash(path: Path) -> str:
     files = sorted(path.rglob("*"), key=lambda p: str(p.relative_to(path)))
 
     for file_path in files:
-        if file_path.is_file():
-            if "__pycache__" in file_path.parts:
-                continue
-            if file_path.suffix in {".pyc", ".pyo"}:
-                continue
+        if file_path.is_file() and not is_excluded_skill_path(file_path):
             # 將相對路徑加入 hash 計算（確保檔案結構變化也會影響 hash）
             rel_path = str(file_path.relative_to(path))
             sha256.update(rel_path.encode("utf-8"))

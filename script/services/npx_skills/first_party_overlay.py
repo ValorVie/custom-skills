@@ -11,7 +11,12 @@ from typing import Literal
 
 import yaml
 
-from script.utils.manifest import FileEntry, compute_dir_hash, compute_skill_file_map
+from script.utils.manifest import (
+    FileEntry,
+    compute_dir_hash,
+    compute_skill_file_map,
+    is_excluded_skill_path,
+)
 
 MISSING_HASH = "missing"
 
@@ -162,7 +167,7 @@ def snapshot_tree(root: Path) -> dict[str, TreeFile]:
     files: dict[str, TreeFile] = {}
     for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
         relative = path.relative_to(root)
-        if "__pycache__" in relative.parts or path.suffix in {".pyc", ".pyo"}:
+        if is_excluded_skill_path(relative):
             continue
         mode = path.lstat().st_mode
         if stat.S_ISDIR(mode):

@@ -187,7 +187,7 @@ source changed   + local override    → both-changed
 base unknown + source/local different → no-base
 ```
 
-檔案集合取 base、source、local、overlay 的 union。missing 是明確狀態，不得當成空字串；local deletion 以 overlay tombstone 保存。新增 upstream file、local-only new file、upstream deletion、local deletion、binary file 與 symlink／unsupported type 都必須有測試與 fail-closed 結果。
+檔案集合取 base、source、local、overlay 的 union。missing 是明確狀態，不得當成空字串；local deletion 以 overlay tombstone 保存。`.DS_Store` 等平台 metadata 不屬於 skill 內容，不得改變 file map、directory hash 或 planner 結果。新增 upstream file、local-only new file、upstream deletion、local deletion、binary file 與 skill tree 內的 symlink／unsupported type 都必須有測試與 fail-closed 結果。
 
 ### 11. keep-local 是持久 overlay，不使用 one-revision skip memory
 
@@ -230,7 +230,7 @@ source snapshot 與 npx 下載之間無法用任意 commit SHA pin 時，以 pos
 
 ### 13. 單一 canonical overlay 與舊 target consolidation
 
-Codex、Gemini CLI、OpenCode、Antigravity 使用 universal `.agents/skills`；Claude Code 使用自己的 root 或 symlink。reconcile 依 real path 去重，overlay 套用到 canonical 與任何獨立 copy root。
+Codex、Gemini CLI、OpenCode、Antigravity 使用 universal `.agents/skills`；Claude Code 使用自己的 root 或 symlink。reconcile 依 real path 去重；agent projection root symlink 若解析到已知 active root，視為同一份內容。指向未知位置的 root symlink 與 skill tree 內的 symlink 仍 fail closed。overlay 套用到 canonical 與任何獨立 copy root。
 
 新架構只允許一份 canonical overlay。舊 ai-dev target copies 完全相同時可自動合併並安全清理；若不同 targets 有不同 local modifications，migration 必須停止並要求選擇 canonical 版本或另建不同 canonical skill ID，不建立 per-agent overlay。
 

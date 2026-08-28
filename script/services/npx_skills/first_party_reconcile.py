@@ -570,14 +570,16 @@ class FirstPartyReconciler:
                     and record.state is not MigrationState.MISSING
                     and record.path.exists()
                 )
-                if any(record.path.is_symlink() for record in records):
-                    raise ValueError("unsupported symlink in legacy target copy")
                 transaction_roots = dict(roots)
                 candidate_roots = dict(roots)
                 legacy_aliases: list[Path] = []
                 seen = {path.resolve(strict=False) for path in roots.values()}
                 for index, record in enumerate(records):
                     resolved = record.path.resolve(strict=False)
+                    if record.path.is_symlink():
+                        if resolved in seen:
+                            continue
+                        raise ValueError("unsupported symlink in legacy target copy")
                     if resolved not in seen:
                         label = f"legacy-{index:03d}"
                         candidate_roots[label] = record.path

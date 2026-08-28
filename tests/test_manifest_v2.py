@@ -109,11 +109,15 @@ def test_compute_skill_file_map_excludes_pycache(tmp_path: Path):
     skill = tmp_path / "demo"
     skill.mkdir()
     (skill / "SKILL.md").write_text("hi")
+    expected_hash = M.compute_dir_hash(skill)
     (skill / "__pycache__").mkdir()
     (skill / "__pycache__" / "noise.pyc").write_text("x")
+    (skill / ".DS_Store").write_bytes(b"Finder metadata")
     file_map = M.compute_skill_file_map(skill)
     assert "SKILL.md" in file_map
     assert all("__pycache__" not in k for k in file_map)
+    assert ".DS_Store" not in file_map
+    assert M.compute_dir_hash(skill) == expected_hash
 
 
 def test_to_manifest_v2_shape(tmp_path: Path):
