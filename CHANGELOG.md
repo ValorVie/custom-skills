@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 建立公開 [`ValorVie/ai-dev-skills`](https://github.com/ValorVie/ai-dev-skills)，以 frontmatter `name` 管理 19 個 canonical IDs。
   - `upstream/npx-skills.yaml` 加入 `ai-dev-first-party` package，baseline 逐項列名，不使用 wildcard。
   - 新增 migration preflight、npx lock／canonical path 讀回驗證、`custom-simplify → simplify` 備份清理及 modified／unknown target 保護。
-  - 新增 `npx-first-party.yaml` conflict guard baseline；detach 後仍保留 `clean`、`local-only`、`both-changed`、`no-base` 判斷。
+  - 新增 `npx-first-party.yaml` schema v2 per-file state 與持久 overlay；detach 後仍保留 `clean`、`local-only`、`both-changed`、`no-base` 判斷。
+  - 新增 per-skill transaction journal、完整 installed-root backup、pure-base／effective-tree verification、rollback 與 interrupted recovery。
   - 新增 npx/clone ownership、list source、toggle、resource-disable 與 standards profile regression tests。
 
 ### Changed
@@ -22,9 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ai-dev clone` 不再從 framework root `skills/` 分發第一方 skills，也不再為它們建立新的 ManifestTracker entries。
   - 同 repository 的 npx skills 合併成單一 add/update command；manifest 會拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
   - global add 改為明確指定 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`，不再以 `-a '*'` 嘗試 Eve、PromptScript 等 project-only targets。
-  - `ai-dev-first-party` 的 install／update 改走 guarded add：update 會自動補裝缺少項目，本機修改或無可信 base 時不呼叫 npx；其他 packages 行為不變。
+  - `ai-dev-first-party` 的 install／update 共用 `FirstPartyReconciler`：`local-only` 自動保存 overlay；`both-changed`／內容不同的 `no-base` 要求 keep-local、use-upstream 或 abort。非互動未解決項目會略過並使 phase exit 1；其他 packages 行為不變。
   - ECC 或 custom repo 若啟用同名 npx-managed skill，clone 會在寫入前停止；5 個已由 npx 管理的 ECC entries 已移出 distribution whitelist。
-  - `ai-dev list` 依 declarative manifest 顯示 `ai-dev-skills` source；manifest 無法讀取時標成 `unknown`。
+  - `ai-dev list` 依 declarative manifest 顯示 `ai-dev-skills` source；有本機 overlay 時顯示檔案數，state 或 overlay 無法讀取時標成 `overlay state unknown`。
   - `toggle`、resource-disable 與 standards profile 不再搬動 npx-managed skill，改為 fail closed 與原生 npx 指引。
 
 ### Removed
@@ -101,8 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - project skills：解析 cwd 的 `skills-lock.json`，逐個執行
     `npx skills add <source> --skill <name> -a <agents...> -y`
     - `--skill <name>` 確保只裝指定 skill，不會擴張為整個來源 repo
-    - `-a` 顯式列出 `claude-code codex gemini-cli opencode antigravity
-      kiro-cli universal`（對應 ai-dev `--target` 的 5 個工具加上 `kiro-cli`
+    - `-a` 顯式列出 `claude-code codex gemini-cli opencode antigravity kiro-cli universal`
+      （對應 ai-dev `--target` 的 5 個工具加上 `kiro-cli`
       與 canonical `universal`），避免 detectInstalledAgents 自動 fanout 到
       30+ agent target 目錄。實測只會建立 `.agents/skills`、`.claude/skills`、
       `.kiro/skills` 三處

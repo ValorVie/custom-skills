@@ -36,6 +36,18 @@
 - `user`：使用者自建，且不在任何已知來源或 declarative manifest 中
 - 其他 npx package：顯示 manifest 的 `source` 或 repository 名稱
 
+#### Scenario: 第一方 skill 有 local overlay
+
+- **WHEN** `npx-first-party.yaml` schema v2 顯示 canonical skill 有一個以上 active overlay 或 tombstone
+- **THEN** list SHALL 保留來源 `ai-dev-skills`
+- **THEN** SHALL 另標示 `local overlay` 與受影響檔案數，不得把它誤標為 user-only 或 pure upstream
+
+#### Scenario: overlay state 無法讀取
+
+- **WHEN** 第一方 overlay manifest 損壞或 active overlay path 不可讀
+- **THEN** list SHALL 維持 read-only 並標示 `overlay state unknown`
+- **THEN** SHALL 不自動修復、刪除或重裝該 skill
+
 #### Scenario: canonical ID 與舊目錄名不同
 
 - **WHEN** list 遇到已安裝的 `simplify` 與待清理的舊目錄 `custom-simplify`

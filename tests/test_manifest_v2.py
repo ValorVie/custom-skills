@@ -1,10 +1,12 @@
 """manifest v2 schema 與 3-way 衝突分類的單元測試。"""
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from script.utils import manifest as M
+from script.utils import shared as S
 
 
 def test_classify_no_base_when_entry_missing():
@@ -182,6 +184,84 @@ def test_prompt_file_decision_base_unavailable_eof_returns_skip(monkeypatch, tmp
         base_blob_getter=lambda rel: None,
     )
     assert result == "skip"
+
+
+def test_clone_local_only_restore_reinstates_pre_copy_bytes(tmp_path: Path):
+    destination = tmp_path / "SKILL.md"
+    destination.write_bytes(b"upstream replacement")
+
+    S._v2_restore_preserved({destination: b"local content"})
+
+    assert destination.read_bytes() == b"local content"
+
+
+def test_clone_decision_writeback_records_overwrite_and_skip():
+    manifest = {"schema_version": 2, "files": {"skills": {}}}
+    decisions = {"skip_set": {("skills", "demo", "keep.md", "source-commit")}}
+
+    S._v2_apply_decisions(
+        manifest,
+        [
+            (
+                "skills",
+                "demo",
+                "replace.md",
+                "source-hash",
+                "source-commit",
+                "custom-skills",
+                "source-hash",
+                "overwritten",
+            )
+        ],
+        decisions,
+    )
+
+    entry = M.get_file_entry(manifest, "skills", "demo", "replace.md")
+    assert entry is not None
+    assert entry.decision == "overwritten"
+    assert M.is_skipped(manifest, "skills", "demo", "keep.md", "source-commit")
+
+
+def test_clone_no_base_skip_anchors_current_source_and_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    destination = tmp_path / "installed" / "demo" / "SKILL.md"
+    destination.parent.mkdir(parents=True)
+    destination.write_text("local", encoding="utf-8")
+    source = tmp_path / "source" / "demo"
+    source.mkdir(parents=True)
+    (source / "SKILL.md").write_text("upstream", encoding="utf-8")
+    tracker = SimpleNamespace(
+        skills={
+            "demo": M.FileRecord(
+                name="demo",
+                hash="skill-hash",
+                source="custom-skills",
+                source_path=source,
+                src_path=source,
+                files={"SKILL.md": "source-hash"},
+            )
+        }
+    )
+    manifest = {"schema_version": 2, "files": {"skills": {}}}
+    conflict = SimpleNamespace(resource_type="skills", name="demo")
+    monkeypatch.setattr(S, "_v2_get_dst_path", lambda *_args: destination)
+    monkeypatch.setattr(M, "get_file_commit", lambda *_args, **_kwargs: "source-commit")
+
+    S._v2_anchor_no_base_skips(
+        new_manifest=manifest,
+        target="claude",
+        prescan_tracker=tracker,
+        no_base_conflicts=[conflict],
+        skip_names={"demo"},
+        source_heads={},
+    )
+
+    entry = M.get_file_entry(manifest, "skills", "demo", "SKILL.md")
+    assert entry is not None
+    assert entry.src_hash == "source-hash"
+    assert entry.dst_hash_at_sync == M.compute_file_hash(destination)
+    assert entry.decision == "skipped"
 
 
 def test_cleanup_orphans_leaves_retired_auto_skill_for_confirmed_cleanup(

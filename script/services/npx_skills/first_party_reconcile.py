@@ -1,62 +1,195 @@
 from __future__ import annotations
 
-import os
+import hashlib
 import re
+import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from typing import Callable, ContextManager
+from difflib import unified_diff
 
 import yaml
 
 from script.services.npx_skills.config import SkillEntry
+from script.services.npx_skills.first_party_overlay import (
+    FileState,
+    FirstPartyState,
+    FirstPartyStateStore,
+    OverlayEntry,
+    PlannedFile,
+    SkillState,
+    TransactionJournalStore,
+    TransactionStatus,
+    TreeFile,
+    plan_skill,
+    snapshot_tree,
+)
+from script.services.npx_skills.first_party_transaction import SkillTransaction
 from script.services.npx_skills.migration import (
     MigrationRecord,
     MigrationState,
-    VerificationResult,
+    classify_legacy_skill,
+    legacy_name_for,
     read_npx_lock,
 )
-from script.utils.manifest import FileEntry, classify_file, compute_dir_hash
+from script.utils.manifest import FileEntry
 
 
-class GuardAction(str, Enum):
-    NOOP = "noop"
-    APPLY = "apply"
-    BLOCK = "block"
-    BOOTSTRAP = "bootstrap"
+class Decision(str, Enum):
+    KEEP_LOCAL = "keep-local"
+    USE_UPSTREAM = "use-upstream"
 
 
-@dataclass(frozen=True)
-class GuardRecord:
-    entry: SkillEntry
-    classification: str
-    action: GuardAction
-    source_hash: str
-    source_commit: str
-    base_hash: str | None
-    local_hashes: tuple[tuple[str, str | None], ...]
+FileConflict = PlannedFile
 
 
 @dataclass(frozen=True)
-class ReconcilePlan:
-    records: tuple[GuardRecord, ...]
+class DecisionResolution:
+    decisions: dict[str, Decision]
+    unresolved: tuple[str, ...] = ()
+    aborted: bool = False
 
-    def entries_for(self, action: GuardAction) -> tuple[SkillEntry, ...]:
-        return tuple(record.entry for record in self.records if record.action is action)
+
+class DecisionResolver:
+    def __init__(
+        self,
+        *,
+        interactive: bool,
+        input_func: Callable[[str], str] = input,
+        output_func: Callable[[str], None] = print,
+    ):
+        self.interactive = interactive
+        self.input_func = input_func
+        self.output_func = output_func
+
+    @staticmethod
+    def _text(content: bytes | None) -> list[str] | None:
+        if content is None:
+            return []
+        if b"\x00" in content:
+            return None
+        try:
+            return content.decode("utf-8").splitlines(keepends=True)
+        except UnicodeDecodeError:
+            return None
+
+    def _show_diff(
+        self,
+        conflict: FileConflict,
+        left: bytes | None,
+        right: bytes | None,
+        left_label: str,
+        right_label: str,
+    ) -> None:
+        left_text = self._text(left)
+        right_text = self._text(right)
+        path = conflict.plan.path
+        if left_text is None or right_text is None:
+            self.output_func(
+                f"binary: {path} {left_label}={len(left or b'')} bytes "
+                f"{right_label}={len(right or b'')} bytes"
+            )
+            return
+        rendered = "".join(
+            unified_diff(
+                left_text,
+                right_text,
+                fromfile=f"{left_label}/{path}",
+                tofile=f"{right_label}/{path}",
+            )
+        )
+        self.output_func(rendered or f"{path}: no content difference")
+
+    def resolve(self, conflicts: Sequence[FileConflict]) -> DecisionResolution:
+        decisions: dict[str, Decision] = {}
+        unresolved: list[str] = []
+        for conflict in conflicts:
+            plan = conflict.plan
+            if plan.classification == "clean":
+                decisions[plan.path] = Decision.USE_UPSTREAM
+                continue
+            if plan.classification == "local-only":
+                decisions[plan.path] = Decision.KEEP_LOCAL
+                continue
+            if not self.interactive:
+                unresolved.append(plan.path)
+                continue
+
+            while True:
+                answer = (
+                    self.input_func(
+                        f"{plan.path} ({plan.classification}) " "[Ds/Dl/Dc/K/O/A]: "
+                    )
+                    .strip()
+                    .upper()
+                )
+                if answer == "DS":
+                    self._show_diff(
+                        conflict,
+                        conflict.base_content,
+                        conflict.source_content,
+                        "base",
+                        "upstream",
+                    )
+                elif answer == "DL":
+                    self._show_diff(
+                        conflict,
+                        conflict.base_content,
+                        conflict.local_content,
+                        "base",
+                        "local",
+                    )
+                elif answer == "DC":
+                    self._show_diff(
+                        conflict,
+                        conflict.source_content,
+                        conflict.local_content,
+                        "upstream",
+                        "local",
+                    )
+                elif answer == "K":
+                    decisions[plan.path] = Decision.KEEP_LOCAL
+                    break
+                elif answer == "O":
+                    decisions[plan.path] = Decision.USE_UPSTREAM
+                    break
+                elif answer == "A":
+                    return DecisionResolution({}, aborted=True)
+
+        return DecisionResolution(decisions, tuple(unresolved))
 
 
 @dataclass(frozen=True)
 class SourceSnapshot:
     skills_root: Path
     commit: str
+    repo_root: Path | None = None
 
 
-_DIVERGED_HASH = "sha256:local-paths-diverged"
-_MISSING_HASH = "sha256:local-path-missing"
+@dataclass(frozen=True)
+class ReconcileResult:
+    successful_names: tuple[str, ...]
+    failed_names: tuple[str, ...]
+    backup_paths: tuple[Path, ...] = ()
+    aborted: bool = False
+
+
+@dataclass(frozen=True)
+class _SkillWork:
+    entry: SkillEntry
+    source: dict[str, TreeFile]
+    conflicts: tuple[PlannedFile, ...]
+    decisions: dict[str, Decision]
+    roots: dict[str, Path]
+    transaction_roots: dict[str, Path]
+    legacy_aliases: tuple[Path, ...]
 
 
 def get_first_party_local_roots(
@@ -106,280 +239,6 @@ def read_guard_entries(path: Path) -> dict[str, FileEntry]:
     return entries
 
 
-def record_guard_success(
-    path: Path,
-    accepted: Sequence[tuple[SkillEntry, str, str]],
-) -> None:
-    if not accepted:
-        return
-    entries = read_guard_entries(path)
-    decided_at = datetime.now(timezone.utc).isoformat()
-    for skill, source_hash, source_commit in accepted:
-        entries[skill.skill] = FileEntry(
-            src_hash=source_hash,
-            src_commit=source_commit,
-            src_source=skill.repo,
-            dst_hash_at_sync=source_hash,
-            decision="accepted",
-            decided_at=decided_at,
-        )
-
-    payload = {
-        "schema_version": 1,
-        "managed_by": "ai-dev-first-party-guard",
-        "skills": {name: entry.to_dict() for name, entry in sorted(entries.items())},
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{path.name}.",
-        dir=path.parent,
-        text=True,
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            yaml.safe_dump(payload, stream, allow_unicode=True, sort_keys=False)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
-
-
-def _legacy_base(
-    canonical_id: str, records: Sequence[MigrationRecord]
-) -> FileEntry | None:
-    hashes = {
-        record.expected_hash
-        for record in records
-        if record.canonical_id == canonical_id and record.expected_hash
-    }
-    if len(hashes) != 1:
-        return None
-    value = hashes.pop()
-    return FileEntry(
-        src_hash=value,
-        src_commit="legacy-ai-dev-manifest",
-        src_source="custom-skills",
-        dst_hash_at_sync=value,
-        decision="accepted",
-        decided_at="",
-    )
-
-
-def _local_hashes(
-    canonical_id: str,
-    local_roots: Mapping[str, Path],
-    legacy_records: Sequence[MigrationRecord],
-) -> tuple[tuple[str, str | None], ...]:
-    paths: list[tuple[str, Path]] = [
-        (label, root / canonical_id) for label, root in local_roots.items()
-    ]
-    paths.extend(
-        (f"legacy:{record.target}", record.path)
-        for record in legacy_records
-        if record.canonical_id == canonical_id
-        and record.state is not MigrationState.ALREADY_MIGRATED
-        and (record.path.exists() or record.path.is_symlink())
-    )
-
-    seen: set[Path] = set()
-    hashes: list[tuple[str, str | None]] = []
-    for label, path in paths:
-        resolved = path.resolve(strict=False)
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        if not path.exists() or not path.is_dir():
-            hashes.append((label, None))
-            continue
-        hashes.append((label, compute_dir_hash(path)))
-    return tuple(hashes)
-
-
-def _aggregate_local_hash(local_hashes: Sequence[tuple[str, str | None]]) -> str:
-    values = [value for _, value in local_hashes]
-    if not values or all(value is None for value in values):
-        return _MISSING_HASH
-    if any(value is None for value in values):
-        return _DIVERGED_HASH
-    unique = set(values)
-    return unique.pop() if len(unique) == 1 else _DIVERGED_HASH
-
-
-def _aggregate_legacy_hash(local_hashes: Sequence[tuple[str, str | None]]) -> str:
-    values = {value for _, value in local_hashes if value is not None}
-    if not values:
-        return _MISSING_HASH
-    return values.pop() if len(values) == 1 else _DIVERGED_HASH
-
-
-def plan_first_party_reconcile(
-    entries: Sequence[SkillEntry],
-    *,
-    source_skills_root: Path,
-    source_commit: str,
-    guard_path: Path,
-    local_roots: Mapping[str, Path],
-    npx_lock: Mapping[str, object] | None = None,
-    legacy_records: Sequence[MigrationRecord] = (),
-) -> ReconcilePlan:
-    guard = read_guard_entries(guard_path)
-    lock = npx_lock or {"skills": {}}
-    lock_skills = lock.get("skills", {})
-    records: list[GuardRecord] = []
-
-    for entry in entries:
-        source_path = source_skills_root / entry.skill
-        if not source_path.is_dir():
-            raise ValueError(f"第一方 source 缺少 skill: {entry.skill}")
-        source_hash = compute_dir_hash(source_path)
-        local_hashes = _local_hashes(entry.skill, local_roots, legacy_records)
-        unsafe_legacy = tuple(
-            record
-            for record in legacy_records
-            if record.canonical_id == entry.skill and not record.safe_to_install
-        )
-        if unsafe_legacy:
-            classification = (
-                "local-only"
-                if any(
-                    record.state is MigrationState.MODIFIED for record in unsafe_legacy
-                )
-                else "no-base"
-            )
-            records.append(
-                GuardRecord(
-                    entry=entry,
-                    classification=classification,
-                    action=GuardAction.BLOCK,
-                    source_hash=source_hash,
-                    source_commit=source_commit,
-                    base_hash=None,
-                    local_hashes=local_hashes,
-                )
-            )
-            continue
-        guard_base = guard.get(entry.skill)
-        legacy_base = _legacy_base(entry.skill, legacy_records)
-        base = guard_base or legacy_base
-        aggregate = (
-            _aggregate_legacy_hash(local_hashes)
-            if guard_base is None and legacy_base is not None
-            else _aggregate_local_hash(local_hashes)
-        )
-        all_missing = aggregate == _MISSING_HASH
-        lock_entry = (
-            lock_skills.get(entry.skill) if isinstance(lock_skills, dict) else None
-        )
-        lock_source = lock_entry.get("source") if isinstance(lock_entry, dict) else None
-
-        if base is not None:
-            if guard_base is not None and lock_source != entry.repo:
-                classification = "no-base"
-                action = GuardAction.BLOCK
-            else:
-                classification = classify_file(base, source_hash, aggregate)
-                if classification == "clean":
-                    action = (
-                        GuardAction.APPLY
-                        if source_hash != base.src_hash or all_missing
-                        else GuardAction.NOOP
-                    )
-                else:
-                    action = GuardAction.BLOCK
-        elif all_missing:
-            classification = "no-base"
-            action = GuardAction.APPLY
-        else:
-            local_values = {value for _, value in local_hashes if value is not None}
-            if lock_source == entry.repo and local_values == {source_hash}:
-                classification = "no-base"
-                action = GuardAction.BOOTSTRAP
-            else:
-                classification = "no-base"
-                action = GuardAction.BLOCK
-
-        records.append(
-            GuardRecord(
-                entry=entry,
-                classification=classification,
-                action=action,
-                source_hash=source_hash,
-                source_commit=source_commit,
-                base_hash=base.src_hash if base is not None else None,
-                local_hashes=local_hashes,
-            )
-        )
-
-    return ReconcilePlan(records=tuple(records))
-
-
-def _frontmatter_name(path: Path) -> str | None:
-    try:
-        content = path.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    if not content.startswith("---\n"):
-        return None
-    end = content.find("\n---\n", 4)
-    if end < 0:
-        return None
-    try:
-        metadata = yaml.safe_load(content[4:end])
-    except yaml.YAMLError:
-        return None
-    if not isinstance(metadata, dict) or not isinstance(metadata.get("name"), str):
-        return None
-    return metadata["name"].strip()
-
-
-def verify_first_party_paths(
-    entries: Sequence[SkillEntry],
-    *,
-    source_skills_root: Path,
-    local_roots: Mapping[str, Path],
-    lock_path: Path | None = None,
-) -> VerificationResult:
-    lock = read_npx_lock(lock_path)
-    lock_skills = lock.get("skills", {})
-    failures: list[str] = []
-    verified: list[str] = []
-
-    for entry in entries:
-        source_path = source_skills_root / entry.skill
-        if not source_path.is_dir():
-            failures.append(f"{entry.skill}: source path missing: {source_path}")
-            continue
-        source_hash = compute_dir_hash(source_path)
-        for label, root in local_roots.items():
-            local_path = root / entry.skill
-            skill_md = local_path / "SKILL.md"
-            if not skill_md.is_file():
-                failures.append(f"{entry.skill}: {label} path missing: {local_path}")
-                continue
-            if _frontmatter_name(skill_md) != entry.skill:
-                failures.append(f"{entry.skill}: {label} frontmatter name mismatch")
-                continue
-            if compute_dir_hash(local_path) != source_hash:
-                failures.append(f"{entry.skill}: {label} hash mismatch")
-
-        lock_entry = (
-            lock_skills.get(entry.skill) if isinstance(lock_skills, dict) else None
-        )
-        lock_source = lock_entry.get("source") if isinstance(lock_entry, dict) else None
-        if lock_source != entry.repo:
-            failures.append(
-                f"{entry.skill}: lock source mismatch: expected {entry.repo}, got {lock_source}"
-            )
-
-        if not any(item.startswith(f"{entry.skill}:") for item in failures):
-            verified.append(entry.skill)
-
-    return VerificationResult(tuple(verified), tuple(failures))
-
-
 @contextmanager
 def checkout_first_party_source(repo: str) -> Iterator[SourceSnapshot]:
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
@@ -390,8 +249,6 @@ def checkout_first_party_source(repo: str) -> Iterator[SourceSnapshot]:
             [
                 "git",
                 "clone",
-                "--depth",
-                "1",
                 "--quiet",
                 f"https://github.com/{repo}.git",
                 str(checkout),
@@ -413,4 +270,571 @@ def checkout_first_party_source(repo: str) -> Iterator[SourceSnapshot]:
         yield SourceSnapshot(
             skills_root=checkout / "skills",
             commit=commit.stdout.strip(),
+            repo_root=checkout,
         )
+
+
+def _git_skill_snapshot(
+    snapshot: SourceSnapshot, commit: str, skill: str
+) -> dict[str, TreeFile] | None:
+    if snapshot.repo_root is None:
+        if commit == snapshot.commit:
+            path = snapshot.skills_root / skill
+            return snapshot_tree(path) if path.is_dir() else None
+        return None
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", commit):
+        return None
+    prefix = f"skills/{skill}/"
+    listed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(snapshot.repo_root),
+            "ls-tree",
+            "-rz",
+            "--full-tree",
+            commit,
+            "--",
+            f"skills/{skill}",
+        ],
+        check=False,
+        capture_output=True,
+    )
+    if listed.returncode != 0:
+        return None
+    files: dict[str, TreeFile] = {}
+    for record in listed.stdout.split(b"\0"):
+        if not record:
+            continue
+        header, separator, raw_path = record.partition(b"\t")
+        fields = header.split()
+        if not separator or len(fields) != 3:
+            raise ValueError(f"invalid git tree entry: {skill}")
+        mode, kind, _object_id = (field.decode("ascii") for field in fields)
+        path = raw_path.decode("utf-8")
+        if kind != "blob" or mode not in {"100644", "100755"}:
+            raise ValueError(f"unsupported file type in source: {path}")
+        if not path.startswith(prefix):
+            raise ValueError(f"invalid source path: {path}")
+        relative = path[len(prefix) :]
+        content = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(snapshot.repo_root),
+                "show",
+                f"{commit}:{path}",
+            ],
+            check=False,
+            capture_output=True,
+        )
+        if content.returncode != 0:
+            return None
+        files[relative] = TreeFile.from_content(content.stdout)
+    return files or None
+
+
+def _same_tree(left: Mapping[str, TreeFile], right: Mapping[str, TreeFile]) -> bool:
+    return {path: item.hash for path, item in left.items()} == {
+        path: item.hash for path, item in right.items()
+    }
+
+
+def _remove_tree(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+
+
+class FirstPartyReconciler:
+    """Own first-party base, local overlay, verification, and rollback."""
+
+    def __init__(
+        self,
+        *,
+        state_store: FirstPartyStateStore | None = None,
+        local_roots: Mapping[str, Path] | None = None,
+        backup_root: Path | None = None,
+        transaction_root: Path | None = None,
+        source_checkout: Callable[[str], ContextManager[SourceSnapshot]] = (
+            checkout_first_party_source
+        ),
+        base_provider: Callable[
+            [SourceSnapshot, str, str], dict[str, TreeFile] | None
+        ] = _git_skill_snapshot,
+        command_runner: Callable[..., object] | None = None,
+        lock_reader: Callable[[], Mapping[str, object]] = read_npx_lock,
+        interactive: bool | None = None,
+        input_func: Callable[[str], str] = input,
+        output_func: Callable[[str], None] = print,
+        migration_loader: (
+            Callable[[Sequence[SkillEntry]], Sequence[MigrationRecord]] | None
+        ) = None,
+        home: Path | None = None,
+    ):
+        root = home or Path.home()
+        config = root / ".config" / "ai-dev"
+        self.state_store = state_store or FirstPartyStateStore(
+            config / "manifests" / "npx-first-party.yaml",
+            config / "overlays" / "npx-first-party",
+        )
+        self.local_roots = dict(local_roots) if local_roots is not None else None
+        self.backup_root = backup_root or config / "backups" / "npx-first-party"
+        self.transaction_root = (
+            transaction_root or config / "transactions" / "npx-first-party"
+        )
+        self.source_checkout = source_checkout
+        self.base_provider = base_provider
+        if command_runner is None:
+            from script.utils.system import run_command
+
+            command_runner = run_command
+        self.command_runner = command_runner
+        self.lock_reader = lock_reader
+        self.interactive = sys.stdin.isatty() if interactive is None else interactive
+        self.input_func = input_func
+        self.output_func = output_func
+        self.home = root
+        self.migration_loader = migration_loader
+
+    def _parents(self, defaults: object) -> dict[str, Path]:
+        if self.local_roots is not None:
+            return dict(self.local_roots)
+        agents = getattr(defaults, "agents")
+        return get_first_party_local_roots(agents, home=self.home)
+
+    def _migration_records(
+        self, entries: Sequence[SkillEntry]
+    ) -> tuple[MigrationRecord, ...]:
+        if self.migration_loader is not None:
+            return tuple(self.migration_loader(entries))
+        if self.local_roots is not None:
+            return ()
+        from script.utils.manifest import read_manifest
+        from script.utils.shared import get_target_path
+
+        lock = self.lock_reader()
+        records: list[MigrationRecord] = []
+        for target in ("claude", "antigravity", "opencode", "codex", "agy"):
+            target_root = get_target_path(target, "skills")
+            if target_root is None:
+                continue
+            manifest = read_manifest(target)
+            for entry in entries:
+                records.append(
+                    classify_legacy_skill(
+                        target=target,
+                        canonical_id=entry.skill,
+                        legacy_name=legacy_name_for(entry.skill),
+                        target_root=target_root,
+                        manifest=manifest,
+                        npx_lock=lock,
+                        expected_repo=entry.repo,
+                    )
+                )
+        return tuple(records)
+
+    @staticmethod
+    def _skill_roots(parents: Mapping[str, Path], skill: str) -> dict[str, Path]:
+        roots: dict[str, Path] = {}
+        seen: set[Path] = set()
+        for label, parent in parents.items():
+            path = parent / skill
+            resolved = path.resolve(strict=False)
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            roots[label] = resolved if path.is_symlink() else path
+        return roots
+
+    def _load_state(self) -> tuple[FirstPartyState, dict[str, FileEntry]]:
+        path = self.state_store.manifest_path
+        if not path.exists():
+            return FirstPartyState(), {}
+        try:
+            payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError) as exc:
+            raise ValueError(f"first-party state unreadable: {path}") from exc
+        if isinstance(payload, dict) and payload.get("managed_by") == (
+            "ai-dev-first-party-guard"
+        ):
+            return FirstPartyState(), read_guard_entries(path)
+        return self.state_store.read(), {}
+
+    def _base_for(
+        self,
+        snapshot: SourceSnapshot,
+        entry: SkillEntry,
+        skill_state: SkillState | None,
+        legacy: FileEntry | None,
+    ) -> dict[str, TreeFile] | None:
+        commit = (
+            skill_state.source_commit
+            if skill_state is not None
+            else legacy.src_commit if legacy is not None else None
+        )
+        if commit is None:
+            return None
+        base = self.base_provider(snapshot, commit, entry.skill)
+        if base is None:
+            return None
+        if skill_state is not None:
+            missing = TreeFile.missing()
+            for path, state in skill_state.files.items():
+                if base.get(path, missing).hash != state.src_hash:
+                    return None
+        elif legacy is not None:
+            # The directory guard is trusted only when the retrieved commit
+            # reproduces the recorded source hash.
+            digest = hashlib.sha256()
+            for path, file in sorted(base.items()):
+                digest.update(path.encode("utf-8"))
+                digest.update(file.hash.encode("utf-8"))
+            if f"sha256:{digest.hexdigest()}" != legacy.src_hash:
+                return None
+        return base
+
+    def _overlays(self, skill_state: SkillState | None) -> dict[str, TreeFile]:
+        overlays: dict[str, TreeFile] = {}
+        if skill_state is None:
+            return overlays
+        for path, state in skill_state.files.items():
+            if state.overlay is None:
+                continue
+            content = self.state_store.read_overlay(state.overlay)
+            overlays[path] = (
+                TreeFile.missing()
+                if content is None
+                else TreeFile.from_content(content)
+            )
+        return overlays
+
+    @staticmethod
+    def _local_tree(
+        roots: Mapping[str, Path],
+        *,
+        base: Mapping[str, TreeFile] | None,
+        source: Mapping[str, TreeFile],
+    ) -> dict[str, TreeFile] | None:
+        trees = [snapshot_tree(path) for path in roots.values() if path.is_dir()]
+        if not trees:
+            return None
+        first = trees[0]
+        if all(_same_tree(first, other) for other in trees[1:]):
+            return first
+
+        modified = [
+            tree
+            for tree in trees
+            if not _same_tree(tree, source)
+            and (base is None or not _same_tree(tree, base))
+        ]
+        unique_modified: list[dict[str, TreeFile]] = []
+        for tree in modified:
+            if not any(_same_tree(tree, known) for known in unique_modified):
+                unique_modified.append(tree)
+        if len(unique_modified) > 1:
+            raise ValueError("agent-visible roots have different local modifications")
+        if unique_modified:
+            return unique_modified[0]
+        if any(_same_tree(tree, source) for tree in trees):
+            return dict(source)
+        return dict(base or first)
+
+    def _plan(
+        self,
+        entries: Sequence[SkillEntry],
+        defaults: object,
+        snapshot: SourceSnapshot,
+        state: FirstPartyState,
+        legacy: Mapping[str, FileEntry],
+        migration_records: Sequence[MigrationRecord],
+    ) -> tuple[list[_SkillWork], list[str], bool]:
+        parents = self._parents(defaults)
+        resolver = DecisionResolver(
+            interactive=self.interactive,
+            input_func=self.input_func,
+            output_func=self.output_func,
+        )
+        work: list[_SkillWork] = []
+        failed: list[str] = []
+        for entry in entries:
+            try:
+                source = snapshot_tree(snapshot.skills_root / entry.skill)
+                roots = self._skill_roots(parents, entry.skill)
+                records = tuple(
+                    record
+                    for record in migration_records
+                    if record.canonical_id == entry.skill
+                    and record.state is not MigrationState.MISSING
+                    and record.path.exists()
+                )
+                if any(record.path.is_symlink() for record in records):
+                    raise ValueError("unsupported symlink in legacy target copy")
+                transaction_roots = dict(roots)
+                candidate_roots = dict(roots)
+                legacy_aliases: list[Path] = []
+                seen = {path.resolve(strict=False) for path in roots.values()}
+                for index, record in enumerate(records):
+                    resolved = record.path.resolve(strict=False)
+                    if resolved not in seen:
+                        label = f"legacy-{index:03d}"
+                        candidate_roots[label] = record.path
+                        transaction_roots[label] = record.path
+                        seen.add(resolved)
+                    if record.legacy_name != entry.skill:
+                        legacy_aliases.append(record.path)
+                transaction = SkillTransaction(
+                    entry.skill,
+                    roots=transaction_roots,
+                    state_store=self.state_store,
+                    journal_store=TransactionJournalStore(self.transaction_root),
+                    backup_root=self.backup_root,
+                )
+                transaction.recover_if_needed()
+                skill_state = state.skills.get(entry.skill)
+                base = self._base_for(
+                    snapshot, entry, skill_state, legacy.get(entry.skill)
+                )
+                local = self._local_tree(
+                    candidate_roots,
+                    base=base,
+                    source=source,
+                )
+                if local is None:
+                    local = dict(base or {})
+                conflicts = plan_skill(
+                    base=base,
+                    source=source,
+                    local=local,
+                    overlays=self._overlays(skill_state),
+                )
+                resolution = resolver.resolve(conflicts)
+                if resolution.aborted:
+                    return [], failed, True
+                if resolution.unresolved:
+                    failed.append(entry.skill)
+                    continue
+                work.append(
+                    _SkillWork(
+                        entry=entry,
+                        source=source,
+                        conflicts=conflicts,
+                        decisions=resolution.decisions,
+                        roots=roots,
+                        transaction_roots=transaction_roots,
+                        legacy_aliases=tuple(legacy_aliases),
+                    )
+                )
+            except (OSError, RuntimeError, ValueError) as exc:
+                self.output_func(f"{entry.skill}: {exc}")
+                failed.append(entry.skill)
+        return work, failed, False
+
+    @staticmethod
+    def _command(entry: SkillEntry, defaults: object) -> list[str]:
+        command = [
+            "npx",
+            "skills",
+            "add",
+            entry.repo,
+            "--skill",
+            entry.skill,
+        ]
+        if getattr(defaults, "scope") == "global":
+            command.append("-g")
+        command.extend(["-a", *getattr(defaults, "agents")])
+        if getattr(defaults, "yes"):
+            command.append("--yes")
+        return command
+
+    def _verify_base(self, item: _SkillWork) -> None:
+        verified: set[Path] = set()
+        for root in item.roots.values():
+            if not root.is_dir():
+                raise RuntimeError(f"installed root missing: {root}")
+            resolved = root.resolve()
+            if resolved in verified:
+                continue
+            verified.add(resolved)
+            if not _same_tree(snapshot_tree(resolved), item.source):
+                raise RuntimeError(f"pure base mismatch: {item.entry.skill}")
+        lock = self.lock_reader()
+        skills = lock.get("skills", {}) if isinstance(lock, Mapping) else {}
+        lock_entry = (
+            skills.get(item.entry.skill) if isinstance(skills, Mapping) else None
+        )
+        lock_source = (
+            lock_entry.get("source") if isinstance(lock_entry, Mapping) else None
+        )
+        if lock_source != item.entry.repo:
+            raise RuntimeError(f"lock source mismatch: {item.entry.skill}")
+
+    @staticmethod
+    def _expected(item: _SkillWork) -> dict[str, TreeFile]:
+        expected = dict(item.source)
+        for conflict in item.conflicts:
+            if item.decisions[conflict.plan.path] is not Decision.KEEP_LOCAL:
+                continue
+            if conflict.local_content is None:
+                expected.pop(conflict.plan.path, None)
+            else:
+                expected[conflict.plan.path] = TreeFile.from_content(
+                    conflict.local_content
+                )
+        return expected
+
+    def _materialize(
+        self, item: _SkillWork
+    ) -> tuple[dict[str, OverlayEntry], dict[str, TreeFile]]:
+        expected = self._expected(item)
+        active = self.state_store.overlay_root / item.entry.skill
+        _remove_tree(active)
+        overlays: dict[str, OverlayEntry] = {}
+        for conflict in item.conflicts:
+            path = conflict.plan.path
+            if item.decisions[path] is not Decision.KEEP_LOCAL:
+                continue
+            content = conflict.local_content
+            overlays[path] = self.state_store.write_overlay(
+                item.entry.skill, path, content
+            )
+
+        seen: set[Path] = set()
+        for root in item.roots.values():
+            resolved = root.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            for conflict in item.conflicts:
+                path = resolved.joinpath(*PurePosixPath(conflict.plan.path).parts)
+                if item.decisions[conflict.plan.path] is Decision.KEEP_LOCAL:
+                    content = conflict.local_content
+                    if content is None:
+                        path.unlink(missing_ok=True)
+                    else:
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_bytes(content)
+        return overlays, expected
+
+    @staticmethod
+    def _skill_state(
+        item: _SkillWork,
+        overlays: Mapping[str, OverlayEntry],
+        source_commit: str,
+        expected: Mapping[str, TreeFile],
+    ) -> SkillState:
+        missing = TreeFile.missing()
+        files = {
+            conflict.plan.path: FileState(
+                src_hash=item.source.get(conflict.plan.path, missing).hash,
+                src_commit=source_commit,
+                src_source=item.entry.repo,
+                dst_hash_at_sync=expected.get(conflict.plan.path, missing).hash,
+                decision=item.decisions[conflict.plan.path].value,
+                decided_at=datetime.now(timezone.utc).isoformat(),
+                overlay=overlays.get(conflict.plan.path),
+            )
+            for conflict in item.conflicts
+        }
+        return SkillState(item.entry.repo, source_commit, files)
+
+    def _apply(
+        self,
+        item: _SkillWork,
+        defaults: object,
+        source_commit: str,
+        state: FirstPartyState,
+    ) -> tuple[bool, Path | None, FirstPartyState]:
+        transaction = SkillTransaction(
+            item.entry.skill,
+            roots=item.transaction_roots,
+            state_store=self.state_store,
+            journal_store=TransactionJournalStore(self.transaction_root),
+            backup_root=self.backup_root,
+        )
+        retained: Path | None = None
+        try:
+            journal = transaction.begin()
+            result = self.command_runner(
+                self._command(item.entry, defaults), check=False
+            )
+            if getattr(result, "returncode", 1) != 0:
+                raise RuntimeError(f"npx returned {getattr(result, 'returncode', 1)}")
+            self._verify_base(item)
+            transaction.mark(TransactionStatus.BASE_APPLIED)
+            overlays, expected = self._materialize(item)
+            transaction.mark(TransactionStatus.OVERLAY_APPLIED)
+            for root in item.roots.values():
+                if not _same_tree(snapshot_tree(root.resolve()), expected):
+                    raise RuntimeError(f"effective tree mismatch: {item.entry.skill}")
+            transaction.mark(TransactionStatus.VERIFIED)
+            updated_skills = dict(state.skills)
+            updated_skills[item.entry.skill] = self._skill_state(
+                item, overlays, source_commit, expected
+            )
+            updated = FirstPartyState(updated_skills)
+            self.state_store.write(updated)
+            for legacy_alias in item.legacy_aliases:
+                _remove_tree(legacy_alias)
+            retain = any(
+                conflict.plan.classification in {"both-changed", "no-base"}
+                and item.decisions[conflict.plan.path] is Decision.USE_UPSTREAM
+                for conflict in item.conflicts
+            )
+            if retain:
+                retained = self.backup_root / journal.backup_dir
+            transaction.commit(retain_backup=retain)
+            return True, retained, updated
+        except Exception as exc:
+            self.output_func(f"{item.entry.skill}: {exc}")
+            try:
+                transaction.rollback()
+            except RuntimeError as rollback_error:
+                self.output_func(str(rollback_error))
+            return False, None, state
+
+    def reconcile(
+        self,
+        entries: Sequence[SkillEntry],
+        defaults: object,
+        *,
+        dry_run: bool = False,
+    ) -> ReconcileResult:
+        if not entries:
+            return ReconcileResult((), ())
+        repositories = {entry.repo for entry in entries}
+        if len(repositories) != 1:
+            raise ValueError("first-party reconcile requires one repository")
+        state, legacy = self._load_state()
+        migration_records = self._migration_records(entries)
+        with self.source_checkout(entries[0].repo) as snapshot:
+            work, failed, aborted = self._plan(
+                entries,
+                defaults,
+                snapshot,
+                state,
+                legacy,
+                migration_records,
+            )
+            if aborted:
+                return ReconcileResult((), tuple(failed), aborted=True)
+            if dry_run:
+                return ReconcileResult((), tuple(failed))
+            successful: list[str] = []
+            backups: list[Path] = []
+            current_state = state
+            for item in work:
+                success, backup, current_state = self._apply(
+                    item, defaults, snapshot.commit, current_state
+                )
+                if success:
+                    successful.append(item.entry.skill)
+                    if backup is not None:
+                        backups.append(backup)
+                else:
+                    failed.append(item.entry.skill)
+            return ReconcileResult(
+                tuple(successful), tuple(failed), tuple(backups), aborted=False
+            )

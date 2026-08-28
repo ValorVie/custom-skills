@@ -82,20 +82,37 @@ manifest loader 會拒絕：
 
 同 package 的 skills 以一個 command 處理。第一方 install／update 使用 guarded add；其他 packages 維持原生 add／update。部分 package 失敗時，成功項目可以保留，但 phase 仍以 exit 1 結束，且失敗項目不會 detach 舊 ownership。
 
-## First-party conflict guard
+## First-party base + persistent overlay
 
-`ai-dev-first-party` 在 npx 寫入前使用 directory-level guard。baseline 位於 `~/.config/ai-dev/manifests/npx-first-party.yaml`，沿用 `FileEntry` 的 source/base/destination hashes，但不進入 target ManifestTracker，也沒有 copy、toggle 或 orphan cleanup 能力。
+`ai-dev-first-party` 由 `FirstPartyReconciler` 管理。npx 負責 upstream base；ai-dev
+只保存使用者的本機 overlay。installed skill 是 base 加 overlay 的 materialized view，
+但不進入 target ManifestTracker，也不使用 copy、toggle 或 orphan cleanup。
 
-| 分類 | Source | Local | 動作 |
+每個檔案比較四個版本：上次接受的 upstream base、目前 upstream source、持久
+overlay、目前 installed local。
+
+| 分類 | Source | Local intent | 動作 |
 | --- | --- | --- | --- |
-| `clean` | 未變或單獨變更 | 等於 base | no-op 或交給 npx 更新 |
-| `local-only` | 等於 base | 不同於 base | 保留並阻擋 |
-| `both-changed` | 不同於 base | 不同於 base | 保留並阻擋 |
-| `no-base` | 無可信 base | 已有內容 | 保留並阻擋 |
+| `clean` | 未變或單獨變更 | 無本機 override | 使用 upstream |
+| `local-only` | 等於 base | 有本機 override | 自動保存或更新 overlay |
+| `both-changed` | 不同於 base | 有本機 override | keep-local、use-upstream 或 abort |
+| `no-base` | 無可信 base | 與 source 不同 | keep-local、use-upstream 或 abort |
 
-沒有 base 且所有必要路徑都不存在時是 fresh install。已由舊版 npx 安裝、內容與目前 source 完全相同且 lock source 正確時，可以直接建立第一份 guard baseline。
+missing 是明確狀態；刪除使用 tombstone，不與空檔案混淆。binary 仍可用 hash、size
+與存在狀態決定；skill tree 內的 symlink 或特殊檔案 fail closed。
 
-每次 phase 只 shallow clone 一份暫存 source snapshot。npx 完成後，系統驗證 source hash、canonical path、frontmatter、lock source 與 configured agent-visible roots；全部通過才原子更新 guard baseline。snapshot 與 npx 實際取得的上游若在執行窗口內改變，hash 驗證會停止本輪，且不寫 baseline、不 detach。
+state 與 overlay 路徑如下：
+
+- `~/.config/ai-dev/manifests/npx-first-party.yaml`
+- `~/.config/ai-dev/overlays/npx-first-party/`
+- `~/.config/ai-dev/backups/npx-first-party/`
+- `~/.config/ai-dev/transactions/npx-first-party/`
+
+所有第一方 files 先完成 planning 與 decision resolution，之後才開始 mutation。每個
+skill 依序執行完整 roots backup、npx base、pure-base verification、overlay
+materialization、effective verification、atomic state commit。npx non-zero、內容與
+snapshot 不符、overlay／state 寫入失敗都會 rollback。未完成 journal 會在下一次執行
+前先 recovery；無法證明 rollback 時停止，不開始新的 transaction。
 
 ## First-party migration
 
@@ -105,13 +122,14 @@ manifest loader 會拒絕：
 PREPARED → PUBLISHED → INSTALLED → VERIFIED → DETACHED
 ```
 
-preflight 對每個 target／skill 分類：
+schema v1 directory guard 會用記錄的 source commit 取得舊 base tree，再展開為
+schema v2 per-file state。舊 target copies 的純 base／source 副本不算不同的本機意圖；
+一致的本機修改可合併成單一 canonical overlay。若不同 targets 有不同修改，該 skill
+在 npx 前停止，要求使用者先選擇 canonical 版本，不建立 per-agent overlay。
 
-- `missing`：沒有舊副本，可以安裝。
-- `unchanged`：target 與 stored manifest base 相同，可以安裝。
-- `modified`：使用者或其他流程改過，保留並阻擋該 skill。
-- `unknown`：無法證明 ownership，保留並阻擋。
-- `already-migrated`：npx lock source 與 canonical install 已符合。
+`custom-simplify → simplify` 使用相同 planner 與 transaction。overlay 已保存、npx
+base 與 final materialized tree 都驗證成功後，才移除舊 alias 與 ManifestTracker
+ownership。
 
 npx add 成功後還要驗證 canonical path、frontmatter name、lock source 與必要 agent path。全部通過後才移除舊 manifest entries。legacy alias 另做備份後清理。
 

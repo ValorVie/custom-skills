@@ -24,17 +24,25 @@ ai-dev SHALL 以 `upstream/npx-skills.yaml` 作為 baseline skills 的 declarati
 - **THEN** 第一方 package SHALL 以 reconcile 流程自動安裝缺少項目並更新安全項目
 - **THEN** 使用者 SHALL 不需要另行執行 `ai-dev install-npx-skills` 才能完成第一方遷移
 
-#### Scenario: 第一方 reconcile 保留四態判斷
+#### Scenario: 第一方 reconcile 使用 per-file plan
 
 - **WHEN** canonical ID 的 `source` 是 `ai-dev-first-party`
-- **THEN** ai-dev SHALL 在呼叫 npx 前以 source、base、local directory hashes 分類 `clean`、`local-only`、`both-changed` 或 `no-base`
-- **THEN** source-only change SHALL 維持 `clean` 分類並允許更新
-- **THEN** `local-only`、`both-changed` 與有既存內容的 `no-base` SHALL 停止該 skill，不呼叫 npx
+- **THEN** ai-dev SHALL 在呼叫 npx 前以 base、source、persistent overlay、installed local 逐檔分類 `clean`、`local-only`、`both-changed` 或 `no-base`
+- **THEN** source-only change SHALL 維持 `clean` 並允許更新
+- **THEN** local-only SHALL 保存 persistent overlay；both-changed 與內容不同的 no-base SHALL 先完成 decision resolution
+- **THEN** install 與 update SHALL 共用相同 FirstPartyReconciler interface
 
 #### Scenario: 其他 npx 來源保持直通
 
 - **WHEN** package source 不是 `ai-dev-first-party`
 - **THEN** ai-dev SHALL 不建立 guard baseline、不執行四態分類，也不改變其 add／update command semantics
+
+#### Scenario: 第一方 plan 在 mutation 前完成
+
+- **WHEN** 第一方 package 同時包含多個 skills
+- **THEN** 系統 SHALL 先完成所有 per-file classifications 與互動 decisions
+- **THEN** 使用者 abort 時 SHALL 不執行任何第一方 npx command
+- **THEN** unresolved skill SHALL 從 grouped add 排除；其他完整決策的安全 skills MAY 繼續
 
 #### Scenario: 同一 package 含多個 skills
 
@@ -46,7 +54,8 @@ ai-dev SHALL 以 `upstream/npx-skills.yaml` 作為 baseline skills 的 declarati
 
 - **WHEN** npx-skills phase 以 dry-run 執行
 - **THEN** 系統 SHALL 顯示 package、skills、scope、agents 與 non-interactive 參數
-- **THEN** SHALL 不執行 npx、不寫 lock、不清理 manifest ownership
+- **THEN** 第一方 SHALL 顯示 per-skill／per-file classification、預定 decision 與會被排除的 unresolved skills
+- **THEN** SHALL 不執行 npx、不寫 lock／manifest／overlay／transaction，也不清理 ownership
 
 #### Scenario: package 部分失敗
 
@@ -57,8 +66,15 @@ ai-dev SHALL 以 `upstream/npx-skills.yaml` 作為 baseline skills 的 declarati
 #### Scenario: npx 回傳成功但 agent path 不完整
 
 - **WHEN** 第一方 npx command 回傳 0，但任一 configured agent path 缺少 skill 或內容與 source snapshot 不同
-- **THEN** reconcile SHALL 將該 skill 視為失敗
-- **THEN** SHALL 不更新 guard baseline，也不得 detach legacy ownership
+- **THEN** reconcile SHALL 將該 skill 視為失敗並從 transaction backup 還原
+- **THEN** SHALL 不更新 schema v2 state／active overlay，也不得 detach legacy ownership
+
+#### Scenario: 直接原生 npx 清掉 installed overlay
+
+- **WHEN** persistent overlay 存在，但 installed tree 已被直接原生 npx 還原成 pure upstream
+- **THEN** 下一次 ai-dev reconcile SHALL 仍以 overlay store 作為 local intent
+- **THEN** upstream 未變時 SHALL 自動重新 materialize overlay
+- **THEN** upstream 同時改變時 SHALL 進入 both-changed decision
 
 ### Requirement: Manifest schema validates canonical skill IDs
 

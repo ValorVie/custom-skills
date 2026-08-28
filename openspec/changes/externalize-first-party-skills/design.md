@@ -16,6 +16,7 @@
 - 從 clone、ManifestTracker、disabled directory 與 standards profile 移除第一方 skill ownership，不影響其他資源類型。
 - 保留使用者修改過的安裝內容，並提供可回復的 migration。
 - 第一方 skills 完成 npx ownership 移交後，仍保留 `clean`、`local-only`、`both-changed`、`no-base` 衝突判斷。
+- 第一方 skills 保留原本的 per-file diff、keep-local、use-upstream、abort 與 local-only restore；local 選擇要能跨 npx update 與直接原生 npx 操作持續存在。
 - 讓抽離後的 repository 可獨立驗證、符合公開邊界，且支援單一 skill 安裝。
 
 **Non-Goals:**
@@ -25,6 +26,7 @@
 - 不因 commands、agents、workflows 或 plugins 與 skill 有關，就一併搬移。
 - 不重新命名既有 `custom-skills-*` canonical IDs，也不重新命名 framework repository。
 - 不新增 npm package、custom registry、自製 skill installer，或為第三方 npx packages 增加 guard state。
+- 不支援 per-agent overlay；同一 canonical skill 只保留一份所有 agents 共用的 local overlay。
 - 未在操作點取得批准前，不建立 GitHub repository，也不 push remote content。
 
 ## Decisions
@@ -98,13 +100,15 @@ global add 的 agent targets 也使用明確清單：`claude-code`、`codex`、`
 
 executor SHALL 依 repository 分組，每個 package 建立一個 add command，並重複傳入 `--skill`。update 可一次傳入目前 CLI 支援的多個 skill IDs。config schema 維持 version 1 相容，只加強 validation，不新增檔案格式。
 
-### 5. 第一方 target files 只由 npx 寫入
+### 5. 第一方 target 使用 base + overlay 分層 ownership
 
 migration 後，framework 不再把 `custom-skills/skills/` 當成 Stage 3 第一方來源。保留的 distribution flow 繼續管理 commands、agents、workflows、plugins、custom repos 與 ECC。
 
 prescan 與 distribution SHALL 對每個 clone source 過濾 canonical npx-managed IDs。這可防止同名 custom repo 或 ECC skill 靜默覆蓋 npx content。同名衝突必須在寫入前停止該 skill，並列出兩個來源。
 
-不保留 npx 與 ManifestTracker 雙 writer，因為 npx symlinks、clone overwrite、orphan cleanup 與 disabled-directory moves 無法形成可靠的共同 ownership model。ai-dev 只在 npx 寫入前執行第一方 conflict guard；guard 不複製、不刪除、不移動目標內容。
+npx 只擁有 upstream base layer。ai-dev 不以 clone、toggle、disabled directory 或 orphan cleanup 改寫該 base；ai-dev 另擁有 local overlay layer，並在 npx 完成後 materialize overlay。installed skill directory 是 base + overlay 的結果，不是任何一方單獨的真相來源。
+
+local overlay 必須保存實際 bytes 或 deletion marker，不能只保存 hash 或 decision。這讓使用者直接執行原生 npx、暫時清掉 installed overlay 後，下一次 ai-dev reconcile 仍能恢復 local intent。
 
 ### 6. ai-dev toggle 與 standards operations 採 fail closed
 
@@ -142,24 +146,113 @@ PREPARED → PUBLISHED → INSTALLED → VERIFIED → DETACHED
 
 任何 stage 都不自動代表下一個 stage 已完成。在 `VERIFIED` 前失敗時，舊 ownership 必須保持不變。local hash mismatch 或 unknown ownership 只停止受影響 skill，但整體 migration 不得宣稱完成。
 
-### 9. 第一方使用 directory-level guard manifest
+### 9. FirstPartyReconciler 是單一深 module
 
-新增 `~/.config/ai-dev/manifests/npx-first-party.yaml`，沿用既有 `FileEntry` 欄位保存每個 canonical skill 的 `src_hash`、`src_commit`、`src_source` 與 `dst_hash_at_sync`。這是 conflict base，不是第二個 installer lock，也不代表 target ownership。
-
-reconcile 每次只為 `ai-dev-first-party` 建立一次暫存 shallow clone，使用 `compute_dir_hash()` 計算 upstream skill directory hash；local 則檢查 canonical directory 與 configured agent-visible paths，symlink 以 real path 去重。分類沿用 `classify_file()`：
+`script/services/npx_skills/install.py` 只辨識 package source，將 `ai-dev-first-party` 交給一個 reconcile interface；不得知道 base retrieval、per-file classification、prompt、overlay、backup、rollback 或 verification 的內部步驟。其他 packages 繼續走現有 npx passthrough。
 
 ```text
-source == base, local == base  → clean / no-op
-source != base, local == base  → clean / apply
-source == base, local != base  → local-only / block
-source != base, local != base  → both-changed / block
-missing base + existing local  → no-base / block
-missing base + all paths absent → fresh install
+npx-skills phase
+  ├─ third-party → NpxPassthrough
+  └─ ai-dev-first-party → FirstPartyReconciler.reconcile(...)
+                           ├─ SourceSnapshot
+                           ├─ ThreeWayPlanner
+                           ├─ DecisionResolver
+                           ├─ OverlayStore
+                           ├─ NpxInstaller
+                           └─ Transaction + Verifier
 ```
 
-第一方 install 與 update 都使用具明確 agent IDs 的 `npx skills add`。這避開原生 update 不安裝 missing skills、未保留 agent selection，以及不檢查 local drift 的限制。其他 package 繼續使用既有 add／update commands。
+共用 `manifest.py` 中的 `FileEntry`、hash、diff 與 decision primitives；不得直接重用 `_v2_classify_and_resolve()`，因為它綁定 clone target、ManifestTracker 與 copy orchestration。
 
-npx command 回傳 0 只代表命令完成，不足以更新 base。reconcile 必須讀回 canonical path、frontmatter、lock source，以及五個 configured agent paths 的內容 hash；全部與暫存 source snapshot 相符後，才原子寫入 guard manifest並 detach legacy ownership。
+### 10. 使用 overlay-aware per-file 3-way model
+
+每個檔案使用四個版本：上次接受的 upstream base `B`、目前 upstream source `S`、已保存的 overlay `O`、目前 installed local `L`。overlay 存在時，`O` 是持久 local intent；`L` 若又偏離 `O`，則是新的 local candidate。
+
+SourceSnapshot adapter 取得 current HEAD，並依 manifest 中的 base commit lazy fetch 舊 tree／blob。舊 commit 仍可取得時提供完整 `Ds`／`Dl`；無法取得時該 file 才降級為 `no-base`，不得用 current source 冒充 base。
+
+```text
+source unchanged + no local override → clean
+source changed   + no local override → clean source-only
+source unchanged + local override    → local-only
+source changed   + local override    → both-changed
+base unknown + source/local different → no-base
+```
+
+檔案集合取 base、source、local、overlay 的 union。missing 是明確狀態，不得當成空字串；local deletion 以 overlay tombstone 保存。新增 upstream file、local-only new file、upstream deletion、local deletion、binary file 與 symlink／unsupported type 都必須有測試與 fail-closed 結果。
+
+### 11. keep-local 是持久 overlay，不使用 one-revision skip memory
+
+`local-only` 自動保存或更新 overlay，不需要 prompt。`both-changed` 與內容不同的 `no-base` 在 TTY 顯示：
+
+```text
+Diff: [Ds] upstream vs base  [Dl] local vs base  [Dc] upstream vs local
+Action: [K] keep local  [O] use upstream  [A] abort
+```
+
+`K` 將 local bytes 或 deletion marker 保存為持久 overlay；`O` 移除該檔案 overlay，並採用 upstream；`A` 在任何第一方 mutation 前停止。所有 overwrite 都保留 transaction backup，不提供無備份的 force path。
+
+non-interactive 時，`clean` 與 `local-only` 可自動處理；未解決的 `both-changed`／`no-base` 跳過整個 skill、允許其他安全 skills 繼續，phase 最後 exit 1。不得自動選擇 keep-local 或 overwrite。
+
+### 12. Apply 使用可回復 transaction
+
+所有第一方檔案先完成 planning 與 decision resolution，才開始 mutation。每個要交給 npx 的 skill 先保存完整 installed roots 與 transaction journal，再依序執行：
+
+```text
+capture overlay candidates
+→ npx add upstream base
+→ verify pure base
+→ materialize overlays / tombstones
+→ verify effective tree
+→ atomically commit schema v2 state and active overlays
+→ detach legacy ownership
+```
+
+npx non-zero、partial success、base mismatch、overlay apply failure、effective mismatch 或 state commit failure，都必須從 transaction backup 還原該 skill，保留舊 manifest／overlay，不 detach，並 exit 1。下次執行若發現未完成 journal，先恢復或明確停止，不直接開始新 transaction。
+
+transaction state 為：
+
+```text
+PLANNED → BACKED_UP → BASE_APPLIED → OVERLAY_APPLIED → VERIFIED → COMMITTED
+```
+
+只有 `COMMITTED` 可清除暫存 transaction。使用者明確選擇 use-upstream 的舊 local content 要移入可讀的 timestamped backup；純 clean 更新成功後的 transaction backup 可以清除。
+
+source snapshot 與 npx 下載之間無法用任意 commit SHA pin 時，以 post-install base verification 防止 TOCTOU；內容不符就 rollback。
+
+### 13. 單一 canonical overlay 與舊 target consolidation
+
+Codex、Gemini CLI、OpenCode、Antigravity 使用 universal `.agents/skills`；Claude Code 使用自己的 root 或 symlink。reconcile 依 real path 去重，overlay 套用到 canonical 與任何獨立 copy root。
+
+新架構只允許一份 canonical overlay。舊 ai-dev target copies 完全相同時可自動合併並安全清理；若不同 targets 有不同 local modifications，migration 必須停止並要求選擇 canonical 版本或另建不同 canonical skill ID，不建立 per-agent overlay。
+
+### 14. schema v1 自動遷移為 per-file schema v2
+
+現有 `~/.config/ai-dev/manifests/npx-first-party.yaml` directory entries 保存 source commit，可從該 commit 取得 base tree，並展開成 per-file entries。directory hash 仍吻合時自動遷移；不吻合時以 base commit、current source、local tree 做逐檔分類。base commit 無法取得時才退回 `no-base`。
+
+schema v2 state 仍放在 `npx-first-party.yaml`；overlay bytes 與 tombstones 放在 `~/.config/ai-dev/overlays/npx-first-party/`，transaction backups 放在 `~/.config/ai-dev/backups/npx-first-party/`。manifest 與 overlay 目錄使用 user-only permissions，不得提交或記錄內容到 log。
+
+每個 file entry 的 `src_hash` 是本輪接受的 upstream base，`dst_hash_at_sync` 是套用 overlay 後的 expected effective hash；missing 使用固定 sentinel。overlay 存在時，即使 installed hash 等於 `dst_hash_at_sync`，planner 仍將它視為已知 local intent：source 未變是 `local-only`，source 改變是 `both-changed`。
+
+```yaml
+schema_version: 2
+managed_by: ai-dev-first-party-reconcile
+skills:
+  example-skill:
+    source: ValorVie/ai-dev-skills
+    source_commit: <commit>
+    files:
+      SKILL.md:
+        src_hash: sha256:...
+        src_commit: <commit>
+        src_source: ValorVie/ai-dev-skills
+        dst_hash_at_sync: sha256:...
+        decision: keep-local
+        decided_at: <timestamp>
+        overlay:
+          kind: file
+          hash: sha256:...
+          path: example-skill/SKILL.md
+```
 
 ## Risks / Trade-offs
 
@@ -168,6 +261,10 @@ npx command 回傳 0 只代表命令完成，不足以更新 base。reconcile �
 - [Risk] npx 改變 agent IDs 或 global paths。→ 記錄驗證使用的 `skills --version`，用 list/path probes 驗證 mapping；無法證明時停止。
 - [Risk] `--yes` 覆蓋使用者修改過的 target。→ add 前比較舊 manifest base 與現場內容；保留或備份修改內容，並要求明確決定。
 - [Risk] npx update 不比較本機內容，且 partial agent failure 仍可能回傳 0。→ 第一方不使用原生 update；guard 先分類 local drift，add 後再驗證所有 configured paths。
+- [Risk] 直接執行原生 npx 會清掉 installed overlay。→ overlay bytes 是獨立持久 truth；下一次 ai-dev reconcile 重新套用，source 同時改變時進入 `both-changed`。
+- [Risk] npx whole-directory replace 使單一檔案決策難以套用。→ mutation 前保存 overlay 與完整 transaction backup；npx 寫 base 後再 materialize overlay。
+- [Risk] crash 留下 base、overlay、manifest 不一致。→ transaction journal 與完整 backup 在下一次執行前恢復或阻擋。
+- [Risk] 舊 target 各自有不同修改。→ 不猜測合併；阻擋並要求 canonical selection，不支援 per-agent overlay。
 - [Risk] `custom-simplify` 與 `simplify` 並存。→ canonical install 通過且舊路徑可證明未修改後，才套用一次性 mapping。
 - [Risk] 同名 ECC 或 custom repo skill 繞過第一方 filter。→ 寫入前檢查所有來源的 canonical IDs，並加入 collision tests。
 - [Risk] framework release 與 skill release 暫時不相容。→ 先發布並驗證 skill repository，再發布 framework integration；保留上一個 known-good source revision 供 rollback。
@@ -198,7 +295,7 @@ framework integration 前的 rollback：ai-dev 不引用 remote source，也不�
 
 1. 將第一方 package 與明確 IDs 加入 `upstream/npx-skills.yaml`。
 2. 加強 manifest validation，依 package 分組；第三方維持 add/update，第一方交給 reconcile。
-3. 加入 directory-level guard manifest、migration preflight、canonical legacy mapping 與全 target post-install readback。
+3. 加入 per-file schema v2、persistent overlay store、decision resolver、transaction journal、migration preflight、canonical legacy mapping 與全 target post-install readback。
 4. 從 Stage 3 source configuration 與 clone ownership 移除第一方 skills。
 5. 更新 list、toggle、resource-disable 與 standards boundaries。
 
@@ -206,13 +303,14 @@ npx phase 保持在 targets phase 之前，讓 fresh install 先取得第一方 
 
 ### Phase 4：遷移既有安裝
 
-1. 讀取舊 target manifests，比較每個第一方 target 與 stored base。
-2. 若 target 已修改或 ownership 未知，停止並保留內容。
-3. 取得第一方 source snapshot，建立或讀取 conflict guard base。
-4. 安裝明確的 npx inventory。
-5. 驗證 canonical IDs、內容 hash 與所有 configured agent-visible locations。
-6. 原子寫入 guard baseline，再移除舊 manifest entries 與未修改的 legacy paths，包含 mapped `custom-simplify` path。
-7. 重跑 clone，確認它不會重新取得第一方 ownership。
+1. 讀取舊 target manifests、v1 guard、active roots 與 overlays，比較每個第一方 target 與 stored base。
+2. 取得 current source 與舊 base commit，將 v1 guard／legacy manifests 轉成 per-file plan；base 不可得的 files 才標成 no-base。
+3. local-only 自動 capture overlay；both-changed／no-base 在 mutation 前完成 decision，未解決時保留並跳過該 skill。
+4. 合併相同的舊 target copies；不同 target modifications 停止並要求 canonical selection。
+5. 完成 local overlay capture 與所有 conflict decisions，再安裝明確的 npx inventory。
+6. 驗證 pure base，套用 overlay／tombstones，再驗證 materialized view。
+7. 原子寫入 schema v2 manifest 與 active overlays，再移除舊 manifest entries 與未修改的 legacy paths，包含 mapped `custom-simplify` path。
+8. 重跑 clone 與 raw-npx recovery probe，確認 clone 不會取得 ownership，overlay 可重新套用。
 
 detach 後的 rollback：需要時還原 preserved content，回復上一個 framework release，再執行其 clone flow。rollback 不得移除 user-modified backups。
 

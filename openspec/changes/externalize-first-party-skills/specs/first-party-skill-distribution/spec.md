@@ -63,65 +63,190 @@
 - **THEN** npx-skills phase SHALL 回報缺少的 canonical ID 與來源
 - **THEN** 整個第一方遷移 SHALL 不得進入舊副本清理階段
 
-### Requirement: 安裝與更新由 npx 擁有
+### Requirement: 第一方使用 base + persistent overlay 分層 ownership
 
-ai-dev SHALL 使用受 conflict guard 保護的 `npx skills add` 安裝或更新第一方 skills。npx 是唯一 writer；ai-dev guard 只保存衝突分類所需的 base，不得用 copy、ManifestTracker ownership、disabled 目錄或 orphan cleanup 覆蓋目標內容。
+ai-dev SHALL 使用 `npx skills add` materialize 第一方 upstream base，並使用獨立的 persistent overlay 保存 local intent。npx SHALL NOT 管理 overlay；ai-dev SHALL NOT 使用 clone ManifestTracker、toggle、disabled directory 或 orphan cleanup 改寫 upstream base。installed skill 是 base + overlay 的 materialized view。
 
 #### Scenario: 新工作站安裝
 
 - **WHEN** 使用者在尚未安裝第一方 skills 的工作站執行 `ai-dev install`
-- **THEN** npx-skills phase SHALL 依明確清單安裝第一方 skills
+- **THEN** npx-skills phase SHALL 依明確清單安裝第一方 base
+- **THEN** SHALL 驗證 base、建立 per-file state，且 overlay 為空
 - **THEN** 成功摘要 SHALL 列出來源、skill 數量與目標 agents
 
-#### Scenario: 更新單一第一方 skill
+#### Scenario: local-only 修改成為 persistent overlay
 
-- **WHEN** 公開來源只修改一個已安裝的第一方 skill，且使用者執行 `ai-dev update`
-- **THEN** npx-skills phase SHALL 讓該 skill 取得新版本
-- **THEN** 使用者 SHALL 不需要重新發布或重新安裝整個 ai-dev framework 才能取得該變更
+- **WHEN** upstream file 與 base 相同，但 installed local file 不同
+- **THEN** file SHALL 分類為 `local-only`
+- **THEN** ai-dev SHALL 自動保存 local bytes 或 deletion marker 為 overlay，不要求互動決定
+- **THEN** 後續 npx install／update 或直接原生 npx 覆蓋 installed tree 後，ai-dev SHALL 能重新套用 overlay
 
-#### Scenario: 本機手動修改第一方 skill
+#### Scenario: 上游與 local overlay 同時改變
 
-- **WHEN** canonical install directory 或任一 configured agent-visible path 與 guard base 不同
-- **AND** 上游 source 與 guard base 相同
-- **THEN** skill SHALL 分類為 `local-only` 並保留本機內容
-- **THEN** ai-dev SHALL 不執行 npx add 或 update
+- **WHEN** upstream file 與 base 不同
+- **AND** 該 file 有 persistent overlay 或新的 local edit
+- **THEN** file SHALL 分類為 `both-changed`
+- **THEN** TTY SHALL 提供 upstream-vs-base、local-vs-base、upstream-vs-local diff，以及 keep-local、use-upstream、abort 選擇
 
-#### Scenario: 上游與本機都改變
+#### Scenario: no-base 檔案
 
-- **WHEN** upstream source 與 guard base 不同
-- **AND** canonical install directory 或任一 configured agent-visible path 也與 guard base 不同
-- **THEN** skill SHALL 分類為 `both-changed`
-- **THEN** ai-dev SHALL 停止該 skill 並回報 source、local 與 base hashes
+- **WHEN** file 沒有可信 base，且 source 與 local 內容不同
+- **THEN** file SHALL 分類為 `no-base` 並要求 keep-local、use-upstream 或 abort
+- **WHEN** base 不存在且 source 與 local 相同
+- **THEN** SHALL 自動 bootstrap
+- **WHEN** base 不存在且只有 source 存在
+- **THEN** SHALL 視為 clean source-only
+- **WHEN** base 不存在且只有 local 存在
+- **THEN** SHALL 視為 local-only new file 並保存 overlay
 
-#### Scenario: guard 無可信 base
+### Requirement: per-file planner 支援新增、刪除與 binary
 
-- **WHEN** guard 沒有該 skill 的可信 base，且任一目標已有內容
-- **THEN** skill SHALL 分類為 `no-base` 並停止，不得把現有內容當成可覆蓋的 generated output
-- **WHEN** guard 沒有 base 且所有必要目標都不存在
-- **THEN** SHALL 視為 fresh install；驗證成功後建立第一份 guard base
+reconcile SHALL 對 base、source、local、overlay 的 path union 分類。missing SHALL 是明確狀態；local deletion SHALL 以 tombstone 保存，不得與空檔案混淆。
 
-### Requirement: 第一方 conflict guard 與 npx ownership 解耦
+#### Scenario: upstream 刪除且 local 未修改
 
-guard SHALL 使用獨立的 `npx-first-party.yaml` 保存既有 `FileEntry` schema 的 directory-level base。該檔案 SHALL 不進入 target ManifestTracker，不列舉第三方 packages，也不提供 copy、merge、toggle、remove 或 orphan cleanup 能力。
+- **WHEN** base 有 file、upstream 已刪除，local 等於 base
+- **THEN** file SHALL 視為 clean source-only deletion
+- **THEN** npx 完成後 final materialized view SHALL 不含該 file
 
-#### Scenario: guard baseline 成功更新
+#### Scenario: upstream 刪除但 local 已修改
 
-- **WHEN** npx 安裝完成，canonical path、frontmatter、lock source 與五個 configured agent paths 都與 source snapshot 相符
-- **THEN** guard SHALL 原子寫入新的 source hash、destination hash、source commit 與 source identifier
-- **THEN** 後續 reconcile SHALL 以該 entry 作為四態分類 base
+- **WHEN** base 有 file、upstream 已刪除，local 與 base 不同
+- **THEN** file SHALL 分類為 `both-changed`
+- **THEN** keep-local SHALL 以 overlay resurrect file；use-upstream SHALL 接受刪除
 
-#### Scenario: 已由舊版本 npx 遷移但沒有 guard
+#### Scenario: local 刪除而 upstream 未修改
 
-- **WHEN** npx lock source 正確、現有所有必要 paths 與目前 source snapshot 完全相同，但 guard entry 不存在
-- **THEN** reconcile MAY 安全建立 baseline，不需重裝
-- **WHEN** 現有內容與 source snapshot 不同
-- **THEN** SHALL 分類為 `no-base` 並保留內容
+- **WHEN** source 等於 base，local file 已刪除
+- **THEN** file SHALL 分類為 `local-only`
+- **THEN** overlay SHALL 保存 deletion tombstone，後續 npx 寫入後重新刪除該 file
 
-#### Scenario: npx phase 失敗
+#### Scenario: binary 或 unsupported file type
 
-- **WHEN** 任何第一方 skill 的 add 或 update 失敗
+- **WHEN** conflict file 無法顯示文字 diff
+- **THEN** 系統 SHALL 顯示 path、hash、size 與存在狀態
+- **THEN** 仍 SHALL 提供 keep-local、use-upstream、abort；無法安全保存的 symlink 或特殊型態 SHALL fail closed
+
+### Requirement: conflict decision 在 mutation 前完成
+
+FirstPartyReconciler SHALL 先規劃所有第一方 files，再執行任何 npx command。`local-only` 自動 keep-local；`both-changed` 與內容不同的 `no-base` 必須先完成 decision resolution。
+
+#### Scenario: interactive keep local
+
+- **WHEN** 使用者對 conflict file 選擇 keep-local
+- **THEN** local bytes 或 tombstone SHALL 成為 persistent overlay
+- **THEN** current upstream SHALL 成為新 base；下次 upstream 未變時顯示 local-only，不重複詢問
+- **THEN** upstream 再次修改該 file 時 SHALL 重新進入 both-changed
+
+#### Scenario: interactive use upstream
+
+- **WHEN** 使用者選擇 use-upstream
+- **THEN** 系統 SHALL 自動備份原 local content
+- **THEN** SHALL 移除該 file overlay，並以 current upstream 作為 base 與 final content
+
+#### Scenario: interactive abort
+
+- **WHEN** 使用者在任一 conflict 選擇 abort
+- **THEN** 整個第一方 reconcile SHALL 在 npx、overlay、manifest 或 legacy mutation 前停止
+
+#### Scenario: non-interactive unresolved conflicts
+
+- **WHEN** stdin 非 TTY 且存在 both-changed 或內容不同的 no-base
+- **THEN** 系統 SHALL 跳過整個受影響 skill，不自動 keep-local 或 overwrite
+- **THEN** 其他已完整決策的安全 skills MAY 繼續
+- **THEN** phase SHALL 最後 exit 1
+
+### Requirement: transaction 保護 npx whole-directory replace
+
+每個要更新的第一方 skill SHALL 在 npx 前建立完整 installed-root backup 與 transaction journal。apply 順序 SHALL 是 capture overlay candidates、npx base、base verification、overlay materialization、effective verification、atomic state commit、legacy detach。
+
+#### Scenario: npx partial success 或回傳 0 但內容錯誤
+
+- **WHEN** npx 非零，或回傳 0 但 lock、frontmatter、base hash、canonical path 或 agent-visible root 不符合 plan
+- **THEN** transaction SHALL 還原該 skill 的所有 pre-update roots
+- **THEN** SHALL 保留舊 manifest 與 active overlay，不 detach ownership
+
+#### Scenario: overlay 或 state commit 失敗
+
+- **WHEN** overlay materialization、effective verification 或 atomic state commit 失敗
+- **THEN** transaction SHALL 還原 pre-update roots 與舊 active overlay／manifest
+- **THEN** phase SHALL exit 1 並保留 recovery evidence
+
+#### Scenario: 發現未完成 transaction
+
+- **WHEN** 下次執行發現 journal 尚未 committed
+- **THEN** 系統 SHALL 先依 backup 恢復，或在無法證明 rollback 前提時停止
+- **THEN** SHALL NOT 直接開始新的 npx transaction
+
+### Requirement: 單一 canonical overlay
+
+同一 canonical skill SHALL 只有一份所有 agents 共用的 overlay。canonical 與 agent-visible roots SHALL 依 real path 去重；獨立 copy roots 仍需 materialize 並驗證相同 effective tree。
+
+#### Scenario: 舊 target copies 完全相同
+
+- **WHEN** 多個 legacy target copies 的 local content 完全相同
+- **THEN** migration MAY 合併成單一 canonical overlay
+- **THEN** verified 後 SHALL 安全清理不再使用的 legacy copies
+
+#### Scenario: 舊 target copies 有不同修改
+
+- **WHEN** legacy targets 對同一 canonical skill 有不同 local content
+- **THEN** migration SHALL 停止該 skill 並顯示各 target hashes／changed files
+- **THEN** SHALL 要求選擇 canonical 版本或另建不同 canonical skill ID
+- **THEN** SHALL NOT 建立 per-agent overlay 或猜測合併
+
+### Requirement: schema v1 可遷移到 per-file schema v2
+
+現有 directory-level `npx-first-party.yaml` SHALL 使用其 source commit 取得 base tree，並展開為 per-file entries。overlay bytes／tombstones SHALL 保存於 user-only overlay directory。
+
+#### Scenario: v1 directory baseline 仍 clean
+
+- **WHEN** v1 source commit 可取得，且 directory source／local hashes 仍符合 v1 baseline
+- **THEN** migration SHALL 自動產生 per-file state，overlay 為空
+- **THEN** SHALL 備份舊 schema v1 manifest後原子切換
+
+#### Scenario: v1 baseline 已有 local drift
+
+- **WHEN** v1 directory hash 不吻合，但 source commit 可取得
+- **THEN** migration SHALL 以該 commit 作為 base 逐檔分類，不把整個 skill 降級成單一 no-base
+- **WHEN** base commit 無法取得
+- **THEN** 受影響 files SHALL fail closed 為 no-base
+
+#### Scenario: schema v2 file entry 語意
+
+- **WHEN** reconcile 寫入一個有 overlay 的 file entry
+- **THEN** `src_hash` SHALL 是本輪接受的 upstream base hash
+- **THEN** `dst_hash_at_sync` SHALL 是 overlay materialize 後的 expected effective hash
+- **THEN** overlay metadata SHALL 記錄 `file` 或 `deleted`、hash 與 safe relative path
+- **THEN** missing source／local SHALL 使用固定 sentinel，不得與空檔案 hash 相同
+
+### Requirement: overlay 與 transaction state 為 user-only
+
+manifest、overlay bytes、deletion metadata、transaction journal 與 backups SHALL 留在 user config directory，使用 user-only permissions，且不得被 project sync、Git、public report 或一般 log 收集。
+
+#### Scenario: 顯示 conflict diff
+
+- **WHEN** 使用者在本機 TTY 主動要求 `Ds`、`Dl` 或 `Dc`
+- **THEN** 系統 MAY 顯示檔案內容差異
+- **THEN** 非互動 log、summary 與 audit SHALL 只顯示 canonical ID、safe relative path、hash、size、state 與 decision，不得輸出 overlay bytes
+
+#### Scenario: transaction 成功與失敗的 retention
+
+- **WHEN** pure clean transaction 成功且沒有使用者內容被 overwrite
+- **THEN** 暫存 backup MAY 清除
+- **WHEN** use-upstream 覆蓋 local content，或 transaction／rollback 失敗
+- **THEN** timestamped backup 與 recovery evidence SHALL 保留並回報位置
+
+### Requirement: npx phase 失敗不得遺失 local intent
+
+任何第一方 add、overlay、verification、state 或 rollback 失敗都 SHALL 保留可恢復的 local intent，且不得宣稱完成該 skill migration。
+
+#### Scenario: npx 或 transaction 失敗
+
+- **WHEN** 任何第一方 add、overlay、verification、state 或 rollback 步驟失敗
 - **THEN** phase SHALL 以非零結果或明確失敗摘要結束
-- **THEN** ai-dev SHALL 保留可用的舊安裝與舊 ownership 紀錄，不得繼續清理
+- **THEN** active overlay 或 transaction backup SHALL 保留 local intent
+- **THEN** ai-dev SHALL 不宣稱完成該 skill migration
 
 ### Requirement: 舊 copy ownership 安全遷移
 
@@ -136,9 +261,9 @@ guard SHALL 使用獨立的 `npx-first-party.yaml` 保存既有 `FileEntry` sche
 #### Scenario: 使用者修改過舊副本
 
 - **WHEN** 舊目標內容與 manifest base 不同，或無法證明 ownership
-- **THEN** 遷移 SHALL 停止處理該 skill
-- **THEN** SHALL 顯示衝突檔案、備份建議與人工決定入口
-- **THEN** SHALL 不以 `--yes`、force 或 orphan cleanup 覆蓋該內容
+- **THEN** base 可取得時 SHALL 將舊副本送入 per-file planner；base 不可取得時 SHALL 分類為 no-base
+- **THEN** local-only SHALL 轉為 persistent overlay；both-changed／no-base SHALL 完成 keep-local、use-upstream 或 abort decision
+- **THEN** SHALL 不以 `--yes`、force 或 orphan cleanup 繞過 decision 或 transaction backup
 
 #### Scenario: 舊名稱轉換
 

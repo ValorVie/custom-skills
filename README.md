@@ -592,7 +592,26 @@ claude --plugin-dir "/path/to/custom-skills/plugins/ecc-hooks"
 
 ai-dev baseline 的第一方與第三方 Skills 定義於 `upstream/npx-skills.yaml`。global phase 只指定 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`；Eve 與 PromptScript 需在各自專案內手動安裝。需要手動安裝其他 skill 時，直接使用 `npx skills`：
 
-`ai-dev-first-party` 另有 conflict guard。`ai-dev install` 與 `ai-dev update` 會先將每個第一方 skill 分類為 `clean`、`local-only`、`both-changed` 或 `no-base`；只有 fresh install 與沒有本機修改的 `clean` 項目會交給 npx 寫入。其他 npx packages 不經過這層 guard。
+`ai-dev-first-party` 使用 npx base 加本機 overlay。`ai-dev install` 與
+`ai-dev update` 會逐檔比較上次接受的 upstream base、目前 upstream、持久
+overlay 與 installed local，分類為 `clean`、`local-only`、`both-changed` 或
+`no-base`。`local-only` 會自動保存成 overlay；`both-changed` 與內容不同的
+`no-base` 會在互動終端要求 keep-local、use-upstream 或 abort。非互動模式不會猜測，
+會略過該 skill、繼續安全項目，最後回傳 exit 1。其他 npx packages 不經過這層處理。
+
+每個第一方 skill 在 npx 寫入前都有完整 transaction backup。npx 寫入、base
+驗證、overlay 套用、effective tree 驗證或 state 寫入失敗時，會還原 installed
+roots、舊 manifest 與舊 overlay。直接執行原生 npx 若蓋掉 materialized overlay，
+下一次 ai-dev reconcile 會從持久 overlay 恢復；若 upstream 同時改變，則重新要求決定。
+相關狀態位於：
+
+- `~/.config/ai-dev/manifests/npx-first-party.yaml`
+- `~/.config/ai-dev/overlays/npx-first-party/`
+- `~/.config/ai-dev/backups/npx-first-party/`
+- `~/.config/ai-dev/transactions/npx-first-party/`
+
+use-upstream 覆蓋本機內容時會保留 timestamped backup。rollback 失敗或發現未完成
+journal 時，不會開始下一個 npx transaction，請依命令輸出的 backup 路徑檢查後再重試。
 
 ```bash
 # 可用指令

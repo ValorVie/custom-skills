@@ -86,3 +86,22 @@
 - [x] 11.5 對 canonical path 與五個 configured agent paths 做完整讀回；npx partial failure、hash mismatch 或 lock source mismatch 時不得寫 guard、cleanup legacy 或 detach ownership。
 - [x] 11.6 更新 README、架構、資料流與 CHANGELOG，執行 focused／完整測試、OpenSpec strict validation、ASD 提醒檢查、public-boundary scan、Ruff／Black scoped checks 與 diff check。
 - [x] 11.7 提交本輪 scoped changes，回報 commit hash；不 push、不 archive。
+
+## 12. 以 persistent overlay 取代 directory-only guard
+
+> 本節 supersede 第 11 節的 directory-only guard。第 11 節保留為已發布 interim implementation 的歷史，不代表最終 conflict resolution 契約。
+
+- [x] 12.1 更新 proposal、design 與 delta specs，確認 npx base + ai-dev persistent overlay、per-file 3-way、互動 decision、non-interactive fail-closed、transaction rollback 與單一 canonical overlay。
+- [x] 12.2 以 characterization tests 固定既有 `classify_file`、diff prompt、local-only restore、skip／overwrite decision 與 no-base anchor；列出可直接共用及必須隔離的 clone-specific 行為。
+- [x] 12.3 定義 schema v2 state、overlay file／deletion tombstone、transaction journal 與 user-only permissions；加入 v1 clean expansion、v1 drift expansion、base commit unavailable 與損壞 state tests。
+- [x] 12.4 實作 overlay-aware pure per-file planner，涵蓋 clean、source-only、local-only、both-changed、no-base、new source file、new local file、upstream deletion、local deletion、binary 與 unsupported file type。
+- [x] 12.5 實作 DecisionResolver：TTY 提供 `Ds`／`Dl`／`Dc`、keep-local、use-upstream、abort；non-interactive 跳過 unresolved skill、允許其他安全 skills 繼續並在 phase 結尾 exit 1。
+- [x] 12.6 將 local-only 與 keep-local 保存成 persistent overlay；use-upstream 移除 overlay，並保留 transaction backup；direct npx wipe 後能重套 overlay。
+- [x] 12.7 實作 per-skill transaction：完整 roots backup、journal、npx base apply、pure-base verification、overlay materialization、effective verification、atomic state commit、rollback 與 interrupted recovery。
+- [x] 12.8 將 `install.py` 收斂為單一 FirstPartyReconciler interface；第一方 install／update 共用 reconcile，其他 npx packages add／update semantics 與 state 維持不變。
+- [x] 12.9 實作單一 canonical overlay migration：相同 legacy target copies 自動合併；不同 target modifications fail closed 並要求 canonical selection，不建立 per-agent overlay。
+- [x] 12.10 更新 `ai-dev list`／status 顯示 `ai-dev-skills + local overlay`、overlay files count、unknown state；toggle、standards 與 clone ownership 邊界維持不變。
+- [x] 12.11 建立 fault-injection tests：npx non-zero、partial success return 0、source race、base mismatch、overlay apply failure、state write failure、rollback failure、crash journal、raw npx bypass 與多 skill 部分成功。
+- [x] 12.12 更新 README、架構、資料流、migration／rollback 指引與 CHANGELOG；執行 focused／完整測試、OpenSpec strict validation、ASD 提醒檢查、public-boundary scan、scoped lint／format 及 diff check。
+- [x] 12.13 在隔離 HOME 驗證 clean、source-only、local-only、both-changed、no-base、keep-local、use-upstream、abort、non-interactive 與 raw-npx recovery；不得先改真實 installed overlays。
+- [x] 12.14 提交本輪 implementation，回報 commit hash；未批准前不 push、不 archive。

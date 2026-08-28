@@ -50,8 +50,20 @@ def get_npx_skills_user_yaml() -> Path:
 
 
 def get_npx_first_party_guard_path() -> Path:
-    """第一方 npx skill 的 conflict guard baseline。"""
+    """第一方 npx skill 的 per-file state。"""
     return get_ai_dev_manifest_dir() / "npx-first-party.yaml"
+
+
+def get_npx_first_party_overlay_dir() -> Path:
+    return get_ai_dev_config_dir() / "overlays" / "npx-first-party"
+
+
+def get_npx_first_party_backup_dir() -> Path:
+    return get_ai_dev_config_dir() / "backups" / "npx-first-party"
+
+
+def get_npx_first_party_transaction_dir() -> Path:
+    return get_ai_dev_config_dir() / "transactions" / "npx-first-party"
 
 
 def get_claude_config_dir() -> Path:

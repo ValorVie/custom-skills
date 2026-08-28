@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,58 +10,32 @@ from script.services.npx_skills.config import (
     NpxDefaults,
     SkillEntry,
 )
-from script.services.npx_skills.first_party_reconcile import SourceSnapshot
+from script.services.npx_skills.first_party_reconcile import ReconcileResult
 from script.services.npx_skills.install import (
     build_add_command,
     build_update_command,
     group_entries_by_repo,
     run_npx_skills_phase,
 )
-from script.services.npx_skills.migration import (
-    MigrationRecord,
-    MigrationState,
-    VerificationResult,
-)
 
 
-def _mock_first_party_runtime(
-    monkeypatch,
-    tmp_path: Path,
-    skill_names: tuple[str, ...],
-) -> Path:
-    source_skills = tmp_path / "source" / "skills"
-    for name in skill_names:
-        skill = source_skills / name
-        skill.mkdir(parents=True)
-        (skill / "SKILL.md").write_text(
-            f"---\nname: {name}\n---\n",
-            encoding="utf-8",
-        )
+def _mock_reconciler(monkeypatch, result: ReconcileResult, calls: list[dict]):
+    class FakeReconciler:
+        def reconcile(self, entries, defaults, *, dry_run=False):
+            calls.append(
+                {
+                    "entries": tuple(entry.skill for entry in entries),
+                    "defaults": defaults,
+                    "dry_run": dry_run,
+                }
+            )
+            return result
 
-    @contextmanager
-    def fake_checkout(_repo):
-        yield SourceSnapshot(source_skills, "source-commit")
-
-    monkeypatch.setattr(install_mod, "checkout_first_party_source", fake_checkout)
     monkeypatch.setattr(
         install_mod,
-        "get_first_party_local_roots",
-        lambda _agents: {"canonical": tmp_path / "installed"},
+        "_create_first_party_reconciler",
+        lambda _guard_path: FakeReconciler(),
     )
-    monkeypatch.setattr(install_mod, "read_npx_lock", lambda: {"skills": {}})
-    monkeypatch.setattr(
-        manifest_sync,
-        "cleanup_skills_from_manifests",
-        lambda _names: {},
-    )
-    monkeypatch.setattr(
-        install_mod,
-        "verify_first_party_paths",
-        lambda entries, **_kwargs: VerificationResult(
-            tuple(entry.skill for entry in entries), ()
-        ),
-    )
-    return tmp_path / "guard.yaml"
 
 
 def test_build_add_command_includes_global_and_agents():
@@ -286,21 +259,13 @@ packages:
     )
     user = tmp_path / "user" / "npx-skills.yaml"
     cleaned: list[str] = []
+    calls: list[dict] = []
 
     monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
-    monkeypatch.setattr(
-        install_mod,
-        "run_command",
-        lambda *_args, **_kwargs: SimpleNamespace(returncode=0),
-    )
-    monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
-    guard_path = _mock_first_party_runtime(
-        monkeypatch, tmp_path, ("simplify",)
-    )
-    monkeypatch.setattr(
-        install_mod,
-        "backup_and_remove_legacy_paths",
-        lambda _records, verified_names: (),
+    _mock_reconciler(
+        monkeypatch,
+        ReconcileResult(("simplify",), ()),
+        calls,
     )
     monkeypatch.setattr(
         manifest_sync,
@@ -313,11 +278,11 @@ packages:
         project_yaml=project,
         user_yaml=user,
         dry_run=False,
-        first_party_guard_path=guard_path,
+        first_party_guard_path=tmp_path / "guard.yaml",
     )
 
     assert cleaned == ["custom-simplify", "simplify"]
-    assert guard_path.exists()
+    assert calls[0]["entries"] == ("simplify",)
 
 
 def test_first_party_add_stops_before_npx_when_preflight_is_unsafe(
@@ -334,28 +299,12 @@ packages:
         encoding="utf-8",
     )
     user = tmp_path / "user" / "npx-skills.yaml"
-    record = MigrationRecord(
-        target="codex",
-        canonical_id="simplify",
-        legacy_name="custom-simplify",
-        path=tmp_path / "custom-simplify",
-        state=MigrationState.MODIFIED,
-        changed_files=("SKILL.md",),
-    )
-
+    calls: list[dict] = []
     monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
-    monkeypatch.setattr(
-        install_mod,
-        "_preview_first_party_group",
-        lambda _group: (record,),
-    )
-    monkeypatch.setattr(
-        install_mod,
-        "run_command",
-        lambda *_args, **_kwargs: pytest.fail("unsafe preflight executed npx"),
-    )
-    guard_path = _mock_first_party_runtime(
-        monkeypatch, tmp_path, ("simplify",)
+    _mock_reconciler(
+        monkeypatch,
+        ReconcileResult((), ("simplify",)),
+        calls,
     )
 
     with pytest.raises(typer.Exit) as error:
@@ -364,10 +313,11 @@ packages:
             project_yaml=project,
             user_yaml=user,
             dry_run=False,
-            first_party_guard_path=guard_path,
+            first_party_guard_path=tmp_path / "guard.yaml",
         )
 
     assert error.value.exit_code == 1
+    assert calls[0]["entries"] == ("simplify",)
 
 
 def test_first_party_add_installs_safe_skills_and_preserves_unsafe_skill(
@@ -384,33 +334,14 @@ packages:
         encoding="utf-8",
     )
     user = tmp_path / "user" / "npx-skills.yaml"
-    blocked = MigrationRecord(
-        target="codex",
-        canonical_id="blocked",
-        legacy_name="blocked",
-        path=tmp_path / "blocked",
-        state=MigrationState.MODIFIED,
-    )
-    commands: list[list[str]] = []
     cleaned: list[str] = []
+    calls: list[dict] = []
 
     monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
-    monkeypatch.setattr(
-        install_mod, "_preview_first_party_group", lambda _group: (blocked,)
-    )
-
-    def fake_run(cmd, **_kwargs):
-        commands.append(cmd)
-        return SimpleNamespace(returncode=0)
-
-    monkeypatch.setattr(install_mod, "run_command", fake_run)
-    guard_path = _mock_first_party_runtime(
-        monkeypatch, tmp_path, ("safe", "blocked")
-    )
-    monkeypatch.setattr(
-        install_mod,
-        "backup_and_remove_legacy_paths",
-        lambda _records, verified_names: (),
+    _mock_reconciler(
+        monkeypatch,
+        ReconcileResult(("safe",), ("blocked",)),
+        calls,
     )
     monkeypatch.setattr(
         manifest_sync,
@@ -424,28 +355,11 @@ packages:
             project_yaml=project,
             user_yaml=user,
             dry_run=False,
-            first_party_guard_path=guard_path,
+            first_party_guard_path=tmp_path / "guard.yaml",
         )
 
     assert error.value.exit_code == 1
-    assert commands == [
-        [
-            "npx",
-            "skills",
-            "add",
-            "ValorVie/ai-dev-skills",
-            "--skill",
-            "safe",
-            "-g",
-            "-a",
-            "claude-code",
-            "codex",
-            "gemini-cli",
-            "opencode",
-            "antigravity",
-            "--yes",
-        ]
-    ]
+    assert calls[0]["entries"] == ("safe", "blocked")
     assert cleaned == ["safe"]
 
 
@@ -463,12 +377,13 @@ packages:
         encoding="utf-8",
     )
     user = tmp_path / "user" / "npx-skills.yaml"
-    commands: list[list[str]] = []
     cleaned: list[str] = []
+    calls: list[dict] = []
     monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
-    monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
-    guard_path = _mock_first_party_runtime(
-        monkeypatch, tmp_path, ("new-skill",)
+    _mock_reconciler(
+        monkeypatch,
+        ReconcileResult(("new-skill",), ()),
+        calls,
     )
     monkeypatch.setattr(
         manifest_sync,
@@ -476,26 +391,14 @@ packages:
         lambda names: cleaned.extend(names) or {},
     )
 
-    def fake_run(cmd, **_kwargs):
-        commands.append(cmd)
-        return SimpleNamespace(returncode=0)
-
-    monkeypatch.setattr(install_mod, "run_command", fake_run)
-
     run_npx_skills_phase(
         mode="update",
         project_yaml=project,
         user_yaml=user,
-        first_party_guard_path=guard_path,
+        first_party_guard_path=tmp_path / "guard.yaml",
     )
 
-    assert commands[0][:4] == [
-        "npx",
-        "skills",
-        "add",
-        "ValorVie/ai-dev-skills",
-    ]
-    assert "update" not in commands[0]
+    assert calls[0]["entries"] == ("new-skill",)
     assert cleaned == ["new-skill"]
 
 
@@ -515,8 +418,8 @@ packages:
     monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
     monkeypatch.setattr(
         install_mod,
-        "checkout_first_party_source",
-        lambda _repo: pytest.fail("third-party update entered first-party guard"),
+        "_create_first_party_reconciler",
+        lambda _path: pytest.fail("third-party update entered first-party reconcile"),
     )
 
     def fake_run(cmd, **_kwargs):
@@ -545,18 +448,14 @@ packages:
     )
     user = tmp_path / "user" / "npx-skills.yaml"
     cleaned: list[str] = []
+    calls: list[dict] = []
+    guard_path = tmp_path / "guard.yaml"
+    guard_path.write_text("unchanged\n", encoding="utf-8")
     monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
-    monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
-    guard_path = _mock_first_party_runtime(monkeypatch, tmp_path, ("one",))
-    monkeypatch.setattr(
-        install_mod,
-        "run_command",
-        lambda *_args, **_kwargs: SimpleNamespace(returncode=0),
-    )
-    monkeypatch.setattr(
-        install_mod,
-        "verify_first_party_paths",
-        lambda *_args, **_kwargs: VerificationResult((), ("one: codex hash mismatch",)),
+    _mock_reconciler(
+        monkeypatch,
+        ReconcileResult((), ("one",)),
+        calls,
     )
     monkeypatch.setattr(
         manifest_sync,
@@ -573,7 +472,7 @@ packages:
         )
 
     assert error.value.exit_code == 1
-    assert not guard_path.exists()
+    assert guard_path.read_text(encoding="utf-8") == "unchanged\n"
     assert cleaned == []
 
 
@@ -589,14 +488,14 @@ packages:
         encoding="utf-8",
     )
     user = tmp_path / "user" / "npx-skills.yaml"
+    calls: list[dict] = []
     monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
-    monkeypatch.setattr(install_mod, "_preview_first_party_group", lambda _group: ())
-    guard_path = _mock_first_party_runtime(monkeypatch, tmp_path, ("one",))
-    monkeypatch.setattr(
-        install_mod,
-        "run_command",
-        lambda *_args, **_kwargs: pytest.fail("dry-run executed npx"),
+    _mock_reconciler(
+        monkeypatch,
+        ReconcileResult((), ()),
+        calls,
     )
+    guard_path = tmp_path / "guard.yaml"
 
     run_npx_skills_phase(
         mode="update",
@@ -608,3 +507,4 @@ packages:
 
     assert not guard_path.exists()
     assert not user.exists()
+    assert calls[0]["dry_run"] is True

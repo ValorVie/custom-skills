@@ -39,6 +39,8 @@ from .paths import (
     get_ai_dev_config_dir,
     get_npx_skills_project_yaml,
     get_npx_skills_user_yaml,
+    get_npx_first_party_guard_path,
+    get_npx_first_party_overlay_dir,
     get_project_root,
 )
 from .system import run_command
@@ -2932,9 +2934,60 @@ SOURCE_NAMES = {
 }
 
 
-def get_source_skills() -> dict[str, set[str]]:
+class SourceSkillMap(dict[str, set[str]]):
+    def __init__(self):
+        super().__init__()
+        self.overlay_counts: dict[str, int] = {}
+        self.overlay_unknown: set[str] = set()
+
+
+def _load_first_party_overlay_status(
+    sources: SourceSkillMap,
+) -> None:
+    names = sources.get("ai-dev-first-party", set())
+    if not names:
+        return
+    state_path = get_npx_first_party_guard_path()
+    if not state_path.exists():
+        return
+    try:
+        payload = yaml.safe_load(state_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        sources.overlay_unknown.update(names)
+        return
+    if isinstance(payload, dict) and payload.get("managed_by") == (
+        "ai-dev-first-party-guard"
+    ):
+        return
+
+    from script.services.npx_skills.first_party_overlay import FirstPartyStateStore
+
+    store = FirstPartyStateStore(
+        state_path,
+        get_npx_first_party_overlay_dir(),
+    )
+    try:
+        state = store.read()
+        for name in names:
+            skill = state.skills.get(name)
+            if skill is None:
+                continue
+            overlays = [
+                file.overlay
+                for file in skill.files.values()
+                if file.overlay is not None
+            ]
+            for overlay in overlays:
+                store.read_overlay(overlay)
+            if overlays:
+                sources.overlay_counts[name] = len(overlays)
+    except ValueError:
+        sources.overlay_unknown.update(names)
+
+
+def get_source_skills() -> SourceSkillMap:
     """取得各來源的 skill 名稱集合。"""
-    sources: dict[str, set[str]] = {}
+    sources = SourceSkillMap()
 
     # npx declarative manifest 優先。它描述 reviewable desired state；global lock
     # 只代表單一機器的實際狀態，不用來判斷來源名稱。
@@ -2997,6 +3050,7 @@ def get_source_skills() -> dict[str, set[str]]:
     else:
         sources["custom"] = set()
 
+    _load_first_party_overlay_status(sources)
     return sources
 
 
@@ -3014,6 +3068,16 @@ def identify_source(name: str, sources: dict[str, set[str]]) -> str:
             continue
         if lookup_name in names:
             source = SOURCE_NAMES.get(source_key, source_key)
+            if source_key == "ai-dev-first-party":
+                unknown = getattr(sources, "overlay_unknown", set())
+                counts = getattr(sources, "overlay_counts", {})
+                if lookup_name in unknown:
+                    source = f"{source} (overlay state unknown)"
+                elif counts.get(lookup_name, 0):
+                    source = (
+                        f"{source} + local overlay "
+                        f"({counts[lookup_name]} files)"
+                    )
             if lookup_name != name:
                 return f"{source} (legacy: {lookup_name})"
             return source

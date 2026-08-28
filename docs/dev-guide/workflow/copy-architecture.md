@@ -48,13 +48,14 @@ Repository desired state 存在 `upstream/npx-skills.yaml`。`~/.agents/.skill-l
 - global agent targets 固定列出 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`，不使用 `-a '*'`。
 - 同一 repository 的 skills 合併成一個 add/update command。
 - manifest 缺 repo、空 skills、重複 ID 或多來源同名時，phase 在執行 npx 前失敗。
-- first-party migration 先比較 target 與 stored manifest base。modified 或 unknown target 會被保留並阻擋該 skill。
-- first-party ongoing update 另讀 `~/.config/ai-dev/manifests/npx-first-party.yaml`，維持 `clean`、`local-only`、`both-changed`、`no-base` 判斷；其他 npx packages 不使用此 guard。
-- 第一方安全項目以 guarded add 安裝或更新；npx 安裝、lock source、frontmatter name、source hash 與 configured agent-visible roots 通過讀回驗證後，才原子更新 guard baseline 並 detach 舊 manifest ownership。
+- first-party migration 使用 schema v1 source commit 取得逐檔 base。相同的舊 target modifications 可合併成單一 overlay；不同修改 fail closed，不建立 per-agent overlay。
+- first-party ongoing update 讀取 `~/.config/ai-dev/manifests/npx-first-party.yaml` 與 `~/.config/ai-dev/overlays/npx-first-party/`，維持 `clean`、`local-only`、`both-changed`、`no-base` 判斷；其他 npx packages 不使用這層 reconcile。
+- `local-only` 與 keep-local 保存成持久 overlay。use-upstream 清除該檔案 overlay，並在 `~/.config/ai-dev/backups/npx-first-party/` 保留被覆蓋內容。
+- 每個第一方 skill 以獨立 transaction 執行 npx、pure-base verification、overlay materialization、effective verification 與 atomic state commit。全部通過後才 detach 舊 manifest ownership；失敗會 rollback。
 
 ### 一次性 legacy mapping
 
-`custom-simplify → simplify` 只在 `simplify` 已驗證且舊路徑未修改時清理。每個舊 target 會先備份到 `~/.config/ai-dev/backups/<target>/skills/`。
+`custom-simplify → simplify` 會先進入同一個 per-file planner。舊 target copies 的本機內容一致時可保存成 canonical overlay；內容不同時停止。成功驗證後才清理舊 alias，transaction backup 位於 `~/.config/ai-dev/backups/npx-first-party/`。
 
 ## clone-managed resources
 
