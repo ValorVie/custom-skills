@@ -64,7 +64,14 @@ app.command()(clone)
 
 @app.command("install-npx-skills")
 def install_npx_skills_cmd(
-    dry_run: bool = typer.Option(False, "--dry-run", help="顯示將執行的命令但不實際執行"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="顯示將執行的命令但不實際執行"
+    ),
+    review_first_party_overlays: bool = typer.Option(
+        False,
+        "--review-first-party-overlays",
+        help="重新詢問已記住的第一方本機保留決定，可改選上游版本",
+    ),
 ) -> None:
     """安裝 upstream/npx-skills.yaml 列出的 skill（等同 install --only npx-skills）。"""
     from script.services.npx_skills import run_npx_skills_phase
@@ -75,7 +82,9 @@ def install_npx_skills_cmd(
         project_yaml=get_npx_skills_project_yaml(),
         user_yaml=get_npx_skills_user_yaml(),
         dry_run=dry_run,
+        review_first_party_overlays=review_first_party_overlays,
     )
+
 
 app.command()(status)
 app.command(name="list")(list_resources)

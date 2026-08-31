@@ -595,13 +595,24 @@ ai-dev baseline 的第一方與第三方 Skills 定義於 `upstream/npx-skills.y
 `ai-dev-first-party` 使用 npx base 加本機 overlay。`ai-dev install` 與
 `ai-dev update` 會逐檔比較上次接受的 upstream base、目前 upstream、持久
 overlay 與 installed local，分類為 `clean`、`local-only`、`both-changed` 或
-`no-base`。`local-only` 會自動保存成 overlay；`both-changed` 與內容不同的
-`no-base` 會在互動終端要求 keep-local、use-upstream 或 abort。非互動模式不會猜測，
-會略過該 skill、繼續安全項目，最後回傳 exit 1。其他 npx packages 不經過這層處理。
+`no-base`。第一次出現 `local-only`、`both-changed` 或內容不同的 `no-base` 時，
+互動終端會要求選擇 keep-local、use-upstream 或 abort。ai-dev 會逐檔記住當時的
+upstream hash、本機有效內容 hash 與選擇；兩邊都沒變時直接沿用，任一邊改變且仍有
+本機差異時才重新詢問。單純的 upstream 更新仍自動套用。非互動模式不會猜測新的
+選擇，會略過該 skill、繼續安全項目，最後回傳 exit 1。其他 npx packages 不經過這層處理。
 
 互動選單會先以中文說明每個 diff 與處理選項。`K` 會保存本機覆寫；`O` 會先備份
 再採用上游；`A` 會在尚未寫入時中止。`no-base` 沒有共同基準，只提供 `Dc` 比較
 上游與本機，不會把不可用的 `Ds`／`Dl` 留給使用者猜測。
+
+要重新檢查先前選擇 keep-local 的 overlay，執行：
+
+```bash
+ai-dev install-npx-skills --review-first-party-overlays
+```
+
+這個選項會再次顯示互動選單，可改選 use-upstream。若目前不是互動終端，需重審的
+skill 會依 fail-closed 規則略過，不會自行清除 overlay。
 
 完成 decision resolution 後，ai-dev 會把同一 repository 的安全第一方 skills 合併成
 一次 npx add，並以多個明確 `--skill` 傳入清單。這是 non-interactive 模式的
@@ -610,7 +621,8 @@ overlay 與 installed local，分類為 `clean`、`local-only`、`both-changed` 
 每個第一方 skill 在 npx 寫入前都有完整 transaction backup。npx 寫入、base
 驗證、overlay 套用、effective tree 驗證或 state 寫入失敗時，會還原 installed
 roots、舊 manifest 與舊 overlay。直接執行原生 npx 若蓋掉 materialized overlay，
-下一次 ai-dev reconcile 會從持久 overlay 恢復；若 upstream 同時改變，則重新要求決定。
+下一次 ai-dev reconcile 會從持久 overlay 恢復，且相同 hash 組合不會再次詢問；若
+upstream 或 overlay 之後改變且仍有本機差異，才重新要求決定。
 相關狀態位於：
 
 - `~/.config/ai-dev/manifests/npx-first-party.yaml`

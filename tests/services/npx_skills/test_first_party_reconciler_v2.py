@@ -36,6 +36,7 @@ def _runtime(
     answers: tuple[str, ...] = (),
     runner_status: int = 0,
     runner_writes_source: bool = True,
+    prompt_log: list[str] | None = None,
 ):
     source_root = tmp_path / "source" / "skills" / "demo"
     _write_skill(source_root, source)
@@ -83,6 +84,12 @@ def _runtime(
         return SimpleNamespace(returncode=runner_status)
 
     answer_iter = iter(answers)
+
+    def answer(prompt: str) -> str:
+        if prompt_log is not None:
+            prompt_log.append(prompt)
+        return next(answer_iter)
+
     reconciler = FirstPartyReconciler(
         state_store=state_store,
         local_roots={"canonical": installed.parent},
@@ -97,22 +104,32 @@ def _runtime(
         command_runner=runner,
         lock_reader=lambda: {"skills": {"demo": {"source": REPO}}},
         interactive=interactive,
-        input_func=lambda _prompt: next(answer_iter),
+        input_func=answer,
         output_func=lambda _line: None,
     )
     return reconciler, state_store, installed, commands
 
 
-def _run(reconciler: FirstPartyReconciler):
+def _run(
+    reconciler: FirstPartyReconciler,
+    *,
+    review_first_party_overlays: bool = False,
+):
     return reconciler.reconcile(
         (SkillEntry(REPO, "demo", "ai-dev-first-party"),),
         NpxDefaults(agents=("codex",), scope="global", yes=True),
+        review_first_party_overlays=review_first_party_overlays,
     )
 
 
 def test_local_only_is_saved_and_rematerialized_as_overlay(tmp_path: Path):
     reconciler, state_store, installed, commands = _runtime(
-        tmp_path, base=b"base\n", source=b"base\n", local=b"local\n"
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K",),
     )
 
     result = _run(reconciler)
@@ -215,7 +232,12 @@ def test_return_zero_with_wrong_base_rolls_back(tmp_path: Path):
 
 def test_identical_legacy_copies_merge_into_one_overlay(tmp_path: Path):
     reconciler, state_store, installed, _commands = _runtime(
-        tmp_path, base=b"base\n", source=b"base\n", local=b"base\n"
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=b"base\n",
+        interactive=True,
+        answers=("K",),
     )
     first = tmp_path / "legacy-a"
     second = tmp_path / "legacy-b"
@@ -333,8 +355,15 @@ def test_ds_store_does_not_make_agent_roots_diverge(tmp_path: Path):
 
 
 def test_raw_npx_wipe_does_not_erase_persistent_local_intent(tmp_path: Path):
+    prompts: list[str] = []
     reconciler, _state_store, installed, commands = _runtime(
-        tmp_path, base=b"base\n", source=b"base\n", local=b"local\n"
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K",),
+        prompt_log=prompts,
     )
     assert _run(reconciler).successful_names == ("demo",)
     (installed / "SKILL.md").write_bytes(b"base\n")
@@ -344,11 +373,109 @@ def test_raw_npx_wipe_does_not_erase_persistent_local_intent(tmp_path: Path):
     assert result.successful_names == ("demo",)
     assert (installed / "SKILL.md").read_bytes() == b"local\n"
     assert len(commands) == 2
+    assert len(prompts) == 1
+
+
+def test_remote_change_invalidates_remembered_keep_local(tmp_path: Path):
+    prompts: list[str] = []
+    reconciler, state_store, installed, _commands = _runtime(
+        tmp_path,
+        base=b"source-v1\n",
+        source=b"source-v1\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K", "K"),
+        prompt_log=prompts,
+    )
+    assert _run(reconciler).successful_names == ("demo",)
+    (tmp_path / "source" / "skills" / "demo" / "SKILL.md").write_bytes(b"source-v2\n")
+
+    result = _run(reconciler)
+
+    assert result.successful_names == ("demo",)
+    assert len(prompts) == 2
+    assert (installed / "SKILL.md").read_bytes() == b"local\n"
+    assert (
+        state_store.read().skills["demo"].files["SKILL.md"].src_hash
+        == TreeFile.from_content(b"source-v2\n").hash
+    )
+
+
+def test_local_change_invalidates_remembered_keep_local(tmp_path: Path):
+    prompts: list[str] = []
+    reconciler, state_store, installed, _commands = _runtime(
+        tmp_path,
+        base=b"source\n",
+        source=b"source\n",
+        local=b"local-v1\n",
+        interactive=True,
+        answers=("K", "K"),
+        prompt_log=prompts,
+    )
+    assert _run(reconciler).successful_names == ("demo",)
+    (installed / "SKILL.md").write_bytes(b"local-v2\n")
+
+    result = _run(reconciler)
+
+    assert result.successful_names == ("demo",)
+    assert len(prompts) == 2
+    overlay = state_store.read().skills["demo"].files["SKILL.md"].overlay
+    assert overlay is not None
+    assert state_store.read_overlay(overlay) == b"local-v2\n"
+
+
+def test_review_overlays_can_replace_remembered_local_with_upstream(tmp_path: Path):
+    prompts: list[str] = []
+    reconciler, state_store, installed, commands = _runtime(
+        tmp_path,
+        base=b"source\n",
+        source=b"source\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K", "O"),
+        prompt_log=prompts,
+    )
+    assert _run(reconciler).successful_names == ("demo",)
+
+    result = _run(reconciler, review_first_party_overlays=True)
+
+    assert result.successful_names == ("demo",)
+    assert len(prompts) == 2
+    assert len(commands) == 2
+    assert (installed / "SKILL.md").read_bytes() == b"source\n"
+    assert state_store.read().skills["demo"].files["SKILL.md"].overlay is None
+    assert result.backup_paths
+
+
+def test_review_overlays_is_fail_closed_noninteractively(tmp_path: Path):
+    reconciler, state_store, installed, commands = _runtime(
+        tmp_path,
+        base=b"source\n",
+        source=b"source\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K",),
+    )
+    assert _run(reconciler).successful_names == ("demo",)
+    before = state_store.manifest_path.read_bytes()
+    reconciler.interactive = False
+
+    result = _run(reconciler, review_first_party_overlays=True)
+
+    assert result.failed_names == ("demo",)
+    assert len(commands) == 1
+    assert (installed / "SKILL.md").read_bytes() == b"local\n"
+    assert state_store.manifest_path.read_bytes() == before
 
 
 def test_overlay_write_failure_rolls_back_everything(tmp_path: Path, monkeypatch):
     reconciler, state_store, installed, _commands = _runtime(
-        tmp_path, base=b"base\n", source=b"base\n", local=b"local\n"
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K",),
     )
     before = state_store.manifest_path.read_bytes()
     monkeypatch.setattr(
@@ -487,7 +614,12 @@ def test_multiple_skills_continue_after_one_transaction_fails(tmp_path: Path):
 
 def test_v1_directory_guard_with_local_drift_migrates_to_schema_v2(tmp_path: Path):
     reconciler, state_store, installed, _commands = _runtime(
-        tmp_path, base=b"base\n", source=b"base\n", local=b"local\n"
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K",),
     )
     source_skill = tmp_path / "source" / "skills" / "demo"
     state_store.manifest_path.write_text(

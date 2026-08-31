@@ -86,8 +86,52 @@ ai-dev SHALL 使用 `npx skills add` materialize 第一方 upstream base，並�
 
 - **WHEN** upstream file 與 base 相同，但 installed local file 不同
 - **THEN** file SHALL 分類為 `local-only`
-- **THEN** ai-dev SHALL 自動保存 local bytes 或 deletion marker 為 overlay，不要求互動決定
+- **THEN** 沒有相同 decision pair 時，TTY SHALL 要求 keep-local、use-upstream 或 abort
+- **THEN** keep-local SHALL 保存 local bytes 或 deletion marker 為 overlay
 - **THEN** 後續 npx install／update 或直接原生 npx 覆蓋 installed tree 後，ai-dev SHALL 能重新套用 overlay
+
+### Requirement: conflict decision 以 per-file hash pair 記憶
+
+ai-dev SHALL 以 accepted upstream `src_hash`、effective-local `dst_hash_at_sync` 與 `decision` 記錄每個 file 的 conflict answer。decision memory SHALL 與 persistent overlay 配合；hash 只控制是否重新詢問，不得取代 local bytes 或 deletion tombstone。
+
+#### Scenario: remote 與 effective-local 都未改變
+
+- **WHEN** current source hash 等於 stored `src_hash`
+- **AND** current effective-local hash 等於 stored `dst_hash_at_sync`
+- **AND** stored decision 是 keep-local 或 use-upstream
+- **THEN** reconcile SHALL 沿用 stored decision，不重複詢問
+
+#### Scenario: remote 或 local 任一邊改變
+
+- **WHEN** file 仍有 local divergence
+- **AND** current source hash 或 current effective-local hash 與 stored decision pair 不同
+- **THEN** TTY SHALL 重新詢問 keep-local、use-upstream 或 abort
+- **THEN** non-interactive SHALL 跳過整個受影響 skill，保留舊 state／overlay，並使 phase 最後 exit 1
+
+#### Scenario: source-only clean update
+
+- **WHEN** source hash 改變，但 local 沒有 override 或 remembered overlay
+- **THEN** file SHALL 維持 clean source-only，不要求 decision
+
+#### Scenario: 原生 npx wipe installed overlay
+
+- **WHEN** stored keep-local overlay 與 decision pair 未變
+- **AND** installed local 暫時等於 pure upstream source
+- **THEN** effective-local SHALL 使用 persistent overlay hash
+- **THEN** reconcile SHALL 重新 materialize overlay，不重複詢問
+
+#### Scenario: 使用者修改已 materialize 的 overlay 內容
+
+- **WHEN** installed local 同時不同於 stored overlay 與 current source
+- **THEN** installed local SHALL 成為新的 local candidate
+- **THEN** effective-local hash 改變 SHALL 使舊 decision 失效並重新詢問
+
+#### Scenario: 強制重審 remembered overlay
+
+- **WHEN** 使用者執行 `ai-dev install-npx-skills --review-first-party-overlays`
+- **THEN** remembered keep-local overlay files SHALL 重新進入 interactive decision menu，即使 hash pair 未變
+- **THEN** 使用者選擇 use-upstream 時 SHALL 先保留 transaction backup，再移除 overlay 並採用 upstream
+- **THEN** non-interactive 使用此 flag SHALL fail closed，不得自動清除 overlay
 
 #### Scenario: 上游與 local overlay 同時改變
 
@@ -143,11 +187,11 @@ reconcile SHALL 對 base、source、local、overlay 的 path union 分類。miss
 
 ### Requirement: conflict decision 在 mutation 前完成
 
-FirstPartyReconciler SHALL 先規劃所有第一方 files，再執行任何 npx command。`local-only` 自動 keep-local；`both-changed` 與內容不同的 `no-base` 必須先完成 decision resolution。
+FirstPartyReconciler SHALL 先規劃所有第一方 files，再執行任何 npx command。第一次出現或 per-file hash pair 已改變的 `local-only`、`both-changed` 與內容不同的 `no-base` 必須先完成 decision resolution；hash pair 相同時 SHALL 沿用原 decision。
 
 #### Scenario: interactive menu 說明每個選項的影響
 
-- **WHEN** TTY 需要使用者處理 `both-changed` 或 `no-base` file
+- **WHEN** TTY 需要使用者處理 `local-only`、`both-changed` 或 `no-base` file
 - **THEN** menu SHALL 先顯示 file path 與狀態的中文說明，再等待輸入
 - **THEN** `Ds`、`Dl`、`Dc` SHALL 分別說明比較的兩個版本
 - **THEN** `K` SHALL 說明本機內容或刪除狀態會保存成持久 overlay，後續更新仍會套用

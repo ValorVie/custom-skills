@@ -112,6 +112,7 @@ class DecisionResolver:
     def _show_menu(self, conflict: FileConflict) -> None:
         plan = conflict.plan
         status = {
+            "local-only": "只有本機內容已修改（local-only）",
             "both-changed": "上游與本機都已修改（both-changed）",
             "no-base": "沒有可信的共同基準（no-base）",
         }[plan.classification]
@@ -149,8 +150,8 @@ class DecisionResolver:
             if plan.classification == "clean":
                 decisions[plan.path] = Decision.USE_UPSTREAM
                 continue
-            if plan.classification == "local-only":
-                decisions[plan.path] = Decision.KEEP_LOCAL
+            if plan.decision_pair_matches and plan.remembered_decision is not None:
+                decisions[plan.path] = Decision(plan.remembered_decision)
                 continue
             if not self.interactive:
                 unresolved.append(plan.path)
@@ -587,6 +588,7 @@ class FirstPartyReconciler:
         state: FirstPartyState,
         legacy: Mapping[str, FileEntry],
         migration_records: Sequence[MigrationRecord],
+        review_first_party_overlays: bool,
     ) -> tuple[list[_SkillWork], list[str], bool]:
         parents = self._parents(defaults)
         resolver = DecisionResolver(
@@ -648,6 +650,8 @@ class FirstPartyReconciler:
                     source=source,
                     local=local,
                     overlays=self._overlays(skill_state),
+                    remembered=skill_state.files if skill_state is not None else None,
+                    review_remembered_overlays=review_first_party_overlays,
                 )
                 resolution = resolver.resolve(conflicts)
                 if resolution.aborted:
@@ -810,7 +814,7 @@ class FirstPartyReconciler:
         for legacy_alias in item.legacy_aliases:
             _remove_tree(legacy_alias)
         retain = any(
-            conflict.plan.classification in {"both-changed", "no-base"}
+            conflict.plan.classification in {"local-only", "both-changed", "no-base"}
             and item.decisions[conflict.plan.path] is Decision.USE_UPSTREAM
             for conflict in item.conflicts
         )
@@ -923,6 +927,7 @@ class FirstPartyReconciler:
         defaults: object,
         *,
         dry_run: bool = False,
+        review_first_party_overlays: bool = False,
     ) -> ReconcileResult:
         if not entries:
             return ReconcileResult((), ())
@@ -939,6 +944,7 @@ class FirstPartyReconciler:
                 state,
                 legacy,
                 migration_records,
+                review_first_party_overlays,
             )
             if aborted:
                 return ReconcileResult((), tuple(failed), aborted=True)

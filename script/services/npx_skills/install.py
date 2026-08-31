@@ -97,9 +97,15 @@ def _run_first_party_group(
     *,
     dry_run: bool,
     guard_path: Path,
+    review_first_party_overlays: bool,
 ) -> tuple[tuple[str, ...], bool]:
     reconciler = _create_first_party_reconciler(guard_path)
-    result = reconciler.reconcile(entries, defaults, dry_run=dry_run)
+    result = reconciler.reconcile(
+        entries,
+        defaults,
+        dry_run=dry_run,
+        review_first_party_overlays=review_first_party_overlays,
+    )
     for backup in result.backup_paths:
         console.print(f"  [yellow]保留本機內容備份：{backup}[/yellow]")
     return result.successful_names, bool(result.failed_names or result.aborted)
@@ -112,6 +118,7 @@ def run_npx_skills_phase(
     user_yaml: Path,
     dry_run: bool = False,
     first_party_guard_path: Path | None = None,
+    review_first_party_overlays: bool = False,
 ) -> None:
     """執行 npx-skills phase。mode=add 用於 install；mode=update 用於 update。"""
     if not check_command_exists("npx"):
@@ -158,6 +165,7 @@ def run_npx_skills_phase(
                     config.defaults,
                     dry_run=dry_run,
                     guard_path=guard_path,
+                    review_first_party_overlays=review_first_party_overlays,
                 )
             except (OSError, RuntimeError, ValueError) as exc:
                 console.print(f"  [red]✗ 第一方 reconcile 失敗：{exc}[/red]")

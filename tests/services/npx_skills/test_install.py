@@ -21,12 +21,20 @@ from script.services.npx_skills.install import (
 
 def _mock_reconciler(monkeypatch, result: ReconcileResult, calls: list[dict]):
     class FakeReconciler:
-        def reconcile(self, entries, defaults, *, dry_run=False):
+        def reconcile(
+            self,
+            entries,
+            defaults,
+            *,
+            dry_run=False,
+            review_first_party_overlays=False,
+        ):
             calls.append(
                 {
                     "entries": tuple(entry.skill for entry in entries),
                     "defaults": defaults,
                     "dry_run": dry_run,
+                    "review_first_party_overlays": review_first_party_overlays,
                 }
             )
             return result
@@ -48,11 +56,18 @@ def test_build_add_command_includes_global_and_agents():
     cmd = build_add_command(entries, defaults)
 
     assert cmd == [
-        "npx", "skills", "add",
+        "npx",
+        "skills",
+        "add",
         "anthropics/skills",
-        "--skill", "claude-api",
-        "--skill", "skill-creator",
-        "-g", "-a", "*", "--yes",
+        "--skill",
+        "claude-api",
+        "--skill",
+        "skill-creator",
+        "-g",
+        "-a",
+        "*",
+        "--yes",
     ]
 
 
@@ -101,9 +116,14 @@ def test_build_add_command_project_scope_omits_global():
     assert "-g" not in cmd
     assert "--yes" not in cmd
     assert cmd == [
-        "npx", "skills", "add",
-        "x/y", "--skill", "z",
-        "-a", "claude",
+        "npx",
+        "skills",
+        "add",
+        "x/y",
+        "--skill",
+        "z",
+        "-a",
+        "claude",
     ]
 
 
@@ -116,9 +136,7 @@ def test_build_update_command_global_scope_includes_g():
 
     cmd = build_update_command(entries, defaults)
 
-    assert cmd == [
-        "npx", "skills", "update", "claude-api", "skill-creator", "-g", "-y"
-    ]
+    assert cmd == ["npx", "skills", "update", "claude-api", "skill-creator", "-g", "-y"]
 
 
 def test_build_update_command_project_scope_omits_g():
@@ -238,9 +256,7 @@ packages:
         lambda _names: pytest.fail("dry-run cleaned manifests"),
     )
 
-    run_npx_skills_phase(
-        mode="add", project_yaml=project, user_yaml=user, dry_run=True
-    )
+    run_npx_skills_phase(mode="add", project_yaml=project, user_yaml=user, dry_run=True)
     assert not user.exists()
 
 
@@ -283,6 +299,43 @@ packages:
 
     assert cleaned == ["custom-simplify", "simplify"]
     assert calls[0]["entries"] == ("simplify",)
+
+
+def test_first_party_review_flag_reaches_reconciler(tmp_path: Path, monkeypatch):
+    project = tmp_path / "npx-skills.yaml"
+    project.write_text(
+        """version: 1
+packages:
+  - repo: ValorVie/ai-dev-skills
+    source: ai-dev-first-party
+    skills: [simplify]
+""",
+        encoding="utf-8",
+    )
+    user = tmp_path / "user" / "npx-skills.yaml"
+    calls: list[dict] = []
+
+    monkeypatch.setattr(install_mod, "check_command_exists", lambda _: True)
+    _mock_reconciler(
+        monkeypatch,
+        ReconcileResult(("simplify",), ()),
+        calls,
+    )
+    monkeypatch.setattr(
+        manifest_sync,
+        "cleanup_skills_from_manifests",
+        lambda _names: {},
+    )
+
+    run_npx_skills_phase(
+        mode="add",
+        project_yaml=project,
+        user_yaml=user,
+        first_party_guard_path=tmp_path / "guard.yaml",
+        review_first_party_overlays=True,
+    )
+
+    assert calls[0]["review_first_party_overlays"] is True
 
 
 def test_first_party_add_stops_before_npx_when_preflight_is_unsafe(

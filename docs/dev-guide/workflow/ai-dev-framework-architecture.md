@@ -94,9 +94,16 @@ overlay、目前 installed local。
 | 分類 | Source | Local intent | 動作 |
 | --- | --- | --- | --- |
 | `clean` | 未變或單獨變更 | 無本機 override | 使用 upstream |
-| `local-only` | 等於 base | 有本機 override | 自動保存或更新 overlay |
-| `both-changed` | 不同於 base | 有本機 override | keep-local、use-upstream 或 abort |
-| `no-base` | 無可信 base | 與 source 不同 | keep-local、use-upstream 或 abort |
+| `local-only` | 等於 base | 有本機 override | 首次或內容改變時要求 decision |
+| `both-changed` | 不同於 base | 有本機 override | 首次或內容改變時要求 decision |
+| `no-base` | 無可信 base | 與 source 不同 | 首次或內容改變時要求 decision |
+
+decision 以 per-file hash pair 記憶：current upstream hash 與 effective-local hash 都
+相同時沿用原本的 keep-local 或 use-upstream；任一 hash 改變且仍有 local divergence
+時重新詢問。source-only clean update 不詢問。persistent overlay 是 effective-local
+intent，因此原生 npx 暫時蓋掉 installed overlay 時，reconcile 會直接恢復已確認內容。
+`ai-dev install-npx-skills --review-first-party-overlays` 可強制重審 remembered
+keep-local overlays；非互動執行遇到需重審項目時 fail closed。
 
 missing 是明確狀態；刪除使用 tombstone，不與空檔案混淆。`.DS_Store` 不屬於
 skill 內容，不參與 hash 或 root comparison。binary 仍可用 hash、size 與存在狀態

@@ -72,6 +72,8 @@ class FilePlan:
     local_hash: str
     overlay_hash: str | None
     effective_hash: str
+    remembered_decision: Literal["keep-local", "use-upstream"] | None = None
+    decision_pair_matches: bool = False
 
 
 @dataclass(frozen=True)
@@ -186,9 +188,12 @@ def plan_skill(
     source: dict[str, TreeFile],
     local: dict[str, TreeFile],
     overlays: dict[str, TreeFile],
+    remembered: dict[str, FileState] | None = None,
+    review_remembered_overlays: bool = False,
 ) -> tuple[PlannedFile, ...]:
     missing = TreeFile.missing()
-    paths = set(source) | set(local) | set(overlays)
+    remembered = remembered or {}
+    paths = set(source) | set(local) | set(overlays) | set(remembered)
     if base is not None:
         paths.update(base)
     planned: list[PlannedFile] = []
@@ -211,6 +216,24 @@ def plan_skill(
             effective_local = overlay_file
         else:
             effective_local = local_file
+        memory = remembered.get(path)
+        if memory is not None and memory.decision in {
+            "keep-local",
+            "use-upstream",
+        }:
+            plan = replace(
+                plan,
+                remembered_decision=memory.decision,
+                decision_pair_matches=(
+                    source_file.hash == memory.src_hash
+                    and plan.effective_hash == memory.dst_hash_at_sync
+                    and not (
+                        review_remembered_overlays
+                        and memory.decision == "keep-local"
+                        and memory.overlay is not None
+                    )
+                ),
+            )
         planned.append(
             PlannedFile(
                 plan=plan,

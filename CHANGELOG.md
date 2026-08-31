@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **第一方 conflict decision 改為 per-file hash pair 記憶。**
+  - 第一次出現 `local-only`、`both-changed` 或內容不同的 `no-base` 時要求選擇；current upstream hash 與 effective-local hash 都沒變時沿用原 decision，任一邊改變且仍有本機差異時重新詢問。
+  - source-only clean update 保持自動套用；原生 npx 蓋掉 installed overlay 時，會依持久 overlay 恢復已確認的本機內容，不重複詢問。
+  - 新增 `ai-dev install-npx-skills --review-first-party-overlays`，可重新檢查 remembered keep-local overlays 並改採 upstream；非互動模式遇到需重審項目時 fail closed。
 - **修正第一方 npx reconcile 的 Mac false positives。**
   - Claude Code 的 agent projection symlink 若解析到 canonical `.agents/skills`，會以 real path 去重；未知 symlink 仍 fail closed。
   - `.DS_Store` 不再參與 skill file map、directory hash 或 overlay snapshot，避免把內容相同的 agent roots 判成不同 local modifications。
@@ -34,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ai-dev clone` 不再從 framework root `skills/` 分發第一方 skills，也不再為它們建立新的 ManifestTracker entries。
   - 同 repository 的 npx skills 合併成單一 add/update command；manifest 會拒絕缺 repo、空清單、wildcard 與重複 canonical ID。
   - global add 改為明確指定 `claude-code`、`codex`、`gemini-cli`、`opencode`、`antigravity`，不再以 `-a '*'` 嘗試 Eve、PromptScript 等 project-only targets。
-  - `ai-dev-first-party` 的 install／update 共用 `FirstPartyReconciler`：`local-only` 自動保存 overlay；`both-changed`／內容不同的 `no-base` 要求 keep-local、use-upstream 或 abort。非互動未解決項目會略過並使 phase exit 1；其他 packages 行為不變。
+  - `ai-dev-first-party` 的 install／update 共用 `FirstPartyReconciler`：首次或 hash pair 已改變的 `local-only`／`both-changed`／內容不同的 `no-base` 要求 keep-local、use-upstream 或 abort。非互動未解決項目會略過並使 phase exit 1；其他 packages 行為不變。
   - ECC 或 custom repo 若啟用同名 npx-managed skill，clone 會在寫入前停止；5 個已由 npx 管理的 ECC entries 已移出 distribution whitelist。
   - `ai-dev list` 依 declarative manifest 顯示 `ai-dev-skills` source；有本機 overlay 時顯示檔案數，state 或 overlay 無法讀取時標成 `overlay state unknown`。
   - `toggle`、resource-disable 與 standards profile 不再搬動 npx-managed skill，改為 fail closed 與原生 npx 指引。

@@ -189,9 +189,15 @@ base unknown + source/local different → no-base
 
 檔案集合取 base、source、local、overlay 的 union。missing 是明確狀態，不得當成空字串；local deletion 以 overlay tombstone 保存。`.DS_Store` 等平台 metadata 不屬於 skill 內容，不得改變 file map、directory hash 或 planner 結果。新增 upstream file、local-only new file、upstream deletion、local deletion、binary file 與 skill tree 內的 symlink／unsupported type 都必須有測試與 fail-closed 結果。
 
-### 11. keep-local 是持久 overlay，不使用 one-revision skip memory
+### 11. decision 以 per-file hash pair 記憶，keep-local 使用持久 overlay
 
-`local-only` 自動保存或更新 overlay，不需要 prompt。`both-changed` 與內容不同的 `no-base` 在 TTY 顯示：
+第一次出現 `local-only`、`both-changed` 或內容不同的 `no-base` 時，TTY 必須詢問 keep-local、use-upstream 或 abort。每個 file entry 使用本輪接受的 upstream `src_hash`、materialized effective-local `dst_hash_at_sync` 與 `decision` 作為 decision pair。下一次 current source hash 與 current effective-local hash 都相同時沿用原 decision，不重複詢問；任一 hash 改變且仍有 local divergence 時重新詢問。
+
+effective-local 以 persistent overlay 為 local intent。原生 npx 若把 installed tree 蓋回 pure upstream，但 overlay bytes／tombstone 與 decision pair 未變，reconcile 自動重新 materialize overlay，不把這次 wipe 當成新的 local decision。若 installed local 又偏離 overlay 與 source，該內容是新的 local candidate，必須重新詢問。
+
+source-only clean update 沒有 local divergence，不因 remote hash 改變而詢問。use-upstream 成功後移除 overlay，後續 source-only updates 繼續自動採用 upstream。decision memory 以 per-file hash 為單位，不使用整個 skill directory hash，避免無關檔案改變使全部 answers 失效。
+
+需要新 decision 的檔案在 TTY 顯示：
 
 ```text
 衝突：<path>
@@ -210,7 +216,9 @@ base unknown + source/local different → no-base
 
 `no-base` 沒有可信 base，因此 `Ds`／`Dl` 必須標成不可用，prompt 只列 `Dc/K/O/A`。`K` 將 local bytes 或 deletion marker 保存為持久 overlay；`O` 移除該檔案 overlay，並採用 upstream；`A` 在任何第一方 mutation 前停止。所有 overwrite 都保留 transaction backup，不提供無備份的 force path。
 
-non-interactive 時，`clean` 與 `local-only` 可自動處理；未解決的 `both-changed`／`no-base` 跳過整個 skill、允許其他安全 skills 繼續，phase 最後 exit 1。不得自動選擇 keep-local 或 overwrite。
+non-interactive 時，`clean` 與 hash pair 完全相同的 remembered decision 可自動處理；首次或 pair 已改變的 `local-only`／`both-changed`／`no-base` 跳過整個 skill、允許其他安全 skills 繼續，phase 最後 exit 1。不得自動選擇 keep-local 或 overwrite。
+
+`ai-dev install-npx-skills --review-first-party-overlays` 強制重新詢問目前有 remembered keep-local overlay 的 files，即使 hash pair 未變。這是清除 overlay／改採 upstream 的明確入口；未指定時不因重跑而重複打擾使用者。
 
 ### 12. Apply 使用可回復 transaction
 
@@ -328,7 +336,7 @@ npx phase 保持在 targets phase 之前，讓 fresh install 先取得第一方 
 
 1. 讀取舊 target manifests、v1 guard、active roots 與 overlays，比較每個第一方 target 與 stored base。
 2. 取得 current source 與舊 base commit，將 v1 guard／legacy manifests 轉成 per-file plan；base 不可得的 files 才標成 no-base。
-3. local-only 自動 capture overlay；both-changed／no-base 在 mutation 前完成 decision，未解決時保留並跳過該 skill。
+3. local-only／both-changed／no-base 在 mutation 前完成 decision；相同 per-file hash pair 沿用原 decision，首次或 pair 改變且仍有 local divergence 時詢問，未解決時保留並跳過該 skill。
 4. 合併相同的舊 target copies；不同 target modifications 停止並要求 canonical selection。
 5. 完成 local overlay capture 與所有 conflict decisions，再安裝明確的 npx inventory。
 6. 驗證 pure base，套用 overlay／tombstones，再驗證 materialized view。

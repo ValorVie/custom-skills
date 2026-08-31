@@ -51,7 +51,7 @@ def test_noninteractive_resolver_skips_unresolved_skill():
     assert not resolution.aborted
 
 
-def test_resolver_auto_accepts_clean_and_keeps_local_only():
+def test_resolver_auto_accepts_clean_but_local_only_needs_decision():
     clean = FileConflict(
         plan=FilePlan("a.md", "clean", "b", "s", "b", None, "s"),
         base_content=b"base",
@@ -67,10 +67,50 @@ def test_resolver_auto_accepts_clean_and_keeps_local_only():
 
     resolution = DecisionResolver(interactive=False).resolve((clean, local))
 
-    assert resolution.decisions == {
-        "a.md": Decision.USE_UPSTREAM,
-        "b.md": Decision.KEEP_LOCAL,
-    }
+    assert resolution.decisions == {"a.md": Decision.USE_UPSTREAM}
+    assert resolution.unresolved == ("b.md",)
+
+
+def test_first_local_only_change_prompts_before_keep_local():
+    local = FileConflict(
+        plan=FilePlan("b.md", "local-only", "b", "b", "l", None, "l"),
+        base_content=b"base",
+        source_content=b"base",
+        local_content=b"local",
+    )
+    output: list[str] = []
+
+    resolution = DecisionResolver(
+        interactive=True,
+        input_func=lambda _prompt: "K",
+        output_func=output.append,
+    ).resolve((local,))
+
+    assert resolution.decisions == {"b.md": Decision.KEEP_LOCAL}
+    assert any("只有本機內容已修改（local-only）" in line for line in output)
+
+
+def test_matching_decision_pair_reuses_keep_local_noninteractively():
+    remembered = FileConflict(
+        plan=FilePlan(
+            "b.md",
+            "local-only",
+            "remote",
+            "remote",
+            "local",
+            "local",
+            "local",
+            remembered_decision="keep-local",
+            decision_pair_matches=True,
+        ),
+        base_content=b"remote",
+        source_content=b"remote",
+        local_content=b"local",
+    )
+
+    resolution = DecisionResolver(interactive=False).resolve((remembered,))
+
+    assert resolution.decisions == {"b.md": Decision.KEEP_LOCAL}
     assert resolution.unresolved == ()
 
 

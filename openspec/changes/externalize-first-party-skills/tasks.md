@@ -136,3 +136,12 @@
 - [x] 16.3 實作 per-skill backup、一次 grouped npx base apply、逐 skill verification、失敗項 rollback、成功項 atomic state commit 與 expected-state fingerprint recovery。
 - [x] 16.4 更新 README、資料流、OpenSpec 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
 - [x] 16.5 提交 scoped implementation，回報 commit hash；不 push、不 archive。
+
+## 17. 以 per-file hash pair 記憶 conflict decision
+
+- [x] 17.1 定案 decision memory：`src_hash + dst_hash_at_sync + decision` 是 per-file key；persistent overlay 保存實際 bytes／tombstone，兩者不可互相取代。
+- [x] 17.2 先加入 decision resolver／reconciler 回歸測試：首次 local-only 詢問、相同 pair 沿用、remote changed 重問、local changed 重問、source-only clean 不問、raw npx wipe 自動恢復。
+- [x] 17.3 實作 planner decision memory 與 non-interactive fail-closed；移除 local-only 無條件自動 keep-local。
+- [x] 17.4 加入 `--review-first-party-overlays`，強制重審 remembered keep-local overlays，並驗證 non-interactive fail closed。
+- [x] 17.5 更新 README、資料流、OpenSpec 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
+- [x] 17.6 提交 scoped implementation，回報 commit hash；不 push、不 archive。

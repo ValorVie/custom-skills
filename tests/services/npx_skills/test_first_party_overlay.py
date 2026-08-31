@@ -366,6 +366,138 @@ def test_plan_skill_uses_union_for_new_and_deleted_files():
     assert by_path["local-delete.md"].effective_hash == MISSING_HASH
 
 
+def test_plan_skill_reuses_decision_when_source_and_effective_local_match():
+    source = TreeFile.from_content(b"upstream")
+    overlay = TreeFile.from_content(b"local")
+    remembered = FileState(
+        src_hash=source.hash,
+        src_commit="commit",
+        src_source="ValorVie/ai-dev-skills",
+        dst_hash_at_sync=overlay.hash,
+        decision="keep-local",
+        decided_at="before",
+    )
+
+    planned = plan_skill(
+        base={"SKILL.md": source},
+        source={"SKILL.md": source},
+        local={"SKILL.md": source},
+        overlays={"SKILL.md": overlay},
+        remembered={"SKILL.md": remembered},
+    )
+
+    assert planned[0].plan.effective_hash == overlay.hash
+    assert planned[0].plan.remembered_decision == "keep-local"
+    assert planned[0].plan.decision_pair_matches
+
+
+def test_plan_skill_can_force_review_of_matching_keep_local_overlay():
+    source = TreeFile.from_content(b"upstream")
+    overlay = TreeFile.from_content(b"local")
+    overlay_entry = OverlayEntry(
+        kind="file",
+        hash=overlay.hash,
+        path="demo/SKILL.md",
+    )
+    remembered = FileState(
+        src_hash=source.hash,
+        src_commit="commit",
+        src_source="ValorVie/ai-dev-skills",
+        dst_hash_at_sync=overlay.hash,
+        decision="keep-local",
+        decided_at="before",
+        overlay=overlay_entry,
+    )
+
+    planned = plan_skill(
+        base={"SKILL.md": source},
+        source={"SKILL.md": source},
+        local={"SKILL.md": overlay},
+        overlays={"SKILL.md": overlay},
+        remembered={"SKILL.md": remembered},
+        review_remembered_overlays=True,
+    )
+
+    assert planned[0].plan.remembered_decision == "keep-local"
+    assert not planned[0].plan.decision_pair_matches
+
+
+def test_plan_skill_invalidates_decision_when_source_changes():
+    base = TreeFile.from_content(b"upstream-v1")
+    source = TreeFile.from_content(b"upstream-v2")
+    overlay = TreeFile.from_content(b"local")
+    remembered = FileState(
+        src_hash=base.hash,
+        src_commit="commit-1",
+        src_source="ValorVie/ai-dev-skills",
+        dst_hash_at_sync=overlay.hash,
+        decision="keep-local",
+        decided_at="before",
+    )
+
+    planned = plan_skill(
+        base={"SKILL.md": base},
+        source={"SKILL.md": source},
+        local={"SKILL.md": overlay},
+        overlays={"SKILL.md": overlay},
+        remembered={"SKILL.md": remembered},
+    )
+
+    assert planned[0].plan.classification == "both-changed"
+    assert not planned[0].plan.decision_pair_matches
+
+
+def test_plan_skill_invalidates_decision_when_local_changes():
+    source = TreeFile.from_content(b"upstream")
+    overlay = TreeFile.from_content(b"local-v1")
+    new_local = TreeFile.from_content(b"local-v2")
+    remembered = FileState(
+        src_hash=source.hash,
+        src_commit="commit",
+        src_source="ValorVie/ai-dev-skills",
+        dst_hash_at_sync=overlay.hash,
+        decision="keep-local",
+        decided_at="before",
+    )
+
+    planned = plan_skill(
+        base={"SKILL.md": source},
+        source={"SKILL.md": source},
+        local={"SKILL.md": new_local},
+        overlays={"SKILL.md": overlay},
+        remembered={"SKILL.md": remembered},
+    )
+
+    assert planned[0].plan.classification == "local-only"
+    assert planned[0].plan.effective_hash == new_local.hash
+    assert not planned[0].plan.decision_pair_matches
+
+
+def test_source_only_change_remains_clean_without_reusing_decision():
+    base = TreeFile.from_content(b"upstream-v1")
+    source = TreeFile.from_content(b"upstream-v2")
+    remembered = FileState(
+        src_hash=base.hash,
+        src_commit="commit-1",
+        src_source="ValorVie/ai-dev-skills",
+        dst_hash_at_sync=base.hash,
+        decision="use-upstream",
+        decided_at="before",
+    )
+
+    planned = plan_skill(
+        base={"SKILL.md": base},
+        source={"SKILL.md": source},
+        local={"SKILL.md": base},
+        overlays={},
+        remembered={"SKILL.md": remembered},
+    )
+
+    assert planned[0].plan.classification == "clean"
+    assert planned[0].plan.effective_hash == source.hash
+    assert not planned[0].plan.decision_pair_matches
+
+
 def test_snapshot_tree_supports_binary_and_rejects_symlink(tmp_path: Path):
     root = tmp_path / "skill"
     root.mkdir()
