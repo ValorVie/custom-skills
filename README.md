@@ -605,6 +605,12 @@ upstream hash、本機有效內容 hash 與選擇；兩邊都沒變時直接沿�
 再採用上游；`A` 會在尚未寫入時中止。`no-base` 沒有共同基準，只提供 `Dc` 比較
 上游與本機，不會把不可用的 `Ds`／`Dl` 留給使用者猜測。
 
+若同一 skill 的舊 target copies 含有不同本機版本，互動終端會先列出每個版本的
+hash、變更檔案與來源路徑，要求選出一份 canonical local intent。選版後仍逐檔詢問
+`K`／`O`／`A`；未選版本會保留在 transaction backup。非互動模式不會自動選版。
+已有 schema v2 state 的同名 `already-migrated` stale copies 不再參與 local intent
+判斷，驗證成功後會在同一 transaction 內備份並清理。
+
 要重新檢查先前選擇 keep-local 的 overlay，執行：
 
 ```bash

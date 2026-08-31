@@ -37,6 +37,7 @@ def _runtime(
     runner_status: int = 0,
     runner_writes_source: bool = True,
     prompt_log: list[str] | None = None,
+    output_log: list[str] | None = None,
 ):
     source_root = tmp_path / "source" / "skills" / "demo"
     _write_skill(source_root, source)
@@ -105,7 +106,9 @@ def _runtime(
         lock_reader=lambda: {"skills": {"demo": {"source": REPO}}},
         interactive=interactive,
         input_func=answer,
-        output_func=lambda _line: None,
+        output_func=(
+            output_log.append if output_log is not None else lambda _line: None
+        ),
     )
     return reconciler, state_store, installed, commands
 
@@ -262,8 +265,13 @@ def test_identical_legacy_copies_merge_into_one_overlay(tmp_path: Path):
 def test_different_legacy_copies_fail_closed_without_per_agent_overlay(
     tmp_path: Path,
 ):
+    output: list[str] = []
     reconciler, state_store, _installed, commands = _runtime(
-        tmp_path, base=b"base\n", source=b"base\n", local=None
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=None,
+        output_log=output,
     )
     first = tmp_path / "legacy-a"
     second = tmp_path / "legacy-b"
@@ -280,6 +288,155 @@ def test_different_legacy_copies_fail_closed_without_per_agent_overlay(
     assert result.failed_names == ("demo",)
     assert commands == []
     assert first.exists() and second.exists()
+    assert state_store.manifest_path.read_bytes() == before
+    assert any("legacy-a" in line for line in output)
+    assert any("legacy-b" in line for line in output)
+    assert sum("changed_files=SKILL.md" in line for line in output) == 2
+
+
+def test_interactive_different_legacy_copies_selects_canonical_version(
+    tmp_path: Path,
+):
+    output: list[str] = []
+    reconciler, state_store, installed, commands = _runtime(
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=None,
+        interactive=True,
+        answers=("2", "K"),
+        output_log=output,
+    )
+    first = tmp_path / "legacy-a"
+    second = tmp_path / "legacy-b"
+    _write_skill(first, b"local-a\n")
+    _write_skill(second, b"local-b\n")
+    reconciler.migration_loader = lambda _entries: (
+        MigrationRecord("a", "demo", "legacy-demo", first, MigrationState.MODIFIED),
+        MigrationRecord("b", "demo", "legacy-demo", second, MigrationState.MODIFIED),
+    )
+
+    result = _run(reconciler)
+
+    assert result.successful_names == ("demo",)
+    assert result.failed_names == ()
+    assert len(commands) == 1
+    assert (installed / "SKILL.md").read_bytes() == b"local-b\n"
+    assert not first.exists() and not second.exists()
+    assert result.backup_paths
+    overlay = state_store.read().skills["demo"].files["SKILL.md"].overlay
+    assert overlay is not None
+    assert state_store.read_overlay(overlay) == b"local-b\n"
+    assert any("legacy-a" in line for line in output)
+    assert any("legacy-b" in line for line in output)
+    assert sum("changed_files=SKILL.md" in line for line in output) == 2
+
+
+def test_interactive_root_selection_abort_preserves_all_copies(tmp_path: Path):
+    output: list[str] = []
+    reconciler, state_store, _installed, commands = _runtime(
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=None,
+        interactive=True,
+        answers=("invalid", "A"),
+        output_log=output,
+    )
+    first = tmp_path / "legacy-a"
+    second = tmp_path / "legacy-b"
+    _write_skill(first, b"local-a\n")
+    _write_skill(second, b"local-b\n")
+    before = state_store.manifest_path.read_bytes()
+    reconciler.migration_loader = lambda _entries: (
+        MigrationRecord("a", "demo", "legacy-demo", first, MigrationState.MODIFIED),
+        MigrationRecord("b", "demo", "legacy-demo", second, MigrationState.MODIFIED),
+    )
+
+    result = _run(reconciler)
+
+    assert result.aborted is True
+    assert commands == []
+    assert (first / "SKILL.md").read_bytes() == b"local-a\n"
+    assert (second / "SKILL.md").read_bytes() == b"local-b\n"
+    assert state_store.manifest_path.read_bytes() == before
+    assert any("無效選項：INVALID" in line for line in output)
+
+
+def test_remembered_overlay_ignores_and_cleans_stale_same_name_copies(
+    tmp_path: Path,
+):
+    prompts: list[str] = []
+    reconciler, state_store, installed, commands = _runtime(
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K",),
+        prompt_log=prompts,
+    )
+    assert _run(reconciler).successful_names == ("demo",)
+    first = tmp_path / "legacy-a"
+    second = tmp_path / "legacy-b"
+    _write_skill(first, b"stale-a\n")
+    _write_skill(second, b"stale-b\n")
+    reconciler.migration_loader = lambda _entries: (
+        MigrationRecord("a", "demo", "demo", first, MigrationState.ALREADY_MIGRATED),
+        MigrationRecord("b", "demo", "demo", second, MigrationState.ALREADY_MIGRATED),
+    )
+    reconciler.interactive = False
+
+    result = _run(reconciler)
+
+    assert result.successful_names == ("demo",)
+    assert result.failed_names == ()
+    assert len(commands) == 2
+    assert len(prompts) == 1
+    assert (installed / "SKILL.md").read_bytes() == b"local\n"
+    assert not first.exists() and not second.exists()
+    assert result.backup_paths
+    overlay = state_store.read().skills["demo"].files["SKILL.md"].overlay
+    assert overlay is not None
+    assert state_store.read_overlay(overlay) == b"local\n"
+
+
+def test_stale_same_name_cleanup_rolls_back_when_state_write_fails(
+    tmp_path: Path, monkeypatch
+):
+    reconciler, state_store, installed, commands = _runtime(
+        tmp_path,
+        base=b"base\n",
+        source=b"base\n",
+        local=b"local\n",
+        interactive=True,
+        answers=("K",),
+    )
+    assert _run(reconciler).successful_names == ("demo",)
+    legacy = tmp_path / "legacy"
+    _write_skill(legacy, b"stale\n")
+    reconciler.migration_loader = lambda _entries: (
+        MigrationRecord(
+            "legacy",
+            "demo",
+            "demo",
+            legacy,
+            MigrationState.ALREADY_MIGRATED,
+        ),
+    )
+    before = state_store.manifest_path.read_bytes()
+    monkeypatch.setattr(
+        state_store,
+        "write",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("state failed")),
+    )
+
+    result = _run(reconciler)
+
+    assert result.failed_names == ("demo",)
+    assert len(commands) == 2
+    assert (installed / "SKILL.md").read_bytes() == b"local\n"
+    assert (legacy / "SKILL.md").read_bytes() == b"stale\n"
     assert state_store.manifest_path.read_bytes() == before
 
 

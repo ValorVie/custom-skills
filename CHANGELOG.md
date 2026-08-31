@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **修正第一方多 target 舊副本無法收斂。**
+  - 同一 skill 有多個不同本機版本時，互動終端會列出各版本的 hash、變更檔案與來源路徑，要求選出 canonical local intent；非互動模式仍 fail closed。
+  - 已有 schema v2 state 的同名 `already-migrated` 舊副本不再蓋過 remembered overlay。驗證成功後會在 transaction 內清理，未選版本與 stale copies 保留於備份；state commit 失敗時完整 rollback。
 - **第一方 conflict decision 改為 per-file hash pair 記憶。**
   - 第一次出現 `local-only`、`both-changed` 或內容不同的 `no-base` 時要求選擇；current upstream hash 與 effective-local hash 都沒變時沿用原 decision，任一邊改變且仍有本機差異時重新詢問。
   - source-only clean update 保持自動套用；原生 npx 蓋掉 installed overlay 時，會依持久 overlay 恢復已確認的本機內容，不重複詢問。

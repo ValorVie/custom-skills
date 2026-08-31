@@ -190,12 +190,12 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 - 跳過方式：`ai-dev install --skip npx-skills` 或 `ai-dev update --skip npx-skills`
 - 僅執行：`ai-dev install-npx-skills`（等同 `install --only npx-skills`）
 - 強制重審既有本機 overlay：`ai-dev install-npx-skills --review-first-party-overlays`。這會重新詢問 remembered keep-local；非互動終端會略過需重審的 skill，不會自行清除 overlay。
-- 第一方遷移：舊 schema v1 依 source commit 展開成 per-file base。多個舊 target copies 只有在本機修改一致時才合併；不同修改會保留並阻擋該 skill。
+- 第一方遷移：舊 schema v1 依 source commit 展開成 per-file base。多個舊 target copies 的本機修改一致時自動合併；不同時，互動終端列出各版本 hash、變更檔案與來源路徑，要求選出 canonical local intent。非互動模式保留內容並阻擋該 skill。
 - per-file planner：比較 base、current source、persistent overlay 與 installed local。第一次出現 `local-only`、`both-changed` 或內容不同的 `no-base` 時，先完成 keep-local、use-upstream 或 abort。
 - decision memory：每個檔案以 current upstream hash、effective-local hash 與 decision 記住回答。hash pair 相同時沿用；任一 hash 改變且仍有本機差異時重新詢問。source-only clean update 不詢問。原生 npx 蓋掉 installed overlay 時，仍以持久 overlay 計算 effective-local，並自動恢復已確認的本機內容。
 - 非互動模式：全新的或 hash pair 已改變的衝突會略過整個 skill，其他安全 skill 可繼續，phase 最後 exit 1。hash pair 相同的既有 decision 可以直接沿用。
 - transaction：依序 per-skill backup、grouped npx base、per-skill pure-base verification、overlay materialization、effective verification、atomic state commit。grouped command 非零時全部 rollback；回傳 0 但部分驗證失敗時只 rollback 失敗項，成功項可提交。
-- legacy `custom-simplify` 與其他舊 target copies 納入同一 transaction；overlay 已保存且讀回驗證成功後才清理 alias 與舊 manifest ownership。
+- legacy `custom-simplify` 與其他舊 target copies 納入同一 transaction；overlay 已保存且讀回驗證成功後才清理 alias、同名 stale copies 與舊 manifest ownership。未選版本與已存在 state 的 stale copies 會保留 transaction backup；後續 state commit 失敗時 rollback。
 
 #### Superpowers 處理
 

@@ -49,6 +49,10 @@ class Decision(str, Enum):
     USE_UPSTREAM = "use-upstream"
 
 
+class RootSelectionAborted(RuntimeError):
+    pass
+
+
 FileConflict = PlannedFile
 
 
@@ -227,7 +231,8 @@ class _SkillWork:
     decisions: dict[str, Decision]
     roots: dict[str, Path]
     transaction_roots: dict[str, Path]
-    legacy_aliases: tuple[Path, ...]
+    legacy_copies: tuple[Path, ...]
+    retain_backup: bool = False
 
 
 def get_first_party_local_roots(
@@ -548,37 +553,90 @@ class FirstPartyReconciler:
             )
         return overlays
 
-    @staticmethod
     def _local_tree(
+        self,
         roots: Mapping[str, Path],
         *,
+        skill: str,
         base: Mapping[str, TreeFile] | None,
         source: Mapping[str, TreeFile],
-    ) -> dict[str, TreeFile] | None:
-        trees = [snapshot_tree(path) for path in roots.values() if path.is_dir()]
+    ) -> tuple[dict[str, TreeFile] | None, bool]:
+        trees = [
+            (label, path, snapshot_tree(path))
+            for label, path in roots.items()
+            if path.is_dir()
+        ]
         if not trees:
-            return None
-        first = trees[0]
-        if all(_same_tree(first, other) for other in trees[1:]):
-            return first
+            return None, False
+        first = trees[0][2]
+        if all(_same_tree(first, tree) for _label, _path, tree in trees[1:]):
+            return first, False
 
         modified = [
-            tree
-            for tree in trees
+            (label, path, tree)
+            for label, path, tree in trees
             if not _same_tree(tree, source)
             and (base is None or not _same_tree(tree, base))
         ]
-        unique_modified: list[dict[str, TreeFile]] = []
-        for tree in modified:
-            if not any(_same_tree(tree, known) for known in unique_modified):
-                unique_modified.append(tree)
+        unique_modified: list[tuple[dict[str, TreeFile], list[tuple[str, Path]]]] = []
+        for label, path, tree in modified:
+            matching = next(
+                (
+                    locations
+                    for known, locations in unique_modified
+                    if _same_tree(tree, known)
+                ),
+                None,
+            )
+            if matching is None:
+                unique_modified.append((tree, [(label, path)]))
+            else:
+                matching.append((label, path))
         if len(unique_modified) > 1:
-            raise ValueError("agent-visible roots have different local modifications")
+            self.output_func(f"{skill}: agent-visible roots 有不同的本機修改：")
+            missing = TreeFile.missing()
+            for index, (tree, locations) in enumerate(unique_modified, start=1):
+                digest = hashlib.sha256()
+                for relative, item in sorted(tree.items()):
+                    digest.update(relative.encode("utf-8"))
+                    digest.update(item.hash.encode("utf-8"))
+                changed = sorted(
+                    relative
+                    for relative in set(tree) | set(source)
+                    if tree.get(relative, missing).hash
+                    != source.get(relative, missing).hash
+                )
+                self.output_func(
+                    f"  [{index}] sha256:{digest.hexdigest()} "
+                    f"changed_files={','.join(changed) or '(none)'}"
+                )
+                for label, path in locations:
+                    self.output_func(f"      {label}: {path}")
+            if not self.interactive:
+                raise ValueError(
+                    "agent-visible roots have different local modifications"
+                )
+            self.output_func(
+                "選中的版本會成為 canonical local intent；其他版本保留在 transaction backup。"
+            )
+            while True:
+                answer = (
+                    self.input_func(
+                        f"請選擇要保留的版本 [1-{len(unique_modified)}/A]: "
+                    )
+                    .strip()
+                    .upper()
+                )
+                if answer == "A":
+                    raise RootSelectionAborted
+                if answer.isdigit() and 1 <= int(answer) <= len(unique_modified):
+                    return unique_modified[int(answer) - 1][0], True
+                self.output_func(f"無效選項：{answer or '(空白)'}")
         if unique_modified:
-            return unique_modified[0]
-        if any(_same_tree(tree, source) for tree in trees):
-            return dict(source)
-        return dict(base or first)
+            return unique_modified[0][0], False
+        if any(_same_tree(tree, source) for _label, _path, tree in trees):
+            return dict(source), False
+        return dict(base or first), False
 
     def _plan(
         self,
@@ -602,6 +660,7 @@ class FirstPartyReconciler:
             try:
                 source = snapshot_tree(snapshot.skills_root / entry.skill)
                 roots = self._skill_roots(parents, entry.skill)
+                skill_state = state.skills.get(entry.skill)
                 records = tuple(
                     record
                     for record in migration_records
@@ -611,7 +670,8 @@ class FirstPartyReconciler:
                 )
                 transaction_roots = dict(roots)
                 candidate_roots = dict(roots)
-                legacy_aliases: list[Path] = []
+                legacy_copies: list[Path] = []
+                retain_backup = False
                 seen = {path.resolve(strict=False) for path in roots.values()}
                 for index, record in enumerate(records):
                     resolved = record.path.resolve(strict=False)
@@ -620,12 +680,18 @@ class FirstPartyReconciler:
                             continue
                         raise ValueError("unsupported symlink in legacy target copy")
                     if resolved not in seen:
-                        label = f"legacy-{index:03d}"
-                        candidate_roots[label] = record.path
+                        label = f"legacy-{record.target}-{index:03d}"
                         transaction_roots[label] = record.path
+                        legacy_copies.append(record.path)
+                        if (
+                            skill_state is not None
+                            and record.legacy_name == entry.skill
+                            and record.state is MigrationState.ALREADY_MIGRATED
+                        ):
+                            retain_backup = True
+                        else:
+                            candidate_roots[label] = record.path
                         seen.add(resolved)
-                    if record.legacy_name != entry.skill:
-                        legacy_aliases.append(record.path)
                 transaction = SkillTransaction(
                     entry.skill,
                     roots=transaction_roots,
@@ -634,15 +700,16 @@ class FirstPartyReconciler:
                     backup_root=self.backup_root,
                 )
                 transaction.recover_if_needed()
-                skill_state = state.skills.get(entry.skill)
                 base = self._base_for(
                     snapshot, entry, skill_state, legacy.get(entry.skill)
                 )
-                local = self._local_tree(
+                local, root_selection_retains_backup = self._local_tree(
                     candidate_roots,
+                    skill=entry.skill,
                     base=base,
                     source=source,
                 )
+                retain_backup = retain_backup or root_selection_retains_backup
                 if local is None:
                     local = dict(base or {})
                 conflicts = plan_skill(
@@ -667,9 +734,12 @@ class FirstPartyReconciler:
                         decisions=resolution.decisions,
                         roots=roots,
                         transaction_roots=transaction_roots,
-                        legacy_aliases=tuple(legacy_aliases),
+                        legacy_copies=tuple(legacy_copies),
+                        retain_backup=retain_backup,
                     )
                 )
+            except RootSelectionAborted:
+                return [], failed, True
             except (OSError, RuntimeError, ValueError) as exc:
                 self.output_func(f"{entry.skill}: {exc}")
                 failed.append(entry.skill)
@@ -811,9 +881,9 @@ class FirstPartyReconciler:
             if not _same_tree(snapshot_tree(root.resolve()), expected):
                 raise RuntimeError(f"effective tree mismatch: {item.entry.skill}")
         transaction.mark(TransactionStatus.VERIFIED)
-        for legacy_alias in item.legacy_aliases:
-            _remove_tree(legacy_alias)
-        retain = any(
+        for legacy_copy in item.legacy_copies:
+            _remove_tree(legacy_copy)
+        retain = item.retain_backup or any(
             conflict.plan.classification in {"local-only", "both-changed", "no-base"}
             and item.decisions[conflict.plan.path] is Decision.USE_UPSTREAM
             for conflict in item.conflicts

@@ -145,3 +145,11 @@
 - [x] 17.4 加入 `--review-first-party-overlays`，強制重審 remembered keep-local overlays，並驗證 non-interactive fail closed。
 - [x] 17.5 更新 README、資料流、OpenSpec 與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、ASD 提醒、public-boundary、scoped lint／format 及 diff check。
 - [x] 17.6 提交 scoped implementation，回報 commit hash；不 push、不 archive。
+
+## 18. 收斂多 target 舊副本
+
+- [x] 18.1 以現場 `custom-skills-doc-writer`、`custom-skills-upstream-ops` 與 `first-principles` 重現 `agent-visible roots have different local modifications`，確認 package 級 `exit 1` 不是遠端 inventory 失敗。
+- [x] 18.2 先加入回歸測試：不同 legacy copies 顯示 hash／changed files、互動 canonical selection、remembered overlay 忽略 stale same-name copies，以及 state write 失敗 rollback。
+- [x] 18.3 實作 canonical selection 與 transactional legacy cleanup；未選版本和 stale copies 保留 backup，非互動模式維持 fail closed。
+- [x] 18.4 更新 README、資料流、架構與 CHANGELOG，執行 focused／完整測試、OpenSpec strict、public-boundary、scoped lint／format 及 diff check。
+- [x] 18.5 提交 scoped implementation，回報 commit hash；不 push、不 archive，也不修改真實 installed overlays。

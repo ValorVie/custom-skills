@@ -133,14 +133,19 @@ PREPARED → PUBLISHED → INSTALLED → VERIFIED → DETACHED
 
 schema v1 directory guard 會用記錄的 source commit 取得舊 base tree，再展開為
 schema v2 per-file state。舊 target copies 的純 base／source 副本不算不同的本機意圖；
-一致的本機修改可合併成單一 canonical overlay。若不同 targets 有不同修改，該 skill
-在 npx 前停止，要求使用者先選擇 canonical 版本，不建立 per-agent overlay。
+一致的本機修改可合併成單一 canonical overlay。若不同 targets 有不同修改，互動終端
+會先列出各版本 hash、變更檔案與來源路徑，再要求使用者選出 canonical local intent；
+非互動模式停止該 skill，不建立 per-agent overlay。未選版本會保留 transaction backup。
+
+已有 schema v2 state 時，同名 `already-migrated` 舊實體副本不再參與 local intent
+判斷。reconcile 仍將它們納入 transaction backup；base、overlay 與 effective tree
+驗證成功後才移除。state commit 失敗時，rollback 會還原這些副本。
 
 `custom-simplify → simplify` 使用相同 planner 與 transaction。overlay 已保存、npx
 base 與 final materialized tree 都驗證成功後，才移除舊 alias 與 ManifestTracker
 ownership。
 
-npx add 成功後還要驗證 canonical path、frontmatter name、lock source 與必要 agent path。全部通過後才移除舊 manifest entries。legacy alias 另做備份後清理。
+npx add 成功後還要驗證 canonical path、frontmatter name、lock source 與必要 agent path。全部通過後才移除舊 manifest entries。legacy aliases 與同名 stale copies 都在 transaction 內備份後清理。
 
 ## Clone ManifestTracker
 
