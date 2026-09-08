@@ -149,7 +149,7 @@
 
 對應的開發流程（含手動測試清單替代方案）可參考：
 
-- `docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md`（Phase 5/5A/5.5/5.6）[Source: Code] docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md:312
+- [OpenSpec 操作指南](../workflow/OPENSPEC-GUIDE.md)的 Phase 5、5A、5.5 與 5.6。
 
 ---
 

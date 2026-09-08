@@ -276,6 +276,6 @@ A: 不建議。先用 `receiving-code-review` 驗證建議是否適合目前程�
 ## 相關資源
 
 - [CODE-QUALITY-TOOLS.md](./CODE-QUALITY-TOOLS.md) - 程式碼品質工具安裝指南
-- [TOOL-DECISION-GUIDE.md](./TOOL-DECISION-GUIDE.md) - 開發情境決策指南
-- [Development Workflow](./DEVELOPMENT-WORKFLOW.md) - 完整開發工作流程
+- [開發流程選擇指南](./DEVELOPMENT-WORKFLOW.md) - 各套方法的差異、情境與組合
+- [OpenSpec 操作指南](./OPENSPEC-GUIDE.md) - 規格、實作與驗證步驟
 - [Claude Plugins Official: code-simplifier](https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-simplifier/agents/code-simplifier.md) - `code-simplifier` 定義來源

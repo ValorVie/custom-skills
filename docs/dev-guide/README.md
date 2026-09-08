@@ -68,7 +68,11 @@
 
 | 文件 | 說明 |
 |------|------|
-| [DEVELOPMENT-WORKFLOW.md](workflow/DEVELOPMENT-WORKFLOW.md) | 開發工作流程 |
+| [DEVELOPMENT-WORKFLOW.md](workflow/DEVELOPMENT-WORKFLOW.md) | 給使用者的開發流程比較、情境選擇矩陣與組合範例 |
+| [agent-skills-guide.md](workflow/agent-skills-guide.md) | agent-skills 的 25 個技能、命令、安裝方式與使用取捨 |
+| [OPENSPEC-GUIDE.md](workflow/OPENSPEC-GUIDE.md) | 已選 OpenSpec 後的建立、實作、測試、驗證與歸檔操作 |
+| [SUPERPOWERS-GUIDE.md](workflow/SUPERPOWERS-GUIDE.md) | Superpowers 的技能與原生流程介紹 |
+| [WORKFLOW-ROUTING.md](workflow/WORKFLOW-ROUTING.md) | 給 Agent 的建議、接續與專案界線指引 |
 | [AI-AGENT-TASK-COLLABORATION-GUIDE.md](workflow/AI-AGENT-TASK-COLLABORATION-GUIDE.md) | Beads 任務契約、提示分層、文件、注意力與視覺說明的協作指南 |
 | [MATTPOCOCK-SKILLS-GUIDE.md](workflow/MATTPOCOCK-SKILLS-GUIDE.md) | mattpocock/skills 安裝、設計哲學與 41 個技能使用指南 |
 | [VIBE-CODING-DEV-STACK-FRAMEWORK.md](workflow/VIBE-CODING-DEV-STACK-FRAMEWORK.md) | Vibe Coding 開發堆疊框架與工作流 |

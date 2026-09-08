@@ -1,780 +1,170 @@
-# 開發工作流程指南
-
-本指南說明使用者已選擇 OpenSpec 後，如何完成正式 change 的建立、實作、驗證與
-歸檔。通用的技能呼叫權與專案覆寫原則，以
-[AI 工作流路由與專案覆寫指南](WORKFLOW-ROUTING.md) 為準。
-
-OpenSpec、Superpowers 與 Matt 高階流程都不會因為已安裝而自動啟動。若要使用
-`mattpocock/skills`，請參考獨立指南。
-
+---
+title: 開發流程選擇指南
+type: guide
+date: 2026-09-08
+author: ai-dev contributors
+status: active
 ---
 
-## 快速參考
+# 開發流程選擇指南
 
-| 情境 | 預設處理 |
-|------|----------|
-| 簡單問答、唯讀確認、小型文件或程式修改 | 直接處理，使用最小必要技能並驗證 |
-| 使用者明確指定 Matt 高階流程 | 依指定 skill 執行 |
-| 使用者明確指定 Superpowers | 依指定 skill 或既有 plan 執行 |
-| 使用者明確指定 OpenSpec | 依下方 OpenSpec 完整流程執行 |
-| 使用者指定既有 change、plan、spec 或 ticket | 接續原工件，不建立第二份規格 |
-| 問題仍不明確 | 先對話或使用模型呼叫型調查／建模技能，不自動建立 change |
+這份指南幫你依手上的工作，選擇直接與 AI 協作、單一技能，或一套完整開發流程。
+先看各套方法的差異，再用情境矩陣縮小選項；選定後，前往相應指南操作。
 
-### OpenSpec 命令
+矩陣提供建議與取捨，沒有規定「小功能一定用哪套」或「所有階段都必須跑」。
+你可以指定方法，也可以請 AI 先查證現況、提出推薦及理由，再一起決定。
+若要找原本的 OpenSpec 逐步教學，請看 [OpenSpec 操作指南](OPENSPEC-GUIDE.md)。
 
-| 階段 | 命令 | 說明 |
-|------|------|------|
-| 探索 change | `/opsx:explore` | 只在使用者指定 OpenSpec 情境使用 |
-| 建立提案 | `/opsx:new <name>` | 建立 change 和 proposal |
-| 建立規格 | `/opsx:continue` | 依序建立 design、specs、tasks |
-| 影響分析 | `/custom-skills-plan-analyze @<artifact>` | 分析提案完整性與專案影響（選用） |
-| 實作 | `/opsx:apply` | 執行 tasks 中的任務 |
-| 驗證 | `/opsx:verify` | 驗證實作符合規格 |
-| 歸檔 | `/opsx:archive` | 歸檔 change 到主規格 |
+## 先看你希望獲得什麼
 
-### Tracker 與工件
+選擇流程時，除了工作大小，更有用的是看：需求清楚了嗎、要留下什麼成果、想參與
+多少決策，以及目前缺哪一項能力。改動檔案數少，不代表一定容易或低風險。
 
-通用 harness 不指定 tracker。每個專案以自己的 `AGENTS.md` 與
-`docs/agents/issue-tracker.md` 宣告執行狀態、認領與依賴的唯一出口。
+| 方法 | 主要價值 | 常見產出 | 你的參與方式 | 值得先考慮的成本 |
+| --- | --- | --- | --- | --- |
+| 直接對話或工具內建規劃 | 快速查證、處理明確工作 | 回答、變更、驗證結果或簡短計畫 | 指定目標，討論必要的方向與例外 | 跨工作階段的紀錄與交接需另外安排 |
+| Matt Pocock skills | 可組合的需求、設計與日常工程技能 | 需求共識、規格、任務、程式或審查結果，依技能而定 | 選技能；需求與設計類通常需要較多互動 | 技能有不同呼叫方式；完整流程可能涉及任務系統與文件設定 |
+| Superpowers | 連貫的設計、計畫、實作與審查方法 | 設計文件、細分計畫、程式與驗證 | 先確認設計，再依所選執行方式檢視成果 | 完整流程有較多前置規劃與審查，需確認代理及工作區能力 |
+| OpenSpec | 保存可追溯、可演進的需求與變更 | proposal、specs、design、tasks 與歸檔紀錄 | 審閱規格、確認變更，接續實作與驗證 | 要維護規格與實作的一致性；它不替代專案測試與部署程序 |
+| agent-skills | 按生命週期提供工程方法與品質檢查 | 意圖摘要、規格、品質門檻、程式、審查或發布準備 | 可挑單一技能，也可逐階段確認或選連續實作 | 某些技能會設定工具、建立文件或安排額外審查；平台支援要分別確認 |
 
-custom-skills 本身使用 Beads 管理執行狀態；OpenSpec 保存使用者明確選擇的正式
-change 工件；GitHub Issues 保留外部入口。這是本 repo 的設定，不會套到所有
-ai-dev 專案。
+這些是選擇角度，不是各套工具的能力上限。例如 Matt 也能產生規格，Superpowers
+也有驗證，agent-skills 也能執行完整開發。不要把它們固定分配成只能負責某一階段。
 
-### OpenSpec 完整流程
+表格是根據各套指南整理的編輯建議，不是速度或品質排名。實際操作與版本基準見
+[Matt](MATTPOCOCK-SKILLS-GUIDE.md)、[Superpowers](SUPERPOWERS-GUIDE.md)、
+[OpenSpec](OPENSPEC-GUIDE.md) 與 [agent-skills](agent-skills-guide.md) 指南。
 
-```
-想法
-    → 對話或 /opsx:explore（釐清問題與現況）
-    → /opsx:new 或 /opsx:continue
-    → /opsx:apply
-    → /opsx:verify
-    → /opsx:archive
-```
+## 依目前情境縮小選項
 
-只有使用者明確選擇 OpenSpec，或直接指定既有 change 時才走此流程。若任務已有
-完整 specs 和 tasks，可直接執行 `/opsx:apply`，不重建 proposal。
+同一列可以有多個合適選擇。先找出你最在意的結果，再看差異，不必把候選全部執行。
+表中的技能名稱是查找用識別字，實際呼叫方式以所用工具的技能或命令選單為準。
 
-### 直接實作流程
+| 目前情境 | 可以考慮 | 如何選擇 | 下一個入口 |
+| --- | --- | --- | --- |
+| 修錯字、查一個設定或明確的小修改 | 直接處理，必要時加單一技能 | 能直接驗證就先做；不為了完整度建立規格 | 向 AI 說明目標與預期結果 |
+| 還說不清要解決誰的什麼問題 | 一般對話、agent-skills `interview-me`、Matt `grill-me` | 短缺口可直接問答；想聚焦真實意圖可用訪談；想展開設計決策可選 Matt | 各套指南的需求技能 |
+| 問題已清楚，但解法未定 | agent-skills `idea-refine`、Matt `prototype`、Superpowers `brainstorming` | 要比較方向、實作驗證假設，還是系統化討論設計 | 想法探索、原型或設計技能 |
+| 想保存長期需求與變更理由 | OpenSpec、Matt `to-spec`、agent-skills `spec-driven-development` | 需要主規格與變更歸檔，可看 OpenSpec；以一份規格交棒，也可看後兩者 | 各套規格指南 |
+| 已有規格，需要拆解與實作 | 原流程入口、Matt `implement`、Superpowers 計畫執行、agent-skills `/build` | 先沿用現有工件，再比較任務拆解、審查安排與人工參與程度 | 各套實作指南 |
+| 希望 AI 連續完成較完整的工作 | Superpowers 執行流程、agent-skills `/build auto` | 比較前置條件、任務審查、失敗停止方式與可用工具；不能只看「自動」兩字 | 完整執行說明 |
+| bug 原因不明 | Matt `diagnosing-bugs`、Superpowers `systematic-debugging`、agent-skills `debugging-and-error-recovery` | 都可作根因調查；已有慣用方法時先沿用，再依缺口補工具 | 各套除錯技能 |
+| 需要可重現的行為驗證 | Matt `tdd`、Superpowers 或 agent-skills `test-driven-development` | 比較測試切片與整理程式的方式；同一次實作選清楚，不同時要求矛盾步驟 | 測試技能與專案測試指令 |
+| 擔心函式庫用法過時或重要決策站不住腳 | agent-skills `source-driven-development`、`doubt-driven-development` | 前者確認版本與官方用法；後者安排審查找反例，成本與目的不同 | agent-skills 查證與反證說明 |
+| 已完成程式，想審查或簡化 | Matt `code-review`、Superpowers 審查技能、agent-skills `code-review-and-quality`／`code-simplification` | 先區分只要意見，還是允許修改程式；再選審查面向與深度 | 各套審查說明 |
+| 想建立品質門檻，或準備遷移與發布 | agent-skills 對應技能，加上專案既有程序 | 分別看門檻設定、監控、遷移與發布準備，避免一次帶入所有檢查 | agent-skills 交付與維護技能 |
 
-未指定高階工作流時，使用最短可驗證路徑：
+若只是多個檔案，不一定需要完整流程；若涉及授權或資料，即使只改一行，也可能
+需要先調查與討論。矩陣協助選方法，具體操作仍遵守專案的範圍與權限。
 
-```
-依專案規則建立或認領工作（需要持久追蹤時）
-    → 選擇最小必要技能或直接實作
-    → 測試或文件驗證
-    → code review（依風險選用）
-```
+## 常見的選擇差異
 
-以下情況可直接實作：
+### 要釐清意圖，還是展開設計
 
-1. 變更範圍明確，且不改變既有正式規格。
-2. 一個 session 內可完成實作與驗證。
-3. 不需要額外的跨 session 決策與交棒。
+`interview-me` 聚焦真正目的與成功條件；Matt 的需求訪談會沿設計決策逐步追問；
+`idea-refine` 偏向比較不同解法；Superpowers `brainstorming` 會銜接設計文件與計畫。
 
-任一條件不成立時，代理可以建議 OpenSpec、Superpowers 或 Matt 高階流程，但仍須
-由使用者選擇；不能把建議視為授權。
+不要用「哪套問得比較少」作唯一選擇：問題數取決於需求與停止條件。已有清楚答案
+時，可以直接把答案交給 AI，要求接續下一步。詳細差異見
+[agent-skills 指南](agent-skills-guide.md#訪談探索方案與規格各有不同產出)與
+[Matt 指南](MATTPOCOCK-SKILLS-GUIDE.md)。
 
-### OpenSpec 與 TDD 組合流程
+### 要正式變更紀錄，還是一次工作的規格
 
-只有使用者已選擇 OpenSpec，且程式行為適合自動化測試時，使用以下組合：
+想讓未來的人知道系統應該怎麼運作、這次改了什麼，可以考慮 OpenSpec 的主規格
+與 change。若重點是把一項工作交代清楚，Matt 或 agent-skills 的規格技能也可使用。
+先決定哪份文件是這次工作的依據，比同時產生多份規格更容易維護。
 
-```
-想法 → /opsx:explore（必要時）→ /opsx:new → /opsx:continue (×N)
-    → /custom-skills-plan-analyze @proposal.md（選用，高風險變更建議執行）
-    → /custom-skills-{lang}-derive-tests → /custom-skills-{lang}-test (Red)
-    → /opsx:apply → /custom-skills-{lang}-test (Green)
-    → /custom-skills-{lang}-coverage → /custom-skills-report
-    → 人工審閱 → 回溯更新 artifacts（如有偏差）
-    → /opsx:verify → /opsx:archive
-```
+### 要逐段看成果，還是批准計畫後連續執行
 
-**語言命令對照：**
+agent-skills `/build` 一次處理下一個任務，`/build auto` 會在計畫批准後連續處理，
+但仍有測試、提交與停止條件。Superpowers 的完整流程則包含其計畫、實作與審查安排。
+選擇前看你願意投入的前期確認、可用代理能力，以及失敗後如何接手。
 
-| 步驟 | Python | PHP |
-|------|--------|-----|
-| 生成測試 | `/custom-skills-python-derive-tests` | `/custom-skills-php-derive-tests` |
-| 執行測試 | `/custom-skills-python-test` | `/custom-skills-php-test` |
-| 覆蓋率 | `/custom-skills-python-coverage` | `/custom-skills-php-coverage` |
+「連續執行」不代表可以略過驗證或操作授權。各平台也不一定載入相同命令，請看
+[agent-skills 命令說明](agent-skills-guide.md#命令怎麼用會做哪些事)與
+[Superpowers 執行說明](SUPERPOWERS-GUIDE.md)。
 
-### 何時不適用 TDD 流程
+## 可以怎麼組合
 
-TDD 流程適用於有明確輸入/輸出的程式邏輯。以下情況**不適用 TDD**：
+以下是可選範例，依你的需求取用。每次交棒都說清楚要帶入哪份成果、接下來做什麼。
 
-| 變更類型 | 說明 | 建議流程 |
-|----------|------|----------|
-| 純文件變更 | README、CHANGELOG、開發指南等 | 直接修改並做文件驗證 |
-| 配置檔案 | .yaml、.json、環境設定等 | 依風險做格式、schema 或整合驗證 |
-| AI 命令定義 | Claude Code 命令（.md） | 直接修改或由使用者指定規格流程 |
-| 重新命名/搬移 | 檔案重新命名、目錄重組 | 直接修改並檢查引用 |
-| 樣式調整 | CSS、UI 微調 | 直接實作 |
-| 系統整合/UI 互動 | 涉及外部服務、瀏覽器操作、硬體互動等 | 自動驗證加手動測試清單 |
+### 明確 bug：直接調查與修復
 
-**判斷原則**：
-- ✓ 適合 TDD：可寫自動化測試驗證的功能邏輯
-- △ 適合手動測試清單：有功能邏輯但難以自動化（外部依賴、UI 互動、系統整合）
-- ✗ 不適合 TDD：無程式邏輯、純文件、AI 指引定義
-
-### 常用命令速查
-
-```bash
-# 查看所有 changes
-openspec list
-
-# 查看 change 狀態
-openspec status --change <name>
-
-# 執行測試
-uv run ai-dev test
-
-# 檢查覆蓋率
-uv run ai-dev coverage
+```text
+重現問題 → 選一個除錯方法 → 加上可重現檢查 → 修復與驗證
 ```
 
-### 選用的上游工程工作流
+適合需求明確、沒有另外建立規格必要的工作。可對 AI 說：
 
-`mattpocock/skills` 由使用者獨立安裝與更新，不受本 repo 的同步、改寫或分發
-機制管理。安裝方式、完整工作流與各技能說明請看
-[mattpocock/skills 使用指南](MATTPOCOCK-SKILLS-GUIDE.md)。
+> 先查清這個 bug 的根因，說明建議與理由；用能重現問題的檢查驗證修正。
 
----
+### 需求待釐清，並希望留下正式規格
 
-## 完整開發流程
-
-### Phase 0: 對話探索 — 釐清想法
-
-在使用任何工具之前，先與 AI 對話釐清你的想法。若想法還很模糊，不要急著建立
-OpenSpec change；先確認問題、範圍與可驗證的結果。
-
-**目標**：從模糊的想法變成明確的方向
-
-**對話範例**：
-
-```
-你：我想讓測試流程更自動化
-
-AI：你目前的測試流程是怎樣的？有什麼痛點？
-
-你：每次寫完 spec 後，還要手動寫測試，很容易遺漏場景
-
-AI：所以你希望從 spec 自動生成測試程式碼？
-    這樣可以確保每個場景都有對應的測試。
-
-你：對，而且生成的測試要能直接執行，不是只有骨架
-
-AI：了解。這個功能需要：
-    1. 解析 spec 中的 WHEN/THEN 場景
-    2. 生成完整的 pytest 測試程式碼
-    3. 整合到現有的 TDD 工作流程
-
-    我建議先確認輸入 spec 的格式、生成邊界與驗證方式，再決定是否開 OpenSpec。
+```text
+選一種需求訪談 → 確認意圖 → OpenSpec 規劃 → 實作與驗證
 ```
 
-**這個階段的產出**：
-- 問題陳述：「目前 XX 有 YY 問題」
-- 解決方向：「希望能 ZZ」
-- 大致範圍：「需要做 A、B、C」
+訪談選一般對話、Matt 或 agent-skills 其中一種就可以。可對 AI 說：
 
-**何時進入下一階段**：
-當你能用 1-2 句話清楚描述「要解決什麼問題」和「大致怎麼解決」時，就可以
-進入調研階段。若仍有術語、範圍或驗證條件不清楚，繼續對話，或使用已獨立安裝
-的上游 `grill-with-docs`；本流程不依賴它。
+> 先用 agent-skills 的 interview-me 釐清需求，確認後把結果交給 OpenSpec。
+> 不需要在建立規格時重新訪談一次。
 
----
+### 沿用既有實作流程，補上缺少的查證
 
-### Phase 1: 調研目標 — 理解現狀
-
-使用 `/opsx:explore` 進入探索模式，深入了解程式碼現狀和相關實作。
-
-**命令**：
-```
-/opsx:explore
+```text
+既有計畫 → 原流程實作 → 按需要加入來源查證或決策反證 → 原流程驗收
 ```
 
-**用途**：
-- 探索現有程式碼結構
-- 理解相關模組如何運作
-- 找出需要修改或擴充的位置
-- 確認技術可行性
+適合已在使用 Superpowers、Matt 或其他明確計畫的工作。可對 AI 說：
 
-**對話範例**：
+> 沿用目前計畫。這次涉及新版 API，加入 source-driven-development 查證用法，
+> 再繼續原本的實作與驗證。
 
-```
-你：/opsx:explore
+### 從頭選擇 agent-skills
 
-AI：進入探索模式。你想探索什麼？
-
-你：我想了解現有的測試執行流程是怎麼實作的
-
-AI：讓我搜尋相關程式碼...
-
-    找到以下相關檔案：
-    - script/commands/test.py - 測試執行 CLI
-    - script/utils/test_runner/ - TestRunner 架構
-    - commands/claude/custom-skills-test.md - Claude Code 命令
-
-    現有架構採用「腳本只負責執行，AI 負責分析」的原則...
+```text
+必要時釐清或探索 → 規格 → 計畫與實作 → 審查 → 發布準備
 ```
 
-**這個階段的產出**：
-- 對現有架構的理解
-- 需要修改/新增的檔案清單
-- 可能的技術方案
-
-**提示**：
-- 可以請 AI 繪製架構圖幫助理解
-- 如果發現現有設計有問題，可以在這個階段討論
-- 探索完成後，會對實作範圍有更清楚的認識
-
----
-
-### Phase 2: 建立提案 — 正式規劃
-
-當你對目標和範圍有足夠了解後，使用 `/opsx:new` 建立正式的 change 提案。
-
-**命令**：
-```
-/opsx:new <change-name>
-```
-
-**範例**：
-```
-/opsx:new tdd-test-generation
-```
-
-**這個命令會**：
-1. 建立 `openspec/changes/<change-name>/` 目錄
-2. 引導你建立 `proposal.md`
-
-**Proposal 內容**：
-- **Summary**：一句話描述這個 change
-- **Motivation**：為什麼需要這個功能（痛點）
-- **Scope**：In Scope / Out of Scope
-- **Design**：高層架構設計
-- **Capabilities**：這個 change 要提供的能力（重要！每個能力會對應一個 spec）
-
-**提示**：
-- Capabilities 要列清楚，後續會根據這個建立 specs
-- 如果不確定範圍，可以先列出來再討論調整
-- Proposal 是「為什麼做」和「做什麼」，不是「怎麼做」
-
-**確認或修改提案**：
-建立後可以繼續與 AI 討論，修改 proposal.md 直到滿意為止。
-
----
-
-### Phase 3: 建立規格 — 完善設計
-
-使用 `/opsx:continue` 依序建立其他 artifacts：design、specs、tasks。
-
-**命令**：
-```
-/opsx:continue
-```
-
-**Artifacts 順序**（spec-driven schema）：
-1. `proposal.md` - 提案（Phase 2 已完成）
-2. `design.md` - 技術設計決策
-3. `specs/*.md` - 詳細規格（WHEN/THEN 場景）
-4. `tasks.md` - 實作任務清單
-
-**Design.md 內容**：
-- **Context**：背景和現狀
-- **Goals / Non-Goals**：目標和非目標
-- **Decisions**：技術決策和理由
-- **Risks / Trade-offs**：風險和取捨
-
-**Specs 內容**：
-每個 capability 對應一個 spec 檔案，包含：
-```markdown
-### Requirement: 需求名稱
-需求描述
-
-#### Scenario: 場景名稱
-- **WHEN** 前置條件
-- **AND** 附加條件
-- **THEN** 預期結果
-```
-
-**Tasks.md 內容**：
-```markdown
-## 1. 任務群組名稱
-
-- [ ] 1.1 具體任務描述
-- [ ] 1.2 具體任務描述
-
-## 2. 另一個任務群組
-
-- [ ] 2.1 具體任務描述
-```
-
-**提示**：
-- 每次執行 `/opsx:continue` 建立一個 artifact
-- 可以隨時查看進度：`openspec status --change <name>`
-- 如果發現需要修改已完成的 artifact，直接編輯即可
-
----
-
-### Phase 3.5: 影響分析 — 評估風險（選用）
-
-當規格（specs）和任務清單（tasks）完成後、實作前，使用 `/custom-skills-plan-analyze` 對提案進行影響分析。
-
-**命令**：
-```
-/custom-skills-plan-analyze @openspec/changes/<change-name>/proposal.md
-```
-
-也可以分析其他 artifacts：
-```
-/custom-skills-plan-analyze @openspec/changes/<change-name>/design.md
-```
-
-**分析涵蓋**：
-1. 分析評估完善度 — 問題定義、範圍界定、證據支撐是否充分
-2. 功能設計完整性 — 修改範圍、向下相容、回滾方案是否完整
-3. 既有流程影響 — 是否破壞現有業務流程
-4. 潛在異常與副作用 — 效能、安全性、測試覆蓋、部署風險
-5. 綜合評估 — 整體評級與建議行動
-
-**何時應該執行**：
-
-| 情境 | 建議 |
-|------|------|
-| 高風險變更（涉及安全、資料、核心流程） | **強烈建議** |
-| 跨模組修改（影響多個系統元件） | **建議** |
-| 技術債清理或重構 | **建議** |
-| 小範圍功能新增 | 可跳過 |
-| 純文件或配置變更 | 可跳過 |
-
-**分析結果處理**：
-- **通過** → 直接進入 Phase 4 實作
-- **有條件通過** → 補充缺失項後進入實作
-- **需修改** → 回到 Phase 2/3 修訂提案或規格
-- **不建議執行** → 重新評估方案方向
-
----
-
-### Phase 4: 實作 — 執行任務
-
-當所有 artifacts 完成後，使用 `/opsx:apply` 開始實作。
-
-**命令**：
-```
-/opsx:apply
-```
-或指定 change：
-```
-/opsx:apply <change-name>
-```
-
-**這個命令會**：
-1. 讀取 tasks.md 中的任務清單
-2. 依序執行每個任務
-3. 完成後自動勾選 `- [ ]` → `- [x]`
-
-**TDD 流程**（建議）：
-
-**Python:**
-```
-# 1. 從 specs 生成測試
-/custom-skills-python-derive-tests openspec/changes/<name>/specs/
-
-# 2. Red Phase - 執行測試（預期失敗）
-/custom-skills-python-test
-
-# 3. 實作功能程式碼
-/opsx:apply
-
-# 4. Green Phase - 執行測試（預期通過）
-/custom-skills-python-test
-```
-
-**PHP:**
-```
-# 1. 從 specs 生成測試
-/custom-skills-php-derive-tests openspec/changes/<name>/specs/
-
-# 2. Red Phase - 執行測試（預期失敗）
-/custom-skills-php-test
-
-# 3. 實作功能程式碼
-/opsx:apply
-
-# 4. Green Phase - 執行測試（預期通過）
-/custom-skills-php-test
-```
-
-**提示**：
-- 可以隨時暫停，下次執行 `/opsx:apply` 會從上次停止的地方繼續
-- 如果發現任務描述不清楚，可以先更新 tasks.md
-- 實作過程中發現設計問題，可以回頭更新 design.md 或 specs
-
----
-
-### Phase 5: 測試 — 驗證實作
-
-使用測試相關命令驗證實作正確性。
-
-#### 通用流程
-
-1. 從 specs 生成測試
-2. 執行測試（Red Phase）
-3. 實作功能
-4. 執行測試（Green Phase）
-5. 檢查覆蓋率
-
-#### Python 命令
-
-| 步驟 | 命令 | 說明 |
-|------|------|------|
-| 生成測試 | `/custom-skills-python-derive-tests <specs-path>` | 生成 pytest 測試程式碼 |
-| 執行測試 | `/custom-skills-python-test` | 執行 pytest 並分析結果 |
-| 覆蓋率 | `/custom-skills-python-coverage` | 執行 pytest-cov 覆蓋率分析 |
-
-**Python 選項**：
-- `--verbose`, `-v`：顯示詳細輸出
-- `--fail-fast`, `-x`：失敗時立即停止
-- `-k <keyword>`：過濾測試名稱
-
-#### PHP 命令
-
-| 步驟 | 命令 | 說明 |
-|------|------|------|
-| 生成測試 | `/custom-skills-php-derive-tests <specs-path>` | 生成 PHPUnit 測試程式碼 |
-| 執行測試 | `/custom-skills-php-test` | 執行 PHPUnit 並分析結果 |
-| 覆蓋率 | `/custom-skills-php-coverage` | 執行 PHPUnit 覆蓋率分析 |
-
-**PHP 選項**：
-- `--verbose`, `-v`：顯示詳細輸出
-- `--stop-on-failure`：失敗時立即停止
-- `--filter <method>`：過濾測試方法
-
-#### 輸出格式
-
-**測試輸出**：
-- 測試摘要（通過/失敗/跳過數量）
-- 失敗測試分析（錯誤原因、修復建議）
-- 整體評估
-
-**覆蓋率輸出**：
-- 覆蓋率百分比
-- 未覆蓋的檔案和行數
-- 改善建議
-
----
-
-### Phase 5A: 手動測試清單 — 無法自動化時的替代方案
-
-當專案架構或系統限制導致難以建立完整的自動化測試時（例如：外部 API 整合、瀏覽器 UI 互動、硬體裝置操作、需要特定環境的整合場景），應建立**手動整合測試清單**，作為最低限度的功能驗證。
-
-> **何時使用**：當你判斷某個功能「有程式邏輯需要驗證，但無法或不值得寫自動化測試」時，使用此流程替代 Phase 5 的自動化測試。
-
-**建立方式**：
-
-請 AI 根據 specs 和實作程式碼分析，自動產出測試清單文件：
-
-```
-請根據 openspec/changes/<name>/specs/ 的場景定義和目前的實作程式碼，
-生成手動整合測試清單，輸出到 openspec/changes/<name>/manual-test-checklist.md
-```
-
-**AI 分析會涵蓋**：
-1. 從 specs 的 WHEN/THEN 場景提取測試案例
-2. 從實作程式碼識別需要手動驗證的路徑（錯誤處理、邊界條件）
-3. 標注每個測試案例的前置條件和預期結果
-
-**文件格式**：
-
-```markdown
-# 手動整合測試清單
-
-> Change: <change-name>
-> 建立日期: YYYY-MM-DD
-> 測試環境: （填寫測試環境說明）
-
-## 測試前置準備
-
-- [ ] 準備項目 1（例如：啟動本地服務）
-- [ ] 準備項目 2（例如：設定測試帳號）
-
-## 功能測試
-
-### 1. 場景名稱（對應 spec scenario）
-
-**前置條件**：描述測試前的系統狀態
-**操作步驟**：
-1. 執行步驟 1
-2. 執行步驟 2
-
-**預期結果**：
-- [ ] 結果 A
-- [ ] 結果 B
-
-**實際結果**：（測試時填寫）
-
-### 2. 另一個場景...
-
-## 邊界條件與錯誤處理
-
-### E1. 錯誤場景名稱
-
-**操作步驟**：
-1. 觸發錯誤條件
-
-**預期結果**：
-- [ ] 顯示正確的錯誤訊息
-- [ ] 系統狀態未被破壞
-
-## 測試結論
-
-- 測試日期：
-- 測試人員：
-- 通過項目：___ / ___
-- 未通過項目：（列出）
-- 結論：PASS / FAIL / PASS WITH NOTES
-```
-
-**使用流程**：
-
-1. 實作完成後，請 AI 分析 specs + 程式碼，產出清單
-2. 人工審閱清單是否完整（是否遺漏重要場景）
-3. 依清單逐項手動測試，勾選結果
-4. 填寫測試結論
-5. 將完成的清單保留在 change 目錄中，隨歸檔保存
-
-**提示**：
-- 手動測試清單和自動化測試可以並存，不是二選一
-- 部分場景可自動化測試、部分用手動清單，取得最佳平衡
-- 清單應隨實作變更而更新，與 Phase 5.6 回溯更新一起處理
-
----
-
-### Phase 5.5: 報告 — 人工審閱
-
-使用 `/custom-skills-report` 生成測試報告供人工審閱。
-
-**命令**：
-```
-/custom-skills-report <change-name>
-```
-
-**這個命令會**：
-1. 收集測試結果、覆蓋率、任務完成狀態
-2. 生成結構化資料（YAML 格式）
-3. 生成 AI 自然語言分析報告
-4. 輸出到 `openspec/changes/<change-name>/report.md`
-
-**報告內容**：
-- 結構化摘要（測試/覆蓋率/任務）
-- AI 分析（整體評估、問題、建議）
-- Specs 對照表
-- 審閱確認清單
-
-**人工審閱檢查點**：
-- [ ] 測試結果是否符合預期
-- [ ] 覆蓋率是否達標
-- [ ] 未覆蓋區塊的原因是否合理
-- [ ] AI 分析的建議是否需要處理
-
-**審閱通過後**：
-若實作與原始規格一致，直接進入驗證階段。若有偏差，先進入 Phase 5.6 回溯更新。
-
----
-
-### Phase 5.6: 回溯更新 — 同步 Artifacts
-
-在實作和測試過程中，經常會發現原始設計需要調整。例如：邊界條件的處理方式改變、API 介面微調、新增或移除了某些場景。若最終實作與原始 specs/design 有出入，**必須在驗證前將 artifacts 更新為實際狀態**，否則歸檔的 specs 會與程式碼不一致。
-
-> **重要**：OpenSpec 目前沒有專門的「回溯更新」命令。這個步驟需要手動編輯 change 目錄下的 artifacts。
-
-**需要檢查的 Artifacts**：
-
-| Artifact | 檢查重點 |
-|----------|----------|
-| `specs/*.md` | Scenario 的 WHEN/THEN 是否仍符合實際行為？是否有新增或移除的場景？ |
-| `design.md` | 技術決策是否有改變？是否出現了新的 trade-off？ |
-| `tasks.md` | 是否有額外完成的任務？是否有取消的任務？ |
-| `proposal.md` | Scope 是否有變化？（通常不需要改動） |
-
-**操作方式**：
-
-1. 比對實作結果與 specs 中的場景描述
-2. 直接編輯 `openspec/changes/<name>/specs/` 下的 spec 檔案
-3. 若設計決策有變，更新 `design.md` 並補充變更原因
-4. 若有新增/取消的任務，更新 `tasks.md`
-
-**常見需要回溯更新的情況**：
-
-- 測試發現需要額外的邊界條件處理，specs 中未定義
-- 實作時發現原始 API 設計不合理，做了調整
-- 為了效能或簡化，改變了原始設計方案
-- 移除了某個不再需要的場景
-
-**提示**：
-- 可以請 AI 協助比對目前實作與 specs 的差異，並建議修改內容
-- 修改幅度較大時，建議在 design.md 中記錄「為什麼改」
-- 這個步驟確保 `/opsx:verify` 能正確驗證，且歸檔後的 specs 反映真實狀態
-
----
-
-### Phase 6: 驗證 — 確認完成
-
-使用 `/opsx:verify` 驗證實作符合規格。
-
-**命令**：
-```
-/opsx:verify
-```
-
-**這個命令會**：
-1. 檢查所有 tasks 是否完成
-2. 比對實作與 specs 是否一致
-3. 確認測試通過
-4. 回報驗證結果
-
-**驗證通過的條件**：
-- [ ] 所有 tasks 已勾選完成
-- [ ] 測試全部通過
-- [ ] 覆蓋率達標
-- [ ] 實作符合 specs 定義
-
----
-
-### Phase 7: 歸檔 — 完成收尾
-
-當驗證通過後，使用 `/opsx:archive` 歸檔 change。
-
-**命令**：
-```
-/opsx:archive
-```
-或指定 change：
-```
-/opsx:archive <change-name>
-```
-
-**這個命令會**：
-1. 將 change 的 specs 合併到主規格 (`openspec/specs/`)
-2. 將 change 目錄移到 `openspec/archive/`
-3. 更新相關索引
-
-**歸檔後**：
-- Change 完成，不再出現在 `openspec list` 中
-- Specs 已整合到專案的主規格
-- 可在 `openspec/archive/` 查看歷史記錄
-
----
-
-## 附錄
-
-### A. 常見問題
-
-**Q: 可以跳過某些 Phase 嗎？**
-
-A: 可以，但不建議。每個 Phase 都有其目的：
-- 跳過 Phase 0-1：可能導致方向錯誤，做白工
-- 跳過 Phase 2-3：沒有規格，難以追蹤和驗證
-- 跳過 Phase 5-6：沒有測試，品質無法保證
-
-**Q: 實作過程中發現設計有問題怎麼辦？**
-
-A: OpenSpec 支援流動式工作流程：
-1. 暫停實作
-2. 回頭修改 design.md 或 specs
-3. 必要時更新 tasks.md
-4. 繼續實作
-
-**Q: 測試後發現實作與 specs 有偏差怎麼辦？**
-
-A: 在 Phase 5.6（回溯更新）手動更新 artifacts。OpenSpec 目前沒有專用命令處理這件事，需要直接編輯 change 目錄下的 specs/design 檔案。確保在 `/opsx:verify` 之前完成更新，這樣歸檔的 specs 才會反映實際實作。
-
-**Q: 多個 changes 可以同時進行嗎？**
-
-A: 可以。使用 `openspec list` 查看所有 changes，執行命令時指定 change 名稱即可。
-
-**Q: 如何判斷一個 change 是否適用 TDD 流程？**
-
-A: 問自己：「這個變更有可以寫自動化測試驗證的程式邏輯嗎？」
-
-- **適合 TDD**：新增 CLI 命令、API 端點、工具函式、資料處理邏輯
-- **適合手動測試清單**：外部 API 整合、UI 互動、需特定環境的整合場景
-- **不適合 TDD**：純文件變更、配置檔案、AI 命令定義（.md）、重新命名
-
-不適合 TDD 的變更仍可使用 spec-driven 流程（proposal → design → specs → tasks），但跳過測試生成和覆蓋率檢查階段。無法自動化但有功能邏輯的變更，應使用 Phase 5A 建立手動測試清單。
-
-### B. 命令總覽
-
-**OpenSpec 命令：**
-
-| 命令 | 說明 |
-|------|------|
-| `/opsx:explore` | 進入探索模式 |
-| `/opsx:new <name>` | 建立新的 change |
-| `/opsx:continue` | 繼續建立下一個 artifact |
-| `/opsx:apply` | 執行實作任務 |
-| `/opsx:verify` | 驗證實作 |
-| `/opsx:archive` | 歸檔 change |
-
-**Python 測試命令：**
-
-| 命令 | 說明 |
-|------|------|
-| `/custom-skills-python-derive-tests` | 從 specs 生成 pytest 測試 |
-| `/custom-skills-python-test` | 執行 pytest 測試 |
-| `/custom-skills-python-coverage` | 檢查 pytest 覆蓋率 |
-
-**PHP 測試命令：**
-
-| 命令 | 說明 |
-|------|------|
-| `/custom-skills-php-derive-tests` | 從 specs 生成 PHPUnit 測試 |
-| `/custom-skills-php-test` | 執行 PHPUnit 測試 |
-| `/custom-skills-php-coverage` | 檢查 PHPUnit 覆蓋率 |
-
-**分析與審閱命令：**
-
-| 命令 | 說明 |
-|------|------|
-| `/custom-skills-plan-analyze @<file>` | 分析計畫/報告的完整性與專案影響 |
-| `/custom-skills-report` | 生成測試報告（自動偵測語言） |
-
-### C. CLI 命令
-
-```bash
-# OpenSpec CLI
-openspec list                    # 列出所有 changes
-openspec status --change <name>  # 查看 change 狀態
-openspec show <name>             # 顯示 change 內容
-
-# ai-dev CLI
-uv run ai-dev test              # 執行測試
-uv run ai-dev coverage          # 檢查覆蓋率
-uv run ai-dev derive-tests      # 讀取 specs 內容
-```
-
-### D. 目錄結構
-
-```
-openspec/
-├── changes/           # 進行中的 changes
-│   └── <change-name>/
-│       ├── proposal.md
-│       ├── design.md
-│       ├── specs/
-│       │   └── <feature>/spec.md
-│       └── tasks.md
-├── specs/             # 主規格（歸檔後合併至此）
-└── archive/           # 已完成的 changes
-```
-
----
-
-## 下一步
-
-完成 OpenSpec 開發流程後，請參考 **[Git 工作流程指南](GIT-WORKFLOW.md)** 進行程式碼提交與 PR 流程：
-
-1. 從 main 建立開發分支
-2. 開發（commit 可隨意）
-3. Rebase/Merge main
-4. `/git-commit pr` 建立 PR
-5. Code Review → 合併 → 刪除分支
+適合想使用同一套階段名稱與品質方法的使用者。可以逐段操作，也可在符合前置條件時
+選 `/build auto`。具體流程與操作範圍見[agent-skills 指南](agent-skills-guide.md)。
+
+## 跨套使用前，確認這幾件事
+
+| 要確認的事情 | 為什麼會影響選擇 |
+| --- | --- |
+| 技能與命令來自哪裡 | `/plan`、`/review` 或 TDD 類名稱可能重疊；指明來源可減少誤用 |
+| 目前使用哪份規格與任務 | 不同流程的預設路徑不同，不能假設能直接互讀 |
+| 是否已經完成相同工作 | 第二次訪談、計畫或審查只有在補足缺口時才有價值 |
+| 操作會寫入什麼 | 規格、檢查工具、Git 提交與發布操作有不同影響 |
+| 所需能力是否真的可用 | 技能檔、命令、代理角色、瀏覽器工具與共用參考文件是不同項目 |
+
+例如 agent-skills `/build auto` 的規格路徑不直接涵蓋 OpenSpec 的 change 結構。
+想混用時先確認交接方式，或保留 OpenSpec 的實作入口並補單一技能。
+具體限制見[單步與連續實作](agent-skills-guide.md#選擇單步或連續實作)。
+
+## 還不確定時，怎麼請 AI 幫忙選
+
+可以直接提供目標、現有成果與偏好，請 AI 提出建議，不必先背熟所有技能：
+
+> 請先查專案現況與既有工件，提出這項工作的流程建議及理由。
+> 說明其他合適選項的差異、需要我參與的地方，以及最後會留下什麼成果。
+> 大方向一起討論，細節依專案慣例與適用的最佳實踐處理。
+
+推薦結果至少應讓你知道：為何適合、代價是什麼、從哪裡開始。已選定流程時直接
+指名即可，不需要每個任務都重新比較所有方法。
+
+## 選好後從哪裡開始
+
+| 你的選擇 | 詳細指南 |
+| --- | --- |
+| 完整了解或挑選 agent-skills | [agent-skills 使用指南](agent-skills-guide.md) |
+| 使用 Matt 的單一技能或組合 | [Matt Pocock skills 使用指南](MATTPOCOCK-SKILLS-GUIDE.md) |
+| 使用 Superpowers 設計與執行 | [Superpowers 技能系統介紹](SUPERPOWERS-GUIDE.md) |
+| 使用 OpenSpec 建立或接續變更 | [OpenSpec 操作指南](OPENSPEC-GUIDE.md) |
+| 選擇專門審查工具 | [程式碼審查工具選擇指南](CODE-REVIEW-TOOL-SELECTION-GUIDE.md) |
+| 讓 Agent 理解你的選擇與專案界線 | [Agent 工作流指引](WORKFLOW-ROUTING.md) |
+
+本文件只維護跨套比較與選擇方式。版本、安裝、命令與完整流程放在各套指南，避免
+多處維護同一份操作說明。

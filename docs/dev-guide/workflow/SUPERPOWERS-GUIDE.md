@@ -1,5 +1,14 @@
 # Superpowers 技能系統介紹
 
+本指南供已在考慮或使用 Superpowers 的讀者了解其技能與原生流程。若尚未選擇方法，
+先看[開發流程選擇指南](DEVELOPMENT-WORKFLOW.md)；需要其他工程能力時，可比較
+[Matt 指南](MATTPOCOCK-SKILLS-GUIDE.md)與[agent-skills 指南](agent-skills-guide.md)。
+
+本文保留原有 **5.0 版流程介紹**，不是最新版本的逐項驗證。下文的「自動」與「強制」
+描述該上游流程內的設計；在 ai-dev 專案中，仍以使用者已選方法與專案入口規則為準。
+安裝不代表每個新任務都應從 brainstorming 開始。上游更新後，請重新確認審查角色、
+啟動方式與命令，再依實際版本使用。
+
 > Superpowers 5.0 是一套**強制執行**的 AI 軟體開發紀律框架，由 14 個可組合技能構成。
 >
 > 核心理念：**「鐵律非建議」**——每個技能都有無例外的規則。
@@ -321,4 +330,4 @@ Superpowers 除了核心技能庫外，還透過 `obra/superpowers-marketplace` 
 - [Superpowers GitHub](https://github.com/obra/superpowers) — 原始碼與文件（v5.0）
 - [高見龍的 Superpowers 心得](https://kaochenlong.com/ai-superpowers-skills) — 實戰經驗分享
 - [SUPERPOWERS-MARKETPLACE-PLUGINS.md](SUPERPOWERS-MARKETPLACE-PLUGINS.md) — Marketplace Plugin 完整分析
-- [TOOL-DECISION-GUIDE.md](TOOL-DECISION-GUIDE.md) — 本專案工具選擇決策指南
+- [開發流程選擇指南](DEVELOPMENT-WORKFLOW.md)：跨套比較、情境矩陣與組合範例

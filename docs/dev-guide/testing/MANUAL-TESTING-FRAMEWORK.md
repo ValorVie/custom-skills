@@ -126,13 +126,13 @@ Bug 單建議欄位（最小集合）：
 - 可重複、可判定、頻繁回歸的案例 -> 自動化（UT/IT/E2E）
 - 需要人判斷、易變動、或成本不值得自動化 -> 手動（特別是探索性與整合場景）
 
-在本 repo 的開發流程裡，當「有功能邏輯需要驗證，但難以自動化」時，建議用「手動整合測試清單」作為替代方案 [Source: Code] docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md:364
+在本 repo 的開發流程裡，當「有功能邏輯需要驗證，但難以自動化」時，建議用「手動整合測試清單」作為替代方案，見 [OpenSpec 操作指南](../workflow/OPENSPEC-GUIDE.md)的 Phase 5A。
 
 ---
 
 ## 4.（本專案）手動整合測試清單：最小可交付的手動框架
 
-`docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md` 提供了一個可直接沿用的手動清單格式（包含前置準備、功能測試、邊界與錯誤處理、測試結論），並建議由 AI 根據 specs + 實作自動產出初稿，再由人審閱補齊 [Source: Code] docs/dev-guide/workflow/DEVELOPMENT-WORKFLOW.md:364
+[OpenSpec 操作指南](../workflow/OPENSPEC-GUIDE.md) 提供了一個可直接沿用的手動清單格式（包含前置準備、功能測試、邊界與錯誤處理、測試結論），並建議由 AI 根據 specs + 實作自動產出初稿，再由人審閱補齊。具體格式見該指南的 Phase 5A。
 
 ---
 

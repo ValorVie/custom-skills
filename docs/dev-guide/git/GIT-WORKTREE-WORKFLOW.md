@@ -410,4 +410,4 @@ git worktree remove ~/custom-skills-wt/hotfix-$(date +%y%m%d)
 
 - [GIT-WORKFLOW.md](./GIT-WORKFLOW.md) - 基礎 Git 工作流程
 - [Git Worktree 官方文件](https://git-scm.com/docs/git-worktree)
-- [DEVELOPMENT-WORKFLOW.md](./DEVELOPMENT-WORKFLOW.md) - OpenSpec 開發工作流程
+- [OpenSpec 操作指南](../workflow/OPENSPEC-GUIDE.md) - OpenSpec 開發工作流程

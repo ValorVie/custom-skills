@@ -380,4 +380,4 @@ superpowers 的 `dev` 分支版本。**必須先卸載其他版本的 superpower
 - [Superpowers Marketplace GitHub](https://github.com/obra/superpowers-marketplace)
 - [Superpowers 核心 GitHub](https://github.com/obra/superpowers)
 - [SUPERPOWERS-GUIDE.md](SUPERPOWERS-GUIDE.md) — 技能體系詳解
-- [TOOL-DECISION-GUIDE.md](TOOL-DECISION-GUIDE.md) — 本專案工具選擇決策指南
+- [開發流程選擇指南](DEVELOPMENT-WORKFLOW.md)：跨套比較與情境矩陣

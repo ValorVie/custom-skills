@@ -341,7 +341,7 @@ diff。圖放在相關說明旁邊，並刪除與目前問題無關的元件。
 
 ## 相關文件
 
-- [AI 工作流路由與專案覆寫指南](WORKFLOW-ROUTING.md)
+- [Agent 工作流指引](WORKFLOW-ROUTING.md)
 - [Matt Pocock Skills 指南](MATTPOCOCK-SKILLS-GUIDE.md)
 - [Beads 指南](../ai-tools/BEADS-GUIDE.md)
 - [`custom-skills-doc-writer`](../../../skills/custom-skills-doc-writer/SKILL.md)

@@ -64,11 +64,11 @@ Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態�
 3. tracker、Git、安全與部署規則由專案自己的 `AGENTS.md`／`CLAUDE.md` 覆寫。
 4. 經驗學習與持久記憶交由各 harness agent tool 的原生能力處理。
 
-完整設計請閱讀
-[AI 工作流路由與專案覆寫指南](dev-guide/workflow/WORKFLOW-ROUTING.md)；OpenSpec
-操作步驟與 Matt 技能說明分別位於
-[開發工作流程指南](dev-guide/workflow/DEVELOPMENT-WORKFLOW.md) 與
-[mattpocock/skills 使用指南](dev-guide/workflow/MATTPOCOCK-SKILLS-GUIDE.md)。
+想比較各套方法，先讀[開發流程選擇指南](dev-guide/workflow/DEVELOPMENT-WORKFLOW.md)。
+選定後再看 [OpenSpec 操作指南](dev-guide/workflow/OPENSPEC-GUIDE.md)、
+[Matt 技能指南](dev-guide/workflow/MATTPOCOCK-SKILLS-GUIDE.md)或
+[agent-skills 指南](dev-guide/workflow/agent-skills-guide.md)。
+給 Agent 的建議與接續方式放在[Agent 工作流指引](dev-guide/workflow/WORKFLOW-ROUTING.md)。
 
 ---
 
@@ -598,24 +598,10 @@ claude -p "檢查文件依賴項目是否正確"
 ```
 
 ### OpenSpec 工作流
-完整工作流可參考 [DEVELOPMENT-WORKFLOW](workflow/DEVELOPMENT-WORKFLOW)
 
-```shell
-# 建立變更提案
-/openspec:proposal 新增用戶登入功能
-
-# 查看變更列表
-openspec list
-
-# 驗證規格
-openspec validate add-user-login
-
-# 應用變更
-/openspec:apply add-user-login
-
-# 封存已完成的變更
-/openspec:archive add-user-login
-```
+尚未選方法時，先看[開發流程選擇指南](dev-guide/workflow/DEVELOPMENT-WORKFLOW.md)。
+已選 OpenSpec 時，依[OpenSpec 操作指南](dev-guide/workflow/OPENSPEC-GUIDE.md)
+建立或接續變更；該指南集中說明命令、測試與歸檔，避免在安裝入口維護另一套步驟。
 
 ### Ralph Loop (批次任務)
 

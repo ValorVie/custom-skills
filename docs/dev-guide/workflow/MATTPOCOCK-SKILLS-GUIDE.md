@@ -6,6 +6,9 @@
 [`mattpocock/skills`](https://github.com/mattpocock/skills)，以及每個技能背後的
 使用邏輯、設計哲學與適用情境。
 
+尚未選擇方法時，先看[開發流程選擇指南](DEVELOPMENT-WORKFLOW.md)。想比較
+需求訪談、品質門檻或維運技能，可另讀[agent-skills 指南](agent-skills-guide.md)。
+
 > [!IMPORTANT]
 > 本指南以 2026-07-23 的上游 commit
 > [`ed37663`](https://github.com/mattpocock/skills/tree/ed37663cc5fbef691ddfecd080dff42f7e7e350d)
@@ -469,6 +472,16 @@ Matt primitive skills 可由模型按需要選擇；高階流程仍由使用者�
 `mattpocock/skills` 不再是 `DEVELOPMENT-WORKFLOW.md` 的必要階段。已經有清楚
 OpenSpec artifacts 的工作，接續原 OpenSpec change；單一小改動則依專案 tracker
 規則直接實作與驗證。
+
+### 與 agent-skills 的選擇差異
+
+兩套都有需求、測試與審查能力，可以單獨使用，也可以按缺口組合。Matt 的需求技能
+偏向展開設計決策；agent-skills 的 `interview-me` 聚焦意圖，`idea-refine` 比較解法，
+另外提供品質門檻、監控與遷移等方法。這不是誰取代誰，而是看本次需要的產出。
+
+已有明確需求時，不必因為換了一套規格技能就重做訪談。已有規格與任務時，也先
+確認交棒位置。agent-skills 的命令有自己的預設路徑，不能假設會自動接手 Matt
+或專案任務系統的所有工件。具體限制與選擇見[agent-skills 指南](agent-skills-guide.md)。
 
 ## 常見問題
 

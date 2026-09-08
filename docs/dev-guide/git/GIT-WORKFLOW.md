@@ -61,7 +61,7 @@ git commit -m "調整"
 ```
 
 **提示**：
-- 可以搭配 OpenSpec 工作流程進行開發（見 [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)）
+- 可以搭配 OpenSpec 工作流程進行開發（見 [OpenSpec 操作指南](../workflow/OPENSPEC-GUIDE.md)）
 - 頻繁 commit，避免遺失進度
 - 不需要花時間寫完美的 commit message
 
@@ -265,7 +265,7 @@ gh pr view <pr-number>
 
 ## 參考
 
-- [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) - OpenSpec 開發工作流程
+- [OpenSpec 操作指南](../workflow/OPENSPEC-GUIDE.md) - OpenSpec 開發工作流程
 - [GIT-WORKTREE-WORKFLOW.md](GIT-WORKTREE-WORKFLOW.md) - Worktree 並行開發
 - [GIT-PULL-DEPLOY.md](GIT-PULL-DEPLOY.md) - Git Pull 部署與 Sparse Checkout
 - [GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow) - GitHub 官方工作流程指南

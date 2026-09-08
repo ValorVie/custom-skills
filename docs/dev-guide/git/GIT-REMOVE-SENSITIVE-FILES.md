@@ -262,4 +262,4 @@ repos:
 ## 相關文件
 
 - [GIT-WORKFLOW.md](GIT-WORKFLOW.md) - Git 分支管理與 PR 流程
-- [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) - OpenSpec 開發工作流程
+- [OpenSpec 操作指南](../workflow/OPENSPEC-GUIDE.md) - OpenSpec 開發工作流程
