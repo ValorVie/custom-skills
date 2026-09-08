@@ -69,6 +69,7 @@
 | 文件 | 說明 |
 |------|------|
 | [DEVELOPMENT-WORKFLOW.md](workflow/DEVELOPMENT-WORKFLOW.md) | 給使用者的開發流程比較、情境選擇矩陣與組合範例 |
+| [SKILL-COMPARISON-GUIDE.md](workflow/SKILL-COMPARISON-GUIDE.md) | 按階段比較技能輸入、產出、差異與選用理由 |
 | [agent-skills-guide.md](workflow/agent-skills-guide.md) | agent-skills 的 25 個技能、命令、安裝方式與使用取捨 |
 | [OPENSPEC-GUIDE.md](workflow/OPENSPEC-GUIDE.md) | 已選 OpenSpec 後的建立、實作、測試、驗證與歸檔操作 |
 | [SUPERPOWERS-GUIDE.md](workflow/SUPERPOWERS-GUIDE.md) | Superpowers 的技能與原生流程介紹 |

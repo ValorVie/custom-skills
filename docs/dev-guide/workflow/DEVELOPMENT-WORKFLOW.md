@@ -10,6 +10,8 @@ status: active
 
 這份指南幫你依手上的工作，選擇直接與 AI 協作、單一技能，或一套完整開發流程。
 先看各套方法的差異，再用情境矩陣縮小選項；選定後，前往相應指南操作。
+同一階段有多個合適技能時，接著看 [按開發階段比較與選擇技能](SKILL-COMPARISON-GUIDE.md)，
+逐項比較輸入、產出、做法、選用理由與改選條件。
 
 矩陣提供建議與取捨，沒有規定「小功能一定用哪套」或「所有階段都必須跑」。
 你可以指定方法，也可以請 AI 先查證現況、提出推薦及理由，再一起決定。
@@ -43,7 +45,7 @@ status: active
 | 目前情境 | 可以考慮 | 如何選擇 | 下一個入口 |
 | --- | --- | --- | --- |
 | 修錯字、查一個設定或明確的小修改 | 直接處理，必要時加單一技能 | 能直接驗證就先做；不為了完整度建立規格 | 向 AI 說明目標與預期結果 |
-| 還說不清要解決誰的什麼問題 | 一般對話、agent-skills `interview-me`、Matt `grill-me` | 短缺口可直接問答；想聚焦真實意圖可用訪談；想展開設計決策可選 Matt | 各套指南的需求技能 |
+| 還說不清要解決誰的什麼問題 | 一般對話、agent-skills `interview-me`、Matt `grill-with-docs`／`grilling` | 短缺口可直接問答；想聚焦真實意圖可用訪談；想展開設計決策可選 Matt | 各套指南的需求技能 |
 | 問題已清楚，但解法未定 | agent-skills `idea-refine`、Matt `prototype`、Superpowers `brainstorming` | 要比較方向、實作驗證假設，還是系統化討論設計 | 想法探索、原型或設計技能 |
 | 想保存長期需求與變更理由 | OpenSpec、Matt `to-spec`、agent-skills `spec-driven-development` | 需要主規格與變更歸檔，可看 OpenSpec；以一份規格交棒，也可看後兩者 | 各套規格指南 |
 | 已有規格，需要拆解與實作 | 原流程入口、Matt `implement`、Superpowers 計畫執行、agent-skills `/build` | 先沿用現有工件，再比較任務拆解、審查安排與人工參與程度 | 各套實作指南 |
