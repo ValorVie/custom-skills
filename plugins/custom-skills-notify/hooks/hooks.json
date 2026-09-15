@@ -4,7 +4,6 @@
     "SessionStart": [
       {
         "matcher": "*",
-        "description": "檢查 Telegram 設定是否完成",
         "hooks": [
           {
             "type": "command",
@@ -16,7 +15,6 @@
     "Notification": [
       {
         "matcher": "*",
-        "description": "通知事件（權限請求、閒置提示等）→ Telegram",
         "hooks": [
           {
             "type": "command",
@@ -29,7 +27,6 @@
     "Stop": [
       {
         "matcher": "*",
-        "description": "任務完成 → Telegram",
         "hooks": [
           {
             "type": "command",
@@ -42,7 +39,6 @@
     "PostToolUseFailure": [
       {
         "matcher": "*",
-        "description": "工具執行失敗 → Telegram",
         "hooks": [
           {
             "type": "command",

@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **移除 plugin hooks.json 中 Claude Code 不支援的 matcher 群組 `description` 欄位。**
+  - Claude Code 2.1.x 會對 `hooks.<Event>[n].description` 顯示 unknown keys 警告並忽略該欄位；`ecc-hooks` 移除 19 個、`custom-skills-notify` 移除 4 個，hook 行為不變。
+  - `ecc-hooks` 升版至 1.2.9，`custom-skills-notify` 升版至 1.4.1。
+
 - **修正第一方多 target 舊副本無法收斂。**
   - 同一 skill 有多個不同本機版本時，互動終端會列出各版本的 hash、變更檔案與來源路徑，要求選出 canonical local intent；非互動模式仍 fail closed。
   - 已有 schema v2 state 的同名 `already-migrated` 舊副本不再蓋過 remembered overlay。驗證成功後會在 transaction 內清理，未選版本與 stale copies 保留於備份；state commit 失敗時完整 rollback。
