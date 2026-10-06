@@ -237,6 +237,9 @@ Server 模式只改變圖中央的儲存位置：多個 `bd` 客戶端會連到�
 
 Beads CLI 是系統層級工具。不要把 Beads 的 GitHub 儲存庫 clone 到專案中；專案內的 `.beads/` 只保存該專案的設定與工作資料。
 
+以下各節的「更新」命令只適合沒有結構遷移的版本。已有 `.beads` 的專案升級前，先看
+[Beads 升級指南](BEADS-UPGRADE-GUIDE.md)。
+
 ### macOS / Linux：Homebrew（建議）
 
 ```bash
@@ -934,17 +937,26 @@ bd dolt remote list
 
 ## 更新與備份
 
-小版本更新前後至少執行：
+升級 `bd` 前先讀 [Beads 升級指南](BEADS-UPGRADE-GUIDE.md)。從 1.3.x 起，embedded 模式設有
+Dolt remote 時，裝上新版後第一次開啟資料庫就會自動遷移，所以同步與備份都要在安裝前用舊版完成：
 
 ```bash
-bd dolt pull
-bd version
-bd info --whats-new
-bd hooks install
-bd info
+# 安裝前，用目前的 bd
+bd dolt push                                  # 有 Dolt remote 時
+bd export --all -o /path/to/pre-upgrade.jsonl
 ```
 
-跨重大版本或資料庫 schema 遷移時，先閱讀官方升級指南。不要讓多個 clone 同時執行 schema 遷移。
+安裝後確認版本、結構與 hooks：
+
+```bash
+bd version
+bd migrate schema --json
+bd upgrade review
+bd hooks list
+```
+
+多個 clone 共用 Dolt remote 時，只有一個 clone 遷移並 push，其他 clone 安裝同一版後執行
+`bd bootstrap`，不要各自遷移。
 
 需要可還原的完整 Dolt 備份時，使用 `bd backup`；不要把 JSONL 匯出視為完整資料庫備份：
 
@@ -956,6 +968,7 @@ bd backup status
 
 ## 相關資源
 
+- [Beads 升級指南](BEADS-UPGRADE-GUIDE.md)
 - [Beads 官方儲存庫](https://github.com/gastownhall/beads)
 - [官方安裝指南](https://github.com/gastownhall/beads/blob/main/docs/getting-started/installation.md)
 - [代理與 IDE 整合](https://github.com/gastownhall/beads/blob/main/docs/getting-started/ide-setup.md)

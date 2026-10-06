@@ -28,6 +28,7 @@
 | [CLAUDE-CODE-AGENT-TEAMS.md](ai-tools/CLAUDE-CODE-AGENT-TEAMS.md) | Claude Code Agent Teams 指南（多實例協作 vs Subagents） |
 | [CODEX-PLUGIN-CC-GUIDE.md](ai-tools/CODEX-PLUGIN-CC-GUIDE.md) | Codex Plugin for Claude Code 指南（跨 AI 協作：review、委派、審查門檻） |
 | [BEADS-GUIDE.md](ai-tools/BEADS-GUIDE.md) | Beads 安裝、工作追蹤、Dolt 同步與 Claude/Codex 協作指南 |
+| [BEADS-UPGRADE-GUIDE.md](ai-tools/BEADS-UPGRADE-GUIDE.md) | Beads 版本升級：撤回版本、遷移檔比對、舊版備份、副本演練、多 clone 與回復 |
 
 ## Git 操作 (`git/`)
 
