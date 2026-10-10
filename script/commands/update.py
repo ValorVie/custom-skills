@@ -14,7 +14,6 @@ from ..utils.system import (
 from ..utils.paths import (
     get_custom_skills_dir,
     get_superpowers_dir,
-    get_uds_dir,
     get_opencode_config_dir,
     get_codex_superpowers_dir,
     get_obsidian_skills_dir,
@@ -25,7 +24,7 @@ from ..utils.shared import (
     NPM_PACKAGES,
     BUN_PACKAGES,
     update_claude_code,
-    check_uds_initialized,
+    notify_retired_uds,
     migrate_opencode_superpowers,
     sync_codex_superpowers_repo,
     refresh_codex_superpowers_symlinks,
@@ -190,20 +189,7 @@ def _legacy_update(
             console.print(f"[bold cyan][{i}/{total}] 正在更新 {package}...[/bold cyan]")
             run_command(["npm", "install", "-g", package])
 
-        # 執行 uds update（僅在專案已初始化時）
-        if check_uds_initialized():
-            console.print()
-            console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-            console.print("[bold red]  ⬇ 以下為 uds (Universal Dev Standards) 指令輸出[/bold red]")
-            console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-            run_command(["uds", "update"], check=False)
-            console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-            console.print("[bold red]  ⬆ uds 指令執行完畢，以下回到 ai-dev 流程[/bold red]")
-            console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-            console.print()
-        else:
-            console.print("[dim]ℹ️  當前目錄未初始化 Standards（跳過 uds update）[/dim]")
-            console.print("[dim]   如需在此專案使用，請執行: uds init[/dim]")
+        notify_retired_uds()
 
         # 執行 npx skills update（更新已安裝的第三方 Skills）
         console.print()
@@ -243,7 +229,6 @@ def _legacy_update(
         repos = [
             get_custom_skills_dir(),
             get_superpowers_dir(),
-            get_uds_dir(),
             get_codex_superpowers_dir(),
             get_obsidian_skills_dir(),
             get_anthropic_skills_dir(),

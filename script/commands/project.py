@@ -3,11 +3,10 @@ project 指令群組：專案級別的初始化與更新操作。
 
 採用模板複製模式：
 - init: 從 project-template/ 複製到目標專案
-- update: 執行 openspec update 和 uds update
+- update: 執行 openspec update（UDS 已退役，不再執行 uds update）
 """
 
 import filecmp
-import json
 import os
 import shutil
 import stat
@@ -39,6 +38,7 @@ from ..utils.manifest import compute_file_hash
 from ..utils.smart_merge import merge_file
 from ..utils.project_tracking import get_git_exclude_config, update_git_exclude_config
 from ..utils.legacy_auto_skill_cleanup import cleanup_project_auto_skill
+from ..utils.shared import notify_retired_uds
 
 app = typer.Typer(help="專案級別的初始化與更新操作")
 console = Console()
@@ -273,10 +273,6 @@ TOOLS = {
         "check_dir": "openspec",
         "install_hint": "npm install -g @fission-ai/openspec@latest",
     },
-    "uds": {
-        "check_dir": ".standards",
-        "install_hint": "npm install -g universal-dev-standards",
-    },
 }
 
 
@@ -415,11 +411,6 @@ def run_tool_command(tool: str, command: str) -> bool:
 
         output = f"{result.stdout or ''}\n{result.stderr or ''}"
         false_success_markers = {
-            "uds": [
-                "Standards not initialized in this project.",
-                "Invalid manifest structure detected",
-                "Could not read manifest file.",
-            ],
             "openspec": [
                 "No configured tools found.",
                 'Run "openspec init" to set up tools.',
@@ -434,19 +425,6 @@ def run_tool_command(tool: str, command: str) -> bool:
     except FileNotFoundError:
         console.print(f"[bold red]找不到 {tool} 命令[/bold red]")
         return False
-
-
-def _has_valid_json_object(path: Path, required_keys: set[str]) -> bool:
-    """檢查 JSON 檔案是否為包含必要 key 的 object。"""
-    if not path.exists():
-        return False
-
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return False
-
-    return isinstance(data, dict) and required_keys.issubset(data.keys())
 
 
 def _has_valid_yaml_object(path: Path, required_keys: set[str]) -> bool:
@@ -464,16 +442,6 @@ def _has_valid_yaml_object(path: Path, required_keys: set[str]) -> bool:
 
 def check_project_initialized(tool: str) -> bool:
     """檢查專案是否已初始化特定工具。"""
-    if tool == "uds":
-        standards_dir = Path(TOOLS[tool]["check_dir"])
-        return (
-            standards_dir.exists()
-            and _has_valid_json_object(
-                standards_dir / "manifest.json",
-                {"version", "standards", "integrationConfigs", "upstream"},
-            )
-            and (standards_dir / "active-profile.yaml").exists()
-        )
     if tool == "openspec":
         openspec_dir = Path(TOOLS[tool]["check_dir"])
         return (
@@ -491,19 +459,6 @@ def check_project_initialized(tool: str) -> bool:
 
 def _project_init_missing_detail(tool: str) -> str:
     """回傳指定工具缺少初始化時的缺口描述。"""
-    if tool == "uds":
-        standards_dir = Path(TOOLS[tool]["check_dir"])
-        if not standards_dir.exists():
-            return ".standards/ 不存在"
-        if not (standards_dir / "manifest.json").exists():
-            return ".standards/manifest.json 不存在"
-        if not _has_valid_json_object(
-            standards_dir / "manifest.json",
-            {"version", "standards", "integrationConfigs", "upstream"},
-        ):
-            return ".standards/manifest.json 結構無效"
-        if not (standards_dir / "active-profile.yaml").exists():
-            return ".standards/active-profile.yaml 不存在"
     if tool == "openspec":
         openspec_dir = Path(TOOLS[tool]["check_dir"])
         if not openspec_dir.exists():
@@ -529,7 +484,6 @@ def _project_init_hint_for_tool(tool: str) -> str:
     """回傳指定工具缺少初始化時的建議指令。"""
     hints = {
         "openspec": "openspec init",
-        "uds": "uds init",
     }
     return hints.get(tool, "ai-dev project init")
 
@@ -570,9 +524,7 @@ def init(
 
     _cleanup_retired_auto_skill(target_dir)
 
-    standards_dir = target_dir / ".standards"
-    if standards_dir.exists():
-        console.print("[dim]偵測到既有 .standards，將依項目規則合併或保留現況[/dim]")
+    notify_retired_uds(target_dir)
 
     console.print("[bold blue]開始初始化專案...[/bold blue]")
     console.print(f"[dim]模板目錄：{template_dir}[/dim]")
@@ -690,7 +642,6 @@ def init(
     console.print()
     console.print("[dim]下一步：[/dim]")
     console.print("[dim]  1. 檢視並客製化 AGENTS.md / CLAUDE.md 專案指引[/dim]")
-    console.print("[dim]  2. 檢視並調整 .standards/ 中的開發規範[/dim]")
 
 
 @app.command()
@@ -768,13 +719,19 @@ def update(
         None,
         "--only",
         "-o",
-        help="只更新特定工具：openspec, uds",
+        help="只更新特定工具：openspec",
     ),
 ):
-    """更新專案配置（整合 openspec update + uds update）。"""
+    """更新專案配置（openspec update）。"""
     _cleanup_retired_auto_skill(Path.cwd())
+    has_legacy_uds = notify_retired_uds()
 
     # 決定要更新的工具
+    if only == "uds":
+        # UDS 已退役：舊指令只說明，不視為錯誤
+        if not has_legacy_uds:
+            console.print("[dim]ℹ️  UDS 已退役，ai-dev 不再執行 uds update[/dim]")
+        return
     if only:
         if only not in TOOLS:
             console.print(f"[red]無效的工具：{only}[/red]")
@@ -799,6 +756,15 @@ def update(
     not_init = [t for t in tools_to_update if not check_project_initialized(t)]
     if not_init:
         if len(not_init) == len(tools_to_update):
+            if has_legacy_uds:
+                # 這類專案過去只靠 uds update；UDS 退役後沒有可更新的工具，維持成功結束
+                console.print("[yellow]沒有需要更新的工具：[/yellow]")
+                for tool in not_init:
+                    console.print(f"  - {tool}: {_project_init_missing_detail(tool)}")
+                    console.print(
+                        f"    [dim]建議執行 `{_project_init_hint_for_tool(tool)}`[/dim]"
+                    )
+                return
             console.print("[bold red]專案尚未初始化。[/bold red]")
             console.print("[yellow]請先完成必要初始化：[/yellow]")
             for tool in not_init:
@@ -821,8 +787,8 @@ def update(
     console.print("[bold blue]開始更新專案配置...[/bold blue]")
     console.print()
 
-    # 執行更新（uds 先，openspec 後）
-    update_order = ["uds", "openspec"]
+    # 執行更新
+    update_order = ["openspec"]
     success = True
 
     for tool in update_order:

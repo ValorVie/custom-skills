@@ -97,7 +97,11 @@ app.command()(test)
 app.command()(coverage)
 app.command(name="derive-tests")(derive_tests)
 app.add_typer(project.app, name="project")
-app.add_typer(standards.app, name="standards")
+app.command(
+    name="standards",
+    hidden=True,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(standards.retired)
 app.add_typer(hooks.app, name="hooks")
 app.add_typer(maintain.app, name="maintain")
 app.add_typer(sync.app, name="sync")

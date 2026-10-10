@@ -11,7 +11,7 @@ from script.utils.paths import get_claude_config_dir, get_custom_skills_dir
 from script.utils.shared import (
     BUN_PACKAGES,
     NPM_PACKAGES,
-    check_uds_initialized,
+    notify_retired_uds,
     get_all_skill_names,
     get_npm_package_version,
     show_claude_status,
@@ -258,19 +258,7 @@ def _run_update_tools_phase() -> None:
         console.print(f"[bold cyan][{i}/{total}] 正在更新 {package}...[/bold cyan]")
         run_command(["npm", "install", "-g", package])
 
-    if check_uds_initialized():
-        console.print()
-        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-        console.print("[bold red]  ⬇ 以下為 uds (Universal Dev Standards) 指令輸出[/bold red]")
-        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-        run_command(["uds", "update"], check=False)
-        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-        console.print("[bold red]  ⬆ uds 指令執行完畢，以下回到 ai-dev 流程[/bold red]")
-        console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")
-        console.print()
-    else:
-        console.print("[dim]ℹ️  當前目錄未初始化 Standards（跳過 uds update）[/dim]")
-        console.print("[dim]   如需在此專案使用，請執行: uds init[/dim]")
+    notify_retired_uds()
 
     console.print()
     console.print("[bold red]══════════════════════════════════════════════════════[/bold red]")

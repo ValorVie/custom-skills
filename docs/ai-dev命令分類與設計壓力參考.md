@@ -37,8 +37,6 @@
 | `list` | `read_only` | `target` | `implicit_default` | `needs_scope_fix` |
 | `toggle` | `single_write` | `target` | `explicit_single` | `clarify` |
 | `init-from` | `multi_stage_pipeline` | `repo, project` | `none` | `split` |
-| `standards switch` | `single_write` | `project` | `none` | `needs_scope_fix` |
-| `standards sync` | `single_write` | `target` | `explicit_single` | `needs_scope_fix` |
 | `hooks install` | `single_write` | `target` | `explicit_single` | `needs_scope_fix` |
 | `hooks uninstall` | `single_write` | `target` | `explicit_single` | `needs_scope_fix` |
 | `hooks status` | `read_only` | `target` | `explicit_single` | `needs_scope_fix` |
@@ -70,8 +68,6 @@
 ### `needs_scope_fix`
 
 - `list`
-- `standards switch`
-- `standards sync`
 - `hooks install`
 - `hooks uninstall`
 - `hooks status`

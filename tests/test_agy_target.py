@@ -6,13 +6,11 @@
 """
 
 from script.utils import shared
-from script.commands.standards import VALID_TARGETS
 
 
 def test_agy_is_valid_target_skills_only():
     assert "agy" in shared.COPY_TARGETS
     assert set(shared.COPY_TARGETS["agy"].keys()) == {"skills"}
-    assert "agy" in VALID_TARGETS
 
 
 def test_agy_skills_path_is_shared_gemini_dir():
@@ -25,7 +23,6 @@ def test_agy_skills_path_is_shared_gemini_dir():
 
 def test_gemini_is_no_longer_a_target():
     assert "gemini" not in shared.COPY_TARGETS
-    assert "gemini" not in VALID_TARGETS
     assert shared.get_target_path("gemini", "skills") is None
 
 

@@ -52,6 +52,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **BREAKING：退役 UDS（universal-dev-standards）整合。**
+  - `ai-dev install`／`update` 不再 clone 或 pull `~/.config/universal-dev-standards`，也不再以 npm 安裝或更新 `universal-dev-standards`；既有目錄與已安裝的 `uds` 指令保留，可自行移除。
+  - `ai-dev update` 與 `project update` 不再執行 `uds update`，`project init` 不再處理 `.standards/`。專案留有 `.standards/` 時只顯示說明，內容不動；只靠 UDS 的專案執行 `project update` 仍以 0 結束，`--only uds` 只顯示說明。
+  - `ai-dev standards` 改為隱藏指令，執行時只顯示退役說明並以 0 結束；TUI 移除 Standards Profile 區塊、`t` 快捷鍵與 UDS 來源篩選。
+  - `list`、`status`、`maintain clone`、`add-repo` 不再讀取或標記 UDS；舊紀錄中的 `uds` 來源仍顯示為 `universal-dev-standards`。
+  - `upstream/sources.yaml`、`last-sync.yaml` 移除 UDS，`upstream/uds/` 備份刪除；`standards-profiles`、`standards-sync`、`tui-standards-profile` 規格封存於 `archive/uds/`。
 - **BREAKING：完整退役 `auto-skill`。**
   - 移除 canonical state、per-target shadow、工具 projection、上游 repo 與 `auto-skill-hooks` SessionStart Plugin，不再安裝或分發。
   - 原始 Skill、專案知識資料、Plugin、實作、測試與規格分類封存於 `archive/auto-skill/`。

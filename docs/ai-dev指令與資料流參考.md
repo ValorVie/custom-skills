@@ -17,7 +17,6 @@
 | Repo 註冊 | `add-repo`, `add-custom-repo`, `update-custom-repo` | 管理上游 repo 與自訂 repo |
 | 專案模板與投影 | `init-from`, `project init`, `project hydrate`, `project reconcile`, `project doctor`, `project update`, `project exclude` | 初始化專案、投影 AI 檔、檢查與維護專案內狀態 |
 | custom-skills 自維護 | `maintain clone`, `maintain template` | 維護 `custom-skills` repo 本身 |
-| 標準體系 | `standards status/list/switch/show/overlaps/sync` | 管理 `.standards/` profiles 與重疊檢測 |
 | 同步與記憶 | `sync init/push/pull/status/add/remove`, `mem register/push/pull/status/cleanup/reindex/auto` | 跨裝置同步設定與 claude-mem 同步 |
 | 輔助工具 | `test`, `coverage`, `derive-tests`, `hooks install/uninstall/status`, `tui` | 測試、覆蓋率、衍生測試、Hooks、互動介面 |
 
@@ -54,10 +53,6 @@
 | `<project>/.ai-dev-project.yaml` | 專案 intent、managed files、git exclude 設定 | `init-from`, `project init`, `project exclude`, `project hydrate` |
 | `<project>/.git/info/exclude` | 本地 git 排除規則 | `init-from`, `project init`, `project hydrate`, `project reconcile`, `project exclude` |
 | `<project>/openspec/project.md`、`<project>/openspec/config.yaml` | OpenSpec 專案初始化狀態 | 外部 `openspec init` |
-| `<project>/.standards/manifest.json` | UDS scaffold manifest | `project init`, `init-from` |
-| `<project>/.claude/disabled.yaml` | standards profile 停用清單 | `standards switch` |
-| `<project>/.standards/active-profile.yaml` | 目前啟用的 standards profile | 外部 `uds init`, `standards switch` |
-| `<project>/.standards/profiles/overlaps.yaml` | standards 重疊定義 | repo tracked scaffold / 模板內容 |
 | `~/.config/ai-dev/sync.yaml` | sync 子系統設定 | `sync init`, `sync add`, `sync remove`, `sync push`, `sync pull` |
 | `~/.config/ai-dev/sync-repo/` | sync 使用的本地 Git repo | `sync init`, `sync push`, `sync pull` |
 | `~/.config/ai-dev/sync-server.yaml` | mem sync server 設定 | `mem register`, `mem auto` |
@@ -258,7 +253,6 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 
 - `ai-dev add-repo <name> <git-url>`：把上游 repo 註冊到 `<custom-skills repo>/upstream/sources.yaml`，並 clone 到 `~/.config/<name>`
 - `--branch <branch>`：指定追蹤分支（預設 `main`）
-- `--format <uds|claude-code-native>`：標註內容格式，影響後續分發流程
 - `--analyze`：**自 upstream-ops 重構後已變更行為**（2026-04）
   - 舊：以 subprocess 呼叫 `skills/custom-skills-upstream-sync/scripts/analyze_upstream.py --new-repo`，直接產生評估報告
   - 新：不再呼叫任何 Python 腳本，改為僅輸出建議命令提示：
@@ -274,7 +268,7 @@ enabled_remove:              # 從 repo.enabled 拿掉不想要的 skill
 2. 執行 hydrate projection，把 AI 管理檔案投影到專案內。
 
 其中：
-- tracked scaffold 例如 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore`
+- tracked scaffold 例如 `.editorconfig`、`.gitattributes`、`.gitignore`
 - AI projection 例如 `.claude/`、`.codex/`、`.gemini/`、`.opencode/`、`AGENTS.md`、`CLAUDE.md`
 
 AI projection 依型態再分三類：
@@ -305,7 +299,7 @@ AI projection 依型態再分三類：
 | `project hydrate` | 依 `.ai-dev-project.yaml` 與模板重新生成 AI 管理檔。 | 會更新 projection manifest，並依 `git_exclude.enabled` 決定是否同步 `.git/info/exclude`。 |
 | `project reconcile` | 重新比對 project intent、projection manifest 與實際投影結果後收斂。 | 目前底層仍走 projection/reconcile 流程；`--force` / `--backup` 只影響衝突處理模式。 |
 | `project doctor` | 檢查 tracking file、projection manifest 與 exclude 狀態是否一致。 | 若缺少 `.ai-dev-project.yaml`、manifest，或應存在的 exclude block 不在 `.git/info/exclude`，會以非零碼退出。 |
-| `project update` | 先檢查退役的 `auto-skill`，再代理執行 `uds update` 與 `openspec update`。 | `auto-skill` 只有互動確認後才先備份再清理；之後檢查工具是否已安裝與已初始化。 |
+| `project update` | 先檢查退役的 `auto-skill`，再代理執行 `openspec update`（UDS 已退役，不再執行 `uds update`）。 | `auto-skill` 只有互動確認後才先備份再清理；之後檢查工具是否已安裝與已初始化。 |
 | `project exclude` | 手動檢視、啟用或停用 ai-dev 管理的 `.git/info/exclude` 區塊。 | `--list` 可直接看目前 block；`--enable` 需已 `git init`，並會從 tracking/template 推導 patterns。 |
 
 ### `ai-dev project init`
@@ -316,7 +310,7 @@ AI projection 依型態再分三類：
 - 將 AI 管理檔交給 hydrate 投影
 
 注意：
-- `project init` 會放入 `.standards/` scaffold，但不會替外部 `uds` CLI 完成 `uds init`
+- UDS 已退役：`project init`／`update` 不再執行 `uds init`／`uds update`，專案既有的 `.standards/` 保留不動。
 
 衝突規則：
 - 同名檔案：`init` 走內容級別分析；`init --force` 直接覆蓋檔案
@@ -358,11 +352,11 @@ exclude 規則：
 ### `ai-dev project update`
 
 用途：
-- 代理執行 `uds update` 與 `openspec update`
-- `--only` / `-o`：只更新特定工具；可用值：`openspec`、`uds`
+- 代理執行 `openspec update`
+- `--only` / `-o`：只更新特定工具；可用值：`openspec`（`--only uds` 只顯示 UDS 已退役的說明並以 0 結束）
 
 初始化檢查規則：
-- 若 `uds` 尚未初始化（例如缺少 `.standards/manifest.json`、`.standards/active-profile.yaml`，或 manifest 結構無效），提示執行 `uds init`
+- 專案留有 UDS 的 `.standards/` 時，提示 UDS 已退役，不執行 `uds update`，也不修改該目錄；沒有其他可更新的工具時維持成功結束
 - 若 `openspec` 尚未初始化（例如缺少 `openspec/project.md`、`openspec/config.yaml`，或 config 結構無效），提示執行 `openspec init`
 - 若部分工具未初始化，只更新已初始化的工具
 
@@ -383,7 +377,7 @@ exclude 規則：
 
 | 子命令 | 實際語意 | 主要副作用 / 備註 |
 |--------|----------|-------------------|
-| `maintain clone` | 把外部來源整合回目前的 `custom-skills` 開發目錄。 | 會把 UDS/Obsidian/Anthropic 等來源複製回 repo 工作樹。 |
+| `maintain clone` | 把外部來源整合回目前的 `custom-skills` 開發目錄。 | 會把 Obsidian/Anthropic 等來源複製回 repo 工作樹。 |
 | `maintain template` | 依 `project-template.manifest.yaml` allowlist 同步 `project-template/`。 | `--check` 只檢查差異，不寫檔；不再透過 `project init --force` 反向同步模板。 |
 
 ### `ai-dev maintain clone`
@@ -401,31 +395,9 @@ exclude 規則：
 - `project-template/` 不是靠 `project init --force` 反向同步
 - 權威來源是 manifest + repo 內容
 
-## `standards` 子系統
+## `standards`（已退役）
 
-| 子命令 | 實際語意 | 主要副作用 / 備註 |
-|--------|----------|-------------------|
-| `standards status` | 顯示目前啟用的 profile 與 disabled 統計。 | 未初始化時只提示，不寫入。 |
-| `standards list` | 列出可用 profiles、顯示名稱、重疊偏好與目前啟用狀態。 | 讀取 `.standards/profiles/*.yaml`；未初始化時只提示。 |
-| `standards switch` | 切換 profile，重算 profile-based disabled 清單。 | 僅更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`；不再自動同步任何 target；支援 `--dry-run` / `-n` 預覽。 |
-| `standards show` | 顯示單一 profile 的詳細內容與 overlap 選擇。 | 純讀取，不寫入。 |
-| `standards overlaps` | 顯示 `overlaps.yaml` 摘要。 | 純讀取，不寫入。 |
-| `standards sync` | 依 `disabled.yaml` 對指定 target 實際停用/還原 skills、commands、agents。 | `--target` / `-t` 必填，可用值：`claude`、`codex`、`agy`、`opencode`、`antigravity`；支援 `--dry-run` / `-n`；`standards (*.ai.yaml)` 不會被此命令搬移。 |
-
-主要狀態：
-- `.standards/active-profile.yaml`：目前啟用的 profile
-- `.claude/disabled.yaml`：依 overlap 計算出的停用清單
-- `.standards/profiles/overlaps.yaml`：功能重疊定義
-
-資料流：
-1. `standards switch` 讀取 profile 與 overlaps 定義。
-2. 依 profile 計算需要停用的資源，更新 `.claude/disabled.yaml` 與 `.standards/active-profile.yaml`。
-3. `standards sync` 只會對顯式指定的 target 同步 disabled 清單到 `~/.config/custom-skills/disabled/` 與工具目錄。
-
-注意：
-- `project init` 產出的 `.standards/profiles/` scaffold 已視為初始化完成；若尚未寫入 `.standards/active-profile.yaml`，CLI 會以 `uds` 當作預設 active profile。
-- `standards (*.ai.yaml)` 本身是專案內 tracked 檔案，不會被 `standards sync` 自動搬移。
-- `overlaps.yaml` 是規則來源，不是 CLI 執行期動態產物。
+`ai-dev standards` 已隨 UDS 退役。執行時只顯示說明並以 0 結束，不讀寫 `.standards/` 或 `.claude/disabled.yaml`。若曾用 profile 停用資源，可用 `ai-dev toggle` 重新啟用。
 
 ## `sync` 子系統
 

@@ -33,7 +33,6 @@ from .paths import (
     get_agents_skills_dir,
     get_agy_config_dir,
     get_superpowers_dir,
-    get_uds_dir,
     get_obsidian_skills_dir,
     get_anthropic_skills_dir,
     get_ai_dev_config_dir,
@@ -57,7 +56,6 @@ ResourceType = Literal["skills", "commands", "agents", "workflows"]
 
 NPM_PACKAGES = [
     "@fission-ai/openspec@latest",
-    "universal-dev-standards",
     "opencode-ai@latest",
     "skills",
 ]
@@ -87,7 +85,6 @@ REPOS = {
         get_custom_skills_dir,
     ),
     "superpowers": ("https://github.com/obra/superpowers.git", get_superpowers_dir),
-    "uds": ("https://github.com/AsiaOstrich/universal-dev-standards.git", get_uds_dir),
     "obsidian_skills": (
         "https://github.com/kepano/obsidian-skills.git",
         get_obsidian_skills_dir,
@@ -283,14 +280,6 @@ def refresh_codex_superpowers_symlinks(repo_path: Path) -> bool:
     return True
 
 
-UNWANTED_UDS_FILES = [
-    "tdd-assistant",
-    "CONTRIBUTING.template.md",
-    "install.ps1",
-    "install.sh",
-    "README.md",
-]
-
 # 複製目標配置表：定義各工具的資源目錄
 COPY_TARGETS = {
     "claude": {
@@ -469,16 +458,20 @@ def get_npm_package_version(package_name: str) -> str | None:
     return None
 
 
-def check_uds_initialized() -> bool:
-    """檢查當前目錄是否已初始化 universal-dev-standards。
+def notify_retired_uds(project_dir: Path | None = None) -> bool:
+    """專案留有 UDS 的 .standards/ 時，說明 ai-dev 已不再管理它。
+
+    UDS 已退役：ai-dev 不再執行 uds init/update，也不修改既有的 .standards/。
 
     Returns:
-        bool: True 表示已初始化（存在 .standards 目錄）
+        bool: True 表示偵測到 .standards/ 並已印出說明
     """
-    from pathlib import Path
-
-    cwd = Path.cwd()
-    return (cwd / ".standards").exists()
+    standards_dir = (project_dir or Path.cwd()) / ".standards"
+    if not standards_dir.exists():
+        return False
+    console.print("[dim]ℹ️  UDS 已退役：ai-dev 不再執行 uds update，也不會修改 .standards/[/dim]")
+    console.print("[dim]   需要更新時可自行執行 `uds update`；不再使用時可手動移除 .standards/[/dim]")
+    return True
 
 
 # ============================================================
@@ -494,19 +487,6 @@ def handle_remove_readonly(func, path, exc):
         func(path)
     else:
         raise
-
-
-def clean_unwanted_files(target_dir: Path, use_readonly_handler: bool = False):
-    """清理目標目錄中不需要的 UDS 檔案。"""
-    for item in UNWANTED_UDS_FILES:
-        path = target_dir / item
-        if not path.exists():
-            continue
-        if path.is_dir():
-            handler = handle_remove_readonly if use_readonly_handler else None
-            shutil.rmtree(path, onerror=handler)
-        else:
-            path.unlink()
 
 
 def shorten_path(path: Path) -> str:
@@ -2307,7 +2287,6 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
     整合到指定的開發目錄（非 ~/.config/custom-skills）。
 
     整合來源：
-    - UDS (skills, agents, workflows, commands)
     - Obsidian skills
     - Anthropic skill-creator
 
@@ -2319,58 +2298,6 @@ def integrate_to_dev_project(dev_project_root: Path) -> None:
 
     dst_skills = dev_project_root / "skills"
     dst_skills.mkdir(parents=True, exist_ok=True)
-
-    # ============================================================
-    # UDS 來源 - 主要整合來源
-    # ============================================================
-    src_uds = get_uds_dir() / "skills" / "claude-code"
-    if src_uds.exists():
-        console.print(f"  [dim]{shorten_path(src_uds)}[/dim]")
-        console.print(f"    → [dim]{shorten_path(dst_skills)}[/dim]")
-        # 複製時排除 agents 和 workflows（這些有專門的目的地）
-        for item in src_uds.iterdir():
-            if item.name in ("agents", "workflows", "commands"):
-                continue  # 這些會單獨處理
-            dst_item = dst_skills / item.name
-            if item.is_dir():
-                shutil.copytree(item, dst_item, dirs_exist_ok=True)
-            else:
-                shutil.copy2(item, dst_item)
-        clean_unwanted_files(dst_skills)
-
-    # UDS agents → dev/agents/claude 和 dev/agents/opencode
-    src_uds_agents = get_uds_dir() / "skills" / "claude-code" / "agents"
-    if src_uds_agents.exists():
-        # 複製到 claude
-        dst_agents_claude = dev_project_root / "agents" / "claude"
-        console.print(f"  [dim]{shorten_path(src_uds_agents)}[/dim]")
-        console.print(f"    → [dim]{shorten_path(dst_agents_claude)}[/dim]")
-        dst_agents_claude.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_agents, dst_agents_claude, dirs_exist_ok=True)
-
-        # 同時複製到 opencode
-        dst_agents_opencode = dev_project_root / "agents" / "opencode"
-        console.print(f"    → [dim]{shorten_path(dst_agents_opencode)}[/dim]")
-        dst_agents_opencode.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_agents, dst_agents_opencode, dirs_exist_ok=True)
-
-    # UDS workflows → dev/commands/workflows
-    src_uds_workflows = get_uds_dir() / "skills" / "claude-code" / "workflows"
-    dst_workflows = dev_project_root / "commands" / "workflows"
-    if src_uds_workflows.exists():
-        console.print(f"  [dim]{shorten_path(src_uds_workflows)}[/dim]")
-        console.print(f"    → [dim]{shorten_path(dst_workflows)}[/dim]")
-        dst_workflows.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_workflows, dst_workflows, dirs_exist_ok=True)
-
-    # UDS commands → dev/commands/claude（如果存在）
-    src_uds_commands = get_uds_dir() / "skills" / "claude-code" / "commands"
-    dst_commands = dev_project_root / "commands" / "claude"
-    if src_uds_commands.exists():
-        console.print(f"  [dim]{shorten_path(src_uds_commands)}[/dim]")
-        console.print(f"    → [dim]{shorten_path(dst_commands)}[/dim]")
-        dst_commands.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(src_uds_commands, dst_commands, dirs_exist_ok=True)
 
     # ============================================================
     # Obsidian skills
@@ -2699,9 +2626,8 @@ def copy_single_resource(
 
     # 根據資源類型尋找來源
     if resource_type == "skills":
-        # Skills 來源：UDS, Obsidian, Anthropic, ECC（上游）, Custom
+        # Skills 來源：Obsidian, Anthropic, ECC（上游）, Custom
         sources = [
-            get_uds_dir() / "skills" / "claude-code" / name,
             get_obsidian_skills_dir() / "skills" / name,
             get_ecc_dir() / "skills" / name,
             get_custom_skills_dir() / "skills" / name,
@@ -2837,6 +2763,7 @@ SOURCE_NAMES = {
     "kepano-obsidian": "obsidian-skills",
     "everything-claude-code": "everything-claude-code",
     "tanweai": "tanweai",
+    # UDS 已退役；保留舊紀錄的顯示名稱
     "uds": "universal-dev-standards",
     "obsidian": "obsidian-skills",
     "anthropic": "anthropic-skills",
@@ -2916,13 +2843,6 @@ def get_source_skills() -> SourceSkillMap:
         for entry in npx_config.entries:
             sources.setdefault(entry.source, set()).add(entry.skill)
 
-    # UDS skills
-    uds_path = get_uds_dir() / "skills" / "claude-code"
-    if uds_path.exists():
-        sources["uds"] = {d.name for d in uds_path.iterdir() if d.is_dir()}
-    else:
-        sources["uds"] = set()
-
     # Obsidian skills
     obsidian_path = get_obsidian_skills_dir() / "skills"
     if obsidian_path.exists():
@@ -2949,8 +2869,7 @@ def get_source_skills() -> SourceSkillMap:
     if custom_path.exists():
         # 排除來自其他來源的
         all_known = (
-            sources["uds"]
-            | sources["obsidian"]
+            sources["obsidian"]
             | sources["anthropic"]
             | sources["ecc"]
         )
@@ -3137,7 +3056,7 @@ def list_installed_resources(
     回傳格式：
     {
         "claude": {
-            "skills": [{"name": "foo", "source": "uds", "disabled": False}, ...],
+            "skills": [{"name": "foo", "source": "ecc", "disabled": False}, ...],
             "commands": [...],
         },
         ...

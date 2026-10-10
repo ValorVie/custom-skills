@@ -60,7 +60,7 @@ TBD - created by archiving change integrate-everything-claude-code. Update Purpo
 
 - **GIVEN** ecc 資源使用純 Markdown（無 YAML frontmatter）
 - **WHEN** 整合到本專案
-- **THEN** 保持原格式不轉換為 UDS 格式
+- **THEN** 保持原格式不轉換
 - **AND** 放置於 `sources/ecc/` 目錄
 
 #### Scenario: Attribution 標注
@@ -122,27 +122,3 @@ TBD - created by archiving change integrate-everything-claude-code. Update Purpo
 - **WHEN** 使用者需要 MCP 服務配置
 - **THEN** 在 `sources/ecc/mcp-configs/` 提供配置範例
 - **AND** 包含常用服務（GitHub, Memory, Context7 等）
-
-### Requirement: TDD 實踐整合
-
-系統 SHALL 整合 ecc TDD 實戰範例作為現有標準的補充。
-
-#### Scenario: TDD 標準擴展
-
-- **GIVEN** 現有 `.standards/test-driven-development.md`
-- **WHEN** 需要實戰範例
-- **THEN** 新增「實戰範例附錄」章節
-- **AND** 連結至 `sources/ecc/skills/tdd-workflow/`
-
-#### Scenario: Mock 範例補充
-
-- **WHEN** 需要具體 Mock 範例
-- **THEN** 提供 Supabase/Redis/OpenAI mock 範例連結
-- **AND** 來自 ecc tdd-workflow skill
-
-#### Scenario: 測試檔案組織
-
-- **WHEN** 需要測試檔案結構建議
-- **THEN** 提供清晰的目錄結構範例連結
-- **AND** 來自 ecc tdd-workflow skill
-

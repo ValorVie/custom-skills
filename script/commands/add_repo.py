@@ -88,32 +88,6 @@ def clone_repo(repo_path: str, target_dir: Path) -> bool:
     return True
 
 
-def detect_repo_format(repo_dir: Path) -> str:
-    """偵測 repo 的格式。"""
-    # 檢查是否有 UDS 格式的特徵
-    if (repo_dir / ".standards").exists():
-        return "uds"
-
-    # 檢查 skills 目錄中的檔案格式
-    skills_dir = repo_dir / "skills"
-    if skills_dir.exists():
-        for skill_file in skills_dir.rglob("*.md"):
-            content = skill_file.read_text(encoding="utf-8", errors="ignore")
-            # 檢查是否有 YAML frontmatter
-            if content.startswith("---"):
-                lines = content.split("\n")
-                for i, line in enumerate(lines[1:], 1):
-                    if line.strip() == "---":
-                        # 有 frontmatter，檢查是否有 UDS 特徵
-                        frontmatter = "\n".join(lines[1:i])
-                        if "triggers:" in frontmatter or "category:" in frontmatter:
-                            return "uds"
-                        break
-            break
-
-    return "claude-code-native"
-
-
 def add_to_sources_yaml(
     sources_path: Path,
     name: str,
@@ -221,13 +195,8 @@ def add_repo(
             if not clone_repo(repo_path, target_dir):
                 raise typer.Exit(1)
 
-    # 偵測格式
-    if target_dir.exists():
-        format = detect_repo_format(target_dir)
-        console.print(f"  格式: {format}")
-    else:
-        format = "claude-code-native"
-        console.print(f"  格式: {format} (預設)")
+    format = "claude-code-native"
+    console.print(f"  格式: {format}")
 
     # 加入 sources.yaml
     try:

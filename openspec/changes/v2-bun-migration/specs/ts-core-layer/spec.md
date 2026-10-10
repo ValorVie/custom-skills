@@ -55,13 +55,6 @@
 - **WHEN** 推送已存在的 observation
 - **THEN** server 以 content hash 去重，不產生重複
 
-### Requirement: standards-manager 管理標準 profile
-`src/core/standards-manager.ts` SHALL 提供標準 profile 管理，支援 status、list、switch、show、overlaps。
-
-#### Scenario: 切換 profile
-- **WHEN** 呼叫 standards switch "level-3"
-- **THEN** 更新 .standards/ 目錄內容為對應 profile
-
 ### Requirement: project-manager 管理專案模板
 `src/core/project-manager.ts` SHALL 提供專案模板管理，支援 init、update。
 

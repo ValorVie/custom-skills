@@ -16,7 +16,7 @@
 ### 主要技術
 - **Markdown**：所有規範與文件的撰寫格式
 - **YAML**：AI 工具設定檔與 metadata 的格式
-- **JSON**：部分配置檔案格式（如 `.standards/manifest.json`）
+- **JSON**：部分配置檔案格式（如 `.claude/settings.json`）
 - **Git**：版本控制與協作
 
 ### 支援的 AI 工具
@@ -28,7 +28,6 @@
 - [OpenSpec](https://github.com/fission-codes/openspec)：規格驅動開發工具
 
 ### 整合的標準來源
-- [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)：通用開發標準（提交訊息、測試、Git 工作流等）
 - [everything-claude-code](https://github.com/affaan-m/everything-claude-code)：進階 Claude Code 工作流程（Hooks、Skills、Agents、Commands）
 - [superpowers](https://github.com/obra/superpowers)：進階開發工作流與 Skills
 - [anthropic-skills](https://github.com/anthropics/skills)：Anthropic 官方 Skills
@@ -74,7 +73,6 @@
 - **`sources/`**：上游資源整合（ecc/）
 - **`upstream/`**：上游追蹤系統（同步狀態、mapping）
 - **`third-party/`**：第三方專案參考資訊（待評估資源）
-- **`.standards/`**：專案層級的開發標準（由 universal-dev-standards 生成）
 - **`docs/`**：概念性文件與使用指南
 - **`openspec/`**：OpenSpec 規格驅動開發的配置
 - **`project-template/`**：專案初始化模板
@@ -124,7 +122,6 @@
 **Scope 範例**：
 - `skills`：Skills 相關變更
 - `command`：Commands/Workflows 相關
-- `standards`：`.standards/` 配置更新
 - `docs`：文件更新
 
 #### 提交前檢查
@@ -161,7 +158,6 @@
 - **上游追蹤**：`upstream/` 目錄追蹤所有第三方 repo 的同步狀態
 - **分層覆蓋**：全域 → 專案 → 臨時（優先順序遞增）
 - **版本控制**：所有配置納入 Git，記錄變更歷史
-- **標準體系切換**：支援 uds/ecc/minimal 三種 profiles
 
 ## Important Constraints
 
@@ -197,10 +193,8 @@
 - `@google/gemini-cli`：Gemini CLI
 - `@fission-ai/openspec`：OpenSpec 工具
 - `opencode-ai`：OpenCode 命令列工具
-- `universal-dev-standards`：UDS CLI
 
 ### 外部標準來源
-- [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards)：定期同步更新
 - [everything-claude-code](https://github.com/affaan-m/everything-claude-code)：進階 Claude Code 工作流程
 - [superpowers](https://github.com/obra/superpowers)：進階工作流
 - [anthropic-skills](https://github.com/anthropics/skills)：Anthropic 官方 Skills

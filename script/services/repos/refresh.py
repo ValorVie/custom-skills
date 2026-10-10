@@ -24,7 +24,6 @@ from script.utils.paths import (
     get_ecc_dir,
     get_opencode_config_dir,
     get_superpowers_dir,
-    get_uds_dir,
 )
 from script.utils.shared import (
     REPOS,
@@ -149,7 +148,6 @@ def _ensure_install_directories() -> None:
         get_config_dir(),
         get_custom_skills_dir(),
         get_superpowers_dir(),
-        get_uds_dir(),
         get_claude_config_dir() / "skills",
         get_claude_config_dir() / "commands",
         get_claude_agents_dir(),
@@ -215,7 +213,6 @@ def _run_update_repos_phase() -> None:
     repos = [
         get_custom_skills_dir(),
         get_superpowers_dir(),
-        get_uds_dir(),
         get_codex_superpowers_dir(),
         get_obsidian_skills_dir(),
         get_anthropic_skills_dir(),

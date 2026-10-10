@@ -25,11 +25,10 @@ CLI 工具 MUST (必須) 透過 `pyproject.toml` 配置 entry point，使其可�
 則應該更新以下儲存庫：
 1. `~/.config/custom-skills`
 2. `~/.config/superpowers`
-3. `~/.config/universal-dev-standards`
-4. `~/.config/opencode/superpowers`
-5. `~/.config/obsidian-skills`
-6. `~/.config/anthropic-skills`
-7. `~/.config/everything-claude-code`
+3. `~/.config/opencode/superpowers`
+4. `~/.config/obsidian-skills`
+5. `~/.config/anthropic-skills`
+6. `~/.config/everything-claude-code`
 
 ### Requirement: Package Metadata (套件元資料)
 
@@ -93,7 +92,6 @@ CLI 工具 MUST (必須) 透過 `pyproject.toml` 配置 entry point，使其可�
 當執行 `ai-dev install` 時
 則應該 clone 到 `~/.config/<repo-name>/`：
 - superpowers → `~/.config/superpowers/`
-- universal-dev-standards → `~/.config/universal-dev-standards/`
 - obsidian-skills → `~/.config/obsidian-skills/`
 - anthropic-skills → `~/.config/anthropic-skills/`
 - everything-claude-code → `~/.config/everything-claude-code/`
@@ -131,7 +129,7 @@ CLI 工具 MUST (必須) 透過 `pyproject.toml` 配置 entry point，使其可�
 
 給定使用者執行 `ai-dev clone`
 當分發流程執行時
-則不應該自動將外部來源（UDS, Obsidian, Anthropic）整合到 `~/.config/custom-skills`
+則不應該自動將外部來源（Obsidian, Anthropic）整合到 `~/.config/custom-skills`
 且 `~/.config/custom-skills` 的內容應由 git repo 控制
 
 #### Scenario: Custom repo 資源不整合回開發專案
@@ -139,7 +137,7 @@ CLI 工具 MUST (必須) 透過 `pyproject.toml` 配置 entry point，使其可�
 給定使用者在 custom-skills 開發專案中執行 `ai-dev clone`
 當 `integrate_to_dev_project()` 執行時
 則 MUST 不包含任何 custom repo 的資源
-且只整合現有的上游來源（UDS, Obsidian, Anthropic, ECC）
+且只整合現有的上游來源（Obsidian, Anthropic, ECC）
 
 ### Requirement: Manifest Source 追蹤 (Manifest Source Tracking)
 

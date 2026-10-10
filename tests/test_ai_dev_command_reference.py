@@ -53,7 +53,6 @@ def test_reference_doc_mentions_top_level_semantic_sections() -> None:
 
 def test_reference_doc_mentions_final_scope_contracts() -> None:
     doc = DOC_PATH.read_text(encoding="utf-8")
-    assert "不再自動同步任何 target" in doc
     assert "`--target` 必填" in doc
     assert "目前僅支援 `claude`" in doc
     assert "`ai-dev init-from update`" in doc

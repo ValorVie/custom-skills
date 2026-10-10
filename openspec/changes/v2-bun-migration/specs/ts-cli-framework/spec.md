@@ -16,12 +16,11 @@
 
 #### Scenario: 所有指令可見
 - **WHEN** 使用者執行 `ai-dev --help`
-- **THEN** 輸出 SHALL 包含 install、update、clone、status、list、toggle、add-repo、add-custom-repo、update-custom-repo、test、coverage、derive-tests、tui、project、standards、hooks、sync、mem
+- **THEN** 輸出 SHALL 包含 install、update、clone、status、list、toggle、add-repo、add-custom-repo、update-custom-repo、test、coverage、derive-tests、tui、project、hooks、sync、mem
 
 ### Requirement: 子命令組結構
 系統 SHALL 支援以下子命令組，每組有獨立的 help：
 - `ai-dev project` (init, update)
-- `ai-dev standards` (status, list, switch, show, overlaps)
 - `ai-dev hooks` (install, uninstall, status)
 - `ai-dev sync` (init, push, pull, status, add, remove)
 - `ai-dev mem` (register, push, pull, status, reindex)

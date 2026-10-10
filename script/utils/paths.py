@@ -129,10 +129,6 @@ def get_superpowers_dir() -> Path:
     return get_config_dir() / "superpowers"
 
 
-def get_uds_dir() -> Path:
-    return get_config_dir() / "universal-dev-standards"
-
-
 def get_obsidian_skills_dir() -> Path:
     """回傳 obsidian-skills 儲存庫的本地路徑。"""
     return get_config_dir() / "obsidian-skills"

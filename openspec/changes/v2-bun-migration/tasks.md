@@ -43,8 +43,7 @@
 
 - [ ] 3.1 實作 src/core/project-manager.ts + src/cli/project/ — project init, update
 - [ ] 3.2 撰寫 tests/core/project-manager.test.ts 並驗證通過
-- [ ] 3.3 實作 src/core/standards-manager.ts + src/cli/standards/ — standards status, list, switch, show, overlaps
-- [ ] 3.4 撰寫 tests/core/standards-manager.test.ts 並驗證通過
+- 3.3、3.4（已移除：`standards` 已隨 UDS 退役，不移植）
 - [ ] 3.5 實作 src/cli/hooks/ — hooks install, uninstall, status
 - [ ] 3.6 實作 src/core/sync-engine.ts + src/cli/sync/ — sync init, push, pull, status, add, remove
 - [ ] 3.7 撰寫 tests/core/sync-engine.test.ts 並驗證通過

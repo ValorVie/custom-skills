@@ -266,7 +266,7 @@ ai-dev project reconcile
 # 檢查 projection 狀態
 ai-dev project doctor
 
-# 更新專案配置（整合 openspec update + uds update）
+# 更新專案配置（openspec update）
 ai-dev project update
 
 # 只更新特定工具
@@ -283,7 +283,7 @@ ai-dev project update --only openspec
 > - `ai-dev project init`：遇到同名檔案時會進行內容級別分析，提供覆蓋、增量、查看差異、跳過選項。
 > - `ai-dev project init --force`：只會無條件覆蓋同名檔案。
 > - 若目標已存在同名目錄，兩種模式都會遞迴到檔案層級處理；模板沒有的目標額外檔案會保留。
-> - `ai-dev project init` 會放入 `.standards/` scaffold，但不會替外部 `uds` CLI 執行 `uds init`。
+> - UDS 已退役：`project init`／`update` 不再執行 `uds init`／`uds update`，專案既有的 `.standards/` 保留不動。
 
 #### 可選參數
 
@@ -298,7 +298,7 @@ ai-dev project update --only openspec
 
 | 參數 | 說明 |
 |------|------|
-| `--only`, `-o` | 只更新特定工具：`openspec`, `uds` |
+| `--only`, `-o` | 只更新特定工具：`openspec` |
 
 **hydrate / reconcile:**
 
@@ -332,7 +332,7 @@ ai-dev project exclude --disable
 1. `project init` 與 `init-from` 在 git repo 內都會詢問是否啟用本地排除
 2. 若 `.ai-dev-project.yaml` 的 `git_exclude.enabled` 為 `true`，`project hydrate` / `project reconcile` 會同步 `.git/info/exclude`
 3. 若專案尚未 `git init`，`project init` 只會提示稍後手動執行 `ai-dev project exclude --enable`
-4. 排除清單只涵蓋 AI 生成物，保留 `.standards/`、`.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold
+4. 排除清單只涵蓋 AI 生成物，保留 `.editorconfig`、`.gitattributes`、`.gitignore` 等 tracked scaffold
 5. 排除規則寫入 `.git/info/exclude` 的管理區塊（有標記，不影響手動項目）
 6. `init-from update` 時自動同步排除清單（新增/移除項目）
 7. `clone` 和 `install` 不會修改當前專案的 `.git/info/exclude`
@@ -753,7 +753,6 @@ ai-dev hooks status --target claude
 | `ai-dev list` | 列出已安裝的 Skills、Commands、Agents |
 | `ai-dev toggle` | 啟用/停用特定資源 |
 | `ai-dev tui` | 啟動互動式終端介面 |
-| `ai-dev standards` | 管理標準體系 profiles |
 | `ai-dev derive-tests` | 讀取 OpenSpec specs 供 AI 生成測試 |
 | `ai-dev test` | 執行測試並輸出原始結果 |
 | `ai-dev coverage` | 執行覆蓋率分析 |
@@ -823,7 +822,6 @@ uv sync --reinstall
 
 | 來源 | 說明 | 目錄 |
 |------|------|------|
-| [universal-dev-standards](https://github.com/AsiaOstrich/universal-dev-standards) | 開發標準規範 | `.standards/` |
 | [everything-claude-code](https://github.com/affaan-m/everything-claude-code) | Hooks, Skills, Agents, Commands | `sources/ecc/` |
 | [anthropics/skills](https://github.com/anthropics/skills) | 官方 Skills | `sources/anthropic-skills/` |
 | [obra/superpowers](https://github.com/obra/superpowers) | Superpowers Skills | `sources/superpowers/` |
@@ -840,44 +838,6 @@ ECC 提供進階的 Claude Code 工作流程工具：
 
 詳見 `sources/ecc/README.md`。
 
-### 標準體系 (Standards Profiles)
-
-支援多種標準體系切換，基於**重疊檢測**自動管理功能等效的資源：
-
-```bash
-# 查看目前狀態
-ai-dev standards status
-
-# 列出可用 profiles
-ai-dev standards list
-
-# 切換 profile（會自動停用重疊資源）
-ai-dev standards switch ecc
-
-# 預覽切換影響
-ai-dev standards switch ecc --dry-run
-
-# 顯示 profile 內容
-ai-dev standards show ecc
-
-# 顯示重疊定義
-ai-dev standards overlaps
-
-# 同步檔案狀態（停用/啟用資源）
-ai-dev standards sync --target claude
-```
-
-可用 profiles：
-- `uds` - Universal Dev Standards 完整版（預設）
-- `ecc` - Everything Claude Code 工作流程
-- `minimal` - 最小化配置
-
-**Profile 系統特性**：
-- **重疊檢測**：定義於 `profiles/overlaps.yaml`，標記功能等效的資源（如 UDS 的 `tdd-workflow` 與 ECC 的 `tdd-workflow`）
-- **自動停用**：切換 profile 時，自動停用重疊組中非偏好來源的資源
-- **手動保護**：手動停用的項目不會被 profile 切換覆蓋
-- **同步機制**：`sync` 指令會實際移動檔案到 `.disabled/` 目錄或還原
-
 ### 上游追蹤系統
 
 所有第三方 repo 的同步狀態記錄在 `upstream/` 目錄：
@@ -885,7 +845,6 @@ ai-dev standards sync --target claude
 ```bash
 # 使用 Skills 進行上游審核
 /custom-skills-upstream-ops              # 預設 audit mode：commit 差異 + 同步建議
-/custom-skills-upstream-ops uds-check    # UDS .standards/ 檔案級漂移
 /custom-skills-upstream-ops overlap <repo>  # 任一 repo vs 本專案重疊偵測
 ```
 

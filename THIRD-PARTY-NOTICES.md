@@ -128,8 +128,7 @@ Apache 2.0 授權全文已包含於 `skills/skill-creator/LICENSE.txt`。
   - **文件與規範**: Creative Commons Attribution 4.0 International (CC BY 4.0)
   - **CLI 工具原始碼**: MIT License
 - **版權**: Copyright (c) 2025 Universal Development Standards Contributors
-- **整合內容**: `.standards/` 目錄下的規範文件 (30+ 個標準模組)、Skills、Agents、Commands、Workflows
-- **歸屬要求**: CC BY 4.0 要求標註出處。本專案的 `.standards/` 目錄內容源自 Universal Dev Standards 專案。
+- **狀態**: 已退役（2026-10-11）。本專案目前不包含 UDS 的內容；過去整合的規範文件、Skills、Agents、Commands 與 Workflows 只留在 git 歷史中，該部分內容源自 Universal Dev Standards 專案（CC BY 4.0）。
 
 CC BY 4.0 全文: https://creativecommons.org/licenses/by/4.0/legalcode
 

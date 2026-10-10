@@ -25,7 +25,7 @@ ai-dev CLI 目前以 Python (Typer + Rich + Textual) 實作，而 claude-mem-syn
 
 - `ts-cli-framework`: TypeScript CLI 骨架 — Commander.js 主程式、入口點 (`src/cli.ts`)、版本管理
 - `ts-utils-layer`: TypeScript 工具層 — paths、system、config (YAML)、git、manifest、shared constants
-- `ts-core-layer`: TypeScript 核心業務邏輯層 — installer、updater、status-checker、sync-engine、mem-sync、standards-manager、project-manager（純函式，無 UI 依賴）
+- `ts-core-layer`: TypeScript 核心業務邏輯層 — installer、updater、status-checker、sync-engine、mem-sync、project-manager（純函式，無 UI 依賴）
 - `ts-tui`: Ink TUI — App 根元件、視圖切換路由、MainScreen、PreviewScreen、ConfirmScreen、SettingsScreen、所有子元件 (Header, TabBar, FilterBar, ResourceList, ActionBar)
 - `npm-publish`: npm 發佈配置 — package.json bin/files 設定、建置腳本、scoped package 發佈
 
@@ -41,5 +41,5 @@ ai-dev CLI 目前以 Python (Typer + Rich + Textual) 實作，而 claude-mem-syn
 - **依賴**：移除 Python 依賴 (typer, rich, textual, pyyaml)；新增 npm 依賴 (commander, ink, react, chalk, yaml, better-sqlite3, ora, inquirer)
 - **開發工具**：從 ruff + black + mypy + pytest 改為 biome + tsc + bun test
 - **使用者影響**：需要 Bun runtime（取代 Python 3.13 + uv）；CLI 指令介面保持相容
-- **非程式碼資源不受影響**：skills/、commands/、agents/、docs/、services/、.standards/ 全部保留
+- **非程式碼資源不受影響**：skills/、commands/、agents/、docs/、services/ 全部保留
 - **Git 分支**：v1 保存為 `v1` 分支，v2 開發於 `v2` 分支，完成後合併回 main

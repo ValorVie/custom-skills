@@ -13,7 +13,6 @@ TUI 篩選列須在現有的 Target 和 Type 選單旁新增 Source 下拉選單
 ### Requirement: 來源篩選選項
 Source 下拉選單須提供以下選項：
 - All（預設）
-- universal-dev-standards
 - custom-skills
 - obsidian-skills
 - anthropic-skills
@@ -41,8 +40,8 @@ Source 下拉選單須提供以下選項：
 Source 篩選器須與 Target 和 Type 篩選器組合使用。
 
 #### Scenario: 組合篩選
-- **WHEN** 使用者設定 Target 為「claude」、Type 為「skills」、Source 為「uds」
-- **THEN** 僅顯示來自 UDS 來源的 Claude Code skills
+- **WHEN** 使用者設定 Target 為「claude」、Type 為「skills」、Source 為「everything-claude-code」
+- **THEN** 僅顯示來自 ECC 來源的 Claude Code skills
 
 #### Scenario: 篩選結果為空
 - **WHEN** 使用者選擇的篩選條件組合沒有符合的資源

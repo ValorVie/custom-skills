@@ -30,7 +30,7 @@ description: 公司 AI 輔助開發環境的完整設定指南，以 Claude Code
 9. [故障排除](#故障排除)
 10. [附錄 A：備選 AI 開發工具](#附錄-a備選-ai-開發工具)
 11. [附錄 B：目錄結構總覽](#附錄-b目錄結構總覽)
-12. [附錄 C：ECC 整合、標準體系、上游追蹤](#附錄-cecc-整合標準體系上游追蹤)
+12. [附錄 C：ECC 整合、上游追蹤](#附錄-cecc-整合上游追蹤)
 
 ---
 
@@ -93,8 +93,8 @@ Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態�
 ┌─────────────────────────────────────────────────────────────┐
 │                     Skills 來源                             │
 ├─────────────────────────────────────────────────────────────┤
-│  universal-dev-standards  │  everything-claude-code  │      │
-│  (開發標準)               │  (ECC: Hooks/Skills/    │      │
+│                           │  everything-claude-code  │      │
+│                           │  (ECC: Hooks/Skills/    │      │
 │                           │   Agents/Commands)       │      │
 ├───────────────────────────┼──────────────────────────┤      │
 │  superpowers  │  anthropic-skills  │  obsidian-skills │      │
@@ -123,16 +123,6 @@ Claude Code 是目前推理能力最強的 AI 編程助手，但**原生狀態�
 ```
 
 ### 關鍵 Skills 說明
-
-#### UDS Skills（核心開發標準）
-
-| Skill | 功能 | 何時觸發 |
-|-------|------|----------|
-| `ai-collaboration-standards` | 防止 AI 幻覺，確保實證回應 | 分析程式碼、提供建議時 |
-| `commit-standards` | 規範提交訊息格式 | git commit 時 |
-| `code-review-assistant` | 程式碼審查清單 | 審查 PR 或提交前 |
-| `testing-guide` | 測試策略指南 | 撰寫測試時 |
-| `spec-driven-dev` | 規格驅動開發工作流 | 規劃功能時 |
 
 #### ECC Skills（進階工作流）
 
@@ -517,19 +507,7 @@ ai-dev clone
 
 每當建立新專案時，執行以下步驟來初始化開發環境：
 
-### 步驟 1：初始化 Universal Dev Standards
-
-```shell
-cd your-project
-uds init
-```
-
-這會建立 `.standards/` 目錄，包含：
-- 反幻覺協議
-- 提交訊息標準
-- 程式碼審查清單
-
-### 步驟 2：初始化 OpenSpec
+### 步驟 1：初始化 OpenSpec
 
 如果專案需要規格驅動開發：
 
@@ -543,7 +521,7 @@ openspec init
 請閱讀 openspec/config.yaml，並協助我填寫關於我的專案、技術堆疊 (tech stack) 和開發規範 (conventions) 的細節。
 ```
 
-### 步驟 3：初始化 Claude Code (選用)
+### 步驟 2：初始化 Claude Code (選用)
 
 ```shell
 claude
@@ -666,21 +644,19 @@ ai-dev --help
 | `tui` | 啟動互動式終端介面 |
 | `project` | 專案級別的初始化與更新操作 |
 | `clone` | 分發 Skills 內容到各 AI 工具目錄 |
-| `standards` | 管理標準體系 profiles（uds/ecc/minimal） |
 
 ### Project 指令（專案級操作）
 
 在專案目錄下初始化或更新配置：
 
 ```shell
-# 初始化專案（整合 openspec init + uds init）
+# 初始化專案
 ai-dev project init
 
 # 只初始化特定工具
 ai-dev project init --only openspec
-ai-dev project init --only uds
 
-# 更新專案配置（整合 openspec update + uds update）
+# 更新專案配置（openspec update）
 ai-dev project update
 
 # 只更新特定工具
@@ -882,7 +858,6 @@ claude mcp add context7 --scope user -- npx @upstash/context7-mcp
 - 內部：聯繫開發組負責人
 - Claude Code 文件：https://docs.anthropic.com/en/docs/claude-code/overview
 - OpenSpec 文件：https://github.com/Fission-AI/OpenSpec
-- Universal Dev Standards：https://github.com/AsiaOstrich/universal-dev-standards
 
 ---
 
@@ -1438,7 +1413,6 @@ agy（CLI）與 Antigravity（IDE）的全域 skills 目錄**不同**，且 `npx
 │   │   └── <repo>/        # 各 repo 同步狀態
 │   └── disabled/          # 停用的資源
 ├── superpowers/           # Superpowers 來源
-├── universal-dev-standards/  # UDS 來源
 └── opencode/
     ├── opencode.json      # OpenCode 主設定
     ├── oh-my-opencode.json  # oh-my-opencode 設定
@@ -1455,7 +1429,6 @@ project/
 ├── .opencode/             # 專案級 OpenCode 設定
 │   └── agent/             # 專案級 Agent
 ├── .codex/                # 專案級 Codex 設定
-├── .standards/            # UDS 專案標準
 ├── openspec/              # OpenSpec 規格
 │   ├── project.md
 │   ├── specs/
@@ -1465,7 +1438,7 @@ project/
 
 ---
 
-## 附錄 C：ECC 整合、標準體系、上游追蹤
+## 附錄 C：ECC 整合、上游追蹤
 
 ### ECC (Everything Claude Code) 整合
 
@@ -1480,44 +1453,6 @@ v0.6.0 新增 Everything Claude Code 資源整合，提供進階的 Claude Code 
 
 詳見 `sources/ecc/README.md`。
 
-### 標準體系切換 (Standards Profiles)
-
-支援在不同標準體系之間切換：
-
-```shell
-# 查看目前狀態
-ai-dev standards status
-
-# 列出可用 profiles
-ai-dev standards list
-
-# 切換 profile（會自動停用重疊資源）
-ai-dev standards switch ecc
-
-# 預覽切換影響
-ai-dev standards switch ecc --dry-run
-
-# 顯示 profile 內容
-ai-dev standards show ecc
-
-# 顯示重疊定義
-ai-dev standards overlaps
-
-# 同步檔案狀態
-ai-dev standards sync --target claude
-```
-
-可用 profiles：
-- `uds` - Universal Dev Standards 完整版（預設）
-- `ecc` - Everything Claude Code 工作流程
-- `minimal` - 最小化配置
-
-**Profile 系統特性**：
-- **重疊檢測**：定義於 `profiles/overlaps.yaml`，標記功能等效的資源
-- **自動停用**：切換 profile 時，自動停用重疊組中非偏好來源的資源
-- **手動保護**：手動停用的項目不會被 profile 切換覆蓋
-- **同步機制**：`sync` 指令會實際移動檔案到 `.disabled/` 目錄或還原
-
 ### 上游追蹤與同步
 
 追蹤第三方 repo 的同步狀態：
@@ -1525,7 +1460,6 @@ ai-dev standards sync --target claude
 ```shell
 # 使用 Skills 進行上游審核
 /custom-skills-upstream-ops              # 預設 audit mode：commit 差異 + 同步建議
-/custom-skills-upstream-ops uds-check    # UDS .standards/ 檔案級漂移
 /custom-skills-upstream-ops overlap <repo>  # 任一 repo vs 本專案重疊偵測
 ```
 

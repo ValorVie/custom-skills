@@ -17,7 +17,6 @@ context: |
     ├─ sources/      → 上游資源整合
     ├─ upstream/     → 上游追蹤系統
     ├─ third-party/  → 第三方專案參考資訊
-    ├─ .standards/   → 專案層級的開發標準（universal-dev-standards 生成）
     ├─ docs/         → 概念性文件與使用指南
     ├─ openspec/     → OpenSpec 規格驅動開發配置
     └─ project-template/ → 專案初始化模板
@@ -45,7 +44,7 @@ context: |
 
   Dependencies:
     - Node.js >= 20.19.0, Git >= 2.x
-    - upstream: universal-dev-standards, everything-claude-code, superpowers, anthropic-skills, obsidian-skills
+    - upstream: everything-claude-code, superpowers, anthropic-skills, obsidian-skills
 
 specs: []
 

@@ -39,7 +39,6 @@ TBD - created by archiving change enhance-skill-management. Update Purpose after
 給定使用者執行 `list` 指令
 當顯示資源清單時
 則每個項目應該標示其來源：
-- `universal-dev-standards`：來自 UDS
 - `obsidian-skills`：來自 Obsidian Skills
 - `anthropic-skills`：來自 Anthropic Skills
 - `custom-skills`：來自本專案

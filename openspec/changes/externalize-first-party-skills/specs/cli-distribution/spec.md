@@ -10,7 +10,6 @@
 當執行 `ai-dev install` 時
 則應該 clone 到 `~/.config/<repo-name>/`：
 - superpowers → `~/.config/superpowers/`
-- universal-dev-standards → `~/.config/universal-dev-standards/`
 - obsidian-skills → `~/.config/obsidian-skills/`
 - anthropic-skills → `~/.config/anthropic-skills/`
 - everything-claude-code → `~/.config/everything-claude-code/`
@@ -52,7 +51,7 @@
 
 給定使用者執行 `ai-dev clone`
 當分發流程執行時
-則不應該自動將外部來源（UDS、Obsidian、Anthropic）整合到 `~/.config/custom-skills`
+則不應該自動將外部來源（Obsidian、Anthropic）整合到 `~/.config/custom-skills`
 且 `~/.config/custom-skills` 的 framework 內容應由 git repo 控制。
 
 #### Scenario: Custom repo 資源不整合回開發專案

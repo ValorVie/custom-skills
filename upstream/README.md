@@ -27,7 +27,7 @@ upstream/
 | `repo` | GitHub repo 路徑 (owner/repo) |
 | `branch` | 追蹤的分支 |
 | `local_path` | 本地 clone 位置 |
-| `format` | 檔案格式 (`uds` 或 `claude-code-native`) |
+| `format` | 檔案格式（目前一律為 `claude-code-native`） |
 
 ### last-sync.yaml
 
@@ -117,9 +117,6 @@ ai-dev update
 # 評估新的本地 repo（偵測與本專案的功能重疊）
 /custom-skills-upstream-ops overlap ~/.config/awesome-skills
 
-# 檢查 UDS .standards/ 檔案級漂移
-/custom-skills-upstream-ops uds-check
-
 # 任一 repo vs 本專案重疊偵測
 /custom-skills-upstream-ops overlap <repo>
 
@@ -132,14 +129,13 @@ ai-dev clone
 
 ## 相關 Skills
 
-- `/custom-skills-upstream-ops` - 上游操作統一入口，支援 `audit`、`uds-check`、`overlap`、`maintenance` 四種 mode（compare 功能已併入 audit）
+- `/custom-skills-upstream-ops` - 上游操作統一入口，支援 `audit`、`overlap`、`maintenance` 三種 mode（compare 功能已併入 audit）
 
 ## 格式說明
 
 | 格式 | 說明 | 來源 |
 |------|------|------|
 | `claude-code-native` | 純 Markdown | superpowers, obsidian-skills, anthropic-skills |
-| `uds` | YAML frontmatter + Markdown | universal-dev-standards |
 
 ---
 

@@ -17,7 +17,7 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 
 ### Requirement: Project Init Command (專案初始化指令)
 
-`ai-dev project init` MUST (必須) 整合呼叫 openspec 和 uds 的初始化命令。
+`ai-dev project init` MUST (必須) 整合呼叫 openspec 的初始化命令。
 
 使用 `--force` 時，系統 SHALL 在覆蓋檔案前執行差異比對，並將有差異的檔案備份到 `_backup_after_init_force/<YYYYMMDD_HHMMSS>/`。
 
@@ -26,8 +26,7 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 給定一個尚未初始化的專案目錄
 當執行 `ai-dev project init` 時
 則應該依序執行：
-1. `uds init`（建立 `.standards/` 目錄）
-2. `openspec init`（建立 `openspec/` 目錄）
+1. `openspec init`（建立 `openspec/` 目錄）
 並顯示每個步驟的執行結果。
 
 #### Scenario: 強制初始化時備份差異檔案
@@ -45,12 +44,11 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 給定 `ai-dev project init` 指令
 當使用 `--only` 參數時
 則應該只執行指定的工具：
-- `ai-dev project init --only uds`：只執行 `uds init`
 - `ai-dev project init --only openspec`：只執行 `openspec init`
 
 #### Scenario: 工具未安裝時的錯誤處理
 
-給定 openspec 或 uds 未安裝
+給定 openspec 未安裝
 當執行 `ai-dev project init` 時
 則應該：
 1. 顯示清楚的錯誤訊息，指出缺少哪個工具
@@ -59,7 +57,7 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 
 #### Scenario: 已初始化的專案
 
-給定專案已有 `openspec/` 或 `.standards/` 目錄
+給定專案已有 `openspec/` 目錄
 當執行 `ai-dev project init` 時
 則應該：
 1. 提示使用者該專案已部分或完全初始化
@@ -67,15 +65,14 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 
 ### Requirement: Project Update Command (專案更新指令)
 
-`ai-dev project update` MUST (必須) 整合呼叫 openspec 和 uds 的更新命令。
+`ai-dev project update` MUST (必須) 整合呼叫 openspec 的更新命令。UDS 已退役：專案留有 `.standards/` 時，只提示 ai-dev 不再管理它，不執行 `uds update`，也不修改該目錄。
 
 #### Scenario: 預設更新流程
 
 給定一個已初始化的專案目錄
 當執行 `ai-dev project update` 時
 則應該依序執行：
-1. `uds update`（更新 `.standards/` 配置）
-2. `openspec update`（更新 `openspec/` 配置）
+1. `openspec update`（更新 `openspec/` 配置）
 並顯示每個步驟的執行結果。
 
 #### Scenario: 選擇性更新
@@ -83,24 +80,25 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 給定 `ai-dev project update` 指令
 當使用 `--only` 參數時
 則應該只執行指定的工具：
-- `ai-dev project update --only uds`：只執行 `uds update`
+- `ai-dev project update --only uds`：UDS 已退役，只顯示說明並以 0 結束
 - `ai-dev project update --only openspec`：只執行 `openspec update`
 
 #### Scenario: 未初始化的專案
 
-給定專案尚未初始化（沒有 `openspec/` 和 `.standards/`）
+給定專案尚未初始化（沒有 `openspec/`，也沒有 UDS 留下的 `.standards/`）
 當執行 `ai-dev project update` 時
 則應該：
 1. 顯示錯誤訊息，指出專案尚未初始化
 2. 建議先執行 `ai-dev project init`
 
-#### Scenario: 部分初始化的專案
+#### Scenario: 只留有 UDS 的 `.standards/`
 
-給定專案只有 `.standards/` 但沒有 `openspec/`
+給定專案只有 UDS 留下的 `.standards/`，沒有已初始化的 `openspec/`
 當執行 `ai-dev project update` 時
 則應該：
-1. 只更新已存在的配置（`.standards/`）
-2. 警告缺少 `openspec/` 目錄，建議執行 `openspec init`
+1. 提示 UDS 已退役，不執行 `uds update`，也不修改 `.standards/`
+2. 說明沒有需要更新的工具，並建議執行 `openspec init`
+3. 以 0 結束
 
 ### Requirement: Thin Wrapper Implementation (薄包裝實作)
 
@@ -111,10 +109,9 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 給定 `ai-dev project init` 或 `ai-dev project update` 執行時
 則應該透過 `subprocess.run()` 呼叫底層命令：
 ```python
-subprocess.run(["uds", "init"], check=True)
 subprocess.run(["openspec", "init"], check=True)
 ```
-而非重新實作 uds/openspec 的邏輯。
+而非重新實作 openspec 的邏輯。
 
 #### Scenario: 傳遞底層工具的輸出
 
@@ -139,5 +136,5 @@ subprocess.run(["openspec", "init"], check=True)
 
 給定使用者位於專案根目錄
 當執行 `ai-dev project init` 時
-則應該在當前目錄建立配置，與直接執行 `uds init` + `openspec init` 的行為相同。
+則應該在當前目錄建立配置，與直接執行 `openspec init` 的行為相同。
 

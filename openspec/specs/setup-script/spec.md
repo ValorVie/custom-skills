@@ -104,7 +104,7 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 
 #### Scenario: 複製 Skills 到 Codex
 
-給定 UDS、Obsidian、Anthropic skills 來源
+給定 Obsidian、Anthropic skills 來源
 當執行 `ai-dev install` 或 `ai-dev update` 時
 則應該複製 skills 到 `~/.agents/skills` 目錄
 
@@ -139,7 +139,7 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 
 #### Scenario: 複製 Skills 到 Gemini CLI
 
-給定 UDS、Obsidian、Anthropic skills 來源
+給定 Obsidian、Anthropic skills 來源
 當執行 `ai-dev install` 或 `ai-dev update` 時
 則應該複製 skills 到 `~/.gemini/skills` 目錄
 
@@ -162,7 +162,6 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 當執行 `ai-dev install` 時
 則應該 clone 到 `~/.config/<repo-name>/`：
 - superpowers → `~/.config/superpowers/`
-- universal-dev-standards → `~/.config/universal-dev-standards/`
 - obsidian-skills → `~/.config/obsidian-skills/`
 - anthropic-skills → `~/.config/anthropic-skills/`
 - everything-claude-code → `~/.config/everything-claude-code/`
@@ -183,7 +182,7 @@ TBD - created by archiving change add-ai-setup-script. Update Purpose after arch
 
 給定使用者執行 `ai-dev clone`
 當分發流程執行時
-則不應該自動將外部來源（UDS, Obsidian, Anthropic）整合到 `~/.config/custom-skills`
+則不應該自動將外部來源（Obsidian, Anthropic）整合到 `~/.config/custom-skills`
 且 `~/.config/custom-skills` 的內容應由 git repo 控制
 
 ### Requirement: OpenCode Full Support (OpenCode 完整支援)

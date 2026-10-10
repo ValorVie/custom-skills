@@ -283,7 +283,6 @@ git clone https://github.com/owner/repo.git ~/.config/third-party-name
 
 - **專案主目錄**: [custom-skills](../README.md)
 - **上游整合系統**: [upstream/](../upstream/README.md)
-- **開發規範**: [.standards/](.././standards/)
 - **OpenSpec 系統**: [openspec/](../openspec/)
 
 ---

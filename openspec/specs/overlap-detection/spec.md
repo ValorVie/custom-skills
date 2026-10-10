@@ -2,7 +2,7 @@
 
 ## Purpose
 
-定義功能重疊偵測機制，用於識別任一 repo（上游或新候選）與本專案之間的功能重疊，並輔助 Profile 切換決策。
+定義功能重疊偵測機制，用於識別任一 repo（上游或新候選）與本專案之間的功能重疊，並輔助整合或排除決策。
 
 重疊偵測由 `/custom-skills-upstream-ops overlap <target>` mode 提供（原 `/upstream-compare --new-repo` 與 `--generate-overlaps` 能力合併於此）。
 
@@ -38,26 +38,6 @@
 - **AND** 考慮 frontmatter description 與前 20 行的語意相似
 - **AND** 不使用硬性數值門檻（由 AI 當下判斷）
 
-### Requirement: overlaps.yaml 片段建議
-
-系統 SHALL 在偵測到重疊時輸出可複製到 `.standards/profiles/overlaps.yaml` 的 YAML 片段。
-
-#### Scenario: 對話輸出片段
-
-- **GIVEN** overlap mode 偵測到重疊
-- **WHEN** 產出報告
-- **THEN** 報告內含「建議 overlaps.yaml 片段」章節
-- **AND** 片段符合 `overlaps.yaml` 現有 groups/mutual_exclusive 結構
-- **AND** 片段標註「需人工審閱後再貼上」
-- **AND** **不自動寫檔**——不建立 `overlaps.yaml.draft`，不修改 `overlaps.yaml`
-
-#### Scenario: 無重疊時不生成片段
-
-- **GIVEN** overlap mode 分析結果無重疊
-- **WHEN** 產出報告
-- **THEN** 報告僅列「全新項目」清單
-- **AND** 不輸出 YAML 片段
-
 ### Requirement: 重疊分析報告
 
 系統 SHALL 在 overlap mode 輸出結構化的 Markdown 報告。
@@ -81,18 +61,4 @@
 - **GIVEN** 分析完成
 - **WHEN** 輸出報告
 - **THEN** 包含「下一步」章節
-- **AND** 建議可能動作：整合（audit mode）、排除（distribution.yaml）、Profile 管理（overlaps.yaml）
-
-### Requirement: 重疊驗證
-
-系統 SHALL 驗證 `.standards/profiles/overlaps.yaml` 的正確性。
-
-> 此 Requirement 不屬於 overlap mode 的責任，由 `ai-dev standards validate-overlaps` 指令處理，維持原有實作。此處僅保留 Requirement 供交叉引用。
-
-#### Scenario: 項目存在性驗證
-
-- **GIVEN** `overlaps.yaml` 定義了項目
-- **WHEN** 執行 `ai-dev standards validate-overlaps`
-- **THEN** 檢查所有列出的 skills 是否存在
-- **AND** 檢查所有列出的 standards 是否存在
-- **AND** 報告不存在的項目
+- **AND** 建議可能動作：整合（audit mode）、排除（distribution.yaml）

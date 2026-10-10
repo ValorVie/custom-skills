@@ -24,7 +24,6 @@ from ..utils.paths import (
     get_agents_skills_dir,
     get_agy_config_dir,
     get_superpowers_dir,
-    get_uds_dir,
 )
 from ..utils.shared import (
     NPM_PACKAGES,
@@ -231,7 +230,6 @@ def _legacy_install(
         get_config_dir(),
         get_custom_skills_dir(),
         get_superpowers_dir(),
-        get_uds_dir(),
         # Claude Code
         get_claude_config_dir() / "skills",
         get_claude_config_dir() / "commands",

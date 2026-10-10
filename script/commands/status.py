@@ -53,7 +53,6 @@ def _render_npm_packages() -> None:
     packages = [
         "@anthropic-ai/claude-code",
         "@fission-ai/openspec",
-        "universal-dev-standards",
         "opencode-ai",
         "skills",
     ]
@@ -61,7 +60,6 @@ def _render_npm_packages() -> None:
     binary_map = {
         "@anthropic-ai/claude-code": "claude",
         "@fission-ai/openspec": "openspec",
-        "universal-dev-standards": "uds",
         "opencode-ai": "opencode",
     }
 
@@ -87,7 +85,6 @@ def _render_repo_status() -> None:
     repo_display_names = {
         "custom_skills": "custom-skills",
         "superpowers": "superpowers",
-        "uds": "universal-dev-standards",
         "obsidian_skills": "obsidian-skills",
         "anthropic_skills": "anthropic-skills",
         "everything_claude_code": "everything-claude-code",

@@ -28,7 +28,6 @@
 當顯示資源清單時
 則每個項目應該標示其來源：
 - `ai-dev-skills`：由 `upstream/npx-skills.yaml` 宣告、來源為 `ValorVie/ai-dev-skills` 的第一方 skill
-- `universal-dev-standards`：來自 UDS
 - `obsidian-skills`：來自 Obsidian Skills
 - `anthropic-skills`：來自 Anthropic Skills
 - `everything-claude-code`：來自 ECC
