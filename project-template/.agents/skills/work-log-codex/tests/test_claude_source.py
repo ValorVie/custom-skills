@@ -1,178 +1,95 @@
 from __future__ import annotations
 
+import json
+import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
-import sys
-
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from source_claude import load_claude_events
+from source_claude import load_claude_events  # noqa: E402
+
+START = datetime(2026, 9, 1, tzinfo=timezone.utc)
+END = datetime(2026, 9, 30, tzinfo=timezone.utc)
+
+
+def _row(kind: str, ts: str, content, **extra) -> dict:
+    return {"type": kind, "timestamp": ts, "sessionId": "main-1", "entrypoint": "cli",
+            "message": {"role": kind, "content": content}, **extra}
+
+
+def _write(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
 
 
 class ClaudeSourceTest(unittest.TestCase):
-    def test_uses_transcripts_and_history_project_path(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "transcripts").mkdir(parents=True)
-            (root / "history.jsonl").write_text(
-                "\n".join(
-                    [
-                        '{"display":"old prompt","timestamp":1759222794000,"project":"/repo/old"}',
-                        '{"display":"daily report","timestamp":1759222794882,"project":"/repo/b"}',
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            transcript_file = root / "transcripts/example.jsonl"
-            transcript_file.write_text(
-                "\n".join(
-                    [
-                        '{"type":"user","timestamp":"2026-02-06T07:24:57.012Z","content":"daily report"}',
-                        '{"type":"assistant","timestamp":"2026-02-06T07:25:00.000Z","content":"summary line\\nmore detail"}',
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        root = self.root = Path(self.tmp.name)
+        proj = root / "projects/-repo-a"
+        _write(proj / "main-1.jsonl", [
+            {"type": "attachment", "timestamp": "2026-09-10T00:59:00Z", "cwd": "/repo/a", "entrypoint": "cli"},
+            _row("user", "2026-09-10T01:00:00Z", "整理工作日誌", cwd="/repo/a", world_state="x" * 100_000),
+            _row("assistant", "2026-09-10T01:01:00Z",
+                 [{"type": "text", "text": "開始"}, {"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}],
+                 cwd="/repo/a/sub"),
+            _row("user", "2026-09-10T01:02:00Z",
+                 [{"type": "tool_result", "content": "not a prompt"}], cwd="/repo/a/sub"),
+            _row("user", "2026-09-10T01:03:00Z", "<command-name>/x</command-name>", cwd="/repo/a"),
+            _row("user", "2026-09-10T01:05:00Z", "\n<pasted_content id=\"1\">\n貼上的需求\n</pasted_content>", cwd="/repo/a"),
+            _row("user", "2026-09-10T01:06:00Z", "hook text", cwd="/repo/a", isMeta=True),
+            _row("assistant", "2026-09-10T01:10:00Z", [{"type": "text", "text": "已完成"}], cwd="/repo/a"),
+            _row("user", "2026-10-10T01:00:00Z", "out of window", cwd="/repo/a"),
+        ])
+        _write(proj / "main-1/subagents/agent-x.jsonl", [
+            _row("user", "2026-09-10T01:04:00Z", "subagent task", cwd="/repo/a"),
+        ])
+        _write(proj / "sdk-1.jsonl", [
+            {**_row("user", "2026-09-10T02:00:00Z", "You are a memory relevance compressor", cwd="/repo/a"),
+             "entrypoint": "sdk-cli", "sessionId": "sdk-1"},
+        ])
+        _write(root / "projects/-home-x--claude-mem-observer-sessions/o.jsonl", [
+            _row("user", "2026-09-10T03:00:00Z", "observer", cwd="/obs"),
+        ])
+        # Old non-Claude-Code layouts must be ignored.
+        _write(root / "transcripts/ses_old.jsonl", [
+            {"type": "user", "timestamp": "2026-09-10T04:00:00Z", "content": "opencode transcript"},
+        ])
 
-            events = load_claude_events(root)
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
 
-            self.assertEqual(len(events), 2)
-            self.assertEqual(events[0]["tool"], "claude")
-            self.assertEqual(events[0]["session_id"], "example")
-            self.assertEqual(events[0]["project_path"], "/repo/b")
-            self.assertIsNone(events[0]["cwd"])
-            self.assertEqual(events[0]["event_type"], "user")
-            self.assertEqual(events[0]["title"], "daily report")
-            self.assertEqual(events[0]["text"], "daily report")
-            self.assertEqual(events[0]["evidence_path"], str(transcript_file))
-            self.assertEqual(events[0]["confidence"], "high")
-            self.assertEqual(events[1]["title"], "summary line")
-            self.assertEqual(events[1]["text"], "summary line\nmore detail")
+    def test_reads_current_projects_layout(self) -> None:
+        events = load_claude_events(self.root, START, END)
+        main = [e for e in events if e["session_id"] == "main-1"]
+        self.assertEqual(len(main), 7)  # attachment and out-of-window rows dropped
+        self.assertEqual({e["project_path"] for e in events}, {"/repo/a"})  # first cwd, not later cd
+        self.assertEqual({e["confidence"] for e in events}, {"high"})
+        self.assertEqual(
+            [e["text"] for e in main if e["event_type"] == "user"],
+            ["整理工作日誌", None, None, "<pasted_content id=\"1\">\n貼上的需求\n</pasted_content>", None],
+        )
+        self.assertEqual(main[1]["raw"]["message"]["content"], [{"type": "tool_use", "name": "Bash"}])
 
-    def test_falls_back_to_latest_history_project(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "transcripts").mkdir(parents=True)
-            (root / "history.jsonl").write_text(
-                "\n".join(
-                    [
-                        '{"display":"older","timestamp":1000,"project":"/repo/old"}',
-                        '{"display":"newer","timestamp":2000,"project":"/repo/latest"}',
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            (root / "transcripts/work-session.jsonl").write_text(
-                '{"type":"user","timestamp":"2026-02-06T08:00:00.000Z","content":"unmatched content"}\n',
-                encoding="utf-8",
-            )
+    def test_subagents_are_separate_sessions(self) -> None:
+        sub = [e for e in load_claude_events(self.root, START, END) if e["is_subagent"]]
+        self.assertEqual([e["session_id"] for e in sub], ["main-1/agent-x"])
 
-            events = load_claude_events(root)
+    def test_skips_sdk_observer_and_old_layouts(self) -> None:
+        paths = {e["evidence_path"] for e in load_claude_events(self.root, START, END)}
+        self.assertFalse(any(m in p for p in paths for m in ("sdk-1", "observer", "transcripts")))
 
-            self.assertEqual(events[0]["session_id"], "work-session")
-            self.assertEqual(events[0]["project_path"], "/repo/latest")
-            self.assertEqual(events[0]["confidence"], "low")
+    def test_raw_is_compact(self) -> None:
+        first = load_claude_events(self.root, START, END)[0]
+        self.assertLess(len(json.dumps(first["raw"])), 1024)
 
-    def test_uses_session_tmp_and_project_fallback_without_transcripts(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "history.jsonl").write_text(
-                '{"display":"newer","timestamp":2000,"project":"/repo/latest"}\n',
-                encoding="utf-8",
-            )
-            (root / "sessions").mkdir(parents=True)
-            (root / "sessions/2026-03-11-session.tmp").write_text(
-                "\n".join(
-                    [
-                        "# Session: 2026-03-11",
-                        "### Completed",
-                        "- shipped daily report",
-                        "### In Progress",
-                        "- refine weekly rollup",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            project_dir = root / "projects/-Users-arlen"
-            project_dir.mkdir(parents=True)
-            (project_dir / "sample.jsonl").write_text(
-                '{"sessionId":"fallback","cwd":"/repo/project-fallback","timestamp":"2026-03-11T12:00:00Z","type":"user","message":{"content":"project fallback note"}}\n',
-                encoding="utf-8",
-            )
-            observer_dir = root / "projects/-Users-arlen--claude-mem-observer-sessions"
-            observer_dir.mkdir(parents=True)
-            (observer_dir / "ignored.jsonl").write_text(
-                '{"sessionId":"ignored","cwd":"/repo/observer","timestamp":"2026-03-11T12:05:00Z","type":"user","message":{"content":"ignore me"}}\n',
-                encoding="utf-8",
-            )
-
-            events = load_claude_events(root)
-
-            self.assertEqual(len(events), 3)
-            self.assertEqual(events[0]["event_type"], "session_note")
-            self.assertEqual(events[0]["project_path"], "/repo/latest")
-            self.assertEqual(events[0]["confidence"], "low")
-            self.assertEqual(events[0]["title"], "Completed")
-            self.assertEqual(events[0]["text"], "shipped daily report")
-            self.assertEqual(events[1]["event_type"], "session_note")
-            self.assertEqual(events[1]["title"], "In Progress")
-            self.assertEqual(events[1]["text"], "refine weekly rollup")
-            self.assertEqual(events[2]["project_path"], "/repo/project-fallback")
-            self.assertEqual(events[2]["session_id"], "fallback")
-
-    def test_project_fallback_reads_nested_message_content_list(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "history.jsonl").write_text(
-                '{"display":"newer","timestamp":2000,"project":"/repo/latest"}\n',
-                encoding="utf-8",
-            )
-            project_dir = root / "projects/-Users-arlen"
-            project_dir.mkdir(parents=True)
-            (project_dir / "sample.jsonl").write_text(
-                '{"sessionId":"fallback","cwd":"/repo/project-fallback","timestamp":"2026-03-11T12:00:00Z","type":"assistant","message":{"content":[{"text":"project fallback note"}]}}\n',
-                encoding="utf-8",
-            )
-
-            events = load_claude_events(root)
-
-            self.assertEqual(len(events), 1)
-            self.assertEqual(events[0]["text"], "project fallback note")
-            self.assertEqual(events[0]["title"], "project fallback note")
-
-    def test_tool_events_inherit_session_level_project_match(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "transcripts").mkdir(parents=True)
-            (root / "history.jsonl").write_text(
-                '{"display":"match me","timestamp":2000,"project":"/repo/matched"}\n',
-                encoding="utf-8",
-            )
-            (root / "transcripts/work-session.jsonl").write_text(
-                "\n".join(
-                    [
-                        '{"type":"user","timestamp":"2026-02-06T08:00:00.000Z","content":"match me"}',
-                        '{"type":"tool_use","timestamp":"2026-02-06T08:01:00.000Z","tool_name":"bash","tool_input":{"command":"ls -la","description":"list files"}}',
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-
-            events = load_claude_events(root)
-
-            self.assertEqual(events[0]["project_path"], "/repo/matched")
-            self.assertEqual(events[1]["project_path"], "/repo/matched")
-            self.assertEqual(events[1]["confidence"], "high")
-            self.assertIn("ls -la", events[1]["text"])
+    def test_missing_projects_dir_returns_empty(self) -> None:
+        self.assertEqual(load_claude_events(self.root / "nope"), [])
 
 
 if __name__ == "__main__":

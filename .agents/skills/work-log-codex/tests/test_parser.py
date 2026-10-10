@@ -102,6 +102,7 @@ class ParserTest(unittest.TestCase):
 
         mock_collect_git_data.side_effect = _git_data
 
+        progress_messages: list[str] = []
         report = build_report(
             start=datetime(2026, 3, 11, 0, 0, tzinfo=timezone.utc),
             end=datetime(2026, 3, 11, 23, 59, tzinfo=timezone.utc),
@@ -109,6 +110,7 @@ class ParserTest(unittest.TestCase):
             claude_home=Path("/tmp/claude"),
             codex_home=Path("/tmp/codex"),
             project_filter=None,
+            progress=progress_messages.append,
         )
 
         self.assertIn("projects", report)
@@ -126,6 +128,18 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(repo_b["short_name"], "repo-b")
         self.assertEqual(repo_b["git_commits"], [])
         self.assertIn("規劃明天的週報匯總", repo_b["session_hints"])
+        self.assertGreaterEqual(len(progress_messages), 4)
+        self.assertTrue(progress_messages[0].startswith("讀取 Claude"))
+        mock_load_claude_events.assert_called_once_with(
+            Path("/tmp/claude"),
+            datetime(2026, 3, 11, 0, 0, tzinfo=timezone.utc),
+            datetime(2026, 3, 11, 23, 59, tzinfo=timezone.utc),
+        )
+        mock_load_codex_events.assert_called_once_with(
+            Path("/tmp/codex"),
+            datetime(2026, 3, 11, 0, 0, tzinfo=timezone.utc),
+            datetime(2026, 3, 11, 23, 59, tzinfo=timezone.utc),
+        )
 
     def test_parse_time_shortcut_this_week(self) -> None:
         start, end = parse_time_shortcut("this-week", "Asia/Taipei")

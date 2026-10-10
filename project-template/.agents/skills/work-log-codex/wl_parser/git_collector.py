@@ -141,7 +141,7 @@ def collect_git_data(
     for commit in commits:
         show = _run_git(
             project_path,
-            ["show", "--stat", "--name-only", "--format=fuller", commit["full_hash"]],
+            ["show", "--stat", "--name-only", "--format=", commit["full_hash"]],
             timeout=15,
         )
         files: list[str] = []

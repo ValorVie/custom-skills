@@ -10,7 +10,7 @@ from collections import Counter, defaultdict
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from scripts.source_claude import load_claude_events
 from scripts.source_codex import load_codex_events
@@ -675,16 +675,22 @@ def build_report(
     claude_home: Path,
     codex_home: Path,
     project_filter: str | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     """Build the structured report JSON."""
     tz = _get_tz(timezone_name)
 
+    if progress:
+        progress("讀取 Claude 工作階段…")
     try:
-        claude_events = load_claude_events(claude_home)
+        claude_events = load_claude_events(claude_home, start, end)
     except Exception:  # pragma: no cover - defensive loader isolation
         claude_events = []
+    if progress:
+        progress(f"Claude 事件：{len(claude_events)}")
+        progress("讀取 Codex 工作階段…")
     try:
-        codex_events_raw = load_codex_events(codex_home)
+        codex_events_raw = load_codex_events(codex_home, start, end)
     except Exception:  # pragma: no cover - defensive loader isolation
         codex_events_raw = []
     codex_events = [
@@ -696,6 +702,9 @@ def build_report(
             or "/sessions/" in str(event.get("evidence_path", ""))
         )
     ]
+    if progress:
+        progress(f"Codex 事件：{len(codex_events)}")
+        progress("分析工作階段與專案…")
 
     all_events = claude_events + codex_events
     filtered_events = []
@@ -747,6 +756,8 @@ def build_report(
         _apply_project_union_durations(projects, active_events)
 
     total_commits = 0
+    if progress:
+        progress(f"讀取 {len(projects)} 個專案的 Git 證據…")
     for path, project in projects.items():
         git_commits = collect_git_data(path, start, end)
         project["git_commits"] = git_commits
@@ -772,7 +783,7 @@ def build_report(
     start_local = start.astimezone(tz)
     end_local = end.astimezone(tz)
 
-    return {
+    report = {
         "period": {
             "start": start_local.isoformat(),
             "end": end_local.isoformat(),
@@ -800,6 +811,11 @@ def build_report(
             "total_cache_read": total_tokens["cache_read"],
         },
     }
+    if progress:
+        progress(
+            f"完成：{len(main_sessions)} 個主要工作階段、{len(projects)} 個專案"
+        )
+    return report
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -834,6 +850,7 @@ def main(argv: list[str] | None = None) -> None:
         claude_home=Path(args.claude_home),
         codex_home=Path(args.codex_home),
         project_filter=args.project,
+        progress=lambda message: print(message, file=sys.stderr, flush=True),
     )
     if args.emit_project_dir:
         _emit_project_bundles(report, Path(args.emit_project_dir))

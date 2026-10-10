@@ -80,33 +80,74 @@ def _build_debug_path(report: dict, root: Path) -> Path:
     return root / base.replace(".md", ".debug.md")
 
 
-def _fallback_project_bullets(project: dict) -> list[str]:
+def _limit_context(value: str, limit: int = 300) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: limit - 1] + "…"
+
+
+def _fallback_project_tasks(project_path: str, project: dict) -> list[dict[str, str]]:
     commits = project.get("git_commits", [])
     hints = project.get("session_summaries") or project.get("session_hints", [])
     if commits:
-        return _representative_commit_messages(commits)
+        tasks: list[dict[str, str]] = []
+        for commit in _representative_commits(commits):
+            message = _clean_commit_message(commit.get("message", ""))
+            if not message:
+                continue
+            files = [str(path) for path in (commit.get("files") or [])[:3]]
+            files_text = "、".join(files) if files else "未列代表檔案"
+            commit_hash = commit.get("full_hash") or commit.get("hash") or "unknown"
+            tasks.append(
+                {
+                    "one_line": message,
+                    "context": _limit_context(
+                        f"此項以 Git commit 為完成證據，代表檔案為 {files_text}。"
+                        "工作日誌只確認版本庫中的交付；部署、執行期與外部狀態仍需另行驗證。"
+                    ),
+                    "source": f"{project_path}@{commit_hash}",
+                }
+            )
+        return tasks
 
     if hints:
         cleaned_hints = _clean_research_hints(hints)
         if cleaned_hints:
-            return [*cleaned_hints[:2], f"研究/探索 session（{project.get('duration_minutes', 0)} 分鐘）"]
+            return [
+                {
+                    "one_line": hint,
+                    "context": _limit_context(
+                        "此項只有工作階段摘要，沒有 Git commit 可證明已交付。"
+                        "因此保留為研究、規劃或進行中脈絡，不宣稱完成。"
+                    ),
+                    "source": "工作階段摘要（無 Git commit）",
+                }
+                for hint in cleaned_hints[:2]
+            ]
 
-    return [f"研究/探索 session（{project.get('duration_minutes', 0)} 分鐘）"]
+    return [
+        {
+            "one_line": f"研究／探索活動（{project.get('duration_minutes', 0)} 分鐘）",
+            "context": "現有資料不足以辨識更具體主題，因此只保留活動紀錄，不宣稱完成或交付。",
+            "source": "工作階段統計（無 Git commit）",
+        }
+    ]
 
 
 def build_fallback_summary(report: dict) -> str:
     summary = report.get("summary", {})
     projects = report.get("projects", {})
     ordered = sorted(
-        projects.values(),
-        key=lambda project: (
-            -project.get("duration_minutes", 0),
-            project.get("display_name") or project.get("short_name", ""),
+        projects.items(),
+        key=lambda item: (
+            -item[1].get("duration_minutes", 0),
+            item[1].get("display_name") or item[1].get("short_name", ""),
         ),
     )
     names = [
         project.get("display_name") or project.get("short_name", "unknown")
-        for project in ordered[:4]
+        for _path, project in ordered[:4]
     ]
     names_text = "、".join(names) if names else "各專案"
     total_hours = summary.get("total_duration_minutes", 0) / 60
@@ -120,12 +161,14 @@ def build_fallback_summary(report: dict) -> str:
         "",
     ]
 
-    for project in ordered:
+    for project_path, project in ordered:
         lines.append(
             f"#### {project.get('display_name') or project.get('short_name', 'unknown')}"
         )
-        for bullet in _fallback_project_bullets(project):
-            lines.append(f"- {bullet}")
+        for task in _fallback_project_tasks(project_path, project):
+            lines.append(f"- **一行重點：** {task['one_line']}")
+            lines.append(f"  - **重點脈絡：** {task['context']}")
+            lines.append(f"  - **來源：** {task['source']}")
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
@@ -138,6 +181,14 @@ def _clean_commit_message(message: str) -> str:
 
 
 def _representative_commit_messages(commits: list[dict]) -> list[str]:
+    return [
+        message
+        for commit in _representative_commits(commits)
+        if (message := _clean_commit_message(commit.get("message", "")))
+    ]
+
+
+def _representative_commits(commits: list[dict]) -> list[dict]:
     if not commits:
         return []
 
@@ -147,15 +198,16 @@ def _representative_commit_messages(commits: list[dict]) -> list[str]:
         last_index = len(commits) - 1
         indices = sorted({0, last_index // 3, (2 * last_index) // 3, last_index})
 
-    bullets: list[str] = []
+    selected: list[dict] = []
     seen: set[str] = set()
     for index in indices:
-        message = _clean_commit_message(commits[index].get("message", ""))
+        commit = commits[index]
+        message = _clean_commit_message(commit.get("message", ""))
         if not message or message in seen:
             continue
         seen.add(message)
-        bullets.append(message)
-    return bullets[:4]
+        selected.append(commit)
+    return selected[:4]
 
 
 def _clean_hint_text(text: str) -> str | None:
@@ -234,6 +286,7 @@ def main() -> int:
         claude_home=Path(args.claude_home).expanduser(),
         codex_home=Path(args.codex_home).expanduser(),
         project_filter=args.project,
+        progress=lambda message: print(message, file=sys.stderr, flush=True),
     )
 
     if args.emit_json:

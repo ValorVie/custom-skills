@@ -1,279 +1,188 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
 
-def _is_subagent_path(file_path: Path) -> bool:
-    return "subagents" in file_path.parts
+MAX_EVENT_TEXT_CHARS = 8192
+MAX_RAW_ARGUMENT_CHARS = 16384
 
 
-def _read_jsonl(file_path: Path) -> list[dict[str, Any]]:
-    if not file_path.exists():
-        return []
+def _trim_text(value: str | None, limit: int = MAX_EVENT_TEXT_CHARS) -> str | None:
+    if not value:
+        return None
+    if len(value) <= limit:
+        return value
+    return value[:limit] + "…"
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    if isinstance(value, (int, float)):
+        timestamp = float(value)
+        if timestamp > 10_000_000_000:
+            timestamp /= 1000
+        return datetime.fromtimestamp(timestamp).astimezone()
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.astimezone() if parsed.tzinfo is None else parsed
+    except ValueError:
+        return None
+
+
+def _in_window(value: Any, start: datetime | None, end: datetime | None) -> bool:
+    if start is None or end is None:
+        return True
+    parsed = _parse_timestamp(value)
+    if parsed is None:
+        return False
+    return start <= parsed <= end
+
+
+def _compact_argument(value: Any) -> Any:
+    if isinstance(value, str):
+        return _trim_text(value, MAX_RAW_ARGUMENT_CHARS)
+    if isinstance(value, dict):
+        return {
+            key: _compact_argument(value[key])
+            for key in ("cmd", "command", "description", "name")
+            if key in value
+        }
+    if isinstance(value, list):
+        return [_compact_argument(item) for item in value[:20]]
+    return value if isinstance(value, (int, float, bool)) or value is None else None
+
+
+def _compact_raw(row: dict[str, Any]) -> dict[str, Any]:
+    compact: dict[str, Any] = {
+        key: row[key]
+        for key in ("type", "tool_name", "name", "usage")
+        if key in row
+    }
+    if "tool_input" in row:
+        compact["tool_input"] = _compact_argument(row["tool_input"])
+    message = row.get("message")
+    if isinstance(message, dict):
+        compact_message = {
+            key: message[key]
+            for key in ("role", "usage")
+            if key in message
+        }
+        content = message.get("content")
+        if isinstance(content, list):
+            tool_blocks = [
+                {
+                    key: block[key]
+                    for key in ("type", "name")
+                    if key in block
+                }
+                for block in content
+                if isinstance(block, dict) and block.get("type") == "tool_use"
+            ]
+            if tool_blocks:
+                compact_message["content"] = tool_blocks
+        if compact_message:
+            compact["message"] = compact_message
+    return compact
+
+
+SKIP_DIR_MARKERS = ("observer-sessions",)
+# Harness-generated user rows; pasted prompts also start with "<" and must be kept.
+HARNESS_PREFIXES = ("<command-", "<local-command-", "<system-reminder>", "<task-notification>")
+
+
+def _prompt_text(message: dict[str, Any]) -> str | None:
+    """Text a human or the model actually wrote; tool results are not prompts."""
+    content = message.get("content")
+    if isinstance(content, str):
+        text = content.strip()
+        return None if not text or text.startswith(HARNESS_PREFIXES) else text
+    if not isinstance(content, list):
+        return None
+    parts = [
+        block["text"].strip()
+        for block in content
+        if isinstance(block, dict) and block.get("type") == "text" and isinstance(block.get("text"), str)
+    ]
+    text = "\n".join(part for part in parts if part)
+    return text or None
+
+
+def _read_session(
+    file_path: Path, start: datetime | None, end: datetime | None
+) -> list[dict[str, Any]] | None:
+    """Return in-window user/assistant rows, or None for an SDK helper session."""
     rows: list[dict[str, Any]] = []
-    for raw_line in file_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        try:
-            rows.append(json.loads(line))
-        except JSONDecodeError:
-            continue
+    project: str | None = None
+    with file_path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except JSONDecodeError:
+                continue
+            entrypoint = row.get("entrypoint")
+            # ponytail: SDK sessions here are memory-plugin helpers ("memory relevance
+            # compressor"), not work. If real SDK work appears, add an opt-in flag.
+            if isinstance(entrypoint, str) and entrypoint.startswith("sdk"):
+                return None
+            if project is None and isinstance(row.get("cwd"), str) and row["cwd"]:
+                project = row["cwd"]
+            if row.get("type") in {"user", "assistant"} and _in_window(row.get("timestamp"), start, end):
+                rows.append(row)
+    for row in rows:
+        row["_project"] = project
     return rows
 
 
-def _extract_text(content: Any) -> str | None:
-    if isinstance(content, str):
-        return content.strip() or None
-    if isinstance(content, (list, dict)):
-        for key in ("message", "tool_input", "tool_output", "data"):
-            if isinstance(content, dict) and key in content:
-                nested = _extract_text(content.get(key))
-                if nested:
-                    return nested
-    if isinstance(content, list):
-        parts: list[str] = []
-        for item in content:
-            if isinstance(item, dict):
-                text = item.get("text") or item.get("content")
-                if isinstance(text, str) and text.strip():
-                    parts.append(text.strip())
-        if parts:
-            return "\n".join(parts)
-    if isinstance(content, dict):
-        for key in ("text", "content", "command", "description", "output"):
-            value = content.get(key)
-            nested = _extract_text(value)
-            if nested:
-                return nested
-        if any(key in content for key in ("tool_input", "tool_output")):
-            try:
-                return json.dumps(content, ensure_ascii=False, sort_keys=True)
-            except TypeError:
-                return str(content)
-    return None
+def load_claude_events(
+    root: Path,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Read Claude Code 2.x session logs.
 
-
-def _extract_title(text: str | None) -> str | None:
-    if not text:
-        return None
-    first_line = next((line.strip() for line in text.splitlines() if line.strip()), "")
-    return first_line or None
-
-
-def load_claude_history_entries(history_file: Path) -> list[dict[str, Any]]:
-    entries: list[dict[str, Any]] = []
-    for row in _read_jsonl(history_file):
-        project = row.get("project")
-        if not project:
-            continue
-        entries.append(
-            {
-                "display": row.get("display"),
-                "project": project,
-                "timestamp": row.get("timestamp", 0),
-            }
-        )
-    return entries
-
-
-def _build_display_project_map(
-    history_entries: list[dict[str, Any]],
-) -> tuple[dict[str, str], str | None]:
-    display_to_project: dict[str, str] = {}
-    latest_project: str | None = None
-    latest_timestamp = -1
-
-    for entry in history_entries:
-        project = entry["project"]
-        timestamp = int(entry.get("timestamp") or 0)
-        display = entry.get("display")
-
-        if isinstance(display, str) and display.strip():
-            display_to_project[display.strip()] = project
-
-        if timestamp >= latest_timestamp:
-            latest_timestamp = timestamp
-            latest_project = project
-
-    return display_to_project, latest_project
-
-
-def _match_project_from_text(
-    text: str | None, display_to_project: dict[str, str]
-) -> str | None:
-    if not text:
-        return None
-    stripped = text.strip()
-    if not stripped:
-        return None
-    return display_to_project.get(stripped)
-
-
-def _infer_transcript_project(
-    rows: list[dict[str, Any]], display_to_project: dict[str, str], latest_project: str | None
-) -> tuple[str | None, str]:
-    for row in rows:
-        text = _extract_text(row.get("content")) or _extract_text(row)
-        matched = _match_project_from_text(text, display_to_project)
-        if matched:
-            return matched, "high"
-    if latest_project:
-        return latest_project, "low"
-    return None, "low"
-
-
-def _extract_tmp_session_events(root: Path, latest_project: str | None) -> list[dict[str, Any]]:
+    <root>/projects/<cwd-slug>/<session>.jsonl               main session
+    <root>/projects/<cwd-slug>/<session>/subagents/*.jsonl   subagent runs
+    """
+    projects_dir = root / "projects"
+    if not projects_dir.is_dir():
+        return []
     events: list[dict[str, Any]] = []
-    sessions_dir = root / "sessions"
-    if not sessions_dir.exists():
-        return events
-
-    for file_path in sorted(sessions_dir.glob("*-session.tmp")):
-        current_section: str | None = None
-        lines = file_path.read_text(encoding="utf-8").splitlines()
-        date_text = file_path.stem.replace("-session", "")
-        timestamp = f"{date_text}T00:00:00"
-        for line in lines:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            if stripped.startswith("### "):
-                current_section = stripped.removeprefix("### ").strip()
-                continue
-            if stripped.startswith("-"):
-                text = stripped.removeprefix("-").strip()
-                if not text or text == "[ ]":
-                    continue
+    for project_dir in sorted(p for p in projects_dir.iterdir() if p.is_dir()):
+        if any(marker in project_dir.name for marker in SKIP_DIR_MARKERS):
+            continue
+        files = [(f, False) for f in sorted(project_dir.glob("*.jsonl"))]
+        files += [(f, True) for f in sorted(project_dir.glob("*/subagents/*.jsonl"))]
+        for file_path, is_subagent in files:
+            for row in _read_session(file_path, start, end) or []:
+                message = row.get("message") if isinstance(row.get("message"), dict) else {}
+                text = _trim_text(None if row.get("isMeta") else _prompt_text(message))
+                session_id = row.get("sessionId") or file_path.stem
+                if is_subagent:
+                    # Subagent rows carry the parent's sessionId; keep them apart so the
+                    # parent is not reclassified as a subagent session.
+                    session_id = f"{session_id}/{file_path.stem}"
+                project = row.get("_project")
                 events.append(
                     {
                         "tool": "claude",
-                        "session_id": file_path.stem,
-                        "project_path": latest_project,
-                        "cwd": None,
-                        "timestamp": timestamp,
-                        "event_type": "session_note",
-                        "title": current_section,
+                        "session_id": session_id,
+                        "project_path": project,
+                        "cwd": row.get("cwd"),
+                        "timestamp": row.get("timestamp"),
+                        "event_type": row.get("type"),
+                        "title": text.splitlines()[0] if text else None,
                         "text": text,
                         "evidence_path": str(file_path),
-                        "confidence": "low",
-                        "is_subagent": False,
-                        "raw": {"section": current_section, "text": text},
+                        "confidence": "high" if project else "low",
+                        "is_subagent": is_subagent,
+                        "raw": _compact_raw(row),
                     }
                 )
     return events
-
-
-def _should_skip_project_file(file_path: Path) -> bool:
-    text = str(file_path)
-    if "observer-sessions" in text:
-        return True
-    if file_path.name == "sessions-index.json":
-        return True
-    return False
-
-
-def _extract_project_file_events(file_path: Path, latest_project: str | None) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    for row in _read_jsonl(file_path):
-        text = _extract_text(row.get("message")) or _extract_text(row.get("content")) or _extract_text(row.get("data"))
-        cwd = row.get("cwd")
-        project_path = cwd if isinstance(cwd, str) and cwd.strip() else latest_project
-        confidence = "medium" if project_path else "low"
-        events.append(
-            {
-                "tool": "claude",
-                "session_id": row.get("sessionId") or file_path.stem,
-                "project_path": project_path,
-                "cwd": cwd if isinstance(cwd, str) and cwd.strip() else None,
-                "timestamp": row.get("timestamp"),
-                "event_type": row.get("type"),
-                "title": _extract_title(text),
-                "text": text,
-                "evidence_path": str(file_path),
-                "confidence": confidence,
-                "is_subagent": _is_subagent_path(file_path),
-                "raw": row,
-            }
-        )
-    return events
-
-
-def _extract_project_fallback_events(root: Path, latest_project: str | None) -> list[dict[str, Any]]:
-    projects_dir = root / "projects"
-    if not projects_dir.exists():
-        return []
-
-    events: list[dict[str, Any]] = []
-    for file_path in sorted(projects_dir.rglob("*.jsonl")):
-        if _should_skip_project_file(file_path):
-            continue
-        events.extend(_extract_project_file_events(file_path, latest_project))
-    return events
-
-
-def _dedupe_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    deduped: list[dict[str, Any]] = []
-    seen: set[tuple[Any, ...]] = set()
-    for event in events:
-        key = (
-            event.get("session_id"),
-            event.get("project_path"),
-            event.get("timestamp"),
-            event.get("event_type"),
-            event.get("text"),
-            event.get("evidence_path"),
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(event)
-    return deduped
-
-
-def load_claude_events(root: Path) -> list[dict[str, Any]]:
-    history_entries = load_claude_history_entries(root / "history.jsonl")
-    display_to_project, latest_project = _build_display_project_map(history_entries)
-    events: list[dict[str, Any]] = []
-
-    transcripts_dir = root / "transcripts"
-    if not transcripts_dir.exists():
-        events.extend(_extract_tmp_session_events(root, latest_project))
-        events.extend(_extract_project_fallback_events(root, latest_project))
-        return _dedupe_events(events)
-
-    for file_path in sorted(transcripts_dir.glob("*.jsonl")):
-        session_id = file_path.stem
-        rows = _read_jsonl(file_path)
-        session_project, session_confidence = _infer_transcript_project(
-            rows, display_to_project, latest_project
-        )
-        for row in rows:
-            text = _extract_text(row.get("content")) or _extract_text(row)
-            matched_project = _match_project_from_text(text, display_to_project)
-            project_path = matched_project or session_project
-            confidence = "high" if matched_project else session_confidence
-            events.append(
-                {
-                    "tool": "claude",
-                    "session_id": session_id,
-                    "project_path": project_path,
-                    "cwd": row.get("cwd"),
-                    "timestamp": row.get("timestamp"),
-                    "event_type": row.get("type"),
-                    "title": _extract_title(text),
-                    "text": text,
-                    "evidence_path": str(file_path),
-                    "confidence": confidence,
-                    "is_subagent": _is_subagent_path(file_path),
-                    "raw": row,
-                }
-            )
-
-    events.extend(_extract_tmp_session_events(root, latest_project))
-    events.extend(_extract_project_fallback_events(root, latest_project))
-
-    return _dedupe_events(events)

@@ -1,5 +1,7 @@
 import tempfile
 import unittest
+from datetime import datetime, timezone
+import json
 from pathlib import Path
 import sys
 
@@ -12,6 +14,53 @@ from source_codex import load_codex_events
 
 
 class CodexSourceTest(unittest.TestCase):
+    def test_filters_during_load_and_compacts_large_raw_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for day in ("10", "11", "12"):
+                session_dir = root / f"sessions/2026/03/{day}"
+                session_dir.mkdir(parents=True)
+                rows = [
+                    {
+                        "timestamp": f"2026-03-{day}T10:00:00Z",
+                        "type": "session_meta",
+                        "payload": {"id": f"s-{day}", "cwd": "/repo/a"},
+                    },
+                    {
+                        "timestamp": f"2026-03-{day}T10:05:00Z",
+                        "type": "response_item",
+                        "payload": {
+                            "type": "message",
+                            "role": "user",
+                            "content": [{"type": "input_text", "text": f"task-{day}"}],
+                        },
+                    },
+                ]
+                if day == "11":
+                    rows.append(
+                        {
+                            "timestamp": "2026-03-11T10:06:00Z",
+                            "type": "world_state",
+                            "payload": {"type": "world_state", "content": "x" * 100_000},
+                        }
+                    )
+                (session_dir / f"rollout-{day}.jsonl").write_text(
+                    "\n".join(json.dumps(row) for row in rows) + "\n",
+                    encoding="utf-8",
+                )
+
+            events = load_codex_events(
+                root,
+                start=datetime(2026, 3, 11, 0, 0, tzinfo=timezone.utc),
+                end=datetime(2026, 3, 11, 23, 59, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual([event["session_id"] for event in events], ["s-11"] * 3)
+            self.assertEqual(events[1]["text"], "task-11")
+            self.assertIsNone(events[2]["text"])
+            self.assertLess(len(json.dumps(events[2]["raw"])), 1024)
+            self.assertNotIn("x" * 100, json.dumps(events[2]["raw"]))
+
     def test_loads_session_meta_and_inherits_context_to_response_items(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

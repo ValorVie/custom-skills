@@ -9,15 +9,29 @@
 - `~/.codex/sessions/**/*.jsonl`
 
 Use per-session JSONL as the authoritative event stream whenever available. Index and history files are supporting evidence.
+Read JSONL one line at a time, filter by the requested timestamp window before creating events, and keep only
+the `raw` fields needed for roles, tool counts, token counts, and commit-command evidence. Do not retain world
+state, full tool output, or other large payloads that do not affect the report.
 
 ## Claude Code
 
-- `~/.claude/transcripts/*.jsonl`
-- `~/.claude/history.jsonl`
-- `~/.claude/sessions/*.tmp`
-- `~/.claude/projects/*/*.jsonl` as fallback only
+Claude Code 2.x session logs only:
 
-Exclude observer-style project records by default, especially `*-claude-mem-observer-sessions`.
+- `~/.claude/projects/<cwd-slug>/<session>.jsonl` — main session
+- `~/.claude/projects/<cwd-slug>/<session>/subagents/*.jsonl` — subagent runs, grouped as
+  `<sessionId>/<file-stem>` so the parent session stays a main session
+
+Rules:
+
+- Keep only `user` / `assistant` rows inside the requested window.
+- Project is the session's first `cwd` (launch directory); later `cd` does not move the session.
+- User prompt text excludes tool results, `isMeta` rows and harness wrappers
+  (`<command-*>`, `<local-command-*>`, `<system-reminder>`, `<task-notification>`). Pasted
+  prompts that start with `<pasted_content>` are kept.
+- Skip sessions whose `entrypoint` starts with `sdk` (memory-plugin helper sessions) and
+  `*observer-sessions` directories.
+- Do not read `~/.claude/transcripts/`, `history.jsonl` or `sessions/*.tmp`; they are older or
+  non-Claude-Code formats.
 
 ## Unified Event Contract
 

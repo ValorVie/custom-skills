@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -10,7 +11,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[4]
-SKILL_ROOT = ROOT / ".agents/skills/work-log-codex"
+SKILL_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = SKILL_ROOT / "tests/fixtures"
 PARSER_MODULE = "wl_parser.work_log_parser"
 WRAPPER_SCRIPT = SKILL_ROOT / "scripts/generate_work_log.py"
@@ -67,6 +68,7 @@ class CliSmokeTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
 
         report = json.loads(result.stdout)
+        self.assertIn("讀取 Claude", result.stderr)
         self.assertIn("projects", report)
         self.assertIn("summary", report)
         self.assertIn("sessions", report)
@@ -127,6 +129,25 @@ class CliSmokeTest(unittest.TestCase):
             self.assertNotIn("### Token 消耗", report_path.read_text(encoding="utf-8"))
             self.assertIn("### 專案證據附錄", appendix_path.read_text(encoding="utf-8"))
             self.assertNotIn("### 工具使用", appendix_path.read_text(encoding="utf-8"))
+
+    def test_fallback_report_keeps_one_line_context_and_source(self) -> None:
+        result = self._run_wrapper(
+            "--range",
+            "2026-03-11",
+            "--codex-home",
+            str(FIXTURES / "codex_sample"),
+            "--claude-home",
+            str(FIXTURES / "claude_sample"),
+            "--output-mode",
+            "report-only",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("**一行重點：**", result.stdout)
+        self.assertIn("**重點脈絡：**", result.stdout)
+        self.assertIn("**來源：**", result.stdout)
+        contexts = re.findall(r"\*\*重點脈絡：\*\* (.+)", result.stdout)
+        self.assertTrue(contexts)
+        self.assertTrue(all(len(context) <= 300 for context in contexts))
 
 
 if __name__ == "__main__":
