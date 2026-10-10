@@ -282,7 +282,6 @@ Team 帶來的全新能力：
 |-----------|---------|------|
 | `general-purpose` | 全部 | 最靈活，什麼都能做 |
 | `code-reviewer` | Read, Grep, Glob, Bash | 唯讀，物理上不能改檔案 |
-| `reviewer` | 全部 | 可以審查也可以修改 |
 | `Explore` | 全部（除 Edit, Write） | 快速搜尋，不能修改 |
 | `Plan` | 全部（除 Edit, Write） | 規劃設計，不能修改 |
 
@@ -619,7 +618,6 @@ Skill 定義策略       Command 觸發流程        Agent 執行戰術
 | `Explore` | 唯讀（無 Edit/Write） | 快速程式碼探索 |
 | `Plan` | 唯讀（無 Edit/Write） | 架構設計與規劃 |
 | `code-reviewer` | Read, Grep, Glob, Bash | 程式碼審查（強制唯讀） |
-| `reviewer` | 全部 | 審查 + 可修改 |
 
 ### 語言專屬 Agents
 

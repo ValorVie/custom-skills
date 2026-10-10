@@ -110,7 +110,7 @@ def session_end():
 |------|------------|------|
 | Python 開發 | 3 agents + 5 skills | python-development, django-pro, fastapi-pro |
 | K8s 運維 | 1 agent + 4 skills | kubernetes-operations |
-| 測試 | 多個 | e2e-runner, test-specialist |
+| 測試 | 多個 | e2e-runner, tdd-guide |
 | 安全 | 1 agent | security-reviewer |
 
 #### 3. Ralph Loop 批次任務
@@ -132,13 +132,13 @@ def session_end():
 name: Feature Development
 steps:
   - name: Plan
-    agent: code-architect
+    agent: architect
   - name: Implement
     agent: specialist
   - name: Test
-    agent: test-specialist
+    agent: tdd-guide
   - name: Review
-    agent: reviewer
+    agent: code-reviewer
 ```
 
 #### 5. 官方 MCP 整合
@@ -381,7 +381,7 @@ OpenCode 直接使用 `~/.claude/skills/` 和 `~/.claude/commands/`，無需重�
 | 快速探索、成本敏感 | OpenCode + ultrawork |
 | 需要 Plugin 功能 | Claude Code |
 | 長時間背景任務 | OpenCode + Sisyphus |
-| 程式碼審查 | Claude Code (reviewer agent) |
+| 程式碼審查 | Claude Code (code-reviewer agent) |
 | 大型重構 | OpenCode (explore + parallel) |
 
 **共用資源配置**：
