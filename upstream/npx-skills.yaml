@@ -57,7 +57,6 @@ packages:
       - eli5
       - first-principles
       - wiki
-      - work-log-claude
 
   - repo: anthropics/skills
     source: anthropic-official

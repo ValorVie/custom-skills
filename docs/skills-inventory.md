@@ -3,7 +3,7 @@
 由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-10-10。
 Skills 來自 `upstream/npx-skills.yaml` 的 `ai-dev-first-party` 清單；手動編輯無效。
 
-## Skills（19）
+## Skills（18）
 
 - cloud-infrastructure-security
 - custom-agent-router
@@ -23,7 +23,6 @@ Skills 來自 `upstream/npx-skills.yaml` 的 `ai-dev-first-party` 清單；手�
 - eli5
 - first-principles
 - wiki
-- work-log-claude
 
 ## Commands（2）
 
