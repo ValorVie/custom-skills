@@ -456,8 +456,48 @@ def test_project_update_reports_precise_missing_detail_for_openspec(
     result = runner.invoke(app, ["project", "update"])
 
     assert result.exit_code == 0, result.stdout
-    assert "openspec/project.md 不存在" in result.stdout
+    assert "openspec/config.yaml 不存在" in result.stdout
     assert "建議執行 `openspec init`" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("config_text", "expected_calls", "expected_detail"),
+    [
+        # openspec 1.x 的 `openspec init` 只產生這樣的 config.yaml，沒有 project.md
+        ("schema: spec-driven\n", ["openspec"], None),
+        ("context: demo\n", [], "openspec/config.yaml 缺少 schema 欄位"),
+        ("schema: [unclosed\n", [], "openspec/config.yaml 缺少 schema 欄位"),
+    ],
+)
+def test_project_update_treats_config_schema_as_openspec_initialized(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    config_text: str,
+    expected_calls: list[str],
+    expected_detail: str | None,
+):
+    project_root = tmp_path / "project"
+    (project_root / "openspec").mkdir(parents=True)
+    (project_root / "openspec" / "config.yaml").write_text(config_text, encoding="utf-8")
+    monkeypatch.chdir(project_root)
+    monkeypatch.setattr(project_command, "check_tool_installed", lambda tool: True)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        project_command,
+        "run_tool_command",
+        lambda tool, command: calls.append(tool) or True,
+    )
+
+    result = runner.invoke(app, ["project", "update"])
+
+    assert calls == expected_calls
+    if expected_detail is None:
+        assert result.exit_code == 0, result.stdout
+        assert "✓ openspec update 完成" in result.stdout
+    else:
+        assert result.exit_code == 1, result.stdout
+        assert "專案尚未初始化" in result.stdout
+        assert project_command._project_init_missing_detail("openspec") == expected_detail
 
 
 def test_run_tool_command_treats_openspec_false_success_as_failure(

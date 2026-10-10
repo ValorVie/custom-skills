@@ -69,7 +69,7 @@ CLI MUST (必須) 提供 `project` 子命令群組，包含專案級別的操作
 
 #### Scenario: 預設更新流程
 
-給定一個已初始化的專案目錄
+給定一個已初始化的專案目錄（`openspec/config.yaml` 存在且有 `schema` 欄位；不要求 `openspec/project.md`）
 當執行 `ai-dev project update` 時
 則應該依序執行：
 1. `openspec update`（更新 `openspec/` 配置）

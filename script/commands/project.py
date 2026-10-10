@@ -443,14 +443,9 @@ def _has_valid_yaml_object(path: Path, required_keys: set[str]) -> bool:
 def check_project_initialized(tool: str) -> bool:
     """檢查專案是否已初始化特定工具。"""
     if tool == "openspec":
-        openspec_dir = Path(TOOLS[tool]["check_dir"])
-        return (
-            openspec_dir.exists()
-            and (openspec_dir / "project.md").exists()
-            and _has_valid_yaml_object(
-                openspec_dir / "config.yaml",
-                {"schema", "specs", "active", "archived"},
-            )
+        # openspec init（1.x）只產生帶 schema 的 config.yaml，不會有 project.md
+        return _has_valid_yaml_object(
+            Path(TOOLS[tool]["check_dir"]) / "config.yaml", {"schema"}
         )
 
     check_dir = TOOLS[tool]["check_dir"]
@@ -463,15 +458,10 @@ def _project_init_missing_detail(tool: str) -> str:
         openspec_dir = Path(TOOLS[tool]["check_dir"])
         if not openspec_dir.exists():
             return "openspec/ 不存在"
-        if not (openspec_dir / "project.md").exists():
-            return "openspec/project.md 不存在"
         if not (openspec_dir / "config.yaml").exists():
             return "openspec/config.yaml 不存在"
-        if not _has_valid_yaml_object(
-            openspec_dir / "config.yaml",
-            {"schema", "specs", "active", "archived"},
-        ):
-            return "openspec/config.yaml 結構無效"
+        if not _has_valid_yaml_object(openspec_dir / "config.yaml", {"schema"}):
+            return "openspec/config.yaml 缺少 schema 欄位"
     return f"{TOOLS[tool]['check_dir']}/ 不存在"
 
 

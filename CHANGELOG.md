@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`project update` 放寬 openspec 初始化檢查。**
+  - 原本要求 `openspec/project.md`，以及 `config.yaml` 同時有 `schema`、`specs`、`active`、`archived`；openspec 1.x 的 `openspec init` 只產生帶 `schema` 的 `config.yaml`，因此實際專案一直被判定為未初始化，`openspec update` 從未執行。
+  - 現在只要 `openspec/config.yaml` 有 `schema` 欄位就視為已初始化。原本被略過的專案執行 `project update` 時，會開始實際執行 `openspec update`。
+
 - **移除 plugin hooks.json 中 Claude Code 不支援的 matcher 群組 `description` 欄位。**
   - Claude Code 2.1.x 會對 `hooks.<Event>[n].description` 顯示 unknown keys 警告並忽略該欄位；`ecc-hooks` 移除 19 個、`custom-skills-notify` 移除 4 個，hook 行為不變。
   - `ecc-hooks` 升版至 1.2.9，`custom-skills-notify` 升版至 1.4.1。

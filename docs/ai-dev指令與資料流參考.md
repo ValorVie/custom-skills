@@ -52,7 +52,7 @@
 | `~/.config/ai-dev/manifests/projects/<project_id>.yaml` | 專案 AI projection manifest | `init-from`, `project init`, `project hydrate`, `project reconcile` |
 | `<project>/.ai-dev-project.yaml` | 專案 intent、managed files、git exclude 設定 | `init-from`, `project init`, `project exclude`, `project hydrate` |
 | `<project>/.git/info/exclude` | 本地 git 排除規則 | `init-from`, `project init`, `project hydrate`, `project reconcile`, `project exclude` |
-| `<project>/openspec/project.md`、`<project>/openspec/config.yaml` | OpenSpec 專案初始化狀態 | 外部 `openspec init` |
+| `<project>/openspec/config.yaml` | OpenSpec 專案初始化狀態（有 `schema` 欄位即視為已初始化） | 外部 `openspec init` |
 | `~/.config/ai-dev/sync.yaml` | sync 子系統設定 | `sync init`, `sync add`, `sync remove`, `sync push`, `sync pull` |
 | `~/.config/ai-dev/sync-repo/` | sync 使用的本地 Git repo | `sync init`, `sync push`, `sync pull` |
 | `~/.config/ai-dev/sync-server.yaml` | mem sync server 設定 | `mem register`, `mem auto` |
@@ -357,7 +357,8 @@ exclude 規則：
 
 初始化檢查規則：
 - 專案留有 UDS 的 `.standards/` 時，提示 UDS 已退役，不執行 `uds update`，也不修改該目錄；沒有其他可更新的工具時維持成功結束
-- 若 `openspec` 尚未初始化（例如缺少 `openspec/project.md`、`openspec/config.yaml`，或 config 結構無效），提示執行 `openspec init`
+- `openspec/config.yaml` 存在且有 `schema` 欄位，就視為 `openspec` 已初始化；不要求 `openspec/project.md`，因為 openspec 1.x 的 `openspec init` 不會產生它
+- 若 `openspec` 尚未初始化（缺少 `openspec/config.yaml`，或其中沒有 `schema` 欄位），提示執行 `openspec init`
 - 若部分工具未初始化，只更新已初始化的工具
 
 ### `ai-dev project exclude`
