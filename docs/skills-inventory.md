@@ -1,6 +1,6 @@
 # Skills / Commands / Agents 清單（自動生成）
 
-由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-08-28。
+由 `script/dev_tools/generate_skills_inventory.py` 產生於 2026-10-10。
 Skills 來自 `upstream/npx-skills.yaml` 的 `ai-dev-first-party` 清單；手動編輯無效。
 
 ## Skills（19）
@@ -30,20 +30,10 @@ Skills 來自 `upstream/npx-skills.yaml` 的 `ai-dev-first-party` 清單；手�
 - code-simplifier-antigravity
 - custom-skills-git-commit
 
-## Agents（15）
+## Agents（5）
 
 - build-error-resolver
-- code-architect
-- code-architect
 - database-reviewer
 - doc-updater
-- doc-writer
-- doc-writer
 - e2e-runner
-- reviewer
-- reviewer
 - security-reviewer
-- spec-analyst
-- spec-analyst
-- test-specialist
-- test-specialist
