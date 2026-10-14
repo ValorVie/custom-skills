@@ -85,6 +85,14 @@ packages:
       - safety-guard
       - security-scan
 
+  - repo: github/awesome-copilot
+    source: github-awesome-copilot
+    rationale: GitHub 維護的社群 skill；acquire-codebase-knowledge 與 docs-sync-audit 帶掃描／漂移腳本，code-tour 上游版帶 validate_tour.py 行號驗證，取代 ECC 改寫版（2026-10-14 qdm-arch-3vj1）
+    skills:
+      - acquire-codebase-knowledge
+      - code-tour
+      - docs-sync-audit
+
   - repo: tanweai/pua
     source: tanweai
     rationale: PUA 官方維護

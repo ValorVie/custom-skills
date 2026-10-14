@@ -92,9 +92,9 @@ distribute:
       - e2e-testing
       - production-audit
 
-      # === 文件、知識管理、研究 (docs-knowledge) — 9 個 ===
+      # === 文件、知識管理、研究 (docs-knowledge) — 8 個 ===
       - brand-voice
-      - code-tour
+      # code-tour 改由 upstream/npx-skills.yaml 的 github/awesome-copilot 安裝（上游版帶 validate_tour.py），2026-10-14 qdm-arch-3vj1
       - deep-research
       - documentation-lookup
       - exa-search
