@@ -40,7 +40,6 @@ packages:
     rationale: ai-dev 第一方公開 skills，由獨立 repository 維護
     skills:
       - cloud-infrastructure-security
-      - custom-agent-router
       - simplify
       - custom-skill-creator
       - custom-skills-dev
